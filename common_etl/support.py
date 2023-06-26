@@ -1145,6 +1145,19 @@ def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags):  # to
     install_table_metadata(table_id, final_table_metadata)
 
 
+def cluster_table(input_table, output_table, out_dataset, cluster_fields, do_batch):
+    cluster_sql = cluster_sql_table(input_table, output_table, cluster_fields)
+    return generic_bq_harness(cluster_sql, out_dataset, do_batch, True)
+
+def cluster_sql_table(input_table, output_table, cluster_fields):
+    cluster_string = ', '.join(cluster_fields)
+    sql = f'''
+          CREATE TABLE `{output_table}` 
+          CLUSTER BY {cluster_string} 
+          AS SELECT * FROM `{input_table}`
+    '''
+    return sql
+
 def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding_dict):
     """
     Merge schema descriptions (if any) and ISB-added descriptions with inferred type data

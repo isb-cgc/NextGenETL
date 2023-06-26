@@ -33,7 +33,7 @@ from common_etl.utils import check_value_type, get_column_list_tsv, \
 
 from common_etl.support import update_dir_from_git, get_the_bq_manifest, confirm_google_vm, create_clean_target, \
                                generic_bq_harness, build_file_list, pull_from_buckets, upload_to_bucket, csv_to_bq, \
-                               build_pull_list_with_bq, create_schema_hold_list, update_schema_tags, \
+                               build_pull_list_with_bq, cluster_table, create_schema_hold_list, update_schema_tags, \
                                write_table_schema_with_generic, qc_bq_table_metadata, publish_tables_and_update_schema
 
 
@@ -123,7 +123,7 @@ def create_draft_table(cnv_table, file_table, aliquot_table, case_table, gene_ta
 
 def sql_for_draft_table(cnv_table, file_table, aliquot_table, case_table, gene_table, program):
     """
-    SQL Code For Final Table Generation
+    SQL Code For Final Table Generation # todo add more explanation of the query
 
     :param cnv_table: Raw Copy Number table name
     :type cnv_table: basestring
@@ -292,9 +292,12 @@ def main(args):
         base_table_name = f"{params.DATA_TYPE}_hg38_gdc"
         pub_curr_name = f"{base_table_name}_current"
         pub_ver_name = f"{base_table_name}_{release}"
-        raw_table = f"{bq_dataset}_{base_table_name}_raw_{release}"
         manifest_table = f"{bq_dataset}_{base_table_name}_manifest_{release}"
         pull_list_table = f"{bq_dataset}_{base_table_name}_pull_list_{release}"
+        raw_table = f"{bq_dataset}_{base_table_name}_raw_{release}"
+        raw_table_id = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{raw_table}"
+        intermediate_table = f"{bq_dataset}_{base_table_name}_intermediate_{release}"
+        intermediate_table_id = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{intermediate_table}"
         draft_table = f"{bq_dataset}_{base_table_name}_{release}"
         draft_full_id = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}"
         pub_ver_full_id = f"{params.PUBLICATION_PROJECT}.{bq_dataset}_versioned.{pub_ver_name}"
@@ -371,15 +374,22 @@ def main(args):
                 typed_schema = json_loads(schema_list.read())
             csv_to_bq(typed_schema, bucket_src_url, params.SCRATCH_DATASET, raw_table, params.BQ_AS_BATCH)
 
-        if 'create_draft_table' in steps:
-            print('Creating final draft table by joining on extra data')
-            full_target_table = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{raw_table}'
-            success = create_draft_table(full_target_table, params.FILE_TABLE.format(release),
+        if 'create_intermediate_draft_table' in steps:
+            print('Creating intermediate draft table by joining on extra data')
+            success = create_draft_table(raw_table_id, params.FILE_TABLE.format(release),
                                          f"{params.ALIQUOT_TABLE}_{release}", f"{params.CASE_TABLE}_{release}",
-                                         params.GENE_NAMES_TABLE, program, params.SCRATCH_DATASET, f"{draft_table}",
+                                         params.GENE_NAMES_TABLE, program, params.SCRATCH_DATASET, intermediate_table,
                                          params.BQ_AS_BATCH)
             if not success:
                 print("Join job failed")
+
+        if 'create_final_draft_table' in steps:
+            print('Creating final draft table by clustering table')
+            cluster_fields = ['project_short_name', 'case_barcode', 'sample_barcode', 'aliquot_barcode']
+            success = cluster_table(intermediate_table_id, draft_full_id, cluster_fields, params.BQ_AS_BATCH)
+
+        if not success:
+            print("Clustering job failed")
 
         if 'update_table_schema' in steps:
             print("update schema tags")
