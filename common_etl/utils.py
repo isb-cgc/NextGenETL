@@ -1111,7 +1111,8 @@ def check_value_type(value):
         try:
             str_val = str(value)
 
-            if str_val.startswith("0") and len(value) > 1 and ':' not in value and '-' not in value and '.' not in value:
+            if str_val.startswith("0") and len(str_val) > 1 and ':' not in str_val \
+                    and '-' not in str_val and '.' not in str_val:
                 return "STRING"
 
             if float(value) == int(float(value)):
