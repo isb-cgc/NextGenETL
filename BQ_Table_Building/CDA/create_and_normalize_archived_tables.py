@@ -167,6 +167,7 @@ def make_file_metadata_legacy_filtered_query():
 
 
 def create_jsonl_and_schema(sql: str, column_list: list[str], table_name: str):
+    print(sql)
     result = bq_harness_with_result(sql=sql, do_batch=False, verbose=False)
 
     obj_list = convert_bq_result_to_object_list(result=result, column_list=column_list)
@@ -205,10 +206,6 @@ def main(args):
         API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(err, ValueError)
-
-    gdc_archive_release = API_PARAMS['GDC_ARCHIVE_RELEASE']
-    working_project = BQ_PARAMS['WORKING_PROJECT']
-    working_dataset = BQ_PARAMS['WORKING_DATASET']
 
     if 'create_aliquot_to_case_legacy_jsonl' in steps:
         create_jsonl_and_schema(sql=make_aliquot_to_case_legacy_filtered_query(),
