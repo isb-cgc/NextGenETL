@@ -53,9 +53,9 @@ def compare_id_keys(old_table_id: str, new_table_id: str, primary_key: str):
         if not result:
             has_fatal_error(f"Primary key {primary_key} not found in one or both compared tables")
         elif result.total_rows == 0:
-            print(f"{table_id_1} has no {primary_key} values that don't exist in {table_id_2}. Great!")
+            print(f"\n{table_id_1} has no {primary_key} values that don't exist in {table_id_2}. Great!")
         else:
-            print(f"{table_id_1} has "
+            print(f"\n{table_id_1} has "
                   f"{result.total_rows} {primary_key} values which don't exist in "
                   f"{table_id_2}.")
             print(f"\nExample values:")
@@ -145,7 +145,7 @@ def compare_table_columns(old_table_id: str, new_table_id: str, primary_key: str
             count = 0
 
             for row in result:
-                print(f"{row[0]}\t\t\t\t{row[1]}")
+                print(f"{row[0]}\t\t\t\t\t{row[1]}")
                 count += 1
                 if count == 5:
                     break

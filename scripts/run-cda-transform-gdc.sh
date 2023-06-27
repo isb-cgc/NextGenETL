@@ -24,6 +24,7 @@ FILE_ARG="file"
 PER_SAMPLE_FILE_ARG="per_sample_file"
 ALIQUOT_ARG="aliquot_to_case"
 SLIDE_ARG="slide_to_case"
+DISEASE_ARG="project_disease_type"
 
 if [[ ${SCRIPT_NAME} = ${CASE_ARG} ]] ; then
     CONFIG_FILE="CDATransformCaseBQBuildGDC.yaml"
@@ -43,6 +44,9 @@ elif [[ ${SCRIPT_NAME} = ${FILE_ARG} ]] ; then
 elif [[ ${SCRIPT_NAME} = ${PER_SAMPLE_FILE_ARG} ]] ; then
     CONFIG_FILE="CDATransformPerSampleFileBQBuildGDC.yaml"
     SCRIPT_FILE="transform_tables_per_sample_file_metadata_gdc.py"
+elif [[ ${SCRIPT_NAME} = ${DISEASE_ARG} ]] ; then
+    CONFIG_FILE="CDATransformProjectDiseaseTypeBuildGDC.yaml"
+    SCRIPT_FILE="transform_tables_project_disease_type.py"
 else
     echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, per_sample_file, aliquot_to_case, slide_to_case"
     exit 1
