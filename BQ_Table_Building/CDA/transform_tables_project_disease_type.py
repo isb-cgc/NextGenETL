@@ -64,7 +64,10 @@ def create_merged_project_studies_disease_type_jsonl():
         elif len(disease_type_set) == 0:
             disease_type_string = None
         else:
-            disease_type_string = ";".join(disease_type_set)
+            disease_type_string = None
+            for disease_type in disease_type_set:
+                if disease_type is not None:
+                    disease_type_string += f";{disease_type}"
 
         project_disease_type_object = {
             'project_id': project_id,
