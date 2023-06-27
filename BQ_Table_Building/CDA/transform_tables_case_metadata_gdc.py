@@ -33,6 +33,9 @@ def create_dev_table_id(table_name) -> str:
 
 
 def make_case_metadata_table_sql():
+    disease_type_table_name = f"project_disease_types_merged_{API_PARAMS['RELEASE']}"
+    disease_type_table_id = f"`{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{disease_type_table_name}`"
+
     return f"""
     WITH counts AS (
     SELECT case_id, COUNT(file_id) as active_file_count 
@@ -44,7 +47,7 @@ def make_case_metadata_table_sql():
         SELECT cpp.case_gdc_id, 
         c.primary_site, 
         cpp.project_dbgap_accession_number, 
-        psdt.disease_type as project_disease_type,
+        pdt.disease_type as project_disease_type,
         cpp.project_name, 
         cpp.program_dbgap_accession_number,
         cpp.program_name, 
@@ -55,8 +58,8 @@ def make_case_metadata_table_sql():
         FROM {create_dev_table_id('case_project_program')} cpp
         JOIN {create_dev_table_id('case')} c
             ON c.case_id = cpp.case_gdc_id
-        JOIN {create_dev_table_id('project_studies_disease_type')} psdt
-            ON psdt.project_id = cpp.project_id
+        LEFT JOIN {disease_type_table_id} pdt
+            ON pdt.project_id = cpp.project_id
         JOIN `{BQ_PARAMS['ARCHIVE_COUNT_TABLE_ID']}` r
             ON cpp.case_gdc_id = r.case_gdc_id
         JOIN counts 
