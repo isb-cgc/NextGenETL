@@ -34,40 +34,45 @@ def create_dev_table_id(table_name) -> str:
 
 def make_aliquot_case_table_sql():
     return f"""
-    SELECT 
-        cpp.program_name, 
-        cpp.project_id,
-        cpp.case_gdc_id, 
-        cpp.case_barcode,
-        s.sample_id AS sample_gdc_id,
-        s.submitter_id AS sample_barcode,
-        s.sample_type_id AS sample_type,
-        s.sample_type AS sample_type_name,
-        s.is_ffpe AS sample_is_ffpe, 
-        s.preservation_method AS sample_preservation_method,
-        p.portion_id AS portion_gdc_id,
-        p.submitter_id AS portion_barcode,
-        an.analyte_id AS analyte_gdc_id,
-        an.submitter_id AS analyte_barcode,
-        al.aliquot_id AS aliquot_gdc_id,
-        al.submitter_id AS aliquot_barcode        
-    FROM {create_dev_table_id('aliquot')} al
-    JOIN {create_dev_table_id('aliquot_of_analyte')} aoa
-        ON aoa.aliquot_id = al.aliquot_id
-    JOIN {create_dev_table_id('analyte')} an
-        ON an.analyte_id = aoa.analyte_id
-    JOIN {create_dev_table_id('analyte_from_portion')} afp
-        ON afp.analyte_id = an.analyte_id
-    JOIN {create_dev_table_id('portion')} p 
-        ON p.portion_id = afp.portion_id
-    JOIN {create_dev_table_id('portion_from_sample')} pfs
-        ON pfs.portion_id = p.portion_id
-    JOIN {create_dev_table_id('sample')} s
-        ON s.sample_id = pfs.sample_id
-    JOIN {create_dev_table_id('sample_from_case')} sfc
-        ON sfc.sample_id = s.sample_id
-    JOIN {create_dev_table_id('case_project_program')} cpp
-        ON sfc.case_id = cpp.case_gdc_id
+    (
+        SELECT 
+            cpp.program_name, 
+            cpp.project_id,
+            cpp.case_gdc_id, 
+            cpp.case_barcode,
+            s.sample_id AS sample_gdc_id,
+            s.submitter_id AS sample_barcode,
+            s.sample_type_id AS sample_type,
+            s.sample_type AS sample_type_name,
+            s.is_ffpe AS sample_is_ffpe, 
+            s.preservation_method AS sample_preservation_method,
+            p.portion_id AS portion_gdc_id,
+            p.submitter_id AS portion_barcode,
+            an.analyte_id AS analyte_gdc_id,
+            an.submitter_id AS analyte_barcode,
+            al.aliquot_id AS aliquot_gdc_id,
+            al.submitter_id AS aliquot_barcode        
+        FROM {create_dev_table_id('aliquot')} al
+        JOIN {create_dev_table_id('aliquot_of_analyte')} aoa
+            ON aoa.aliquot_id = al.aliquot_id
+        JOIN {create_dev_table_id('analyte')} an
+            ON an.analyte_id = aoa.analyte_id
+        JOIN {create_dev_table_id('analyte_from_portion')} afp
+            ON afp.analyte_id = an.analyte_id
+        JOIN {create_dev_table_id('portion')} p 
+            ON p.portion_id = afp.portion_id
+        JOIN {create_dev_table_id('portion_from_sample')} pfs
+            ON pfs.portion_id = p.portion_id
+        JOIN {create_dev_table_id('sample')} s
+            ON s.sample_id = pfs.sample_id
+        JOIN {create_dev_table_id('sample_from_case')} sfc
+            ON sfc.sample_id = s.sample_id
+        JOIN {create_dev_table_id('case_project_program')} cpp
+            ON sfc.case_id = cpp.case_gdc_id
+    ) UNION ALL (
+        SELECT * 
+        FROM `isb-project-zero.cda_gdc_test.r37_aliquot_to_case_legacy` 
+    )
     """
 
 

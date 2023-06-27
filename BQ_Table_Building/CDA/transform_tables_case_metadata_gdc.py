@@ -40,26 +40,31 @@ def make_case_metadata_table_sql():
         GROUP BY case_id
     )
     
-    SELECT cpp.case_gdc_id, 
-    c.primary_site, 
-    cpp.project_dbgap_accession_number, 
-    psdt.disease_type as project_disease_type,
-    cpp.project_name, 
-    cpp.program_dbgap_accession_number,
-    cpp.program_name, 
-    cpp.project_id, 
-    c.submitter_id AS case_barcode,
-    r.legacy_file_count,
-    counts.active_file_count
-    FROM {create_dev_table_id('case_project_program')} cpp
-    JOIN {create_dev_table_id('case')} c
-        ON c.case_id = cpp.case_gdc_id
-    JOIN {create_dev_table_id('project_studies_disease_type')} psdt
-        ON psdt.project_id = cpp.project_id
-    JOIN `{BQ_PARAMS['ARCHIVE_COUNT_TABLE_ID']}` r
-        ON cpp.case_gdc_id = r.case_gdc_id
-    JOIN counts 
-        ON counts.case_id = cpp.case_gdc_id
+    (
+        SELECT cpp.case_gdc_id, 
+        c.primary_site, 
+        cpp.project_dbgap_accession_number, 
+        psdt.disease_type as project_disease_type,
+        cpp.project_name, 
+        cpp.program_dbgap_accession_number,
+        cpp.program_name, 
+        cpp.project_id, 
+        c.submitter_id AS case_barcode,
+        r.legacy_file_count,
+        counts.active_file_count
+        FROM {create_dev_table_id('case_project_program')} cpp
+        JOIN {create_dev_table_id('case')} c
+            ON c.case_id = cpp.case_gdc_id
+        JOIN {create_dev_table_id('project_studies_disease_type')} psdt
+            ON psdt.project_id = cpp.project_id
+        JOIN `{BQ_PARAMS['ARCHIVE_COUNT_TABLE_ID']}` r
+            ON cpp.case_gdc_id = r.case_gdc_id
+        JOIN counts 
+            ON counts.case_id = cpp.case_gdc_id
+    ) UNION ALL (
+        SELECT * 
+        FROM `isb-project-zero.cda_gdc_test.r37_case_metadata_legacy` 
+    )
     """
 
 
