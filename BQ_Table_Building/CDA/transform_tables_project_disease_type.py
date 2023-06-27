@@ -41,6 +41,8 @@ def create_merged_project_studies_disease_type_jsonl():
         FROM `{create_dev_table_id('project_studies_disease_type')}`
         """
 
+    print(make_project_studies_disease_type_query())
+
     result = bq_harness_with_result(sql=make_project_studies_disease_type_query(), do_batch=False, verbose=False)
 
     project_disease_type_dict = dict()
