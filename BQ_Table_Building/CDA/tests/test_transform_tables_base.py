@@ -99,11 +99,11 @@ def compare_row_counts(old_table_id: str, new_table_id: str):
     if old_count == new_count:
         print(f"Same row count between old and new tables: {old_count}")
     else:
-        print(f"Mismatched row counts. "
-              f"Old table row count: {old_count}."
-              f"New table row count: {new_count}. "
+        print(f"Mismatched row counts.\n"
+              f"Old table row count: {old_count}.\n"
+              f"New table row count: {new_count}.\n"
               f"Note: if this table contains merged legacy data, "
-              "this could be due to dropping records with no DCF file associations.")
+              "this could be due to dropping records with no DCF file associations.\n")
 
 
 def compare_table_columns(old_table_id: str, new_table_id: str, primary_key: str, columns: list[str]):
@@ -145,7 +145,7 @@ def compare_table_columns(old_table_id: str, new_table_id: str, primary_key: str
             count = 0
 
             for row in result:
-                print(f"{row[0]}\t{row[1]}")
+                print(f"{row[0]}\t\t\t\t{row[1]}")
                 count += 1
                 if count == 5:
                     break
