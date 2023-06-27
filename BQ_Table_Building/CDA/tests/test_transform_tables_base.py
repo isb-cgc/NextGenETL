@@ -75,6 +75,37 @@ def compare_id_keys(old_table_id: str, new_table_id: str, primary_key: str):
     compare_table_keys(old_table_id, new_table_id)
 
 
+def compare_row_counts(old_table_id: str, new_table_id: str):
+    def make_row_count_sql(table_id: str) -> str:
+        return f"""
+        SELECT COUNT(*) as row_count
+        FROM {table_id}
+        """
+
+    old_table_row_count_query = make_row_count_sql(old_table_id)
+    new_table_row_count_query = make_row_count_sql(new_table_id)
+
+    old_count_result = bq_harness_with_result(sql=old_table_row_count_query, do_batch=False, verbose=False)
+    new_count_result = bq_harness_with_result(sql=new_table_row_count_query, do_batch=False, verbose=False)
+
+    for row in old_count_result:
+        old_count = row[0]
+        break
+
+    for row in new_count_result:
+        new_count = row[0]
+        break
+
+    if old_count == new_count:
+        print(f"Same row count between old and new tables: {old_count}")
+    else:
+        print(f"Mismatched row counts. "
+              f"Old table row count: {old_count}."
+              f"New table row count: {new_count}. "
+              f"Note: if this table contains merged legacy data, "
+              "this could be due to dropping records with no DCF file associations.")
+
+
 def compare_table_columns(old_table_id: str, new_table_id: str, primary_key: str, columns: list[str]):
     def make_compare_table_column_sql(column_name) -> str:
         return f"""
@@ -128,6 +159,11 @@ def main(args):
         API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(err, ValueError)
+
+    print("Comparing row counts!\n")
+
+    compare_row_counts(old_table_id=BQ_PARAMS['OLD_TABLE_ID'],
+                       new_table_id=BQ_PARAMS['NEW_TABLE_ID'])
 
     print("Comparing table keys!\n")
 
