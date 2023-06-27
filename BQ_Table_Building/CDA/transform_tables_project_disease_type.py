@@ -58,7 +58,7 @@ def create_merged_project_studies_disease_type_jsonl():
 
     project_disease_type_jsonl_list = list()
 
-    for project_id, disease_type_set in project_disease_type_dict:
+    for project_id, disease_type_set in project_disease_type_dict.items():
         if len(disease_type_set) > 8:
             disease_type_string = 'multi'
         else:
