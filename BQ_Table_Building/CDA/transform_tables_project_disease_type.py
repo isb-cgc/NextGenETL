@@ -38,7 +38,7 @@ def create_merged_project_studies_disease_type_jsonl():
     def make_project_studies_disease_type_query():
         return f"""
         SELECT *
-        FROM `{create_dev_table_id('project_studies_disease_type')}`
+        FROM {create_dev_table_id('project_studies_disease_type')}
         """
 
     print(make_project_studies_disease_type_query())
