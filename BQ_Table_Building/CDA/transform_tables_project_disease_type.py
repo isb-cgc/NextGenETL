@@ -91,8 +91,10 @@ def create_merged_project_studies_disease_type_jsonl():
 
 
 def create_table():
-    table_id = create_dev_table_id(BQ_PARAMS['TABLE_NAME'])
-    jsonl_file = f"{BQ_PARAMS['TABLE_NAME']}_{API_PARAMS['RELEASE']}.jsonl"
+    table_name = f"{BQ_PARAMS['TABLE_NAME']}_{API_PARAMS['RELEASE']}"
+    table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['DEV_DATASET']}.{table_name}"
+    jsonl_file = f"{table_name}.jsonl"
+
     table_schema = retrieve_bq_schema_object(API_PARAMS,
                                              BQ_PARAMS,
                                              table_name=BQ_PARAMS['TABLE_NAME'],
