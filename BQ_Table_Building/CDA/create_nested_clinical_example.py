@@ -33,7 +33,7 @@ def get_cgci_nested_clinical_result():
     def make_cgci_clinical_query():
         return f"""
         SELECT * 
-        FROM `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{BQ_PARAMS['RELEASE']}_clinical`,
+        FROM `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_clinical`,
         UNNEST(project) as proj
         WHERE proj.project_id LIKE 'CGCI%'
         """
@@ -116,7 +116,6 @@ def main(args):
         cases = get_cgci_nested_clinical_result()
 
         print(cases[0])
-
         norm_cases = recursively_normalize_field_values(cases)
 
         print(norm_cases[0])
