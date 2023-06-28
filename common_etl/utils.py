@@ -1132,6 +1132,12 @@ def check_value_type(value):
         return "RECORD"
     if not value:
         return None
+    if isinstance(value, datetime.datetime):
+        return "TIMESTAMP"
+    if isinstance(value, datetime.date):
+        return "DATE"
+    if isinstance(value, datetime.time):
+        return "TIME"
 
     # A sequence of numbers starting with a 0 represents a string id,
     # but int() check will pass and data loss would occur.
