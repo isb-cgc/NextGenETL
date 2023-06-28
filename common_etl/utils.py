@@ -1081,6 +1081,8 @@ def is_int_value(value):
         return True
     except ValueError:
         return False
+    except TypeError:
+        return False
 
 
 def check_value_type(value):
