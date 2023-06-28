@@ -21,7 +21,8 @@ SOFTWARE.
 """
 import sys
 
-from common_etl.utils import load_config, has_fatal_error, normalize_value
+from common_etl.utils import load_config, has_fatal_error, normalize_value, write_list_to_jsonl_and_upload, \
+    create_and_upload_schema_for_json, retrieve_bq_schema_object, create_and_load_table_from_jsonl
 from common_etl.support import bq_harness_with_result
 
 API_PARAMS = dict()
@@ -117,13 +118,36 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
-    if 'get_cgci_clinical_result' in steps:
+    if 'normalize_cgci_clinical_result' in steps:
         cases = get_cgci_nested_clinical_result()
 
-        print(cases[0])
         norm_cases = recursively_normalize_field_values(cases)
 
-        print(norm_cases[0])
+        table_name = 'CGCI_clinical_nested_gdc'
+
+        write_list_to_jsonl_and_upload(API_PARAMS,
+                                       BQ_PARAMS,
+                                       prefix=table_name,
+                                       record_list=norm_cases)
+
+        create_and_upload_schema_for_json(API_PARAMS,
+                                          BQ_PARAMS,
+                                          record_list=norm_cases,
+                                          table_name=table_name,
+                                          include_release=True)
+
+    if 'create_table' in steps:
+        release = API_PARAMS['RELEASE']
+        working_project = BQ_PARAMS['WORKING_PROJECT']
+        target_dataset = BQ_PARAMS['TARGET_DATASET']
+
+        table_id = f"{working_project}.{target_dataset}.{release}_{table_name}"
+        jsonl_file = f"{table_name}_{API_PARAMS['RELEASE']}.jsonl"
+
+        table_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, table_name=table_name, include_release=True)
+
+        # Load jsonl data into BigQuery table
+        create_and_load_table_from_jsonl(BQ_PARAMS, jsonl_file=jsonl_file, table_id=table_id, schema=table_schema)
 
 
 if __name__ == "__main__":
