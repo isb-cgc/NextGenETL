@@ -68,12 +68,16 @@ def recursively_normalize_field_values(json_records, is_single_record=False):
         """
         for key, value in _obj.items():
             if isinstance(_obj[key], dict):
+                print(f"1 key: {key}, value: {value}")
+
                 if key not in _data_set_dict:
                     # this is a dict, so use dict to nest values
                     _data_set_dict[key] = dict()
 
                 recursively_normalize_field_value(_obj[key], _data_set_dict[key])
             elif isinstance(_obj[key], list) and len(_obj[key]) > 0 and isinstance(_obj[key][0], dict):
+                print(f"2 key: {key}, value: {value}")
+
                 if key not in _data_set_dict:
                     _data_set_dict[key] = list()
 
@@ -83,6 +87,8 @@ def recursively_normalize_field_values(json_records, is_single_record=False):
                     recursively_normalize_field_value(_record, _data_set_dict[key][idx])
                     idx += 1
             elif not isinstance(_obj[key], list) or (isinstance(_obj[key], list) and len(_obj[key]) > 0):
+                print(f"3 key: {key}, value: {value}")
+
                 if key not in _data_set_dict:
                     _data_set_dict[key] = dict()
 
