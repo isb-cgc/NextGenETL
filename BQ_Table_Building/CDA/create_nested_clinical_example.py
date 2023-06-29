@@ -121,12 +121,15 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
+    release = API_PARAMS['RELEASE']
+    working_project = BQ_PARAMS['WORKING_PROJECT']
+    target_dataset = BQ_PARAMS['TARGET_DATASET']
+    table_name = BQ_PARAMS['WORKING_TABLE']
+
     if 'normalize_cgci_clinical_result' in steps:
         cases = get_cgci_nested_clinical_result()
 
         norm_cases = recursively_normalize_field_values(cases)
-
-        table_name = 'CGCI_clinical_nested_gdc'
 
         write_list_to_jsonl_and_upload(API_PARAMS,
                                        BQ_PARAMS,
@@ -140,10 +143,6 @@ def main(args):
                                           include_release=True)
 
     if 'create_table' in steps:
-        release = API_PARAMS['RELEASE']
-        working_project = BQ_PARAMS['WORKING_PROJECT']
-        target_dataset = BQ_PARAMS['TARGET_DATASET']
-
         table_id = f"{working_project}.{target_dataset}.{release}_{table_name}"
         jsonl_file = f"{table_name}_{API_PARAMS['RELEASE']}.jsonl"
 
@@ -153,10 +152,6 @@ def main(args):
         create_and_load_table_from_jsonl(BQ_PARAMS, jsonl_file=jsonl_file, table_id=table_id, schema=table_schema)
 
     if 'publish_table' in steps:
-        release = API_PARAMS['RELEASE']
-        working_project = BQ_PARAMS['WORKING_PROJECT']
-        target_dataset = BQ_PARAMS['TARGET_DATASET']
-
         src_table_id = f"{working_project}.{target_dataset}.{release}_{table_name}"
         dest_table_id = f"{BQ_PARAMS['PROD_PROJECT']}.{BQ_PARAMS['PROD_DATASET']}.{BQ_PARAMS['PROD_TABLE']}"
         copy_bq_table(BQ_PARAMS, src_table_id, dest_table_id)
