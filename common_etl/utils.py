@@ -30,6 +30,7 @@ import requests
 import yaml
 import select
 from distutils import util
+import traceback
 
 from google.api_core.exceptions import NotFound, BadRequest
 from google.cloud import bigquery, storage, exceptions
@@ -48,7 +49,7 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
     longer paginated queries, which often throw random server errors
     :return: json response object
     """
-    max_retries = 9
+    max_retries = 10
 
     headers = {'Content-Type': 'application/json'}
     endpoint = api_params['ENDPOINT']
@@ -68,8 +69,10 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
                 f"Response status code {api_res.status_code}:\n{api_res.reason}.\nRequest body:\n{req_body}")
 
         print(f"Response code {api_res.status_code}: {api_res.reason}")
-        print(f"Retry {tries} of {max_retries}...")
-        time.sleep((tries+1)*60)
+        print(query)
+        sleep_time = 3 * tries
+        print(f"Retry {tries} of {max_retries}... sleeping for {sleep_time}")
+        time.sleep(sleep_time)
 
         api_res = requests.post(endpoint, headers=headers, json=req_body)
 
