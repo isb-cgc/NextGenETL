@@ -21,8 +21,11 @@ SOFTWARE.
 """
 import sys
 
+from google.cloud import bigquery
+
 from common_etl.utils import load_config, has_fatal_error, normalize_value, write_list_to_jsonl_and_upload, \
-    create_and_upload_schema_for_json, retrieve_bq_schema_object, create_and_load_table_from_jsonl
+    create_and_upload_schema_for_json, retrieve_bq_schema_object, create_and_load_table_from_jsonl, copy_bq_table, \
+    get_bq_table_obj
 from common_etl.support import bq_harness_with_result
 
 API_PARAMS = dict()
@@ -148,6 +151,20 @@ def main(args):
 
         # Load jsonl data into BigQuery table
         create_and_load_table_from_jsonl(BQ_PARAMS, jsonl_file=jsonl_file, table_id=table_id, schema=table_schema)
+
+    if 'publish_table' in steps:
+        release = API_PARAMS['RELEASE']
+        working_project = BQ_PARAMS['WORKING_PROJECT']
+        target_dataset = BQ_PARAMS['TARGET_DATASET']
+
+        src_table_id = f"{working_project}.{target_dataset}.{release}_{table_name}"
+        dest_table_id = f"{BQ_PARAMS['PROD_PROJECT']}.{BQ_PARAMS['PROD_DATASET']}.{BQ_PARAMS['PROD_TABLE']}"
+        copy_bq_table(BQ_PARAMS, src_table_id, dest_table_id)
+
+        client = bigquery.Client()
+        table = get_bq_table_obj(dest_table_id)
+        table.friendly_name = BQ_PARAMS['FRIENDLY_NAME']
+        client.update_table(table, ["friendly_name"])
 
 
 if __name__ == "__main__":
