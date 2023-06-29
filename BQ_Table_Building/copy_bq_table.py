@@ -87,8 +87,8 @@ def main(args):
 
         if 'publish' in steps:
             print('Copy Table from {} to {}'.format(from_table, to_table))
-
-            success = publish_table(from_table, to_table)
+            
+            success = publish_table(from_table, to_table, overwrite=params['OVERWRITE'])
 
             if not success:
                 print("publish table failed")

@@ -1731,7 +1731,7 @@ Args of form: <source_table_proj.dataset.table> <dest_table_proj.dataset.table>
 '''
 
 
-def publish_table(source_table, target_table):
+def publish_table(source_table, target_table, overwrite=False):
 
     try:
         #
@@ -1749,7 +1749,9 @@ def publish_table(source_table, target_table):
         trg_tab = trg_toks[2]
 
         src_client = bigquery.Client(src_proj)
-        job = src_client.copy_table(source_table, target_table)
+        job_config = bigquery.CopyJobConfig()
+        if overwrite == True: job_config.write_disposition = "WRITE_TRUNCATE"
+        job = src_client.copy_table(source_table, target_table, job_config=job_config)
         job.result()
 
         src_table_ref = src_client.dataset(src_dset).table(src_tab)

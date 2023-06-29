@@ -1,5 +1,4 @@
 import concurrent.futures
-# from google.cloud.bigquery import schema
 from google.cloud import bigquery
 import json
 import csv
@@ -10,7 +9,8 @@ def upload_to_bq(table_id,
                  csv,
                  schema):
     # Job Configuration for BigQuery
-    project = os.environ.get('GCLOUD_PROJECT', 'isb-cgc-tp53-test')
+    project = os.environ.get('GCLOUD_PROJECT', 'isb-cgc-tp53-dev')
+    # project = os.environ.get('GCLOUD_PROJECT', 'isb-cgc-tp53-test')
 
     client = bigquery.Client(project=project)
 
@@ -137,6 +137,7 @@ def main():
         '../P53_Database/P53_data_csv/Tumor_origin_dic.csv',
         '../P53_Database/P53_data_csv/Type_dic.csv',
         '../P53_Database/P53_data_csv/p53_sequence.csv'
+        '../P53_Database/P53_data_csv/SpliceAI_Prediction.csv'
     ]
 
     abs_path = [os.path.abspath(a_file) for a_file in file_name]

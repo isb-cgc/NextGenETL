@@ -22,6 +22,7 @@ SOFTWARE.
 import os
 import time
 import sys
+import json
 
 from google.cloud import bigquery
 # from google.api_core.exceptions import NotFound
@@ -48,7 +49,7 @@ def make_program_list_query():
     :return: program list query string
     """
     case_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.GDC_metadata.rel{API_PARAMS['RELEASE']}_caseData"
-
+    print(case_table_id)
     return f"""
         SELECT DISTINCT program_name
         FROM {case_table_id}
@@ -1056,23 +1057,19 @@ def copy_tables_into_public_project(publish_table_list):
     Move production-ready bq tables onto the public-facing production server.
     :param publish_table_list: List of table ids which are new or differ from previous versions (to publish)
     """
-    for src_table_id in publish_table_list:
-        table_name = src_table_id.split('.')[2]
-        split_table_name = table_name.split('_')
-        split_table_name.pop(0)
-        public_dataset = split_table_name.pop(0)
-
-        if public_dataset == "BEATAML1":
-            public_dataset = "BEATAML1_0"
-
+    for src_table_id,public_dataset in publish_table_list:
+        print(src_table_id)
+        print(public_dataset)
+        
         publish_table(API_PARAMS, BQ_PARAMS,
                       public_dataset=public_dataset,
                       source_table_id=src_table_id,
                       get_publish_table_ids=get_publish_table_ids,
                       find_most_recent_published_table_id=find_most_recent_published_table_id,
                       overwrite=True,
-                      test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'],
+                      #test_mode=BQ_PARAMS['PUBLISH_TEST_MODE'],
                       id_keys="case_id")
+        
 
 
 def make_biospecimen_stub_view_query(program):
@@ -1103,17 +1100,23 @@ def build_biospecimen_stub_view(program):
     create_view_from_query(biospec_table_id, biospec_stub_table_query)
 
 
-def find_last_release_table_id(base_table_name):
+def find_last_release_table_id(base_table_name, prev_release):
     """
     Find last released table id for a given dataset, if any.
     :param base_table_name: base table name, excluding release
     :return: previous release's table id, if any; otherwise None
     """
-    oldest_etl_release = 27  # the oldest table release we published
-    last_gdc_release = int(API_PARAMS['RELEASE']) - 1
+    oldest_etl_release = 270  # the oldest table release we published
+    if prev_release is None:
+        last_gdc_release = int(float(API_PARAMS['RELEASE'].replace('p', '.'))*10) - 1
+    else:
+        last_gdc_release = prev_release
+
+    print(f"Using GDC release {str(last_gdc_release)} as last gdc release")
 
     for release in range(last_gdc_release, oldest_etl_release - 1, -1):
-        prev_release_table_name = f"{API_PARAMS['REL_PREFIX']}{release}_{base_table_name}"
+        str_release = str(float(release)/10).replace('.', 'p').replace('p0', '')
+        prev_release_table_name = f"{API_PARAMS['REL_PREFIX']}{str_release}_{base_table_name}"
         prev_release_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
                                                    dataset=BQ_PARAMS['DEV_DATASET'],
                                                    table_name=prev_release_table_name)
@@ -1124,7 +1127,7 @@ def find_last_release_table_id(base_table_name):
     return None
 
 
-def build_publish_table_list(programs, to_remove_list=False):
+def build_publish_table_list(programs, prev_release, program_mapping, to_remove_list=False):
     """
     Build list of tables for publishing (which are either new or differ from previous version).
     :return: List of tables to publish for current data release
@@ -1142,36 +1145,34 @@ def build_publish_table_list(programs, to_remove_list=False):
 
     # compile lists of tables to compare (the current version and the last release)
     for program in programs:
-        # BEATAML1.0 fix
-        program = program.replace('.', '_')
+        bq_program = program_mapping[program]['bq_dataset'] # map GDC program name to BQ friendly version
 
         for suffix in mapping_suffixes_list:
-            base_table_name = f"{program}_{suffix}"
+            base_table_name = f"{bq_program}_{suffix}"
             new_release_table_name = f"{get_rel_prefix(API_PARAMS)}_{base_table_name}"
             new_release_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
                                                       dataset=BQ_PARAMS['DEV_DATASET'],
                                                       table_name=new_release_table_name)
             if exists_bq_table(new_release_table_id):
-                prev_release_table_id = find_last_release_table_id(base_table_name)
+                prev_release_table_id = find_last_release_table_id(base_table_name, prev_release)
                 if not prev_release_table_id:
-                    publish_table_list.append(new_release_table_id)
+                    publish_table_list.append( (new_release_table_id, bq_program) )
                 else:
-                    table_comparison_list.append([prev_release_table_id, new_release_table_id])
+                    table_comparison_list.append([prev_release_table_id, new_release_table_id, bq_program])
 
     tables_to_remove_from_dev = list()
 
     for tables_to_compare in table_comparison_list:
-        previous_table_id = tables_to_compare[0]
-        current_table_id = tables_to_compare[1]
-        res = bq_harness_with_result(compare_two_tables_sql(previous_table_id, current_table_id), BQ_PARAMS['DO_BATCH'],
-                                     verbose=False)
+        previous_table_id, current_table_id, bq_program = tables_to_compare
+        res = bq_harness_with_result(compare_two_tables_sql(previous_table_id, current_table_id), 
+                                      BQ_PARAMS['DO_BATCH'], verbose=False)
 
         if not res:
-            publish_table_list.append(current_table_id)
+            publish_table_list.append( (current_table_id, bq_program) )
         else:
             for row in res:
                 if row:
-                    publish_table_list.append(current_table_id)
+                    publish_table_list.append( (current_table_id, bq_program) )
                 else:
                     tables_to_remove_from_dev.append(current_table_id)
                 break
@@ -1366,15 +1367,14 @@ def compare_gdc_releases():
     todo
     :return:
     """
-    old_rel = API_PARAMS['REL_PREFIX'] + str(int(API_PARAMS['RELEASE']) - 1)
+    old_rel = API_PARAMS['REL_PREFIX'] + str(float(API_PARAMS['RELEASE'].replace('p','.')) - 1)
     new_rel = get_rel_prefix(API_PARAMS)
 
     print(f"\n\n*** {old_rel} -> {new_rel} GDC Clinical Data Comparison Report ***")
 
     # which fields have been removed?
     removed_fields_res = bq_harness_with_result(sql=make_field_diff_query(old_rel, new_rel, removed_fields=True),
-                                                do_batch=BQ_PARAMS['DO_BATCH'],
-                                                verbose=False)
+                                                do_batch=BQ_PARAMS['DO_BATCH'], verbose=False)
     print("\nRemoved fields:")
 
     if removed_fields_res.total_rows == 0:
@@ -1385,8 +1385,7 @@ def compare_gdc_releases():
 
     # which fields were added?
     added_fields_res = bq_harness_with_result(sql=make_field_diff_query(old_rel, new_rel, removed_fields=False),
-                                              do_batch=BQ_PARAMS['DO_BATCH'],
-                                              verbose=False)
+                                              do_batch=BQ_PARAMS['DO_BATCH'], verbose=False)
     print("\nNew GDC API fields:")
 
     if added_fields_res.total_rows == 0:
@@ -1397,8 +1396,7 @@ def compare_gdc_releases():
 
     # any changes in field data type?
     datatype_diff_res = bq_harness_with_result(sql=make_datatype_diff_query(old_rel, new_rel),
-                                               do_batch=BQ_PARAMS['DO_BATCH'],
-                                               verbose=False)
+                                               do_batch=BQ_PARAMS['DO_BATCH'], verbose=False)
     print("\nColumns with data type change:")
 
     if datatype_diff_res.total_rows == 0:
@@ -1410,8 +1408,7 @@ def compare_gdc_releases():
     # any case ids removed?
     print("\nRemoved case ids:")
     removed_case_ids_res = bq_harness_with_result(make_removed_case_ids_query(old_rel, new_rel),
-                                                  BQ_PARAMS['DO_BATCH'],
-                                                  verbose=False)
+                                                  BQ_PARAMS['DO_BATCH'], verbose=False)
 
     if removed_case_ids_res.total_rows == 0:
         print("<none>")
@@ -1422,8 +1419,7 @@ def compare_gdc_releases():
     # any case ids added?
     print("\nAdded case id counts:")
     added_case_ids_res = bq_harness_with_result(make_added_case_ids_query(old_rel, new_rel),
-                                                BQ_PARAMS['DO_BATCH'],
-                                                verbose=False)
+                                                BQ_PARAMS['DO_BATCH'], verbose=False)
 
     if added_case_ids_res.total_rows == 0:
         print("<none>")
@@ -1434,8 +1430,7 @@ def compare_gdc_releases():
     # any case ids added?
     print("\nTable count changes: ")
     table_count_res = bq_harness_with_result(make_tables_diff_query(old_rel, new_rel),
-                                             BQ_PARAMS['DO_BATCH'],
-                                             verbose=False)
+                                             BQ_PARAMS['DO_BATCH'], verbose=False)
 
     if table_count_res.total_rows == 0:
         print("<none>")
@@ -1449,8 +1444,7 @@ def compare_gdc_releases():
 
     print("\nAdded tables: ")
     added_table_res = bq_harness_with_result(make_new_table_list_query(old_rel, new_rel),
-                                             BQ_PARAMS['DO_BATCH'],
-                                             verbose=False)
+                                             BQ_PARAMS['DO_BATCH'], verbose=False)
 
     if added_table_res.total_rows == 0:
         print("<none>")
@@ -1532,12 +1526,13 @@ def find_most_recent_published_table_id(api_params, versioned_table_id):
     :param versioned_table_id: public versioned table id for current release
     :return: last published table id, if any; otherwise None
     """
-    oldest_etl_release = 26  # the oldest table release we published
-    last_gdc_release = int(api_params['RELEASE']) - 1
+    oldest_etl_release = 260  # the oldest table release we published
+    last_gdc_release = float(api_params['RELEASE'].replace('p','.'))*10 - 1
     current_gdc_release = get_rel_prefix(api_params)
     table_id_no_release = versioned_table_id.replace(current_gdc_release, '')
 
-    for release in range(last_gdc_release, oldest_etl_release - 1, -1):
+    for release in range(int(last_gdc_release), oldest_etl_release - 1, -1):
+        str_release = str(float(release)/10).replace('.', 'p').replace('p0', '')
         prev_release_table_id = f"{table_id_no_release}{api_params['REL_PREFIX']}{release}"
         if exists_bq_table(prev_release_table_id):
             # found last release table, stop iterating
@@ -1557,6 +1552,7 @@ def get_publish_table_ids(api_params, bq_params, source_table_id, public_dataset
     """
     rel_prefix = get_rel_prefix(api_params)
     split_table_id = source_table_id.split('.')
+    print( split_table_id)
 
     # derive data type from table id
     data_type = split_table_id[-1]
@@ -1587,7 +1583,6 @@ def make_view_queries():
             cl.diag__morphology AS morphology,
             cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
             cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
             cl.diag__age_at_diagnosis AS age_at_diagnosis,
             FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_BEATAML1_0_clinical cl
             JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
@@ -1605,7 +1600,6 @@ def make_view_queries():
             d.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
             d.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
             d.diag__tumor_grade AS tumor_grade,
-            d.diag__tumor_stage AS tumor_stage,
             d.diag__age_at_diagnosis AS age_at_diagnosis,
             d.diag__prior_malignancy AS prior_malignancy,
             d.diag__ajcc_pathologic_m AS ajcc_pathologic_m,
@@ -1643,7 +1637,6 @@ def make_view_queries():
             cl.diag__morphology AS morphology,
             cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
             cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
             cl.diag__age_at_diagnosis AS age_at_diagnosis,
             cl.diag__prior_malignancy AS prior_malignancy,
             cl.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
@@ -1663,13 +1656,14 @@ def make_view_queries():
             cl.demo__gender AS gender, 
             cl.demo__race AS race, 
             cl.demo__vital_status AS vital_status,
-            cl.diag__morphology AS morphology,
-            cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
-            cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
-            cl.diag__age_at_diagnosis AS age_at_diagnosis,
-            cl.diag__prior_malignancy AS prior_malignancy,
+            d.diag__morphology AS morphology,
+            d.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
+            d.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
+            d.diag__age_at_diagnosis AS age_at_diagnosis,
+            d.diag__prior_malignancy AS prior_malignancy,
             FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_CTSP_clinical cl
+            JOIN isb-project-zero.GDC_Clinical_Data.r{release_number}_CTSP_clinical_diagnoses d
+                ON cl.case_id = d.case_id
             JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
                 ON meta.case_gdc_id = cl.case_id
             """,
@@ -1683,7 +1677,6 @@ def make_view_queries():
             cl.diag__morphology AS morphology,
             cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
             cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
             cl.diag__age_at_diagnosis AS age_at_diagnosis,
             FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_FM_clinical cl
             JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
@@ -1700,7 +1693,6 @@ def make_view_queries():
             cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
             cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
             cl.diag__tumor_grade AS tumor_grade,
-            cl.diag__tumor_stage AS tumor_stage,
             FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_GENIE_clinical cl
             JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
                 ON meta.case_gdc_id = cl.case_id
@@ -1740,7 +1732,6 @@ def make_view_queries():
             cl.diag__morphology AS morphology,
             cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
             cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
             cl.diag__age_at_diagnosis AS age_at_diagnosis,
             FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_MMRF_clinical cl
             JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
@@ -1756,7 +1747,6 @@ def make_view_queries():
             cl.diag__morphology AS morphology,
             cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
             cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
             cl.diag__age_at_diagnosis AS age_at_diagnosis,
             FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_NCICCR_clinical cl
             JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
@@ -1772,7 +1762,6 @@ def make_view_queries():
             cl.diag__morphology AS morphology,
             cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
             cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
             cl.diag__age_at_diagnosis AS age_at_diagnosis,
             FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_OHSU_clinical cl
             JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
@@ -1788,7 +1777,6 @@ def make_view_queries():
             cl.diag__morphology AS morphology,
             cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
             cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
             cl.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
             FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_ORGANOID_clinical cl
             JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
@@ -1804,7 +1792,6 @@ def make_view_queries():
             cl.diag__morphology AS morphology,
             cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
             cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
             cl.diag__age_at_diagnosis AS age_at_diagnosis,
             FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_TARGET_clinical cl
             JOIN isb-project-zero.GDC_metadata.rel{release_number}_caseData meta
@@ -1820,7 +1807,6 @@ def make_view_queries():
             cl.diag__morphology AS morphology,
             cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
             cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
             cl.diag__age_at_diagnosis AS age_at_diagnosis,
             cl.diag__prior_malignancy AS prior_malignancy,
             cl.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
@@ -1843,7 +1829,6 @@ def make_view_queries():
             cl.diag__morphology AS morphology,
             cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
             cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
             cl.diag__age_at_diagnosis AS age_at_diagnosis,
             cl.diag__prior_malignancy AS prior_malignancy,
             cl.exp__alcohol_history AS alcohol_history
@@ -1861,7 +1846,6 @@ def make_view_queries():
             cl.diag__morphology AS morphology,
             cl.diag__site_of_resection_or_biopsy AS site_of_resection_or_biopsy,
             cl.diag__tissue_or_organ_of_origin AS tissue_or_organ_of_origin,
-            cl.diag__tumor_stage AS tumor_stage,
             cl.diag__age_at_diagnosis AS age_at_diagnosis,
             cl.diag__ajcc_pathologic_stage AS ajcc_pathologic_stage,
             FROM isb-project-zero.GDC_Clinical_Data.r{release_number}_WCDT_clinical cl
@@ -1884,15 +1868,24 @@ def main(args):
         API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
         if 'FIELD_CONFIG' not in API_PARAMS:
             has_fatal_error("params['FIELD_CONFIG'] not found")
+
+        if 'PREV_RELEASE' not in API_PARAMS:
+            prev_release = None
+        else:
+            prev_release = int(float(API_PARAMS['PREV_RELEASE'].replace('p','.'))*10)
     except ValueError as err:
         has_fatal_error(str(err), ValueError)
 
     # programs = ['BEATAML1.0']
     # programs = ['HCMI']
     programs = get_program_list()
+    with open(f'{os.path.expanduser("~")}/{BQ_PARAMS["BQ_REPO"]}/{BQ_PARAMS["METADATA_MAPPING"]}', 'r') as inf: 
+        program_mapping = json.loads( inf.read() )
 
-    for orig_program in programs:
+    for orig_program in programs:        
         prog_start = time.time()
+        program = program_mapping[orig_program]['bq_dataset']
+        
         if 'create_biospecimen_stub_tables' in steps or 'create_and_load_tables' in steps:
             print(f"\nRunning script for program: {orig_program}...")
 
@@ -1910,7 +1903,6 @@ def main(args):
 
             schema = create_schema_dict()
             # replace so that 'BEATAML1.0' doesn't break bq table name
-            program = orig_program.replace('.', '_')
 
             create_tables(program, cases, schema)
 
@@ -1921,12 +1913,13 @@ def main(args):
         view_queries = make_view_queries()
 
         for program, view_query in view_queries.items():
+            print(f'Generating view for {program}')
             program_view_name = f"webapp_{get_rel_prefix(API_PARAMS)}_{program}"
             view_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['DEV_DATASET']}.{program_view_name}"
             create_view_from_query(view_id, view_query)
 
     if 'list_tables_for_publication' in steps:
-        publish_table_list = build_publish_table_list(programs)
+        publish_table_list = build_publish_table_list(programs, prev_release, program_mapping)
 
         if len(publish_table_list) > 0:
             print("\nTable changes detected--create schemas for: ")
@@ -1940,11 +1933,11 @@ def main(args):
         # compare_gdc_releases()
 
     if 'copy_tables_into_production' in steps:
-        publish_table_list = build_publish_table_list(programs)
+        publish_table_list = build_publish_table_list(programs, prev_release, program_mapping)
         copy_tables_into_public_project(publish_table_list)
 
     if 'remove_redundant_tables' in steps:
-        tables_to_remove_from_dev = build_publish_table_list(programs, to_remove_list=True)
+        tables_to_remove_from_dev = build_publish_table_list(programs, prev_release, to_remove_list=True)
 
         for table_id in tables_to_remove_from_dev:
             delete_bq_table(table_id)

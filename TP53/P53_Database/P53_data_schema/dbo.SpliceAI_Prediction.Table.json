@@ -1,0 +1,38 @@
+[
+    {
+        "name": "cDNA",
+        "type": "string"
+    },
+    {
+        "name": "DS_AG",
+        "type": "float"
+    },
+    {
+        "name": "DS_AL",
+        "type": "float"
+    },
+    {
+        "name": "DS_DG",
+        "type": "float"
+    },
+    {
+        "name": "DS_DL",
+        "type": "float"
+    },
+    {
+        "name": "DP_AG",
+        "type": "integer"
+    },
+    {
+        "name": "DP_AL",
+        "type": "integer"
+    },
+    {
+        "name": "DP_DG",
+        "type": "integer"
+    },
+    {
+        "name": "DP_DL",
+        "type": "integer"
+    }
+]

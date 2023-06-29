@@ -452,7 +452,12 @@ def get_cases_by_project_submitter(studies_list):
             continue
 
         project_submitter_id = case['project_submitter_id']
-        cases_by_project_submitter[project_submitter_id]['cases'].append(case)
+        try:
+            cases_by_project_submitter[project_submitter_id]['cases'].append(case)
+        except KeyError:
+            print('There are no cases in ' + project_submitter_id + 'project')
+            continue
+
 
     return cases_by_project_submitter
 
