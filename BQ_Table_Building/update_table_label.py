@@ -44,10 +44,9 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None, None
+        return None, None
 
-    return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps'],
-            yaml_dict['tables_to_patch'])
+    return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps'])
 
 def update_table_label(target_dataset, dest_table, label_key, label_value, project=None):
     """
@@ -100,26 +99,22 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, steps, tables_to_patch = load_config(yaml_file.read())
+        params, steps = load_config(yaml_file.read())
 
     if params is None:
         print("Bad YAML load")
         return
 
-    for mydict in tables_to_patch:
+    for table in params['COPY_LIST']:
 
-        full_table, table_dict = next(iter(mydict.items()))
-
-        #
         # Extract the project, dataset, and table name:
-        #
 
-        target_project, target_dataset, target_table = full_table.split('.')
+        target_project, target_dataset, target_table = table.split('.')
 
         # Customize generic schema to this data program:
 
         if 'update_table_label' in steps:
-            print(f'Updating table label for {full_table} with {params["LABEL_KEY"]}:{params["LABEL_VALUE"]}')
+            print(f'Updating table label for {table} with {params["LABEL_KEY"]}:{params["LABEL_VALUE"]}')
             # Write out the details
             success = update_table_label(target_table, target_dataset, params["LABEL_KEY"],
                                          params["LABEL_VALUE"], target_project)
