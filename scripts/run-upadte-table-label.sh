@@ -28,5 +28,5 @@ pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 cd ..
-python3.9 ./BQ_Table_Building/udpate_table_label.py ~/config/UpdateBQTableLabel.yaml
+python3.9 ./BQ_Table_Building/update_table_label.py ~/config/UpdateBQTableLabel.yaml
 deactivate
