@@ -66,17 +66,6 @@ popd > /dev/null
 
 mkdir -p ~/scratch
 
-if [[ ${SCRIPT_NAME} = ${FILE_ARG} ]] ; then
-  cd ..
-  nohup python3.9 ./BQ_Table_Building/PDC/${SCRIPT_FILE} ~/config/${SHARED_CONFIG_FILE} ~/config/${CONFIG_FILE} >& ~/pdc_out.log &
-  deactivate
-else
-  cd ..
-  python3.9 ./BQ_Table_Building/PDC/${SCRIPT_FILE} ~/config/${SHARED_CONFIG_FILE} ~/config/${CONFIG_FILE}
-  deactivate
-fi
-
-if [[ ${SCRIPT_NAME} = ${FILE_ARG} ]] ; then
-  echo "Go away for a day or so"
-  exit
-fi
+cd ..
+python3.9 ./BQ_Table_Building/PDC/${SCRIPT_FILE} ~/config/${SHARED_CONFIG_FILE} ~/config/${CONFIG_FILE}
+deactivate
