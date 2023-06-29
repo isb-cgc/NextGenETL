@@ -116,7 +116,7 @@ def main(args):
         if 'update_table_label' in steps:
             print(f'Updating table label for {table} with {params["LABEL_KEY"]}:{params["LABEL_VALUE"]}')
             # Write out the details
-            success = update_table_label(target_table, target_dataset, params["LABEL_KEY"],
+            success = update_table_label(target_dataset, target_table, params["LABEL_KEY"],
                                          params["LABEL_VALUE"], target_project)
             if not success:
                 print("update_table_label failed")
