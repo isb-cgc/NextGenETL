@@ -45,7 +45,7 @@ def get_graphql_api_response(api_params, query, fail_on_error=True):
     Create and submit graphQL API request, returning API response serialized as json object.
     :param api_params: api_params supplied in yaml config
     :param query: GraphQL-formatted query string
-    :param fail_on_error: if True, will fail fast--otherwise, tries up to 10 times before failing. False is good for
+    :param fail_on_error: if True, will fail fast--otherwise, tries up to 3 times before failing. False is good for
     longer paginated queries, which often throw random server errors
     :return: json response object
     """
