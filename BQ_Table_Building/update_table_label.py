@@ -105,7 +105,7 @@ def main(args):
         print("Bad YAML load")
         return
 
-    for table in params['COPY_LIST']:
+    for table in params['UPDATE_LIST']:
 
         # Extract the project, dataset, and table name:
 
