@@ -33,7 +33,7 @@ def create_program_name_set():
     def make_program_name_set_query():
         return f"""
         SELECT DISTINCT program_name
-        FROM `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{BQ_PARAMS['RELEASE']}_case_project_program`
+        FROM `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_case_project_program`
         """
 
     result = bq_harness_with_result(sql=make_program_name_set_query(), do_batch=False, verbose=False)
@@ -71,12 +71,12 @@ def make_per_sample_file_program_query(program: str):
       fm.index_file_size,
       fm.`access`,
       fm.acl
-    FROM `isb-project-zero.cda_gdc_test.2023_03_sample` s
-    LEFT JOIN `isb-project-zero.cda_gdc_test.2023_03_sample_from_case` sfc
+    FROM `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_sample` s
+    LEFT JOIN `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_sample_from_case` sfc
       ON sfc.sample_id = s.sample_id
-    LEFT JOIN `isb-project-zero.cda_gdc_test.file_metadata_2023_03` fm
+    LEFT JOIN `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.file_metadata_{API_PARAMS['RELEASE']}` fm
       ON fm.case_gdc_id = sfc.case_id
-    LEFT JOIN `isb-project-zero.cda_gdc_test.2023_03_case_project_program` cpp
+    LEFT JOIN `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_case_project_program` cpp
       ON cpp.case_gdc_id = sfc.case_id
     WHERE cpp.program_name = '{program}'
     """
