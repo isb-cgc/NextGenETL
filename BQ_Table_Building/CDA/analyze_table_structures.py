@@ -21,6 +21,7 @@ SOFTWARE.
 """
 
 import csv
+import datetime
 import sys
 
 from typing import Union, Optional
