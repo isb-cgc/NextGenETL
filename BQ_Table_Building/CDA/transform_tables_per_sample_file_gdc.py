@@ -100,7 +100,7 @@ def main(args):
             else:
                 program_name = program
 
-            table_name = f"per_sample_file_metadata_hg38_{program_name}_{BQ_PARAMS['RELEASE']}"
+            table_name = f"per_sample_file_metadata_hg38_{program_name}_{API_PARAMS['RELEASE']}"
             table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{table_name}"
 
             load_table_from_query(bq_params=BQ_PARAMS,
