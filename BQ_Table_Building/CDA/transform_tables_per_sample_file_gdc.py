@@ -129,7 +129,7 @@ def main(args):
     if 'create_program_tables' in steps:
         program_set = create_program_name_set()
 
-        for program in program_set:
+        for program in sorted(program_set):
             if program == "BEATAML1.0":
                 program_name = "BEATAML1_0"
             elif program == "EXCEPTIONAL_RESPONDERS":
