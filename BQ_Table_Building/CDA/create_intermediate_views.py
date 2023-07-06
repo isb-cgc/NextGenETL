@@ -53,72 +53,6 @@ def make_project_program_view_query():
     """
 
 
-def make_aliquot_case_legacy_filtered_query():
-    working_project = BQ_PARAMS['WORKING_PROJECT']
-    working_dataset = BQ_PARAMS['WORKING_DATASET']
-    published_project = BQ_PARAMS['PUBLISHED_PROJECT']
-    published_dataset = BQ_PARAMS['PUBLISHED_DATASET']
-    release = API_PARAMS['RELEASE']
-    gdc_archive_release = API_PARAMS['GDC_ARCHIVE_RELEASE']
-
-    return f"""
-    SELECT * 
-    FROM `{published_project}.{published_dataset}.aliquot2caseIDmap_{gdc_archive_release}`
-    WHERE portion_gdc_id NOT IN (
-      SELECT portion_gdc_id
-      FROM `{working_project}.{working_dataset}.aliquot_to_case_{release}`
-    )
-    """
-
-
-def make_case_metadata_legacy_filtered_query():
-    working_project = BQ_PARAMS['WORKING_PROJECT']
-    working_dataset = BQ_PARAMS['WORKING_DATASET']
-    published_project = BQ_PARAMS['PUBLISHED_PROJECT']
-    published_dataset = BQ_PARAMS['PUBLISHED_DATASET']
-    release = BQ_PARAMS['RELEASE']
-    gdc_archive_release = API_PARAMS['GDC_ARCHIVE_RELEASE']
-
-    # query filters out any file/case ids that have no DCF file references
-
-    return f"""
-    SELECT * 
-    FROM `{published_project}.{published_dataset}.caseData_{gdc_archive_release}`
-    WHERE case_gdc_id NOT IN (
-      SELECT case_gdc_id 
-      FROM `{working_project}.{working_dataset}.case_metadata_{release}`
-    ) AND case_gdc_id IN (
-      SELECT case_gdc_id
-      FROM `{published_project}.{published_dataset}.fileData_legacy_{gdc_archive_release}`
-      JOIN `{published_project}.{published_dataset}.GDCfileID_to_GCSurl_{gdc_archive_release}`
-        USING(file_gdc_id)
-    )
-    """
-
-
-def make_file_metadata_legacy_filtered_query():
-    working_project = BQ_PARAMS['WORKING_PROJECT']
-    working_dataset = BQ_PARAMS['WORKING_DATASET']
-    published_project = BQ_PARAMS['PUBLISHED_PROJECT']
-    published_dataset = BQ_PARAMS['PUBLISHED_DATASET']
-    release = BQ_PARAMS['RELEASE']
-    gdc_archive_release = API_PARAMS['GDC_ARCHIVE_RELEASE']
-
-    # query filters out any file/case ids that have no DCF file references
-
-    return f"""
-    SELECT * 
-    FROM `{published_project}.{published_dataset}.fileData_legacy_{gdc_archive_release}`
-    WHERE file_gdc_id NOT IN (
-      SELECT file_gdc_id 
-      FROM `{working_project}.{working_dataset}.file_metadata_{release}`
-    ) AND file_gdc_id IN (
-      SELECT file_gdc_id
-      FROM `{published_project}.{published_dataset}.GDCfileID_to_GCSurl_{gdc_archive_release}`
-    )
-    """
-
-
 def main(args):
     try:
         global API_PARAMS, BQ_PARAMS
@@ -135,24 +69,6 @@ def main(args):
         view_id = f"{working_project}.{working_dataset}.{release}_case_project_program"
 
         create_view_from_query(view_id=view_id, view_query=make_project_program_view_query())
-
-    if 'create_aliquot_case_legacy_filtered_view' in steps:
-        # shouldn't need to run this step again unless view is damaged--data won't change
-        view_id = f"{working_project}.{working_dataset}.{gdc_archive_release}_aliquot_to_case_legacy_filtered"
-
-        create_view_from_query(view_id=view_id, view_query=make_aliquot_case_legacy_filtered_query())
-
-    if 'create_case_metadata_legacy_filtered_view' in steps:
-        # shouldn't need to run this step again unless view is damaged--data won't change
-        view_id = f"{working_project}.{working_dataset}.{gdc_archive_release}_case_metadata_legacy_filtered"
-
-        create_view_from_query(view_id=view_id, view_query=make_case_metadata_legacy_filtered_query())
-
-    if 'create_file_metadata_legacy_filtered_view' in steps:
-        # shouldn't need to run this step again unless view is damaged--data won't change
-        view_id = f"{working_project}.{working_dataset}.{gdc_archive_release}_file_metadata_legacy_filtered"
-
-        create_view_from_query(view_id=view_id, view_query=make_file_metadata_legacy_filtered_query())
 
 
 if __name__ == "__main__":
