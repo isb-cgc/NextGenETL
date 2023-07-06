@@ -75,7 +75,7 @@ def make_per_sample_file_program_query(program: str):
     LEFT JOIN `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_case_project_program` cpp
       ON cpp.case_gdc_id = fm.case_gdc_id
     LEFT JOIN `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_sample_from_case` sfc
-      ON sfc.case_id = cpp.case_id
+      ON sfc.case_id = cpp.case_gdc_id
     LEFT JOIN `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_sample` s
       ON s.sample_id = sfc.sample_id
     WHERE cpp.program_name = '{program}'
