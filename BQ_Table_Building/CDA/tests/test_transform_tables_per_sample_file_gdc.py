@@ -93,6 +93,7 @@ def main(args):
         compare_table_columns(old_table_id=gdc_table_id,
                               new_table_id=cda_table_id,
                               primary_key=BQ_PARAMS['PRIMARY_KEY'],
+                              secondary_key=BQ_PARAMS['SECONDARY_KEY'],
                               columns=columns_list)
 
 
