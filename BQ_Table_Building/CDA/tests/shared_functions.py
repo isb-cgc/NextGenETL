@@ -161,12 +161,19 @@ def compare_table_columns(old_table_id: str,
         elif result.total_rows > 0:
             print(f"\nFound mismatched data for {column}.")
             print(f"{result.total_rows} total records do not match in old and new tables.\n")
-            print(f"Example values:\n{primary_key}\t\t\t\t{secondary_key}\t\t\t\t{column}")
+            if secondary_key is not None:
+                print(f"Example values:\n{primary_key}\t\t\t\t{secondary_key}\t\t\t\t{column}")
+            else:
+                print(f"Example values:\n{primary_key}\t\t\t\t{column}")
 
             count = 0
 
             for row in result:
-                print(f"{row[0]}\t\t\t\t\t{row[1]}\t\t\t\t\t{row[2]}")
+                if secondary_key is not None:
+                    print(f"{row[0]}\t\t\t\t\t{row[1]}\t\t\t\t\t{row[2]}")
+                else:
+                    print(f"{row[0]}\t\t\t\t\t{row[1]}")
+
                 count += 1
                 if count == 5:
                     break
