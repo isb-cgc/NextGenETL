@@ -82,43 +82,6 @@ def make_per_sample_file_program_query(program: str):
     """
 
 
-'''
-def make_per_sample_file_program_query(program: str):
-    return f"""
-    SELECT 
-      fm.file_gdc_id,
-      cpp.case_gdc_id,
-      cpp.case_barcode,
-      s.sample_id AS sample_gdc_id,
-      s.submitter_id AS sample_barcode,
-      s.sample_type AS sample_type_name,
-      cpp.project_id AS project_short_name,
-      REGEXP_EXTRACT(cpp.project_id, r'^[^-]*-(.*)$') AS project_short_name_suffix,
-      cpp.program_name,
-      fm.data_type,
-      fm.data_category,
-      fm.experimental_strategy,
-      fm.file_type,
-      fm.file_size,
-      fm.data_format,
-      fm.platform,
-      fm.file_name AS file_name_key,
-      fm.index_file_gdc_id AS index_file_id,
-      fm.index_file_name AS index_file_name_key,
-      fm.index_file_size,
-      fm.`access`,
-      fm.acl
-    FROM `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_sample` s
-    LEFT JOIN `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_sample_from_case` sfc
-      ON sfc.sample_id = s.sample_id
-    LEFT JOIN `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.file_metadata_{API_PARAMS['RELEASE']}` fm
-      ON fm.case_gdc_id = sfc.case_id
-    LEFT JOIN `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_case_project_program` cpp
-      ON cpp.case_gdc_id = sfc.case_id
-    WHERE cpp.program_name = '{program}'
-'''
-
-
 def main(args):
     try:
         global API_PARAMS, BQ_PARAMS
