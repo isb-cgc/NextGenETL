@@ -71,7 +71,7 @@ def main(args):
             table_id_tuple = (program, gdc_table_id, cda_table_id)
             table_id_tuple_set.add(table_id_tuple)
 
-    for table_id_tuple in table_id_tuple_set:
+    for table_id_tuple in sorted(table_id_tuple_set):
         program = table_id_tuple[0]
         gdc_table_id = table_id_tuple[1]
         cda_table_id = table_id_tuple[2]
