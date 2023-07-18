@@ -24,6 +24,8 @@ from typing import Any, Union
 
 from google.cloud.bigquery.table import RowIterator
 
+from common_etl.support import bq_harness_with_result
+
 JSONList = list[dict[str, Union[None, str, float, int, bool]]]
 
 
@@ -44,3 +46,20 @@ def convert_bq_result_to_object_list(result: RowIterator, column_list: list[str]
             print(f"{count} rows added to object.")
 
     return object_list
+
+
+def create_program_name_set(api_params, bq_params):
+    def make_program_name_set_query():
+        return f"""
+        SELECT DISTINCT program_name
+        FROM `{bq_params['WORKING_PROJECT']}.{bq_params['WORKING_DATASET']}.{api_params['RELEASE']}_case_project_program`
+        """
+
+    result = bq_harness_with_result(sql=make_program_name_set_query(), do_batch=False, verbose=False)
+
+    program_name_set = set()
+
+    for row in result:
+        program_name_set.add(row[0])
+
+    return program_name_set

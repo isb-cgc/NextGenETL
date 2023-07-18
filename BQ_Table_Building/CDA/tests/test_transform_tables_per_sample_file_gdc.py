@@ -21,6 +21,9 @@ SOFTWARE.
 """
 import sys
 
+from google.cloud import bigquery
+
+from common_etl.cda_utils import create_program_name_set
 from common_etl.support import bq_harness_with_result
 from typing import Union
 
@@ -160,25 +163,61 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
-    print("Comparing row counts!\n")
+    client = bigquery.Client()
 
-    compare_row_counts(old_table_id=BQ_PARAMS['OLD_TABLE_ID'],
-                       new_table_id=BQ_PARAMS['NEW_TABLE_ID'])
+    table_id_tuple_set = set()
 
-    print("Comparing table keys!\n")
+    program_set = create_program_name_set(API_PARAMS, BQ_PARAMS)
 
-    compare_id_keys(old_table_id=BQ_PARAMS['OLD_TABLE_ID'],
-                    new_table_id=BQ_PARAMS['NEW_TABLE_ID'],
-                    primary_key=BQ_PARAMS['PRIMARY_KEY'])
+    for program in sorted(program_set):
+        if program == "BEATAML1.0":
+            program_name = "BEATAML1_0"
+        elif program == "EXCEPTIONAL_RESPONDERS":
+            program_name = "EXC_RESPONDERS"
+        else:
+            program_name = program
 
-    columns_list = BQ_PARAMS["COLUMNS"]
+        gdc_table_name = f"{program_name}_per_sample_file_metadata_hg38_gdc_{API_PARAMS['GDC_RELEASE']}"
+        gdc_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.GDC_per_sample_file.{gdc_table_name}"
+        cda_table_name = f"per_sample_file_metadata_hg38_{program_name}_{API_PARAMS['RELEASE']}"
+        cda_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{cda_table_name}"
 
-    print("Comparing table columns!\n")
+        # check for valid hg38 table location
+        gdc_table = client.get_table(table=gdc_table_id)
+        cda_table = client.get_table(table=cda_table_id)
 
-    compare_table_columns(old_table_id=BQ_PARAMS['OLD_TABLE_ID'],
-                          new_table_id=BQ_PARAMS['NEW_TABLE_ID'],
-                          primary_key=BQ_PARAMS['PRIMARY_KEY'],
-                          columns=columns_list)
+        if gdc_table is None or cda_table is None:
+            if gdc_table is None:
+                print(f"No table found: {gdc_table_id}")
+            if cda_table is None:
+                print(f"No table found: {cda_table_id}")
+        else:
+            table_id_tuple = (gdc_table_id, cda_table_id)
+            table_id_tuple_set.add(table_id_tuple)
+
+    for table_id_tuple in table_id_tuple_set:
+        gdc_table_id = table_id_tuple[0]
+        cda_table_id = table_id_tuple[1]
+
+        print("Comparing row counts!\n")
+
+        compare_row_counts(old_table_id=gdc_table_id,
+                           new_table_id=cda_table_id)
+
+        print("Comparing table keys!\n")
+
+        compare_id_keys(old_table_id=gdc_table_id,
+                        new_table_id=cda_table_id,
+                        primary_key=BQ_PARAMS['PRIMARY_KEY'])
+
+        columns_list = BQ_PARAMS["COLUMNS"]
+
+        print("Comparing table columns!\n")
+
+        compare_table_columns(old_table_id=gdc_table_id,
+                              new_table_id=cda_table_id,
+                              primary_key=BQ_PARAMS['PRIMARY_KEY'],
+                              columns=columns_list)
 
 
 if __name__ == "__main__":

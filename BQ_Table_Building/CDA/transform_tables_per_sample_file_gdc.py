@@ -21,29 +21,12 @@ SOFTWARE.
 """
 import sys
 
-from common_etl.support import bq_harness_with_result
+from common_etl.cda_utils import create_program_name_set
 from common_etl.utils import load_config, has_fatal_error, load_table_from_query
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
-
-
-def create_program_name_set():
-    def make_program_name_set_query():
-        return f"""
-        SELECT DISTINCT program_name
-        FROM `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_case_project_program`
-        """
-
-    result = bq_harness_with_result(sql=make_program_name_set_query(), do_batch=False, verbose=False)
-
-    program_name_set = set()
-
-    for row in result:
-        program_name_set.add(row[0])
-
-    return program_name_set
 
 
 def make_per_sample_file_program_query(program: str):
@@ -90,7 +73,7 @@ def main(args):
         has_fatal_error(err, ValueError)
 
     if 'create_program_tables' in steps:
-        program_set = create_program_name_set()
+        program_set = create_program_name_set(API_PARAMS, BQ_PARAMS)
 
         for program in sorted(program_set):
             if program == "BEATAML1.0":
