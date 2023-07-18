@@ -54,7 +54,7 @@ def main(args):
             program_name = program
 
         gdc_table_name = f"{program_name}_per_sample_file_metadata_hg38_gdc_{API_PARAMS['GDC_RELEASE']}"
-        gdc_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.GDC_per_sample_file.{gdc_table_name}"
+        gdc_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['GDC_WORKING_DATASET']}.{gdc_table_name}"
         cda_table_name = f"per_sample_file_metadata_hg38_{program_name}_{API_PARAMS['RELEASE']}"
         cda_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{cda_table_name}"
 
