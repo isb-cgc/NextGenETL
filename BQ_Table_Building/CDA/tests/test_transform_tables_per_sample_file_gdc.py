@@ -68,12 +68,17 @@ def main(args):
             if cda_table is None:
                 print(f"No table found: {cda_table_id}")
         else:
-            table_id_tuple = (gdc_table_id, cda_table_id)
+            table_id_tuple = (program, gdc_table_id, cda_table_id)
             table_id_tuple_set.add(table_id_tuple)
 
     for table_id_tuple in table_id_tuple_set:
-        gdc_table_id = table_id_tuple[0]
-        cda_table_id = table_id_tuple[1]
+        program = table_id_tuple[0]
+        gdc_table_id = table_id_tuple[1]
+        cda_table_id = table_id_tuple[2]
+
+        print("\n\n**********")
+        print(f"For program: {program}")
+        print("**********\n")
 
         print("Comparing row counts!\n")
 
