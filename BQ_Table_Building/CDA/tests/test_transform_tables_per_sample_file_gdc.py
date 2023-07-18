@@ -85,13 +85,13 @@ def main(args):
         compare_row_counts(old_table_id=gdc_table_id,
                            new_table_id=cda_table_id)
 
-        print("Comparing primary table keys!\n")
+        print("\nComparing primary table keys!\n")
 
         compare_id_keys(old_table_id=gdc_table_id,
                         new_table_id=cda_table_id,
                         primary_key=BQ_PARAMS['PRIMARY_KEY'])
 
-        print("Comparing secondary table keys!\n")
+        print("\nComparing secondary table keys!\n")
 
         compare_id_keys(old_table_id=gdc_table_id,
                         new_table_id=cda_table_id,

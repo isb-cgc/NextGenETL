@@ -170,12 +170,13 @@ def compare_table_columns(old_table_id: str,
 
             for row in result:
                 if secondary_key is not None:
-                    print(f"{row[0]}\t\t\t\t\t{row[1]}\t\t\t\t\t{row[2]}")
+                    print(f"{row[0]}\t{row[1]}\t\t\t\t\t{row[2]}")
                 else:
                     print(f"{row[0]}\t\t\t\t\t{row[1]}")
 
                 count += 1
                 if count == 5:
+                    print()
                     break
         else:
             print(f"{column} column matches in published and new tables!")
