@@ -170,7 +170,7 @@ def compare_table_columns(old_table_id: str,
 
             for row in result:
                 if secondary_key is not None:
-                    print(f"{row[0]}\t{row[1]}\t\t\t\t\t{row[2]}")
+                    print(f"{row[0]}\t{row[1]}\t{row[2]}")
                 else:
                     print(f"{row[0]}\t\t\t\t\t{row[1]}")
 
