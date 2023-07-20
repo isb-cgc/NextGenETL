@@ -29,6 +29,20 @@ BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
+def make_file_with_single_case_association_query():
+    # returns all associated entities where files have only one case association
+    return f"""
+    SELECT * 
+    FROM `isb-project-zero.cda_gdc_test.2023_03_file_associated_with_entity`
+    WHERE file_id IN (
+      SELECT file_id
+      FROM `isb-project-zero.cda_gdc_test.2023_03_file_associated_with_entity`
+      GROUP BY file_id
+      HAVING COUNT(entity_case_id) = 1
+    ) AND entity_type = 'aliquot' OR entity_type = 'slide'
+    """
+
+
 def make_per_sample_file_program_query(program: str):
     return f"""
     SELECT 
@@ -61,7 +75,6 @@ def make_per_sample_file_program_query(program: str):
       ON sfc.case_id = cpp.case_gdc_id
     LEFT JOIN `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_sample` s
       ON (s.sample_id = sfc.sample_id OR (s.sample_id IS NULL AND sfc.sample_id IS NULL) 
-        AND (s.)
     WHERE cpp.program_name = '{program}'
     """
 
