@@ -69,7 +69,6 @@ def make_aliquot_case_table_sql():
             ON sfc.sample_id = s.sample_id
         JOIN {create_dev_table_id('case_project_program')} cpp
             ON sfc.case_id = cpp.case_gdc_id
-        WHERE p.submitter_id IS NOT NULL
     ) UNION ALL (
         SELECT * 
         FROM `isb-project-zero.cda_gdc_test.r37_aliquot_to_case_legacy` 
