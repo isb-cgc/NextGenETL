@@ -162,7 +162,7 @@ def extract_active_aliquot_file_data_sql(release_table, program_name):
             CASE WHEN LENGTH(TRIM(a.associated_entities__entity_gdc_id)) -
                       LENGTH(TRIM(REPLACE(a.associated_entities__entity_gdc_id, ";", ""))) = 4
                  THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
-                                     r"^[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$")
+                                     r"^[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;([a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$")
               ELSE CAST(null AS STRING)
             END as aliquot_id_five,
             a.project_short_name, # TCGA-OV
