@@ -65,6 +65,7 @@ def make_slide_view_query():
 
 
 def make_aliquot_count_query():
+    # todo could this be used in test suite?
     return f"""
     WITH aliquot_counts AS (
         SELECT distinct file_gdc_id,
@@ -169,6 +170,7 @@ def make_aliquot_view_query():
             atc.aliquot_barcode = fawe.entity_submitter_id
 
     UNION ALL
+    # merging the multi and individual aliquot rows
     
     SELECT DISTINCT fm2.file_gdc_id,
         fm2.case_gdc_id,
@@ -301,6 +303,36 @@ def make_aliquot_view_query():
         ON atc.case_gdc_id = fm2.case_gdc_id
 """
 
+
+def make_case_view_query():
+    return f"""
+        SELECT
+            fm.file_id as file_gdc_id,
+            fm.case_gdc_id,
+            fm.project_short_name, # TCGA-OV
+            REGEXP_EXTRACT(fm.project_short_name, r'^[^-]*-(.*)$') AS project_short_name_suffix,
+            fm.program_name, # TCGA
+            fm.data_type,
+            fm.data_category,
+            fm.experimental_strategy,
+            fm.file_type,
+            fm.file_size,
+            fm.data_format,
+            fm.platform,
+            CAST(null AS STRING) as file_name_key,
+            fm.index_file_gdc_id as index_file_id,
+            CAST(null AS STRING) as index_file_name_key,
+            fm.index_file_size,
+            fm.`access`,
+            fm.acl
+        FROM `isb-project-zero.cda_gdc_test.file_metadata_2023_03` AS fm
+        WHERE fm.case_gdc_id NOT LIKE "%;%" AND
+              fm.case_gdc_id != "multi" AND
+              fm.associated_entities__entity_type = "case"
+    """
+
+
+'''
 def make_file_with_single_case_association_query():
     # returns all associated entities where files have only one case association
     return f"""
@@ -313,8 +345,9 @@ def make_file_with_single_case_association_query():
       HAVING COUNT(entity_case_id) = 1
     ) AND entity_type = 'aliquot' OR entity_type = 'slide'
     """
+'''
 
-
+'''
 def make_per_sample_file_program_query(program: str):
     return f"""
     SELECT 
@@ -349,7 +382,7 @@ def make_per_sample_file_program_query(program: str):
       ON (s.sample_id = sfc.sample_id OR (s.sample_id IS NULL AND sfc.sample_id IS NULL) 
     WHERE cpp.program_name = '{program}'
     """
-
+'''
 
 def main(args):
     try:
