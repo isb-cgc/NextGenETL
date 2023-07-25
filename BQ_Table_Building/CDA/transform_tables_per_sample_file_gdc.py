@@ -271,9 +271,9 @@ def make_case_entity_query(program_name: str) -> str:
 
 
 def make_merged_sql_query(program_name: str) -> str:
-    slide_entity_sql = make_slide_entity_query(BQ_PARAMS, program_name)
-    aliquot_entity_sql = make_aliquot_entity_query(BQ_PARAMS, program_name)
-    case_entity_sql = make_case_entity_query(BQ_PARAMS, program_name)
+    slide_entity_sql = make_slide_entity_query(program_name)
+    aliquot_entity_sql = make_aliquot_entity_query(program_name)
+    case_entity_sql = make_case_entity_query(program_name)
 
     return f"""
     ({slide_entity_sql})
