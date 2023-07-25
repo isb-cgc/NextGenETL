@@ -29,42 +29,7 @@ BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
-def make_slide_view_query():
-    return f"""
-    SELECT DISTINCT 
-        fm.file_gdc_id,
-        fm.case_gdc_id,
-        stc.case_barcode,
-        stc.sample_gdc_id,
-        stc.sample_barcode,
-        stc.sample_type_name,
-        fm.project_short_name,
-        REGEXP_EXTRACT(fm.project_short_name, r'^[^-]*-(.*)$') AS project_short_name_suffix,
-        fm.program_name,
-        fm.data_type,
-        fm.file_size,
-        fm.data_format,
-        fm.platform,
-        CAST(null AS STRING) AS file_name_key,
-        fm.index_file_gdc_id AS index_file_id,
-        CAST(null AS STRING) as index_file_name_key,
-        fm.index_file_size,
-        fm.`access`,
-        fm.acl
-    FROM `isb-project-zero.cda_gdc_test.file_metadata_2023_03` fm
-    JOIN `isb-project-zero.cda_gdc_test.2023_03_file_associated_with_entity` fawe
-      ON fawe.file_id = fm.file_gdc_id AND 
-         fawe.entity_id = fm.associated_entities__entity_gdc_id
-    JOIN `isb-project-zero.cda_gdc_test.slide_to_case_2023_03` stc
-      ON stc.slide_gdc_id = fm.associated_entities__entity_gdc_id AND 
-         stc.slide_barcode = fawe.entity_submitter_id
-    WHERE fm.associated_entities__entity_type = 'slide' AND
-      fm.case_gdc_id NOT LIKE "%;%" AND
-      fm.case_gdc_id != "multi"
-    """
-
-
-def make_aliquot_count_query():
+def make_aliquot_count_query() -> str:
     # todo could this be used in test suite?
     return f"""
     WITH aliquot_counts AS (
@@ -86,18 +51,74 @@ def make_aliquot_count_query():
     """
 
 
-def make_aliquot_view_query():
+def make_slide_entity_query(program_name: str) -> str:
+    working_project = BQ_PARAMS['WORKING_PROJECT']
+    working_dataset = BQ_PARAMS['WORKING_DATASET']
+    file_metadata_table_id = f"{working_project}.{working_dataset}.file_metadata_{BQ_PARAMS['RELEASE']}"
+    file_entity_table_id = f"{working_project}.{working_dataset}.{BQ_PARAMS['RELEASE']}_file_associated_with_entity"
+    slide_case_table_id = f"{working_project}.{working_dataset}.slide_to_case_{BQ_PARAMS['RELEASE']}"
+
+    return f"""
+    SELECT DISTINCT 
+        fm.file_gdc_id,
+        fm.case_gdc_id,
+        stc.case_barcode,
+        stc.sample_gdc_id,
+        stc.sample_barcode,
+        stc.sample_type_name,
+        fm.project_short_name,
+        REGEXP_EXTRACT(fm.project_short_name, r'^[^-]*-(.*)$') AS project_short_name_suffix,
+        fm.program_name,
+        fm.data_type,
+        fm.data_category,
+        fm.experimental_strategy,
+        fm.file_type,
+        fm.file_size,
+        fm.data_format,
+        fm.platform,
+        CAST(null AS STRING) AS file_name_key,
+        fm.index_file_gdc_id AS index_file_id,
+        CAST(null AS STRING) as index_file_name_key,
+        fm.index_file_size,
+        fm.`access`,
+        fm.acl
+    FROM `{file_metadata_table_id}` fm
+    JOIN `{file_entity_table_id}` fawe
+      ON fawe.file_id = fm.file_gdc_id AND 
+         fawe.entity_id = fm.associated_entities__entity_gdc_id
+    JOIN `{slide_case_table_id}` stc
+      ON stc.slide_gdc_id = fm.associated_entities__entity_gdc_id AND 
+         stc.slide_barcode = fawe.entity_submitter_id
+    WHERE fm.case_gdc_id NOT LIKE '%;%' AND
+          fm.case_gdc_id != 'multi' AND
+          fm.associated_entities__entity_type = 'slide' AND
+          fm.program_name = '{program_name}'
+    """
+
+
+def make_aliquot_entity_query(program_name: str) -> str:
+    working_project = BQ_PARAMS['WORKING_PROJECT']
+    working_dataset = BQ_PARAMS['WORKING_DATASET']
+    file_metadata_table_id = f"{working_project}.{working_dataset}.file_metadata_{BQ_PARAMS['RELEASE']}"
+    case_metadata_table_id = f"{working_project}.{working_dataset}.case_metadata_{BQ_PARAMS['RELEASE']}"
+    file_entity_table_id = f"{working_project}.{working_dataset}.{BQ_PARAMS['RELEASE']}_file_associated_with_entity"
+    aliquot_case_table_id = f"{working_project}.{working_dataset}.aliquot_to_case_{BQ_PARAMS['RELEASE']}"
+
     return f"""
     WITH fm1 AS ( 
         # Files with < 8 associated aliquots (otherwise they're marked as multi) 
         # Also, files are only associated with a single case.
-        SELECT DISTINCT fm.file_gdc_id,
+        SELECT DISTINCT 
+            fm.file_gdc_id,
             fm.case_gdc_id,
             fm.associated_entities__entity_gdc_id AS aliquot_gdc_id,
             fm.project_short_name,
             REGEXP_EXTRACT(fm.project_short_name, r'^[^-]*-(.*)$') AS project_short_name_suffix,
             fm.program_name,
             fm.data_type,
+            fm.data_category,
+            fm.experimental_strategy,
+            fm.file_type,
             fm.file_size,
             fm.data_format,
             fm.platform,
@@ -107,16 +128,17 @@ def make_aliquot_view_query():
             fm.index_file_size,
             fm.`access`,
             fm.acl
-        FROM `isb-project-zero.cda_gdc_test.file_metadata_2023_03` fm
+        FROM `{file_metadata_table_id}` fm
         WHERE 
             fm.associated_entities__entity_type = 'aliquot' AND
-            fm.case_gdc_id NOT LIKE "%;%" AND
-            fm.case_gdc_id != "multi" AND 
-            fm.associated_entities__entity_gdc_id != 'multi'
+            fm.case_gdc_id NOT LIKE '%;%' AND
+            fm.case_gdc_id != 'multi' AND 
+            fm.associated_entities__entity_gdc_id != 'multi' AND
+            fm.program_name = '{program_name}'
     ), 
 
     fm2 AS (
-        # Files with >= 8 associated aliquots, where "multi" is substituted for concatenated aliquot string
+        # Files with >= 8 associated aliquots, where 'multi' is substituted for concatenated aliquot string
         # Also, files are only associated with a single case.
         SELECT DISTINCT fm.file_gdc_id,
             fm.case_gdc_id,
@@ -125,6 +147,9 @@ def make_aliquot_view_query():
             REGEXP_EXTRACT(fm.project_short_name, r'^[^-]*-(.*)$') AS project_short_name_suffix,
             fm.program_name,
             fm.data_type,
+            fm.data_category,
+            fm.experimental_strategy,
+            fm.file_type,
             fm.file_size,
             fm.data_format,
             fm.platform,
@@ -134,12 +159,13 @@ def make_aliquot_view_query():
             fm.index_file_size,
             fm.`access`,
             fm.acl
-        FROM `isb-project-zero.cda_gdc_test.file_metadata_2023_03` fm
+        FROM `{file_metadata_table_id}` fm
         WHERE 
             fm.associated_entities__entity_type = 'aliquot' AND
-            fm.case_gdc_id NOT LIKE "%;%" AND
-            fm.case_gdc_id != "multi" AND 
-            fm.associated_entities__entity_gdc_id = 'multi'
+            fm.case_gdc_id NOT LIKE '%;%' AND
+            fm.case_gdc_id != 'multi' AND 
+            fm.associated_entities__entity_gdc_id = 'multi' AND
+            fm.program_name = '{program_name}'
     )
 
     SELECT DISTINCT fm1.file_gdc_id,
@@ -152,6 +178,9 @@ def make_aliquot_view_query():
         fm1.project_short_name_suffix,
         fm1.program_name,
         fm1.data_type,
+        fm1.data_category,
+        fm1.experimental_strategy,
+        fm1.file_type,        
         fm1.file_size,
         fm1.data_format,
         fm1.platform,
@@ -162,9 +191,9 @@ def make_aliquot_view_query():
         fm1.`access`,
         fm1.acl
     FROM fm1
-    JOIN `isb-project-zero.cda_gdc_test.2023_03_file_associated_with_entity` fawe
+    JOIN `{file_entity_table_id}` fawe
         ON fm1.file_gdc_id = fawe.file_id
-    JOIN `isb-project-zero.cda_gdc_test.aliquot_to_case_2023_03` atc
+    JOIN `{aliquot_case_table_id}` atc
         ON  atc.case_gdc_id = fm1.case_gdc_id AND
             atc.aliquot_gdc_id = fawe.entity_id AND
             atc.aliquot_barcode = fawe.entity_submitter_id
@@ -174,7 +203,7 @@ def make_aliquot_view_query():
     
     SELECT DISTINCT fm2.file_gdc_id,
         fm2.case_gdc_id,
-        atc.case_barcode,
+        cm.case_barcode,
         CAST(null AS STRING) AS sample_gdc_id,
         CAST(null AS STRING) AS sample_barcode,
         CAST(null AS STRING) AS sample_type_name,
@@ -182,6 +211,9 @@ def make_aliquot_view_query():
         fm2.project_short_name_suffix,
         fm2.program_name,
         fm2.data_type,
+        fm2.data_category,
+        fm2.experimental_strategy,
+        fm2.file_type,        
         fm2.file_size,
         fm2.data_format,
         fm2.platform,
@@ -192,123 +224,26 @@ def make_aliquot_view_query():
         fm2.`access`,
         fm2.acl
     FROM fm2
-    JOIN `isb-project-zero.cda_gdc_test.aliquot_to_case_2023_03` atc
-        ON atc.case_gdc_id = fm2.case_gdc_id
+    # should this be 
+    JOIN `{case_metadata_table_id}` cm
+        ON cm.case_gdc_id = fm2.case_gdc_id
     """
-"""
-    WITH fm1 AS ( 
-        # Files with < 8 associated aliquots (otherwise they're marked as multi) 
-        # Also, files are only associated with a single case.
-        SELECT DISTINCT fm.file_gdc_id,
-            fm.case_gdc_id,
-            fm.associated_entities__entity_gdc_id AS aliquot_gdc_id,
-            fm.project_short_name,
-            REGEXP_EXTRACT(fm.project_short_name, r'^[^-]*-(.*)$') AS project_short_name_suffix,
-            fm.program_name,
-            fm.data_type,
-            fm.file_size,
-            fm.data_format,
-            fm.platform,
-            CAST(null AS STRING) AS file_name_key,
-            fm.index_file_gdc_id AS index_file_id,
-            CAST(null AS STRING) as index_file_name_key,
-            fm.index_file_size,
-            fm.`access`,
-            fm.acl
-        FROM `isb-cgc-bq.GDC_case_file_metadata.fileData_active_current` fm
-        WHERE 
-            fm.associated_entities__entity_type = 'aliquot' AND
-            fm.associated_entities__case_gdc_id NOT LIKE "%;%" AND
-            fm.associated_entities__case_gdc_id != "multi" AND 
-            fm.associated_entities__entity_gdc_id != 'multi'
-    ), 
-
-    fm2 AS (
-        # Files with >= 8 associated aliquots, where "multi" is substituted for concatenated aliquot string
-        # Also, files are only associated with a single case.
-        SELECT DISTINCT fm.file_gdc_id,
-            fm.case_gdc_id,
-            fm.associated_entities__entity_gdc_id AS aliquot_gdc_id,
-            fm.project_short_name,
-            REGEXP_EXTRACT(fm.project_short_name, r'^[^-]*-(.*)$') AS project_short_name_suffix,
-            fm.program_name,
-            fm.data_type,
-            fm.file_size,
-            fm.data_format,
-            fm.platform,
-            CAST(null AS STRING) AS file_name_key,
-            fm.index_file_gdc_id AS index_file_id,
-            CAST(null AS STRING) as index_file_name_key,
-            fm.index_file_size,
-            fm.`access`,
-            fm.acl
-        FROM `isb-cgc-bq.GDC_case_file_metadata.fileData_active_current` fm
-        WHERE 
-            fm.associated_entities__entity_type = 'aliquot' AND
-            fm.associated_entities__case_gdc_id NOT LIKE "%;%" AND
-            fm.associated_entities__case_gdc_id != "multi" AND 
-            fm.associated_entities__entity_gdc_id = 'multi'
-    )
-
-    SELECT DISTINCT fm1.file_gdc_id,
-        fm1.case_gdc_id,
-        atc.case_barcode,
-        atc.sample_gdc_id,
-        atc.sample_barcode,
-        atc.sample_type_name,
-        fm1.project_short_name,
-        fm1.project_short_name_suffix,
-        fm1.program_name,
-        fm1.data_type,
-        fm1.file_size,
-        fm1.data_format,
-        fm1.platform,
-        fm1.file_name_key,
-        fm1.index_file_id,
-        fm1.index_file_name_key,
-        fm1.index_file_size,
-        fm1.`access`,
-        fm1.acl
-    FROM fm1
-    JOIN `isb-project-zero.cda_gdc_test.2023_03_file_associated_with_entity` fawe
-        ON fm1.file_gdc_id = fawe.file_id
-    JOIN `isb-cgc-bq.GDC_case_file_metadata.aliquot2caseIDmap_current` atc
-        ON  atc.case_gdc_id = fm1.case_gdc_id AND
-            atc.aliquot_gdc_id = fawe.entity_id AND
-            atc.aliquot_barcode = fawe.entity_submitter_id
-
-    UNION ALL
-    
-    SELECT DISTINCT fm2.file_gdc_id,
-        fm2.case_gdc_id,
-        atc.case_barcode,
-        CAST(null AS STRING) AS sample_gdc_id,
-        CAST(null AS STRING) AS sample_barcode,
-        CAST(null AS STRING) AS sample_type_name,
-        fm2.project_short_name,
-        fm2.project_short_name_suffix,
-        fm2.program_name,
-        fm2.data_type,
-        fm2.file_size,
-        fm2.data_format,
-        fm2.platform,
-        fm2.file_name_key,
-        fm2.index_file_id,
-        fm2.index_file_name_key,
-        fm2.index_file_size,
-        fm2.`access`,
-        fm2.acl
-    FROM fm2
-    JOIN `isb-cgc-bq.GDC_case_file_metadata.aliquot2caseIDmap_current` atc
-        ON atc.case_gdc_id = fm2.case_gdc_id
-"""
 
 
-def make_case_view_query():
+def make_case_entity_query(program_name: str) -> str:
+    working_project = BQ_PARAMS['WORKING_PROJECT']
+    working_dataset = BQ_PARAMS['WORKING_DATASET']
+    file_metadata_table_id = f"{working_project}.{working_dataset}.file_metadata_{BQ_PARAMS['RELEASE']}"
+    case_metadata_table_id = f"{working_project}.{working_dataset}.case_metadata_{BQ_PARAMS['RELEASE']}"
+
     return f"""
-        SELECT
+        SELECT DISTINCT 
             fm.file_id as file_gdc_id,
             fm.case_gdc_id,
+            c.case_barcode,
+            CAST(null AS STRING) AS sample_gdc_id,
+            CAST(null AS STRING) AS sample_barcode,
+            CAST(null AS STRING) AS sample_type_name,
             fm.project_short_name, # TCGA-OV
             REGEXP_EXTRACT(fm.project_short_name, r'^[^-]*-(.*)$') AS project_short_name_suffix,
             fm.program_name, # TCGA
@@ -325,64 +260,29 @@ def make_case_view_query():
             fm.index_file_size,
             fm.`access`,
             fm.acl
-        FROM `isb-project-zero.cda_gdc_test.file_metadata_2023_03` AS fm
-        WHERE fm.case_gdc_id NOT LIKE "%;%" AND
-              fm.case_gdc_id != "multi" AND
-              fm.associated_entities__entity_type = "case"
+        FROM `{file_metadata_table_id}` AS fm
+        JOIN `{case_metadata_table_id}` AS c
+            ON fm.case_gdc_id = c.case_gdc_id
+        WHERE fm.case_gdc_id NOT LIKE '%;%' AND
+              fm.case_gdc_id != 'multi' AND
+              fm.associated_entities__entity_type = 'case' AND
+              fm.program_name = '{program_name}'
     """
 
 
-'''
-def make_file_with_single_case_association_query():
-    # returns all associated entities where files have only one case association
+def make_merged_sql_query(program_name: str) -> str:
+    slide_entity_sql = make_slide_entity_query(BQ_PARAMS, program_name)
+    aliquot_entity_sql = make_aliquot_entity_query(BQ_PARAMS, program_name)
+    case_entity_sql = make_case_entity_query(BQ_PARAMS, program_name)
+
     return f"""
-    SELECT * 
-    FROM `isb-project-zero.cda_gdc_test.2023_03_file_associated_with_entity`
-    WHERE file_id IN (
-      SELECT file_id
-      FROM `isb-project-zero.cda_gdc_test.2023_03_file_associated_with_entity`
-      GROUP BY file_id
-      HAVING COUNT(entity_case_id) = 1
-    ) AND entity_type = 'aliquot' OR entity_type = 'slide'
+    ({slide_entity_sql})
+    UNION ALL
+    ({aliquot_entity_sql})
+    UNION ALL
+    ({case_entity_sql})
     """
-'''
 
-'''
-def make_per_sample_file_program_query(program: str):
-    return f"""
-    SELECT 
-      fm.file_gdc_id,
-      cpp.case_gdc_id,
-      cpp.case_barcode,
-      s.sample_id AS sample_gdc_id,
-      s.submitter_id AS sample_barcode,
-      s.sample_type AS sample_type_name,
-      cpp.project_id AS project_short_name,
-      REGEXP_EXTRACT(cpp.project_id, r'^[^-]*-(.*)$') AS project_short_name_suffix,
-      cpp.program_name,
-      fm.data_type,
-      fm.data_category,
-      fm.experimental_strategy,
-      fm.file_type,
-      fm.file_size,
-      fm.data_format,
-      fm.platform,
-      fm.file_name AS file_name_key,
-      fm.index_file_gdc_id AS index_file_id,
-      fm.index_file_name AS index_file_name_key,
-      fm.index_file_size,
-      fm.`access`,
-      fm.acl
-    FROM `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.file_metadata_{API_PARAMS['RELEASE']}` fm 
-    LEFT JOIN `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_case_project_program` cpp
-      ON cpp.case_gdc_id = fm.case_gdc_id
-    LEFT JOIN `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_sample_from_case` sfc
-      ON sfc.case_id = cpp.case_gdc_id
-    LEFT JOIN `{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_sample` s
-      ON (s.sample_id = sfc.sample_id OR (s.sample_id IS NULL AND sfc.sample_id IS NULL) 
-    WHERE cpp.program_name = '{program}'
-    """
-'''
 
 def main(args):
     try:
@@ -419,11 +319,13 @@ def main(args):
                 program_name = program
 
             table_name = f"per_sample_file_metadata_hg38_{program_name}_{API_PARAMS['RELEASE']}"
-            table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{table_name}"
+            table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['TARGET_DATASET']}.{table_name}"
+
+            print(f"\nLoading table for {program_name}!\n")
 
             load_table_from_query(bq_params=BQ_PARAMS,
                                   table_id=table_id,
-                                  query=make_per_sample_file_program_query(program))
+                                  query=make_merged_sql_query(program_name))
 
 
 if __name__ == "__main__":
