@@ -85,7 +85,6 @@ def main(args):
         compare_row_counts(old_table_id=gdc_table_id,
                            new_table_id=cda_table_id)
 
-        """
         print("\nComparing primary table keys!\n")
 
         compare_id_keys(old_table_id=gdc_table_id,
@@ -107,8 +106,12 @@ def main(args):
                               primary_key=BQ_PARAMS['PRIMARY_KEY'],
                               secondary_key=BQ_PARAMS['SECONDARY_KEY'],
                               columns=columns_list)
-        """
 
+"""
+Testing notes:
+A given row will:
+- definitely have a file id and a case id that match, and either matching sample ids or null sample ids
+"""
 
 if __name__ == "__main__":
     main(sys.argv)
