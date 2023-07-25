@@ -340,7 +340,8 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
     # Add associated entity fields to file records
     print("Adding associated entity fields to file records")
 
-    associated_entities_concat_field_list: list[str] = ['associated_entities__entity_gdc_id',
+    associated_entities_concat_field_list: list[str] = ['associated_entities__case_gdc_id',
+                                                        'associated_entities__entity_gdc_id',
                                                         'associated_entities__entity_submitter_id']
 
     query_result: BQHarnessResult = bq_harness_with_result(sql=make_associated_entities_sql(),

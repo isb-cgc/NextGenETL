@@ -29,6 +29,278 @@ BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
+def make_slide_view_query():
+    return f"""
+    SELECT DISTINCT 
+        fm.file_gdc_id,
+        fm.case_gdc_id,
+        stc.case_barcode,
+        stc.sample_gdc_id,
+        stc.sample_barcode,
+        stc.sample_type_name,
+        fm.project_short_name,
+        REGEXP_EXTRACT(fm.project_short_name, r'^[^-]*-(.*)$') AS project_short_name_suffix,
+        fm.program_name,
+        fm.data_type,
+        fm.file_size,
+        fm.data_format,
+        fm.platform,
+        CAST(null AS STRING) AS file_name_key,
+        fm.index_file_gdc_id AS index_file_id,
+        CAST(null AS STRING) as index_file_name_key,
+        fm.index_file_size,
+        fm.`access`,
+        fm.acl
+    FROM `isb-project-zero.cda_gdc_test.file_metadata_2023_03` fm
+    JOIN `isb-project-zero.cda_gdc_test.2023_03_file_associated_with_entity` fawe
+      ON fawe.file_id = fm.file_gdc_id AND 
+         fawe.entity_id = fm.associated_entities__entity_gdc_id
+    JOIN `isb-project-zero.cda_gdc_test.slide_to_case_2023_03` stc
+      ON stc.slide_gdc_id = fm.associated_entities__entity_gdc_id AND 
+         stc.slide_barcode = fawe.entity_submitter_id
+    WHERE fm.associated_entities__entity_type = 'slide' AND
+      fm.case_gdc_id NOT LIKE "%;%" AND
+      fm.case_gdc_id != "multi"
+    """
+
+
+def make_aliquot_count_query():
+    return f"""
+    WITH aliquot_counts AS (
+        SELECT distinct file_gdc_id,
+        # Count the number of ';'' in the field, if any; if not, count is one, 
+        # which covers rows for both single aliquots and multi
+            CASE WHEN ARRAY_LENGTH(REGEXP_EXTRACT_ALL(associated_entities__entity_gdc_id, r'(;)')) >= 1
+                 THEN ARRAY_LENGTH(REGEXP_EXTRACT_ALL(associated_entities__entity_gdc_id, r'(;)')) + 1
+                 ELSE 1
+            END AS entity_count
+        FROM `isb-project-zero.cda_gdc_test.file_metadata_2023_03`
+        WHERE case_gdc_id NOT LIKE "%;%" AND
+              case_gdc_id != "multi" AND
+              associated_entities__entity_type = "aliquot"            
+    )
+
+    SELECT sum(entity_count) AS aliquot_count            
+    FROM aliquot_counts
+    """
+
+
+def make_aliquot_view_query():
+    return f"""
+    WITH fm1 AS ( 
+        # Files with < 8 associated aliquots (otherwise they're marked as multi) 
+        # Also, files are only associated with a single case.
+        SELECT DISTINCT fm.file_gdc_id,
+            fm.case_gdc_id,
+            fm.associated_entities__entity_gdc_id AS aliquot_gdc_id,
+            fm.project_short_name,
+            REGEXP_EXTRACT(fm.project_short_name, r'^[^-]*-(.*)$') AS project_short_name_suffix,
+            fm.program_name,
+            fm.data_type,
+            fm.file_size,
+            fm.data_format,
+            fm.platform,
+            CAST(null AS STRING) AS file_name_key,
+            fm.index_file_gdc_id AS index_file_id,
+            CAST(null AS STRING) as index_file_name_key,
+            fm.index_file_size,
+            fm.`access`,
+            fm.acl
+        FROM `isb-project-zero.cda_gdc_test.file_metadata_2023_03` fm
+        WHERE 
+            fm.associated_entities__entity_type = 'aliquot' AND
+            fm.case_gdc_id NOT LIKE "%;%" AND
+            fm.case_gdc_id != "multi" AND 
+            fm.associated_entities__entity_gdc_id != 'multi'
+    ), 
+
+    fm2 AS (
+        # Files with >= 8 associated aliquots, where "multi" is substituted for concatenated aliquot string
+        # Also, files are only associated with a single case.
+        SELECT DISTINCT fm.file_gdc_id,
+            fm.case_gdc_id,
+            fm.associated_entities__entity_gdc_id AS aliquot_gdc_id,
+            fm.project_short_name,
+            REGEXP_EXTRACT(fm.project_short_name, r'^[^-]*-(.*)$') AS project_short_name_suffix,
+            fm.program_name,
+            fm.data_type,
+            fm.file_size,
+            fm.data_format,
+            fm.platform,
+            CAST(null AS STRING) AS file_name_key,
+            fm.index_file_gdc_id AS index_file_id,
+            CAST(null AS STRING) as index_file_name_key,
+            fm.index_file_size,
+            fm.`access`,
+            fm.acl
+        FROM `isb-project-zero.cda_gdc_test.file_metadata_2023_03` fm
+        WHERE 
+            fm.associated_entities__entity_type = 'aliquot' AND
+            fm.case_gdc_id NOT LIKE "%;%" AND
+            fm.case_gdc_id != "multi" AND 
+            fm.associated_entities__entity_gdc_id = 'multi'
+    )
+
+    SELECT DISTINCT fm1.file_gdc_id,
+        fm1.case_gdc_id,
+        atc.case_barcode,
+        atc.sample_gdc_id,
+        atc.sample_barcode,
+        atc.sample_type_name,
+        fm1.project_short_name,
+        fm1.project_short_name_suffix,
+        fm1.program_name,
+        fm1.data_type,
+        fm1.file_size,
+        fm1.data_format,
+        fm1.platform,
+        fm1.file_name_key,
+        fm1.index_file_id,
+        fm1.index_file_name_key,
+        fm1.index_file_size,
+        fm1.`access`,
+        fm1.acl
+    FROM fm1
+    JOIN `isb-project-zero.cda_gdc_test.2023_03_file_associated_with_entity` fawe
+        ON fm1.file_gdc_id = fawe.file_id
+    JOIN `isb-project-zero.cda_gdc_test.aliquot_to_case_2023_03` atc
+        ON  atc.case_gdc_id = fm1.case_gdc_id AND
+            atc.aliquot_gdc_id = fawe.entity_id AND
+            atc.aliquot_barcode = fawe.entity_submitter_id
+
+    UNION ALL
+    
+    SELECT DISTINCT fm2.file_gdc_id,
+        fm2.case_gdc_id,
+        atc.case_barcode,
+        CAST(null AS STRING) AS sample_gdc_id,
+        CAST(null AS STRING) AS sample_barcode,
+        CAST(null AS STRING) AS sample_type_name,
+        fm2.project_short_name,
+        fm2.project_short_name_suffix,
+        fm2.program_name,
+        fm2.data_type,
+        fm2.file_size,
+        fm2.data_format,
+        fm2.platform,
+        fm2.file_name_key,
+        fm2.index_file_id,
+        fm2.index_file_name_key,
+        fm2.index_file_size,
+        fm2.`access`,
+        fm2.acl
+    FROM fm2
+    JOIN `isb-project-zero.cda_gdc_test.aliquot_to_case_2023_03` atc
+        ON atc.case_gdc_id = fm2.case_gdc_id
+    """
+"""
+    WITH fm1 AS ( 
+        # Files with < 8 associated aliquots (otherwise they're marked as multi) 
+        # Also, files are only associated with a single case.
+        SELECT DISTINCT fm.file_gdc_id,
+            fm.case_gdc_id,
+            fm.associated_entities__entity_gdc_id AS aliquot_gdc_id,
+            fm.project_short_name,
+            REGEXP_EXTRACT(fm.project_short_name, r'^[^-]*-(.*)$') AS project_short_name_suffix,
+            fm.program_name,
+            fm.data_type,
+            fm.file_size,
+            fm.data_format,
+            fm.platform,
+            CAST(null AS STRING) AS file_name_key,
+            fm.index_file_gdc_id AS index_file_id,
+            CAST(null AS STRING) as index_file_name_key,
+            fm.index_file_size,
+            fm.`access`,
+            fm.acl
+        FROM `isb-cgc-bq.GDC_case_file_metadata.fileData_active_current` fm
+        WHERE 
+            fm.associated_entities__entity_type = 'aliquot' AND
+            fm.associated_entities__case_gdc_id NOT LIKE "%;%" AND
+            fm.associated_entities__case_gdc_id != "multi" AND 
+            fm.associated_entities__entity_gdc_id != 'multi'
+    ), 
+
+    fm2 AS (
+        # Files with >= 8 associated aliquots, where "multi" is substituted for concatenated aliquot string
+        # Also, files are only associated with a single case.
+        SELECT DISTINCT fm.file_gdc_id,
+            fm.case_gdc_id,
+            fm.associated_entities__entity_gdc_id AS aliquot_gdc_id,
+            fm.project_short_name,
+            REGEXP_EXTRACT(fm.project_short_name, r'^[^-]*-(.*)$') AS project_short_name_suffix,
+            fm.program_name,
+            fm.data_type,
+            fm.file_size,
+            fm.data_format,
+            fm.platform,
+            CAST(null AS STRING) AS file_name_key,
+            fm.index_file_gdc_id AS index_file_id,
+            CAST(null AS STRING) as index_file_name_key,
+            fm.index_file_size,
+            fm.`access`,
+            fm.acl
+        FROM `isb-cgc-bq.GDC_case_file_metadata.fileData_active_current` fm
+        WHERE 
+            fm.associated_entities__entity_type = 'aliquot' AND
+            fm.associated_entities__case_gdc_id NOT LIKE "%;%" AND
+            fm.associated_entities__case_gdc_id != "multi" AND 
+            fm.associated_entities__entity_gdc_id = 'multi'
+    )
+
+    SELECT DISTINCT fm1.file_gdc_id,
+        fm1.case_gdc_id,
+        atc.case_barcode,
+        atc.sample_gdc_id,
+        atc.sample_barcode,
+        atc.sample_type_name,
+        fm1.project_short_name,
+        fm1.project_short_name_suffix,
+        fm1.program_name,
+        fm1.data_type,
+        fm1.file_size,
+        fm1.data_format,
+        fm1.platform,
+        fm1.file_name_key,
+        fm1.index_file_id,
+        fm1.index_file_name_key,
+        fm1.index_file_size,
+        fm1.`access`,
+        fm1.acl
+    FROM fm1
+    JOIN `isb-project-zero.cda_gdc_test.2023_03_file_associated_with_entity` fawe
+        ON fm1.file_gdc_id = fawe.file_id
+    JOIN `isb-cgc-bq.GDC_case_file_metadata.aliquot2caseIDmap_current` atc
+        ON  atc.case_gdc_id = fm1.case_gdc_id AND
+            atc.aliquot_gdc_id = fawe.entity_id AND
+            atc.aliquot_barcode = fawe.entity_submitter_id
+
+    UNION ALL
+    
+    SELECT DISTINCT fm2.file_gdc_id,
+        fm2.case_gdc_id,
+        atc.case_barcode,
+        CAST(null AS STRING) AS sample_gdc_id,
+        CAST(null AS STRING) AS sample_barcode,
+        CAST(null AS STRING) AS sample_type_name,
+        fm2.project_short_name,
+        fm2.project_short_name_suffix,
+        fm2.program_name,
+        fm2.data_type,
+        fm2.file_size,
+        fm2.data_format,
+        fm2.platform,
+        fm2.file_name_key,
+        fm2.index_file_id,
+        fm2.index_file_name_key,
+        fm2.index_file_size,
+        fm2.`access`,
+        fm2.acl
+    FROM fm2
+    JOIN `isb-cgc-bq.GDC_case_file_metadata.aliquot2caseIDmap_current` atc
+        ON atc.case_gdc_id = fm2.case_gdc_id
+"""
+
 def make_file_with_single_case_association_query():
     # returns all associated entities where files have only one case association
     return f"""
@@ -85,6 +357,22 @@ def main(args):
         API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(err, ValueError)
+
+    # Steps, perhaps--some may be mergable. For each progrma:
+    # 1) find all slide associated entities in file metadata. There won't be multiples here, one slide = a file.
+    #    Using rows from slide associated entities, and slide_to_case_map, expand slide rows, and drop duplicates.
+    #    Then, get slide barcodes and sample id, barcode and sample_type_name, perhaps other columns?
+    # ** Able to do all this in a single query: make_slide_view_query()
+
+    # 2) find all aliquot associated entities in file metadata;
+    #    expand aliquots that are concatenated list into multiple rows.
+    #    If multi, then include the file, but leave sample id blank.
+    #    Then, get aliquot barcodes and sample id, barcode and sample_type_name, perhaps other columns?
+
+    # 4) add in files with "multi" aliquots. These get NULL gdc_sample_id, sample_barcode, sample_type_name.
+    # 5) find all case associated entities in file metadata where file doesn't have multiple case_gdc_ids.
+    #    These get NULL sample id, barcode, sample_type_name
+    # 6) finally, all these tables get merged together into a single table.
 
     if 'create_program_tables' in steps:
         program_set = create_program_name_set(API_PARAMS, BQ_PARAMS)
