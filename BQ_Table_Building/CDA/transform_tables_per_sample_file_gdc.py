@@ -54,9 +54,9 @@ def make_aliquot_count_query() -> str:
 def make_slide_entity_query(program_name: str) -> str:
     working_project = BQ_PARAMS['WORKING_PROJECT']
     working_dataset = BQ_PARAMS['WORKING_DATASET']
-    file_metadata_table_id = f"{working_project}.{working_dataset}.file_metadata_{BQ_PARAMS['RELEASE']}"
-    file_entity_table_id = f"{working_project}.{working_dataset}.{BQ_PARAMS['RELEASE']}_file_associated_with_entity"
-    slide_case_table_id = f"{working_project}.{working_dataset}.slide_to_case_{BQ_PARAMS['RELEASE']}"
+    file_metadata_table_id = f"{working_project}.{working_dataset}.file_metadata_{API_PARAMS['RELEASE']}"
+    file_entity_table_id = f"{working_project}.{working_dataset}.{API_PARAMS['RELEASE']}_file_associated_with_entity"
+    slide_case_table_id = f"{working_project}.{working_dataset}.slide_to_case_{API_PARAMS['RELEASE']}"
 
     return f"""
     SELECT DISTINCT 
@@ -99,10 +99,10 @@ def make_slide_entity_query(program_name: str) -> str:
 def make_aliquot_entity_query(program_name: str) -> str:
     working_project = BQ_PARAMS['WORKING_PROJECT']
     working_dataset = BQ_PARAMS['WORKING_DATASET']
-    file_metadata_table_id = f"{working_project}.{working_dataset}.file_metadata_{BQ_PARAMS['RELEASE']}"
-    case_metadata_table_id = f"{working_project}.{working_dataset}.case_metadata_{BQ_PARAMS['RELEASE']}"
-    file_entity_table_id = f"{working_project}.{working_dataset}.{BQ_PARAMS['RELEASE']}_file_associated_with_entity"
-    aliquot_case_table_id = f"{working_project}.{working_dataset}.aliquot_to_case_{BQ_PARAMS['RELEASE']}"
+    file_metadata_table_id = f"{working_project}.{working_dataset}.file_metadata_{API_PARAMS['RELEASE']}"
+    case_metadata_table_id = f"{working_project}.{working_dataset}.case_metadata_{API_PARAMS['RELEASE']}"
+    file_entity_table_id = f"{working_project}.{working_dataset}.{API_PARAMS['RELEASE']}_file_associated_with_entity"
+    aliquot_case_table_id = f"{working_project}.{working_dataset}.aliquot_to_case_{API_PARAMS['RELEASE']}"
 
     return f"""
     WITH fm1 AS ( 
@@ -233,8 +233,8 @@ def make_aliquot_entity_query(program_name: str) -> str:
 def make_case_entity_query(program_name: str) -> str:
     working_project = BQ_PARAMS['WORKING_PROJECT']
     working_dataset = BQ_PARAMS['WORKING_DATASET']
-    file_metadata_table_id = f"{working_project}.{working_dataset}.file_metadata_{BQ_PARAMS['RELEASE']}"
-    case_metadata_table_id = f"{working_project}.{working_dataset}.case_metadata_{BQ_PARAMS['RELEASE']}"
+    file_metadata_table_id = f"{working_project}.{working_dataset}.file_metadata_{API_PARAMS['RELEASE']}"
+    case_metadata_table_id = f"{working_project}.{working_dataset}.case_metadata_{API_PARAMS['RELEASE']}"
 
     return f"""
         SELECT DISTINCT 
