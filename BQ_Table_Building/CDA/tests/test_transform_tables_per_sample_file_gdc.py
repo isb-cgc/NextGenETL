@@ -56,7 +56,7 @@ def main(args):
         gdc_table_name = f"{program_name}_per_sample_file_metadata_hg38_gdc_{API_PARAMS['GDC_RELEASE']}"
         gdc_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['GDC_WORKING_DATASET']}.{gdc_table_name}"
         cda_table_name = f"per_sample_file_metadata_hg38_{program_name}_{API_PARAMS['RELEASE']}"
-        cda_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['TARGET_DATASET']}.{cda_table_name}"
+        cda_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{cda_table_name}"
 
         # check for valid hg38 table location
         gdc_table = client.get_table(table=gdc_table_id)
