@@ -321,11 +321,11 @@ def main(args):
             table_name = f"per_sample_file_metadata_hg38_{program_name}_{API_PARAMS['RELEASE']}"
             table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['TARGET_DATASET']}.{table_name}"
 
-            print(f"\nLoading table for {program_name}!\n")
+            print(f"\nLoading table for {program}!\n")
 
             load_table_from_query(bq_params=BQ_PARAMS,
                                   table_id=table_id,
-                                  query=make_merged_sql_query(program_name))
+                                  query=make_merged_sql_query(program))
 
 
 if __name__ == "__main__":
