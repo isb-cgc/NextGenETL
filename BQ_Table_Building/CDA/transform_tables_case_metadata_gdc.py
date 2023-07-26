@@ -21,67 +21,75 @@ SOFTWARE.
 """
 import sys
 
-from common_etl.utils import load_config, has_fatal_error, load_table_from_query
+from cda_bq_etl.utils import load_config, has_fatal_error
+from cda_bq_etl.bq_helpers import load_table_from_query
 
-API_PARAMS = dict()
-BQ_PARAMS = dict()
-YAML_HEADERS = ('api_params', 'bq_params', 'steps')
-
-
-def create_dev_table_id(table_name) -> str:
-    return f"`{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_{table_name}`"
+PARAMS = dict()
+YAML_HEADERS = ('params', 'steps')
 
 
 def make_case_metadata_table_sql():
-    disease_type_table_name = f"project_disease_types_merged_{API_PARAMS['RELEASE']}"
-    disease_type_table_id = f"`{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{disease_type_table_name}`"
+    """
+    todo
+    :return:
+    """
+
+    def create_dev_table_id(table_name) -> str:
+        return f"`{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.{PARAMS['RELEASE']}_{table_name}`"
+
+    disease_type_table_name = f"project_disease_types_merged_{PARAMS['RELEASE']}"
+    disease_type_table_id = f"`{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.{disease_type_table_name}`"
 
     return f"""
-    WITH counts AS (
-    SELECT case_id, COUNT(file_id) as active_file_count 
-        FROM {create_dev_table_id('file_in_case')}
-        GROUP BY case_id
-    )
-    
-    (
-        SELECT cpp.case_gdc_id, 
-        c.primary_site, 
-        cpp.project_dbgap_accession_number, 
-        pdt.disease_type as project_disease_type,
-        cpp.project_name, 
-        cpp.program_dbgap_accession_number,
-        cpp.program_name, 
-        cpp.project_id, 
-        c.submitter_id AS case_barcode,
-        r.legacy_file_count,
-        counts.active_file_count
-        FROM {create_dev_table_id('case_project_program')} cpp
-        JOIN {create_dev_table_id('case')} c
-            ON c.case_id = cpp.case_gdc_id
-        LEFT JOIN {disease_type_table_id} pdt
-            ON pdt.project_id = cpp.project_id
-        JOIN `{BQ_PARAMS['ARCHIVE_COUNT_TABLE_ID']}` r
-            ON cpp.case_gdc_id = r.case_gdc_id
-        JOIN counts 
-            ON counts.case_id = cpp.case_gdc_id
-    ) UNION ALL (
-        SELECT * 
-        FROM `isb-project-zero.cda_gdc_test.r37_case_metadata_legacy` 
-    )
+        WITH counts AS (
+            SELECT case_id, COUNT(file_id) AS active_file_count 
+            FROM {create_dev_table_id('file_in_case')}
+            GROUP BY case_id
+        )
+        
+        (
+            SELECT cpp.case_gdc_id, 
+            c.primary_site, 
+            cpp.project_dbgap_accession_number, 
+            pdt.disease_type as project_disease_type,
+            cpp.project_name, 
+            cpp.program_dbgap_accession_number,
+            cpp.program_name, 
+            cpp.project_id, 
+            c.submitter_id AS case_barcode,
+            r.legacy_file_count,
+            counts.active_file_count
+            FROM {create_dev_table_id('case_project_program')} cpp
+            JOIN {create_dev_table_id('case')} c
+                ON c.case_id = cpp.case_gdc_id
+            LEFT JOIN {disease_type_table_id} pdt
+                ON pdt.project_id = cpp.project_id
+            JOIN `{PARAMS['ARCHIVE_COUNT_TABLE_ID']}` r
+                ON cpp.case_gdc_id = r.case_gdc_id
+            JOIN counts 
+                ON counts.case_id = cpp.case_gdc_id
+        ) 
+        
+        UNION ALL 
+        
+        (
+            SELECT * 
+            FROM `isb-project-zero.cda_gdc_test.r37_case_metadata_legacy` 
+        )
     """
 
 
 def main(args):
     try:
-        global API_PARAMS, BQ_PARAMS
-        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
+        global PARAMS
+        PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
     if 'create_table_from_query' in steps:
-        table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.case_metadata_{API_PARAMS['RELEASE']}"
+        table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.case_metadata_{PARAMS['RELEASE']}"
 
-        load_table_from_query(bq_params=BQ_PARAMS, table_id=table_id, query=make_case_metadata_table_sql())
+        load_table_from_query(params=PARAMS, table_id=table_id, query=make_case_metadata_table_sql())
 
 
 if __name__ == "__main__":

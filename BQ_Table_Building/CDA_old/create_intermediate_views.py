@@ -20,22 +20,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import sys
+from common_etl.utils import create_view_from_query, load_config, has_fatal_error
 
-from cda_bq_etl.utils import load_config, has_fatal_error
-from cda_bq_etl.bq_helpers import create_view_from_query
-
-PARAMS = dict()
-YAML_HEADERS = ('params', 'steps')
+API_PARAMS = dict()
+BQ_PARAMS = dict()
+YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
 def make_project_program_view_query():
-    """
-    todo
-    :return:
-    """
-    release = PARAMS['RELEASE']
-    working_project = PARAMS['WORKING_PROJECT']
-    working_dataset = PARAMS['WORKING_DATASET']
+    release = API_PARAMS['RELEASE']
+    working_project = BQ_PARAMS['WORKING_PROJECT']
+    working_dataset = BQ_PARAMS['WORKING_DATASET']
 
     return f"""
         SELECT 
@@ -60,13 +55,19 @@ def make_project_program_view_query():
 
 def main(args):
     try:
-        global PARAMS
-        PARAMS, steps = load_config(args, YAML_HEADERS)
+        global API_PARAMS, BQ_PARAMS
+        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
+    working_project = BQ_PARAMS['WORKING_PROJECT']
+    working_dataset = BQ_PARAMS['WORKING_DATASET']
+    release = API_PARAMS['RELEASE']
+    gdc_archive_release = API_PARAMS['GDC_ARCHIVE_RELEASE']
+
     if 'create_project_program_view' in steps:
-        view_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.{PARAMS['RELEASE']}_case_project_program"
+        view_id = f"{working_project}.{working_dataset}.{release}_case_project_program"
+
         create_view_from_query(view_id=view_id, view_query=make_project_program_view_query())
 
 

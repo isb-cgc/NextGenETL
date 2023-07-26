@@ -24,7 +24,6 @@ import sys
 from common_etl.support import bq_harness_with_result
 from common_etl.utils import load_config, has_fatal_error, normalize_flat_json_values, write_list_to_jsonl_and_upload, \
     create_and_upload_schema_for_json, retrieve_bq_schema_object, create_and_load_table_from_jsonl
-from common_etl.cda_utils import convert_bq_result_to_object_list
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -40,27 +39,27 @@ def make_aliquot_to_case_legacy_filtered_query():
     gdc_archive_release = API_PARAMS['GDC_ARCHIVE_RELEASE']
 
     return f"""
-    SELECT program_name, 
-        project_id, 
-        case_gdc_id, 
-        case_barcode, 
-        sample_gdc_id, 
-        sample_barcode,
-        sample_type, 
-        sample_type_name, 
-        sample_is_ffpe, 
-        sample_preservation_method, 
-        portion_gdc_id, 
-        portion_barcode, 
-        analyte_gdc_id, 
-        analyte_barcode, 
-        aliquot_gdc_id, 
-        aliquot_barcode 
-    FROM `{published_project}.{published_dataset}.aliquot2caseIDmap_{gdc_archive_release}`
-    WHERE portion_gdc_id NOT IN (
-      SELECT portion_gdc_id
-      FROM `{working_project}.{working_dataset}.aliquot_to_case_{release}`
-    )
+        SELECT program_name, 
+            project_id, 
+            case_gdc_id, 
+            case_barcode, 
+            sample_gdc_id, 
+            sample_barcode,
+            sample_type, 
+            sample_type_name, 
+            sample_is_ffpe, 
+            sample_preservation_method, 
+            portion_gdc_id, 
+            portion_barcode, 
+            analyte_gdc_id, 
+            analyte_barcode, 
+            aliquot_gdc_id, 
+            aliquot_barcode 
+        FROM `{published_project}.{published_dataset}.aliquot2caseIDmap_{gdc_archive_release}`
+        WHERE portion_gdc_id NOT IN (
+          SELECT portion_gdc_id
+          FROM `{working_project}.{working_dataset}.aliquot_to_case_{release}`
+        )
     """
 
 
@@ -169,7 +168,7 @@ def make_file_metadata_legacy_filtered_query():
 def create_jsonl_and_schema(sql: str, column_list: list[str], table_name: str):
     result = bq_harness_with_result(sql=sql, do_batch=False, verbose=False)
 
-    obj_list = convert_bq_result_to_object_list(result=result, column_list=column_list)
+    obj_list = list(result)
 
     normalized_obj_list = normalize_flat_json_values(obj_list)
 

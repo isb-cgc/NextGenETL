@@ -25,26 +25,19 @@ from typing import Any, Union, Optional
 
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
-from cda_bq_etl.bq_helpers import bq_harness_with_result, create_and_upload_schema_for_json, \
-    create_and_load_table_from_jsonl, retrieve_bq_schema_object
-from cda_bq_etl.utils import format_seconds, load_config, has_fatal_error
-from cda_bq_etl.data_helpers import normalize_flat_json_values, write_list_to_jsonl_and_upload
+from common_etl.support import bq_harness_with_result
+from common_etl.utils import format_seconds, normalize_flat_json_values, write_list_to_jsonl_and_upload, \
+    create_and_upload_schema_for_json, create_and_load_table_from_jsonl, retrieve_bq_schema_object, load_config, \
+    has_fatal_error
 
-
-PARAMS = dict()
-YAML_HEADERS = ('params', 'steps')
+API_PARAMS = dict()
+BQ_PARAMS = dict()
+YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 BQHarnessResult = Union[None, RowIterator, _EmptyRowIterator]
 
 
 def convert_concat_to_multi(value_string: str, max_length: int = 8, filter_duplicates: bool = False) -> str:
-    """
-    todo
-    :param value_string:
-    :param max_length:
-    :param filter_duplicates:
-    :return:
-    """
     if filter_duplicates:
         value_set = set(value_string.split(';'))
         string_length = len(value_set)
@@ -59,21 +52,16 @@ def convert_concat_to_multi(value_string: str, max_length: int = 8, filter_dupli
 
 
 def create_dev_table_id(table_name) -> str:
-    """
-    todo
-    :param table_name:
-    :return:
-    """
-    working_project: str = PARAMS['WORKING_PROJECT']
-    working_dataset: str = PARAMS['WORKING_DATASET']
-    release: str = PARAMS['RELEASE']
+    working_project: str = BQ_PARAMS['WORKING_PROJECT']
+    working_dataset: str = BQ_PARAMS['WORKING_DATASET']
+    release: str = API_PARAMS['RELEASE']
 
     return f"`{working_project}.{working_dataset}.{release}_{table_name}`"
 
 
 def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
     """
-    todo
+
     :return:
     """
 
@@ -94,133 +82,151 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
 
     def make_base_file_metadata_sql() -> str:
         return f"""
-            SELECT 'active' AS dbName,
-            f.file_id AS file_gdc_id,
-            f.access,
-            an.workflow_link AS analysis_workflow_link,
-            an.workflow_type AS analysis_workflow_type,
-            ar.archive_id AS archive_gdc_id,
-            ar.revision AS archive_revision,
-            ar.state AS archive_state,
-            ar.submitter_id AS archive_submitter_id,
-            f.created_datetime,
-            f.data_category,
-            f.data_format,
-            f.data_type,
-            f.experimental_strategy,
-            f.file_name,
-            f.file_size,
-            f.file_id,
-            fhif.index_file_id AS index_file_gdc_id,
-            f.md5sum,
-            f.platform,
-            f.state AS file_state,
-            f.submitter_id AS file_submitter_id,
-            f.type AS file_type,
-            f.updated_datetime
-            FROM {file_table_id} f
-            LEFT OUTER JOIN {analysis_produced_file_table_id} apf
-                ON apf.file_id = f.file_id
-            LEFT OUTER JOIN {analysis_table_id} an
-                ON apf.analysis_id = an.analysis_id
-            LEFT OUTER JOIN {file_in_archive_table_id} fia
-                ON fia.file_id = f.file_id
-            LEFT OUTER JOIN {archive_table_id} ar
-                ON ar.archive_id = fia.archive_id
-            LEFT OUTER JOIN {file_has_index_file_table_id} fhif
-                ON fhif.file_id = f.file_id
+        SELECT 'active' AS dbName,
+        f.file_id AS file_gdc_id,
+        f.access,
+        # acl, # separate join
+        # analysis_input_file_gdc_ids, # separate join
+        an.workflow_link AS analysis_workflow_link,
+        an.workflow_type AS analysis_workflow_type,
+        ar.archive_id AS archive_gdc_id,
+        ar.revision AS archive_revision,
+        ar.state AS archive_state,
+        ar.submitter_id AS archive_submitter_id,
+        # associated_entities__case_gdc_id,
+        # associated_entities__entity_gdc_id,
+        # associated_entities__entity_submitter_id,
+        # associated_entities__entity_type,
+        # cpp.case_gdc_id,
+        # cpp.project_dbgap_accession_number,
+        # project_disease_type, # separate join
+        # cpp.project_name,
+        # cpp.program_dbgap_accession_number,
+        # cpp.program_name, 
+        # cpp.project_id AS project_short_name,
+        f.created_datetime,
+        f.data_category,
+        f.data_format,
+        f.data_type,
+        # downstream_analyses__output_file_gdc_ids,
+        # downstream_analyses__workflow_link,
+        # downstream_analyses__workflow_type,
+        f.experimental_strategy,
+        f.file_name,
+        f.file_size,
+        f.file_id,
+        fhif.index_file_id AS index_file_gdc_id,
+        # index_file_name, # separate join
+        # index_file_size, # separate join
+        f.md5sum,
+        f.platform,
+        f.state AS file_state,
+        f.submitter_id AS file_submitter_id,
+        f.type AS file_type,
+        f.updated_datetime
+        
+        FROM {file_table_id} f
+        LEFT OUTER JOIN {analysis_produced_file_table_id} apf
+            ON apf.file_id = f.file_id
+        LEFT OUTER JOIN {analysis_table_id} an
+            ON apf.analysis_id = an.analysis_id
+        LEFT OUTER JOIN {file_in_archive_table_id} fia
+            ON fia.file_id = f.file_id
+        LEFT OUTER JOIN {archive_table_id} ar
+            ON ar.archive_id = fia.archive_id
+        LEFT OUTER JOIN {file_has_index_file_table_id} fhif
+            ON fhif.file_id = f.file_id
         """
 
     def make_acl_sql() -> str:
         return f"""
-            SELECT file_id AS file_gdc_id, 
-                STRING_AGG(acl_id, ';') AS acl
-            FROM {file_has_acl_table_id}
-            GROUP BY file_gdc_id
+        SELECT file_id AS file_gdc_id, 
+            STRING_AGG(acl_id, ';') AS acl
+        FROM {file_has_acl_table_id}
+        GROUP BY file_gdc_id
         """
 
     def make_analysis_input_file_gdc_ids_sql() -> str:
         return f"""
-            SELECT apf.file_id AS file_gdc_id, 
-                STRING_AGG(acif.input_file_id, ';') AS analysis_input_file_gdc_ids
-            FROM {analysis_produced_file_table_id} apf
-            JOIN {analysis_table_id} a
-                ON apf.analysis_id = a.analysis_id
-            JOIN {analysis_consumed_input_file_table_id} acif
-                ON acif.analysis_id = a.analysis_id
-            GROUP BY file_gdc_id
+        SELECT apf.file_id AS file_gdc_id, 
+            STRING_AGG(acif.input_file_id, ';') AS analysis_input_file_gdc_ids
+        FROM {analysis_produced_file_table_id} apf
+        JOIN {analysis_table_id} a
+            ON apf.analysis_id = a.analysis_id
+        JOIN {analysis_consumed_input_file_table_id} acif
+            ON acif.analysis_id = a.analysis_id
+        GROUP BY file_gdc_id
         """
 
     def make_downstream_analyses_output_file_gdc_ids_sql() -> str:
         return f"""
-            SELECT adff.file_id AS file_gdc_id, 
-                STRING_AGG(da.output_file_id, ';') AS downstream_analyses__output_file_gdc_ids
-            FROM {analysis_downstream_from_file_table_id} adff
-            JOIN {analysis_table_id} a
-                ON a.analysis_id = adff.analysis_id
-            JOIN {downstream_analysis_table_id} da
-                ON da.analysis_id = a.analysis_id
-            GROUP BY file_gdc_id
+        SELECT adff.file_id AS file_gdc_id, 
+            STRING_AGG(da.output_file_id, ';') AS downstream_analyses__output_file_gdc_ids
+        FROM {analysis_downstream_from_file_table_id} adff
+        JOIN {analysis_table_id} a
+            ON a.analysis_id = adff.analysis_id
+        JOIN {downstream_analysis_table_id} da
+            ON da.analysis_id = a.analysis_id
+        GROUP BY file_gdc_id
         """
 
     def make_downstream_analyses_sql() -> str:
         return f"""
-            SELECT adff.file_id AS file_gdc_id, 
-                STRING_AGG(a.workflow_link, ';') AS downstream_analyses__workflow_link, 
-                STRING_AGG(a.workflow_type, ';') AS downstream_analyses__workflow_type
-            FROM {analysis_downstream_from_file_table_id} adff
-            JOIN {analysis_table_id} a
-                ON a.analysis_id = adff.analysis_id
-            GROUP BY file_gdc_id
+        SELECT adff.file_id AS file_gdc_id, 
+            STRING_AGG(a.workflow_link, ';') AS downstream_analyses__workflow_link, 
+            STRING_AGG(a.workflow_type, ';') AS downstream_analyses__workflow_type
+        FROM {analysis_downstream_from_file_table_id} adff
+        JOIN {analysis_table_id} a
+            ON a.analysis_id = adff.analysis_id
+        GROUP BY file_gdc_id
         """
 
     def make_associated_entities_sql() -> str:
         return f"""
-            SELECT file_id AS file_gdc_id,
-                STRING_AGG(entity_id, ';') AS associated_entities__entity_gdc_id,
-                STRING_AGG(entity_case_id, ';') AS associated_entities__case_gdc_id,
-                STRING_AGG(entity_submitter_id, ';') AS associated_entities__entity_submitter_id,
-                entity_type AS associated_entities__entity_type
-            FROM {file_associated_with_entity_table_id}
-            GROUP BY file_gdc_id, entity_type
+        SELECT file_id AS file_gdc_id,
+            STRING_AGG(entity_id, ';') AS associated_entities__entity_gdc_id,
+            STRING_AGG(entity_case_id, ';') AS associated_entities__case_gdc_id,
+            STRING_AGG(entity_submitter_id, ';') AS associated_entities__entity_submitter_id,
+            entity_type AS associated_entities__entity_type
+        FROM {file_associated_with_entity_table_id}
+        GROUP BY file_gdc_id, entity_type
         """
 
     def make_case_project_program_sql() -> str:
         return f"""
-            SELECT f.file_id AS file_gdc_id, 
-                STRING_AGG(cpp.case_gdc_id, ';') AS case_gdc_id,
-                cpp.project_dbgap_accession_number, 
-                cpp.project_id AS project_short_name, 
-                cpp.project_name, 
-                cpp.program_name, 
-                cpp.program_dbgap_accession_number,
-                # c.disease_type AS project_disease_type
-            FROM {file_table_id} f
-            JOIN {file_in_case_table_id} fc
-                ON f.file_id = fc.file_id
-            JOIN {case_project_program_table_id} cpp
-                ON cpp.case_gdc_id = fc.case_id
-            JOIN {case_table_id} c
-                ON cpp.case_gdc_id = c.case_id
-            GROUP BY file_gdc_id, cpp.project_dbgap_accession_number, project_short_name, cpp.project_name, 
-                cpp.program_name, cpp.program_dbgap_accession_number
+        SELECT f.file_id AS file_gdc_id, 
+            STRING_AGG(cpp.case_gdc_id, ';') AS case_gdc_id,
+            cpp.project_dbgap_accession_number, 
+            cpp.project_id AS project_short_name, 
+            cpp.project_name, 
+            cpp.program_name, 
+            cpp.program_dbgap_accession_number,
+            # c.disease_type AS project_disease_type
+        FROM {file_table_id} f
+        JOIN {file_in_case_table_id} fc
+            ON f.file_id = fc.file_id
+        JOIN {case_project_program_table_id} cpp
+            ON cpp.case_gdc_id = fc.case_id
+        JOIN {case_table_id} c
+            ON cpp.case_gdc_id = c.case_id
+        GROUP BY file_gdc_id, cpp.project_dbgap_accession_number, project_short_name, cpp.project_name, 
+            cpp.program_name, cpp.program_dbgap_accession_number #, project_disease_type
         """
 
     def make_index_file_sql() -> str:
         return f"""
-            SELECT fhif.file_id AS file_gdc_id, 
-            fhif.index_file_id AS index_file_gdc_id, 
-            f.file_name AS index_file_name, 
-            f.file_size AS index_file_size
-            FROM {file_has_index_file_table_id} fhif
-            JOIN {file_table_id} f
-                ON fhif.index_file_id = f.file_id
+        SELECT fhif.file_id AS file_gdc_id, 
+        fhif.index_file_id AS index_file_gdc_id, 
+        f.file_name AS index_file_name, 
+        f.file_size AS index_file_size
+        FROM {file_has_index_file_table_id} fhif
+        JOIN {file_table_id} f
+            ON fhif.index_file_id = f.file_id
         """
 
     def add_concat_fields_to_file_records(sql: str,
                                           concat_field_list: Union[None, list[str]],
                                           filter_duplicates: bool = False):
-
         # bq harness with result
         # manipulate and insert all fields in concat list
         # insert all fields in insert list
@@ -402,8 +408,8 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
 
 def main(args):
     try:
-        global PARAMS
-        PARAMS, steps = load_config(args, YAML_HEADERS)
+        global API_PARAMS, BQ_PARAMS
+        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
@@ -426,24 +432,25 @@ def main(args):
             print(f"{key}: {count_dict[key]} non-null values")
 
         normalized_file_record_list = normalize_flat_json_values(file_record_list)
-        write_list_to_jsonl_and_upload(PARAMS, 'file', normalized_file_record_list)
-        write_list_to_jsonl_and_upload(PARAMS, 'file_raw', file_record_list)
+        write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS, 'file', normalized_file_record_list)
+        write_list_to_jsonl_and_upload(API_PARAMS, BQ_PARAMS, 'file_raw', file_record_list)
 
-        create_and_upload_schema_for_json(PARAMS,
+        create_and_upload_schema_for_json(API_PARAMS,
+                                          BQ_PARAMS,
                                           record_list=normalized_file_record_list,
                                           table_name='file',
                                           include_release=True)
 
     if 'create_table' in steps:
         # Download schema file from Google Cloud bucket
-        table_schema = retrieve_bq_schema_object(PARAMS, table_name='file', include_release=True)
+        table_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, table_name='file', include_release=True)
 
-        working_project = PARAMS['WORKING_PROJECT']
-        working_dataset = PARAMS['WORKING_DATASET']
+        working_project = BQ_PARAMS['WORKING_PROJECT']
+        working_dataset = BQ_PARAMS['WORKING_DATASET']
 
         # Load jsonl data into BigQuery table
-        create_and_load_table_from_jsonl(PARAMS,
-                                         jsonl_file=f"file_{PARAMS['RELEASE']}.jsonl",
+        create_and_load_table_from_jsonl(BQ_PARAMS,
+                                         jsonl_file=f"file_{API_PARAMS['RELEASE']}.jsonl",
                                          table_id=f"{working_project}.{working_dataset}.file_metadata_2023_03",
                                          schema=table_schema)
 

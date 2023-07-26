@@ -434,7 +434,7 @@ def get_quant_files():
 
     for blob in blobs:
         filename = blob.name.split('/')[-1]
-        # kind of a hacky fix, but we'll move to CDA before it matters (before there are 9000+ studies)
+        # kind of a hacky fix, but we'll move to CDA_old before it matters (before there are 9000+ studies)
         if "quant" in filename and "schema" not in filename and API_PARAMS['RELEASE'] in filename \
                 and "PDC0" in filename:
             files.add(filename)

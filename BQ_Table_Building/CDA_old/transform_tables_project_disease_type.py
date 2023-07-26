@@ -21,29 +21,20 @@ SOFTWARE.
 """
 import sys
 
-from cda_bq_etl.utils import load_config, has_fatal_error
-from cda_bq_etl.bq_helpers import bq_harness_with_result, create_and_load_table_from_jsonl, retrieve_bq_schema_object, \
-    create_and_upload_schema_for_json
-from cda_bq_etl.data_helpers import write_list_to_jsonl_and_upload
+from common_etl.support import bq_harness_with_result
+from common_etl.utils import load_config, has_fatal_error, write_list_to_jsonl_and_upload, \
+    create_and_upload_schema_for_json, retrieve_bq_schema_object, create_and_load_table_from_jsonl
 
-PARAMS = dict()
-YAML_HEADERS = ('params', 'steps')
+API_PARAMS = dict()
+BQ_PARAMS = dict()
+YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
 def create_dev_table_id(table_name) -> str:
-    """
-    todo
-    :param table_name:
-    :return:
-    """
-    return f"`{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.{PARAMS['RELEASE']}_{table_name}`"
+    return f"`{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_{table_name}`"
 
 
 def create_merged_project_studies_disease_type_jsonl():
-    """
-    todo
-    :return:
-    """
     def make_project_studies_disease_type_query():
         return f"""
         SELECT *
@@ -85,37 +76,36 @@ def create_merged_project_studies_disease_type_jsonl():
 
         project_disease_type_jsonl_list.append(project_disease_type_object)
 
-    write_list_to_jsonl_and_upload(PARAMS,
-                                   prefix=PARAMS['TABLE_NAME'],
+    write_list_to_jsonl_and_upload(API_PARAMS,
+                                   BQ_PARAMS,
+                                   prefix=BQ_PARAMS['TABLE_NAME'],
                                    record_list=project_disease_type_jsonl_list)
 
-    create_and_upload_schema_for_json(PARAMS,
+    create_and_upload_schema_for_json(API_PARAMS,
+                                      BQ_PARAMS,
                                       record_list=project_disease_type_jsonl_list,
-                                      table_name=PARAMS['TABLE_NAME'],
+                                      table_name=BQ_PARAMS['TABLE_NAME'],
                                       include_release=True)
 
 
 def create_table():
-    """
-    todo
-    :return:
-    """
-    table_name = f"{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
-    table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.{table_name}"
+    table_name = f"{BQ_PARAMS['TABLE_NAME']}_{API_PARAMS['RELEASE']}"
+    table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{table_name}"
     jsonl_file = f"{table_name}.jsonl"
 
-    table_schema = retrieve_bq_schema_object(PARAMS,
-                                             table_name=PARAMS['TABLE_NAME'],
+    table_schema = retrieve_bq_schema_object(API_PARAMS,
+                                             BQ_PARAMS,
+                                             table_name=BQ_PARAMS['TABLE_NAME'],
                                              include_release=True)
 
     # Load jsonl data into BigQuery table
-    create_and_load_table_from_jsonl(PARAMS, jsonl_file=jsonl_file, table_id=table_id, schema=table_schema)
+    create_and_load_table_from_jsonl(BQ_PARAMS, jsonl_file=jsonl_file, table_id=table_id, schema=table_schema)
 
 
 def main(args):
     try:
-        global PARAMS
-        PARAMS, steps = load_config(args, YAML_HEADERS)
+        global API_PARAMS, BQ_PARAMS
+        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(err, ValueError)
 

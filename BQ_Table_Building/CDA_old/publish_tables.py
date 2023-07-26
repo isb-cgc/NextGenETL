@@ -19,13 +19,22 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import sys
 
-from typing import Any, Union
+from common_etl.utils import load_config, has_fatal_error
 
-from google.cloud.bigquery.table import RowIterator
-
-from common_etl.support import bq_harness_with_result
-
-JSONList = list[dict[str, Union[None, str, float, int, bool]]]
+API_PARAMS = dict()
+BQ_PARAMS = dict()
+YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
+def main(args):
+    try:
+        global API_PARAMS, BQ_PARAMS
+        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
+    except ValueError as err:
+        has_fatal_error(err, ValueError)
+
+
+if __name__ == "__main__":
+    main(sys.argv)

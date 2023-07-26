@@ -21,27 +21,18 @@ SOFTWARE.
 """
 import sys
 
-from cda_bq_etl.utils import load_config, has_fatal_error
-from cda_bq_etl.bq_helpers import load_table_from_query
+from common_etl.utils import load_config, has_fatal_error, load_table_from_query
 
-PARAMS = dict()
-YAML_HEADERS = ('params', 'steps')
+API_PARAMS = dict()
+BQ_PARAMS = dict()
+YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
 
 def create_dev_table_id(table_name) -> str:
-    """
-    todo
-    :param table_name:
-    :return:
-    """
-    return f"`{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.{PARAMS['RELEASE']}_{table_name}`"
+    return f"`{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.{API_PARAMS['RELEASE']}_{table_name}`"
 
 
 def make_slide_case_table_sql():
-    """
-    todo
-    :return:
-    """
     return f"""
     SELECT 
         cpp.program_name, 
@@ -74,15 +65,15 @@ def make_slide_case_table_sql():
 
 def main(args):
     try:
-        global PARAMS
-        PARAMS, steps = load_config(args, YAML_HEADERS)
+        global API_PARAMS, BQ_PARAMS
+        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
     if 'create_table_from_query' in steps:
-        table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.slide_to_case_{PARAMS['RELEASE']}"
+        table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['WORKING_DATASET']}.slide_to_case_{API_PARAMS['RELEASE']}"
 
-        load_table_from_query(params=PARAMS, table_id=table_id, query=make_slide_case_table_sql())
+        load_table_from_query(bq_params=BQ_PARAMS, table_id=table_id, query=make_slide_case_table_sql())
 
 
 if __name__ == "__main__":
