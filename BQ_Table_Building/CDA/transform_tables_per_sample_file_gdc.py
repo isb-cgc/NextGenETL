@@ -22,7 +22,7 @@ SOFTWARE.
 import sys
 
 from common_etl.cda_utils import create_program_name_set
-from common_etl.utils import load_config, has_fatal_error, load_table_from_query
+from common_etl.utils import load_config, has_fatal_error, load_table_from_query, delete_bq_table
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -294,7 +294,11 @@ def make_merged_sql_query(program_name: str) -> str:
     """
 
 
-def make_add_uris_sql_query(no_uri_table_id: str, drs_uri_table_id: str) -> str:
+def make_add_uris_and_index_file_sql_query(no_uri_table_id: str, drs_uri_table_id: str) -> str:
+    working_project = BQ_PARAMS['WORKING_PROJECT']
+    working_dataset = BQ_PARAMS['WORKING_DATASET']
+    file_metadata_table_id = f"{working_project}.{working_dataset}.file_metadata_{API_PARAMS['RELEASE']}"
+
     return f"""
         SELECT psf.file_gdc_id,
             psf.case_gdc_id,
@@ -315,12 +319,14 @@ def make_add_uris_sql_query(no_uri_table_id: str, drs_uri_table_id: str) -> str:
             f_uri.gcs_path AS file_name_key,
             psf.index_file_id,
             i_uri.gcs_path AS index_file_name_key,
-            psf.index_file_size,
+            fm.file_size AS index_file_size,
             psf.`access`,
             psf.acl
             FROM `{no_uri_table_id}` psf
             JOIN `{drs_uri_table_id}` f_uri
                 ON f_uri.file_uuid = psf.file_gdc_id
+            LEFT JOIN `{file_metadata_table_id}` fm
+                ON fm.file_gdc_id = psf.index_file_id
             LEFT JOIN `{drs_uri_table_id}` i_uri
                 ON i_uri.file_uuid = psf.index_file_id
     """
@@ -377,10 +383,12 @@ def main(args):
 
             print(f"\nCreating table with added uris for {program}!\n")
 
-            # create table with uris included -- this timed out when done as a single query
+            # add index file size and file/index file keys to finish populating the table
             load_table_from_query(bq_params=BQ_PARAMS,
                                   table_id=table_id,
-                                  query=make_add_uris_sql_query(no_url_table_id, drs_uri_table_id))
+                                  query=make_add_uris_and_index_file_sql_query(no_url_table_id, drs_uri_table_id))
+
+            delete_bq_table(no_url_table_id)
 
 
 if __name__ == "__main__":

@@ -157,7 +157,7 @@ def compare_table_columns(old_table_id: str,
 
         if not result:
             print(f"\nNo results returned for {column}. This can mean that there's a column data type mismatch, "
-                  f"or that the column name differs.")
+                  f"or that the column name differs.\n")
         elif result.total_rows > 0:
             print(f"\nFound mismatched data for {column}.")
             print(f"{result.total_rows} total records do not match in old and new tables.\n")
