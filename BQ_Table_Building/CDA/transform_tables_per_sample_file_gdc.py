@@ -50,6 +50,14 @@ def make_aliquot_count_query() -> str:
     FROM aliquot_counts
     """
 
+def make_drs_paths_query() -> str:
+    # todo abstract the table id
+    return f"""
+    WITH drs_uris AS (
+        SELECT *
+        FROM isb-project-zero.GDC_manifests.dr37_paths_active
+    )
+    """
 
 def make_slide_entity_query(program_name: str) -> str:
     working_project = BQ_PARAMS['WORKING_PROJECT']
@@ -76,9 +84,9 @@ def make_slide_entity_query(program_name: str) -> str:
         fm.file_size,
         fm.data_format,
         fm.platform,
-        CAST(null AS STRING) AS file_name_key,
+        file_drs_uris.gcs_path AS file_name_key,
         fm.index_file_gdc_id AS index_file_id,
-        CAST(null AS STRING) as index_file_name_key,
+        index_drs_uris.gcs_path AS index_file_name_key,
         fm.index_file_size,
         fm.`access`,
         fm.acl
@@ -89,6 +97,11 @@ def make_slide_entity_query(program_name: str) -> str:
     JOIN `{slide_case_table_id}` stc
       ON stc.slide_gdc_id = fm.associated_entities__entity_gdc_id AND 
          stc.slide_barcode = fawe.entity_submitter_id
+    # (INNER)
+    JOIN drs_uris file_drs_uris
+        ON file_drs_uris.file_uuid = fm.file_gdc_id
+    LEFT JOIN drs_uris index_drs_uris
+        ON file_drs_uris.file_uuid = fm.index_file_gdc_id 
     WHERE fm.case_gdc_id NOT LIKE '%;%' AND
           fm.case_gdc_id != 'multi' AND
           fm.associated_entities__entity_type = 'slide' AND
@@ -122,13 +135,18 @@ def make_aliquot_entity_query(program_name: str) -> str:
             fm.file_size,
             fm.data_format,
             fm.platform,
-            CAST(null AS STRING) AS file_name_key,
+            file_drs_uris.gcs_path AS file_name_key,
             fm.index_file_gdc_id AS index_file_id,
-            CAST(null AS STRING) as index_file_name_key,
+            index_drs_uris.gcs_path AS index_file_name_key,
             fm.index_file_size,
             fm.`access`,
             fm.acl
         FROM `{file_metadata_table_id}` fm
+        # if LEFT, keep file records with no file in dcs
+        JOIN drs_uris file_drs_uris
+            ON file_drs_uris.file_uuid = fm.file_gdc_id
+        LEFT JOIN drs_uris index_drs_uris
+            ON file_drs_uris.file_uuid = fm.index_file_gdc_id 
         WHERE 
             fm.associated_entities__entity_type = 'aliquot' AND
             fm.case_gdc_id NOT LIKE '%;%' AND
@@ -153,13 +171,18 @@ def make_aliquot_entity_query(program_name: str) -> str:
             fm.file_size,
             fm.data_format,
             fm.platform,
-            CAST(null AS STRING) AS file_name_key,
+            file_drs_uris.gcs_path AS file_name_key,
             fm.index_file_gdc_id AS index_file_id,
-            CAST(null AS STRING) as index_file_name_key,
+            index_drs_uris.gcs_path AS index_file_name_key,
             fm.index_file_size,
             fm.`access`,
             fm.acl
         FROM `{file_metadata_table_id}` fm
+        # if LEFT, keep file records with no file in dcs
+        JOIN drs_uris file_drs_uris
+            ON file_drs_uris.file_uuid = fm.file_gdc_id
+        LEFT JOIN drs_uris index_drs_uris
+            ON file_drs_uris.file_uuid = fm.index_file_gdc_id 
         WHERE 
             fm.associated_entities__entity_type = 'aliquot' AND
             fm.case_gdc_id NOT LIKE '%;%' AND
@@ -254,15 +277,19 @@ def make_case_entity_query(program_name: str) -> str:
             fm.file_size,
             fm.data_format,
             fm.platform,
-            CAST(null AS STRING) as file_name_key,
-            fm.index_file_gdc_id as index_file_id,
-            CAST(null AS STRING) as index_file_name_key,
+        file_drs_uris.gcs_path AS file_name_key,
+        fm.index_file_gdc_id AS index_file_id,
+        index_drs_uris.gcs_path AS index_file_name_key,
             fm.index_file_size,
             fm.`access`,
             fm.acl
         FROM `{file_metadata_table_id}` AS fm
         JOIN `{case_metadata_table_id}` AS c
             ON fm.case_gdc_id = c.case_gdc_id
+        JOIN drs_uris file_drs_uris
+            ON file_drs_uris.file_uuid = fm.file_gdc_id
+        LEFT JOIN drs_uris index_drs_uris
+            ON file_drs_uris.file_uuid = fm.index_file_gdc_id 
         WHERE fm.case_gdc_id NOT LIKE '%;%' AND
               fm.case_gdc_id != 'multi' AND
               fm.associated_entities__entity_type = 'case' AND
@@ -274,8 +301,10 @@ def make_merged_sql_query(program_name: str) -> str:
     slide_entity_sql = make_slide_entity_query(program_name)
     aliquot_entity_sql = make_aliquot_entity_query(program_name)
     case_entity_sql = make_case_entity_query(program_name)
+    drs_paths_sql = make_drs_paths_query()
 
     return f"""
+    {drs_paths_sql}
     ({slide_entity_sql})
     UNION ALL
     ({aliquot_entity_sql})
