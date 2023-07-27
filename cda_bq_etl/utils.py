@@ -30,7 +30,7 @@ import yaml
 Params = dict[str, Union[str, dict, int]]
 
 
-def load_config(args: str, yaml_dict_keys: tuple[str]) -> tuple[Any, ...]:
+def load_config(args: str, yaml_dict_keys: tuple[str, ...]) -> tuple[Any, ...]:
     """
     Open yaml file and retrieves configuration parameters.
     :param args: args param from python bash cli
@@ -112,7 +112,7 @@ def has_fatal_error(err: Union[str, BaseException], exception: Optional[Any] = N
     sys.exit(1)
 
 
-def format_seconds(seconds: int) -> str:
+def format_seconds(seconds: Union[int, float]) -> str:
     """
     Round seconds to formatted hour, minute, and/or second output.
     :param seconds: int representing time in seconds

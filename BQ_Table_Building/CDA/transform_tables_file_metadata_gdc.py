@@ -224,15 +224,15 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
         # bq harness with result
         # manipulate and insert all fields in concat list
         # insert all fields in insert list
-        query_result: BQHarnessResult = query_and_retrieve_result(sql=sql)
+        _query_result: BQHarnessResult = query_and_retrieve_result(sql=sql)
 
-        for record in query_result:
-            file_id: str = record.get('file_gdc_id')
+        for _record in _query_result:
+            _file_id: str = _record.get('file_gdc_id')
 
             if concat_field_list:
-                for field in concat_field_list:
-                    file_records[file_id][field] = convert_concat_to_multi(value_string=record.get(field),
-                                                                           filter_duplicates=filter_duplicates)
+                for _field in concat_field_list:
+                    file_records[_file_id][_field] = convert_concat_to_multi(value_string=_record.get(_field),
+                                                                             filter_duplicates=filter_duplicates)
 
     print("\nCreating base file metadata record objects")
 
@@ -399,7 +399,7 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
-    start_time: float = time.time()
+    start_time = time.time()
 
     if 'create_and_upload_file_metadata_json' in steps:
         file_record_list = create_file_metadata_dict()
@@ -439,7 +439,7 @@ def main(args):
                                          table_id=f"{working_project}.{working_dataset}.file_metadata_2023_03",
                                          schema=table_schema)
 
-    end_time: float = time.time()
+    end_time = time.time()
 
     print(f"Script completed in: {format_seconds(end_time - start_time)}")
 

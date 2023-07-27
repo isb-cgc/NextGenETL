@@ -74,6 +74,7 @@ def make_case_metadata_table_sql():
         
         (
             SELECT * 
+            # todo abstract this
             FROM `isb-project-zero.cda_gdc_test.r37_case_metadata_legacy` 
         )
     """

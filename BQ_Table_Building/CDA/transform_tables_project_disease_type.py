@@ -22,8 +22,8 @@ SOFTWARE.
 import sys
 
 from cda_bq_etl.utils import load_config, has_fatal_error
-from cda_bq_etl.bq_helpers import query_and_retrieve_result, create_and_load_table_from_jsonl, retrieve_bq_schema_object, \
-    create_and_upload_schema_for_json
+from cda_bq_etl.bq_helpers import query_and_retrieve_result, create_and_load_table_from_jsonl, \
+    retrieve_bq_schema_object, create_and_upload_schema_for_json
 from cda_bq_etl.data_helpers import write_list_to_jsonl_and_upload
 
 PARAMS = dict()

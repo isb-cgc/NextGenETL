@@ -30,8 +30,7 @@ YAML_HEADERS = ('params', 'steps')
 
 def make_case_project_program_view_query():
     """
-    todo
-    :return:
+    Make SQL query used to create a BigQuery view, merging case ids and barcodes with project and program metadata.
     """
     release = PARAMS['RELEASE']
     working_project = PARAMS['WORKING_PROJECT']

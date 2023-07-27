@@ -24,12 +24,12 @@ import sys
 from common_etl.support import bq_harness_with_result
 from common_etl.utils import load_config, has_fatal_error
 
-API_PARAMS = dict()
-BQ_PARAMS = dict()
-YAML_HEADERS = ('api_params', 'bq_params', 'steps')
+PARAMS = dict()
+YAML_HEADERS = ('params', 'steps')
 
 
 def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[str, set[str]]:
+    # todo abstract this
     def make_programs_with_cases_sql() -> str:
         # Retrieving programs from this view rather than from the programs table to avoid pulling programs with no
         # clinical case associations, which has happened in the past
@@ -104,19 +104,19 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
 
 
 def create_dev_table_id(table_name) -> str:
-    working_project: str = BQ_PARAMS['WORKING_PROJECT']
-    working_dataset: str = BQ_PARAMS['WORKING_DATASET']
-    release: str = API_PARAMS['RELEASE']
+    working_project: str = PARAMS['WORKING_PROJECT']
+    working_dataset: str = PARAMS['WORKING_DATASET']
+    release: str = PARAMS['RELEASE']
 
     return f"`{working_project}.{working_dataset}.{release}_{table_name}`"
 
 
 def find_null_columns_by_program(program, field_group):
     def make_count_column_sql() -> str:
-        columns = API_PARAMS['FIELD_CONFIG'][field_group]['column_order']
-        mapping_table = API_PARAMS['FIELD_CONFIG'][field_group]['mapping_table']
-        id_key = API_PARAMS['FIELD_CONFIG'][field_group]['id_key']
-        parent_table = API_PARAMS['FIELD_CONFIG'][field_group]['child_of']
+        columns = PARAMS['FIELD_CONFIG'][field_group]['column_order']
+        mapping_table = PARAMS['FIELD_CONFIG'][field_group]['mapping_table']
+        id_key = PARAMS['FIELD_CONFIG'][field_group]['id_key']
+        parent_table = PARAMS['FIELD_CONFIG'][field_group]['child_of']
 
         count_sql_str = ''
 
@@ -137,8 +137,8 @@ def find_null_columns_by_program(program, field_group):
             WHERE cpp.program_name = '{program}'
             """
         elif parent_table:
-            parent_mapping_table = API_PARAMS['FIELD_CONFIG'][parent_table]['mapping_table']
-            parent_id_key = API_PARAMS['FIELD_CONFIG'][parent_table]['id_key']
+            parent_mapping_table = PARAMS['FIELD_CONFIG'][parent_table]['mapping_table']
+            parent_id_key = PARAMS['FIELD_CONFIG'][parent_table]['id_key']
 
             return f"""
             SELECT {count_sql_str}
@@ -163,7 +163,7 @@ def find_null_columns_by_program(program, field_group):
 
     for row in column_count_result:
         # get columns for field group
-        for column in API_PARAMS['FIELD_CONFIG'][field_group]['column_order']:
+        for column in PARAMS['FIELD_CONFIG'][field_group]['column_order']:
             count = row.get(f"{column}_count")
 
             if count is not None and count > 0:
@@ -181,14 +181,14 @@ def create_base_clinical_table_for_program():
 
 def main(args):
     try:
-        global API_PARAMS, BQ_PARAMS
-        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
+        global PARAMS
+        PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
     if 'find_program_tables' in steps:
 
-        tables_per_program_dict = find_program_tables(API_PARAMS['TSV_FIELD_GROUP_CONFIG'])
+        tables_per_program_dict = find_program_tables(PARAMS['TSV_FIELD_GROUP_CONFIG'])
 
         # for program, tables in tables_per_program_dict.items():
         #     print(f"{program}: {tables}")
@@ -196,7 +196,6 @@ def main(args):
     programs = ['APOLLO', 'BEATAML1.0', 'CDDP_EAGLE', 'CGCI', 'CMI', 'CPTAC', 'CTSP', 'EXCEPTIONAL_RESPONDERS', 'FM',
                 'GENIE', 'HCMI', 'MATCH', 'MMRF', 'MP2PRT', 'NCICCR', 'OHSU', 'ORGANOID', 'REBC', 'TARGET', 'TCGA',
                 'TRIO', 'VAREPOP', 'WCDT']
-    programs = ['TCGA']
     field_groups = ['demographic', 'diagnosis', 'annotation', 'treatment', 'pathology_detail', 'exposure',
                     'family_history', 'follow_up', 'molecular_test']
 

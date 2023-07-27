@@ -51,23 +51,24 @@ def create_program_name_set():
 
 def make_aliquot_count_query() -> str:
     # todo could this be used in test suite?
+    # todo abstract this
     return f"""
-    WITH aliquot_counts AS (
-        SELECT distinct file_gdc_id,
-        # Count the number of ';'' in the field, if any; if not, count is one, 
-        # which covers rows for both single aliquots and multi
-            CASE WHEN ARRAY_LENGTH(REGEXP_EXTRACT_ALL(associated_entities__entity_gdc_id, r'(;)')) >= 1
-                 THEN ARRAY_LENGTH(REGEXP_EXTRACT_ALL(associated_entities__entity_gdc_id, r'(;)')) + 1
-                 ELSE 1
-            END AS entity_count
-        FROM `isb-project-zero.cda_gdc_test.file_metadata_2023_03`
-        WHERE case_gdc_id NOT LIKE "%;%" AND
-              case_gdc_id != "multi" AND
-              associated_entities__entity_type = "aliquot"            
-    )
-
-    SELECT sum(entity_count) AS aliquot_count            
-    FROM aliquot_counts
+        WITH aliquot_counts AS (
+            SELECT distinct file_gdc_id,
+            # Count the number of ';'' in the field, if any; if not, count is one, 
+            # which covers rows for both single aliquots and multi
+                CASE WHEN ARRAY_LENGTH(REGEXP_EXTRACT_ALL(associated_entities__entity_gdc_id, r'(;)')) >= 1
+                     THEN ARRAY_LENGTH(REGEXP_EXTRACT_ALL(associated_entities__entity_gdc_id, r'(;)')) + 1
+                     ELSE 1
+                END AS entity_count
+            FROM `isb-project-zero.cda_gdc_test.file_metadata_2023_03`
+            WHERE case_gdc_id NOT LIKE "%;%" AND
+                  case_gdc_id != "multi" AND
+                  associated_entities__entity_type = "aliquot"            
+        )
+    
+        SELECT sum(entity_count) AS aliquot_count            
+        FROM aliquot_counts
     """
 
 
@@ -381,7 +382,7 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
-    # Steps, perhaps--some may be mergable. For each progrma:
+    # Steps, perhaps--some may be mergeable. For each program:
     # 1) find all slide associated entities in file metadata. There won't be multiples here, one slide = a file.
     #    Using rows from slide associated entities, and slide_to_case_map, expand slide rows, and drop duplicates.
     #    Then, get slide barcodes and sample id, barcode and sample_type_name, perhaps other columns?
