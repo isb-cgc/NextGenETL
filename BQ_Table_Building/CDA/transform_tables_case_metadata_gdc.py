@@ -21,22 +21,18 @@ SOFTWARE.
 """
 import sys
 
-from cda_bq_etl.utils import load_config, has_fatal_error
+from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id
 from cda_bq_etl.bq_helpers import load_table_from_query
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
-def make_case_metadata_table_sql():
+def make_case_metadata_table_sql() -> str:
     """
-    todo
-    :return:
+    Make BigQuery sql statement, used to generate case metadata table.
+    :return: sql string
     """
-
-    def create_dev_table_id(table_name) -> str:
-        return f"`{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.{PARAMS['RELEASE']}_{table_name}`"
-
     disease_type_table_name = f"project_disease_types_merged_{PARAMS['RELEASE']}"
     disease_type_table_id = f"`{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.{disease_type_table_name}`"
 

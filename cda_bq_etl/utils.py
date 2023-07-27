@@ -223,3 +223,13 @@ def get_scratch_fp(params: Params, filename: str) -> str:
     :return: output filepath for VM
     """
     return get_filepath(params['SCRATCH_DIR'], filename)
+
+
+def create_dev_table_id(params, table_name) -> str:
+    """
+    Create table id reference to one of the CDA dev tables used to construct the joined data tables.
+    :param table_name: name of the table
+    :return: table id string
+    """
+    return f"`{params['WORKING_PROJECT']}.{params['WORKING_DATASET']}.{params['RELEASE']}_{table_name}`"
+

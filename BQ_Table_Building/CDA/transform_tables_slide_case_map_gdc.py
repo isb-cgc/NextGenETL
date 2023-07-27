@@ -21,20 +21,11 @@ SOFTWARE.
 """
 import sys
 
-from cda_bq_etl.utils import load_config, has_fatal_error
+from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id
 from cda_bq_etl.bq_helpers import load_table_from_query
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
-
-
-def create_dev_table_id(table_name) -> str:
-    """
-    todo
-    :param table_name:
-    :return:
-    """
-    return f"`{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.{PARAMS['RELEASE']}_{table_name}`"
 
 
 def make_slide_case_table_sql():

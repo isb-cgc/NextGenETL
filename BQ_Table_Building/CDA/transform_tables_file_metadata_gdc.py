@@ -27,7 +27,7 @@ from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
 from cda_bq_etl.bq_helpers import query_and_retrieve_result, create_and_upload_schema_for_json, \
     create_and_load_table_from_jsonl, retrieve_bq_schema_object
-from cda_bq_etl.utils import format_seconds, load_config, has_fatal_error
+from cda_bq_etl.utils import format_seconds, load_config, has_fatal_error, create_dev_table_id
 from cda_bq_etl.data_helpers import normalize_flat_json_values, write_list_to_jsonl_and_upload
 
 
@@ -39,11 +39,11 @@ BQHarnessResult = Union[None, RowIterator, _EmptyRowIterator]
 
 def convert_concat_to_multi(value_string: str, max_length: int = 8, filter_duplicates: bool = False) -> str:
     """
-    todo
-    :param value_string:
-    :param max_length:
-    :param filter_duplicates:
-    :return:
+    Evaluate number of values in concatenated string. If > max_length, set value to "multi" instead
+    :param value_string: string containing 0 or more id values, concatenated by ';' if multiple values
+    :param max_length: maximum number of values allowed in string before we substitute "multi"; Default is 8
+    :param filter_duplicates: If true, remove any duplicate ids before conversion check
+    :return: value string, either in original form, stripped of duplicates, or reset to "multi"
     """
     if filter_duplicates:
         value_set = set(value_string.split(';'))
@@ -56,19 +56,6 @@ def convert_concat_to_multi(value_string: str, max_length: int = 8, filter_dupli
         return 'multi'
     else:
         return value_string
-
-
-def create_dev_table_id(table_name) -> str:
-    """
-    todo
-    :param table_name:
-    :return:
-    """
-    working_project: str = PARAMS['WORKING_PROJECT']
-    working_dataset: str = PARAMS['WORKING_DATASET']
-    release: str = PARAMS['RELEASE']
-
-    return f"`{working_project}.{working_dataset}.{release}_{table_name}`"
 
 
 def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
@@ -232,6 +219,7 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
             if concat_field_list:
                 for _field in concat_field_list:
                     file_records[_file_id][_field] = convert_concat_to_multi(value_string=_record.get(_field),
+                                                                             max_length=PARAMS['MAX_CONCAT_COUNT'],
                                                                              filter_duplicates=filter_duplicates)
 
     print("\nCreating base file metadata record objects")
@@ -342,7 +330,8 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
         file_id: str = record.get('file_gdc_id')
 
         for field in associated_entities_concat_field_list:
-            file_records[file_id][field] = convert_concat_to_multi(record.get(field))
+            file_records[file_id][field] = convert_concat_to_multi(record.get(field),
+                                                                   max_length=PARAMS['MAX_CONCAT_COUNT'])
 
         associated_entities__case_gdc_ids = record.get("associated_entities__case_gdc_id")
         # old table doesn't concatenate duplicate ids, so this eliminates any
@@ -370,7 +359,8 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
         # file_records[file_gdc_id]['project_disease_type'] = row.get('project_disease_type')
 
         if row.get('case_gdc_id'):
-            file_records[file_gdc_id]['case_gdc_id'] = convert_concat_to_multi(row.get('case_gdc_id'))
+            file_records[file_gdc_id]['case_gdc_id'] = convertconcat_to_multi(row.get('case_gdc_id'),
+                                                                               max_length=PARAMS['MAX_CONCAT_COUNT'])
 
     del case_project_program_result
 

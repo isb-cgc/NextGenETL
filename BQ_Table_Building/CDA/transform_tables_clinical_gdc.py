@@ -1,4 +1,4 @@
-"""
+'''
 Copyright 2023, Institute for Systems Biology
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,8 +21,8 @@ SOFTWARE.
 """
 import sys
 
-from common_etl.support import bq_harness_with_result
-from common_etl.utils import load_config, has_fatal_error
+from cda_bq_etl.utils import create_dev_table_id, load_config, has_fatal_error
+from cda_bq_etl.bq_helpers import query_and_retrieve_result
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -101,14 +101,6 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
                 tables_per_program_dict[program[0]].add(field_group_name)
 
     return tables_per_program_dict
-
-
-def create_dev_table_id(table_name) -> str:
-    working_project: str = PARAMS['WORKING_PROJECT']
-    working_dataset: str = PARAMS['WORKING_DATASET']
-    release: str = PARAMS['RELEASE']
-
-    return f"`{working_project}.{working_dataset}.{release}_{table_name}`"
 
 
 def find_null_columns_by_program(program, field_group):
@@ -229,3 +221,4 @@ def main(args):
 
 if __name__ == "__main__":
     main(sys.argv)
+'''

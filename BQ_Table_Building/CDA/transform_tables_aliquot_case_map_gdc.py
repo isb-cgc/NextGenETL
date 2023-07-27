@@ -21,21 +21,18 @@ SOFTWARE.
 """
 import sys
 
-from cda_bq_etl.utils import load_config, has_fatal_error
+from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id
 from cda_bq_etl.bq_helpers import load_table_from_query
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
-def make_aliquot_case_table_sql():
+def make_aliquot_case_table_sql() -> str:
     """
     Make BigQuery sql statement, used to generate the aliquot_to_case_mapping table.
     :return:
     """
-    def create_dev_table_id(table_name) -> str:
-        return f"`{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.{PARAMS['RELEASE']}_{table_name}`"
-
     return f"""
         (
             SELECT 
