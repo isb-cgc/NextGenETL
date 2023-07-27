@@ -89,9 +89,7 @@ def load_config(args: str, yaml_dict_keys: tuple[str]) -> tuple[Any, ...]:
     return tuple([merged_yaml_dict[key] for key in yaml_dict_keys])
 
 
-# todo should eventually get rid of this, not really pythonic to be passing the exception.
-#  But it also doesn't matter all that much.
-def has_fatal_error(err: str, exception: Optional[Any] = None):
+def has_fatal_error(err: Union[str, BaseException], exception: Optional[Any] = None):
     """
     Output error str or list<str>, then exits; optionally throws Exception.
     :param err: error message str or list<str>

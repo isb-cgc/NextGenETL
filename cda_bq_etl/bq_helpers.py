@@ -35,7 +35,11 @@ from cda_bq_etl.data_helpers import recursively_detect_object_structures, get_co
     aggregate_column_data_types_tsv, resolve_type_conflicts, resolve_type_conflict
 
 Params = dict[str, Union[str, dict, int]]
-JSONList = list[dict[str, Union[None, str, float, int, bool]]]
+
+ColumnTypes = Union[None, str, float, int, bool]
+RowDict = dict[str, Union[None, str, float, int, bool]]
+JSONList = list[RowDict]
+
 QueryResult = Union[None, RowIterator, _EmptyRowIterator]
 SchemaFieldFormat = dict[str, list[dict[str, str]]]
 
@@ -475,7 +479,7 @@ def generate_bq_schema_fields(schema_obj_list: JSONList) -> list[SchemaField]:
 
 
 # todo should this be in data helpers?
-def convert_object_structure_dict_to_schema_dict(data_schema_dict: dict[str, dict],
+def convert_object_structure_dict_to_schema_dict(data_schema_dict: Union[RowDict, JSONList, ColumnTypes],
                                                  dataset_format_obj,
                                                  descriptions: dict[str, str] = None):
     """

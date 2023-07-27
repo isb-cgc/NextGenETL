@@ -31,6 +31,7 @@ from distutils import util
 from cda_bq_etl.gcs_helpers import upload_to_bucket
 from cda_bq_etl.utils import sanitize_file_prefix, get_scratch_fp, has_fatal_error, make_string_bq_friendly
 
+ColumnTypes = Union[None, str, float, int, bool]
 RowDict = dict[str, Union[None, str, float, int, bool]]
 JSONList = list[RowDict]
 Params = dict[str, Union[str, dict, int]]
@@ -234,7 +235,7 @@ def resolve_type_conflicts(types_dict: dict[str, set[Any]]) -> dict[str, str]:
     return type_dict
 
 
-def resolve_type_conflict(field: str, types_set: set[str]):
+def resolve_type_conflict(field: str, types_set: Union[set[str], ColumnTypes]):
     """
     Resolve BigQuery column data type precedence, where multiple types are detected. Rules for type conversion based on
     BigQuery's implicit conversion behavior.
