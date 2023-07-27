@@ -20,12 +20,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import os
+from typing import Union, Optional
 
 from google.cloud import storage, exceptions
 from cda_bq_etl.utils import get_scratch_fp, has_fatal_error
 
+Params = dict[str, Union[str, dict, int]]
 
-def download_from_bucket(params, filename, bucket_path=None, dir_path=None):
+
+def download_from_bucket(params: Params,
+                         filename: str,
+                         bucket_path: Optional[str] = None,
+                         dir_path: Optional[str] = None):
     """
     Download file from Google storage bucket onto VM.
     :param params: params from yaml config, used to retrieve default bucket directory path
@@ -57,7 +63,7 @@ def download_from_bucket(params, filename, bucket_path=None, dir_path=None):
         print(f"File successfully downloaded from bucket to {file_path}")
 
 
-def upload_to_bucket(params, scratch_fp, delete_local=False, verbose=True):
+def upload_to_bucket(params: Params, scratch_fp: str, delete_local: bool = False, verbose: bool = True):
     """
     Upload file to a Google storage bucket (bucket/directory location specified in YAML config).
     :param params: bq param object from yaml config

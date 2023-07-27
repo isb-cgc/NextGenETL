@@ -32,6 +32,7 @@ from cda_bq_etl.gcs_helpers import upload_to_bucket
 from cda_bq_etl.utils import sanitize_file_prefix, get_scratch_fp, has_fatal_error, make_string_bq_friendly
 
 JSONList = list[dict[str, Union[None, str, float, int, bool]]]
+Params = dict[str, Union[str, dict, int]]
 
 
 def create_normalized_tsv(raw_tsv_fp, normalized_tsv_fp):
