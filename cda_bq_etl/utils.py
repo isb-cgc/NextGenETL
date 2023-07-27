@@ -24,10 +24,13 @@ import os
 import sys
 import time
 import re
+from typing import Optional, Union, Any
 import yaml
 
+Params = dict[str, Union[str, dict, int]]
 
-def load_config(args, yaml_dict_keys):
+
+def load_config(args: str, yaml_dict_keys: tuple[str]) -> tuple[Any, ...]:
     """
     Open yaml file and retrieves configuration parameters.
     :param args: args param from python bash cli
@@ -36,7 +39,7 @@ def load_config(args, yaml_dict_keys):
     :return: tuple of dicts from yaml file (as requested in yaml_dict_keys)
     """
 
-    def open_yaml_and_return_dict(yaml_name):
+    def open_yaml_and_return_dict(yaml_name: str) -> dict:
         """
         Open yaml file and return contents as dict.
         :param yaml_name: name of yaml config file
@@ -86,7 +89,9 @@ def load_config(args, yaml_dict_keys):
     return tuple([merged_yaml_dict[key] for key in yaml_dict_keys])
 
 
-def has_fatal_error(err, exception=None):
+# todo should eventually get rid of this, not really pythonic to be passing the exception.
+#  But it also doesn't matter all that much.
+def has_fatal_error(err: str, exception: Optional[Any] = None):
     """
     Output error str or list<str>, then exits; optionally throws Exception.
     :param err: error message str or list<str>
@@ -109,7 +114,7 @@ def has_fatal_error(err, exception=None):
     sys.exit(1)
 
 
-def format_seconds(seconds):
+def format_seconds(seconds: int) -> str:
     """
     Round seconds to formatted hour, minute, and/or second output.
     :param seconds: int representing time in seconds
@@ -148,7 +153,12 @@ def sanitize_file_prefix(file_prefix: str) -> str:
     return re.sub('[^0-9a-zA-Z_]+', '_', file_prefix)
 
 
-def construct_table_name(params, prefix, suffix=None, include_release=True, release=None):
+# todo candidate for removal or merging into get_filename
+def construct_table_name(params: Params,
+                         prefix: str,
+                         suffix: Optional[str] = None,
+                         include_release: bool = True,
+                         release: Optional[str] = None) -> str:
     """
     Generate BigQuery-safe table name using supplied parameters.
     :param params: params supplied in yaml config
@@ -171,7 +181,13 @@ def construct_table_name(params, prefix, suffix=None, include_release=True, rele
     return sanitize_file_prefix(table_name)
 
 
-def get_filename(params, file_extension, prefix, suffix=None, include_release=True, release=None):
+# todo candidate for removal
+def get_filename(params: Params,
+                 file_extension: str,
+                 prefix: str,
+                 suffix: Optional[str] = None,
+                 include_release: bool = True,
+                 release: Optional[str] = None) -> str:
     """
     Get filename based on common table-naming (see construct_table_name).
     :param params: params from YAML config
@@ -186,7 +202,7 @@ def get_filename(params, file_extension, prefix, suffix=None, include_release=Tr
     return f"{filename}.{file_extension}"
 
 
-def get_filepath(dir_path, filename=None):
+def get_filepath(dir_path: str, filename: Optional[str] = None) -> str:
     """
     Get file path for location on VM; expands compatibly for local or VM scripts.
     :param dir_path: directory portion of the filepath (starting at user home dir)
@@ -201,7 +217,7 @@ def get_filepath(dir_path, filename=None):
     return '/'.join(join_list)
 
 
-def get_scratch_fp(params, filename):
+def get_scratch_fp(params: Params, filename: str) -> str:
     """
     Construct filepath for VM output file.
     :param params: params supplied in yaml config
