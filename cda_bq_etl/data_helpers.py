@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from typing import Union
+from typing import Union, Any, Optional
 
 import json
 import re
@@ -31,74 +31,36 @@ from distutils import util
 from cda_bq_etl.gcs_helpers import upload_to_bucket
 from cda_bq_etl.utils import sanitize_file_prefix, get_scratch_fp, has_fatal_error, make_string_bq_friendly
 
-JSONList = list[dict[str, Union[None, str, float, int, bool]]]
+RowDict = dict[str, Union[None, str, float, int, bool]]
+JSONList = list[RowDict]
 Params = dict[str, Union[str, dict, int]]
 
 
-def create_normalized_tsv(raw_tsv_fp, normalized_tsv_fp):
+def write_list_to_jsonl(jsonl_fp: str, json_obj_list: JSONList, mode: str = 'w'):
     """
-    Opens a raw tsv file, normalizes its data, then writes to new tsv file.
-    :param raw_tsv_fp: path to non-normalized data file
-    :param normalized_tsv_fp: destination file for normalized data
+    Create a jsonl file for uploading data into BigQuery from a list<dict> obj.
+    :param jsonl_fp: local VM jsonl filepath
+    :param json_obj_list: list of dicts representing json objects
+    :param mode: 'a' if appending to a file that's being built iteratively;
+                 'w' if file data is written in a single call to the function
+                 (in which case any existing data is overwritten)
     """
-    with open(normalized_tsv_fp, mode="w", newline="") as normalized_tsv_file:
-        tsv_writer = csv.writer(normalized_tsv_file, delimiter="\t")
-
-        with open(raw_tsv_fp, mode="r", newline="") as tsv_file:
-            tsv_reader = csv.reader(tsv_file, delimiter="\t")
-
-            raw_row_count = 0
-
-            for row in tsv_reader:
-                normalized_record = list()
-
-                if raw_row_count == 0:
-                    header_row = normalize_header_row(row)
-                    tsv_writer.writerow(header_row)
-                    raw_row_count += 1
-                    continue
-
-                for value in row:
-                    new_value = normalize_value(value, is_tsv=True)
-                    normalized_record.append(new_value)
-
-                tsv_writer.writerow(normalized_record)
-                raw_row_count += 1
-                if raw_row_count % 500000 == 0:
-                    print(f"Normalized {raw_row_count} rows.")
-
-            print(f"Normalized {raw_row_count} rows.")
-
-    with open(normalized_tsv_fp, mode="r", newline="") as normalized_tsv_file:
-        tsv_reader = csv.reader(normalized_tsv_file, delimiter="\t")
-
-        normalized_row_count = sum(1 for _ in tsv_reader)
-
-    if normalized_row_count != raw_row_count:
-        print(f"ERROR: Row count changed. Original: {raw_row_count}; Normalized: {normalized_row_count}")
-        exit()
+    with open(jsonl_fp, mode) as file_obj:
+        for line in json_obj_list:
+            json.dump(obj=line, fp=file_obj, default=json_datetime_to_str_converter)
+            file_obj.write('\n')
 
 
-def normalize_flat_json_values(records):
-    normalized_json_list = list()
-
-    for record in records:
-        normalized_record = dict()
-        for key in record.keys():
-            value = normalize_value(record[key])
-            normalized_record[key] = value
-        normalized_json_list.append(normalized_record)
-
-    return normalized_json_list
-
-
-def write_list_to_jsonl_and_upload(params, prefix, record_list, local_filepath=None):
+def write_list_to_jsonl_and_upload(params: Params,
+                                   prefix: str,
+                                   record_list: JSONList,
+                                   local_filepath: Optional[str] = None):
     """
     Write joined_record_list to file name specified by prefix and uploads to scratch Google Cloud bucket.
     :param params: params supplied in yaml config
     :param prefix: string representing base file name (release string is appended to generate filename)
     :param record_list: list of record objects to insert into jsonl file
-    :param local_filepath: todo
+    :param local_filepath: VM path where jsonl file is stored prior to upload
     """
     if not local_filepath:
         jsonl_filename = f"{sanitize_file_prefix(prefix)}.jsonl"
@@ -108,7 +70,7 @@ def write_list_to_jsonl_and_upload(params, prefix, record_list, local_filepath=N
     upload_to_bucket(params, local_filepath, delete_local=True)
 
 
-def recursively_detect_object_structures(nested_obj):
+def recursively_detect_object_structures(nested_obj: Union[JSONList, RowDict]) -> Union[JSONList, RowDict]:
     """
     Traverse a dict or list of objects, analyzing the structure. Order not guaranteed (if anything, it'll be
     backwards)--Not for use with TSV data. Works for arbitrary nesting, even if object structure varies from record to
@@ -162,16 +124,15 @@ def recursively_detect_object_structures(nested_obj):
     return data_types_dict
 
 
-def get_column_list_tsv(header_list=None, tsv_fp=None, header_row_index=None):
+def get_column_list_tsv(header_list: Optional[list[str]] = None,
+                        tsv_fp: Optional[str] = None,
+                        header_row_index: Optional[int] = None) -> list[str]:
     """
     Return a list of column headers using header_list OR using a header_row index to retrieve column names from tsv_fp.
         NOTE: Specifying both header_list and header_row in parent function triggers a fatal error.
     :param header_list: Optional ordered list of column headers corresponding to columns in dataset tsv file
-    :type header_list: list
     :param tsv_fp: Optional string filepath; provided if column names are being obtained directly from tsv header
-    :type tsv_fp: str
     :param header_row_index: Optional header row index, if deriving column names from tsv file
-    :type header_row_index: int
     :return list of columns with BQ-compatible names
     :rtype list
     """
@@ -206,7 +167,10 @@ def get_column_list_tsv(header_list=None, tsv_fp=None, header_row_index=None):
     return column_list
 
 
-def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_interval=1):
+def aggregate_column_data_types_tsv(tsv_fp: str,
+                                    column_headers: list[str],
+                                    skip_rows: int,
+                                    sample_interval: int = 1) -> dict[str, set[str]]:
     """
     Open tsv file and aggregate data types for each column.
     :param tsv_fp: tsv dataset filepath used to analyze the data types
@@ -253,7 +217,7 @@ def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_in
     return data_types_dict
 
 
-def resolve_type_conflicts(types_dict):
+def resolve_type_conflicts(types_dict: dict[str, set[Any]]) -> dict[str, str]:
     """
     Iteratively resolve data type conflicts for non-nested type dicts (e.g. if there is more than one data type found,
     select the superseding type.)
@@ -270,13 +234,13 @@ def resolve_type_conflicts(types_dict):
     return type_dict
 
 
-def resolve_type_conflict(field, types_set):
+def resolve_type_conflict(field: str, types_set: set[str]):
     """
     Resolve BigQuery column data type precedence, where multiple types are detected. Rules for type conversion based on
     BigQuery's implicit conversion behavior.
     See https://cloud.google.com/bigquery/docs/reference/standard-sql/conversion_rules#coercion
-    :param types_set: Set of BigQuery data types in string format
     :param field: field name
+    :param types_set: Set of BigQuery data types in string format
     :return: BigQuery data type with the highest precedence
     """
 
@@ -359,6 +323,84 @@ def resolve_type_conflict(field, types_set):
     return "STRING"
 
 
+def is_int_value(value: Any) -> bool:
+    """
+    Verify whether this value is of int type.
+    :param value: the value to evaluate
+    :return: True if value is int type, False otherwise
+    """
+    def is_valid_decimal(val):
+        try:
+            float(val)
+        except ValueError:
+            return False
+        except TypeError:
+            return False
+        else:
+            return True
+
+    def should_be_string(val):
+        val = str(val)
+        # todo should I make this regex?
+        if val.startswith("0") and len(val) > 1 and ':' not in val and '-' not in val and '.' not in val:
+            return True
+
+    if should_be_string(value):
+        return False
+
+    if is_valid_decimal(value):
+        try:
+            if float(value) == int(float(value)):
+                return True
+        except OverflowError:
+            return False
+
+    try:
+        int(value)
+        return True
+    except ValueError:
+        return False
+    except TypeError:
+        return False
+
+
+def normalize_value(value: Any, is_tsv: bool = False) -> Any:
+    """
+    - If value is string, but is NoneType-like or boolean-like, then converts to correct form (None, True, False).
+    - If value is a trivial float (e.g. 100.0), converts to int. This is safe to do, because if any of the values in a
+    given column end up being floats, BigQuery will re-convert the ints back into float format.
+    otherwise returns original value.
+    :param value: value to convert
+    :param is_tsv:
+    :return: normalized (or original) value
+    """
+
+    if value is None:
+        return value
+
+    if isinstance(value, str):
+        value = value.strip()
+
+        test_value = value.lower()
+
+        if test_value in ('na', 'n/a', 'none', '', '--', '-', 'null', 'not reported', 'unknown'):
+            # can't use None in the TSV files, it's interpreted as a string
+            return '' if is_tsv else None
+        elif test_value in ('false', 'no'):
+            return "False"
+        elif test_value in ('true', 'yes'):
+            return "True"
+
+    if is_int_value(value):
+        try:
+            cast_value = int(float(value))
+            return cast_value
+        except OverflowError:
+            pass
+    else:
+        return value
+
+
 def normalize_header_row(header_row):
     new_header_row = list()
 
@@ -380,61 +422,65 @@ def normalize_header_row(header_row):
     return new_header_row
 
 
-def normalize_value(value, is_tsv=False):
+def create_normalized_tsv(raw_tsv_fp: str, normalized_tsv_fp: str):
     """
-    If value is variation of null or boolean value, converts to single form (None, True, False);
-    otherwise returns original value.
-    :param value: value to convert
-    :param is_tsv:
-    :return: normalized (or original) value
+    Opens a raw tsv file, normalizes its data, then writes to new tsv file.
+    :param raw_tsv_fp: path to non-normalized data file
+    :param normalized_tsv_fp: destination file for normalized data
     """
+    with open(normalized_tsv_fp, mode="w", newline="") as normalized_tsv_file:
+        tsv_writer = csv.writer(normalized_tsv_file, delimiter="\t")
 
-    if value is None:
-        return value
+        with open(raw_tsv_fp, mode="r", newline="") as tsv_file:
+            tsv_reader = csv.reader(tsv_file, delimiter="\t")
 
-    if isinstance(value, str):
-        value = value.strip()
+            raw_row_count = 0
 
-        if value in ('NA', 'N/A', 'n/a',
-                     'None', '', '--', '-',
-                     'NULL', 'Null', 'null',
-                     'Not Reported', 'not reported', 'Not reported',
-                     'unknown', 'Unknown'):
-            if is_tsv:
-                return ''
-            else:
-                return None
-        elif value in ('False', 'false', 'FALSE', 'No', 'no', 'NO'):
-            return "False"
-        elif value in ('True', 'true', 'TRUE', 'Yes', 'yes', 'YES'):
-            return "True"
+            for row in tsv_reader:
+                normalized_record = list()
 
-    if is_int_value(value):
-        try:
-            cast_value = int(float(value))
-            return cast_value
-        except OverflowError:
-            pass
-    else:
-        return value
+                if raw_row_count == 0:
+                    header_row = normalize_header_row(row)
+                    tsv_writer.writerow(header_row)
+                    raw_row_count += 1
+                    continue
 
+                for value in row:
+                    new_value = normalize_value(value, is_tsv=True)
+                    normalized_record.append(new_value)
 
-def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):
-    """
-    Create a jsonl file for uploading data into BigQuery from a list<dict> obj.
-    :param jsonl_fp: local VM jsonl filepath
-    :param json_obj_list: list of dicts representing json objects
-    :param mode: 'a' if appending to a file that's being built iteratively;
-                 'w' if file data is written in a single call to the function
-                 (in which case any existing data is overwritten)
-    """
-    with open(jsonl_fp, mode) as file_obj:
-        for line in json_obj_list:
-            json.dump(obj=line, fp=file_obj, default=json_datetime_to_str_converter)
-            file_obj.write('\n')
+                tsv_writer.writerow(normalized_record)
+                raw_row_count += 1
+                if raw_row_count % 500000 == 0:
+                    print(f"Normalized {raw_row_count} rows.")
+
+            print(f"Normalized {raw_row_count} rows.")
+
+    with open(normalized_tsv_fp, mode="r", newline="") as normalized_tsv_file:
+        tsv_reader = csv.reader(normalized_tsv_file, delimiter="\t")
+
+        normalized_row_count = sum(1 for _ in tsv_reader)
+
+    if normalized_row_count != raw_row_count:
+        print(f"ERROR: Row count changed. Original: {raw_row_count}; Normalized: {normalized_row_count}")
+        exit()
 
 
-def check_value_type(value):
+def normalize_flat_json_values(records: JSONList) -> JSONList:
+    normalized_json_list = list()
+
+    for record in records:
+        normalized_record = dict()
+        for key in record.keys():
+            value = normalize_value(record[key])
+            normalized_record[key] = value
+        normalized_json_list.append(normalized_record)
+
+    return normalized_json_list
+
+
+# todo this works, but could it be tightened up?
+def check_value_type(value: Any):
     """
     Check value for corresponding BigQuery type. Evaluates the following BigQuery column data types:
         - datetime formats: DATE, TIME, TIMESTAMP
@@ -564,55 +610,15 @@ def check_value_type(value):
             return "STRING"
 
 
-def is_int_value(value):
-    """
-    todo
-    :param value:
-    :return:
-    """
-    def is_valid_decimal(val):
-        try:
-            float(val)
-        except ValueError:
-            return False
-        except TypeError:
-            return False
-        else:
-            return True
-
-    def should_be_string(val):
-        val = str(val)
-        if val.startswith("0") and len(val) > 1 and ':' not in val and '-' not in val and '.' not in val:
-            return True
-
-    if should_be_string(value):
-        return False
-
-    if is_valid_decimal(value):
-        try:
-            if float(value) == int(float(value)):
-                return True
-        except OverflowError:
-            return False
-
-    try:
-        int(value)
-        return True
-    except ValueError:
-        return False
-    except TypeError:
-        return False
-
-
-def json_datetime_to_str_converter(obj):
+def json_datetime_to_str_converter(datetime_obj: datetime) -> str:
     """
     Convert python datetime object to string (necessary for json serialization).
-    :param obj: python datetime object
+    :param datetime_obj: python datetime object
     :return: datetime cast as string
     """
-    if isinstance(obj, datetime.datetime):
-        return str(obj)
-    if isinstance(obj, datetime.date):
-        return str(obj)
-    if isinstance(obj, datetime.time):
-        return str(obj)
+    if isinstance(datetime_obj, datetime.datetime):
+        return str(datetime_obj)
+    if isinstance(datetime_obj, datetime.date):
+        return str(datetime_obj)
+    if isinstance(datetime_obj, datetime.time):
+        return str(datetime_obj)
