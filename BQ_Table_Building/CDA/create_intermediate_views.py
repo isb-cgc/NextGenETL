@@ -28,7 +28,7 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
-def make_project_program_view_query():
+def make_case_project_program_view_query():
     """
     todo
     :return:
@@ -65,9 +65,9 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
-    if 'create_project_program_view' in steps:
+    if 'create_case_project_program_view' in steps:
         view_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.{PARAMS['RELEASE']}_case_project_program"
-        create_view_from_query(view_id=view_id, view_query=make_project_program_view_query())
+        create_view_from_query(view_id=view_id, view_query=make_case_project_program_view_query())
 
 
 if __name__ == "__main__":

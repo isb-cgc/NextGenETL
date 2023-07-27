@@ -22,7 +22,7 @@ SOFTWARE.
 import sys
 
 from cda_bq_etl.utils import load_config, has_fatal_error
-from cda_bq_etl.bq_helpers import delete_bq_table, load_table_from_query, bq_harness_with_result
+from cda_bq_etl.bq_helpers import delete_bq_table, load_table_from_query, query_and_retrieve_result
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -39,7 +39,7 @@ def create_program_name_set():
         FROM `{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.{PARAMS['RELEASE']}_case_project_program`
         """
 
-    result = bq_harness_with_result(sql=make_program_name_set_query(), do_batch=False, verbose=False)
+    result = query_and_retrieve_result(sql=make_program_name_set_query())
 
     program_name_set = set()
 

@@ -25,7 +25,7 @@ from typing import Any, Union, Optional
 
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
-from cda_bq_etl.bq_helpers import bq_harness_with_result, create_and_upload_schema_for_json, \
+from cda_bq_etl.bq_helpers import query_and_retrieve_result, create_and_upload_schema_for_json, \
     create_and_load_table_from_jsonl, retrieve_bq_schema_object
 from cda_bq_etl.utils import format_seconds, load_config, has_fatal_error
 from cda_bq_etl.data_helpers import normalize_flat_json_values, write_list_to_jsonl_and_upload
@@ -224,7 +224,7 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
         # bq harness with result
         # manipulate and insert all fields in concat list
         # insert all fields in insert list
-        query_result: BQHarnessResult = bq_harness_with_result(sql=sql, do_batch=False, verbose=False)
+        query_result: BQHarnessResult = query_and_retrieve_result(sql=sql)
 
         for record in query_result:
             file_id: str = record.get('file_gdc_id')
@@ -236,9 +236,7 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
 
     print("\nCreating base file metadata record objects")
 
-    file_record_result: BQHarnessResult = bq_harness_with_result(sql=make_base_file_metadata_sql(),
-                                                                 do_batch=False,
-                                                                 verbose=False)
+    file_record_result: BQHarnessResult = query_and_retrieve_result(sql=make_base_file_metadata_sql())
 
     file_records: dict[str, dict[str, Optional[Any]]] = dict()
 
@@ -338,9 +336,7 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
                                                         'associated_entities__entity_gdc_id',
                                                         'associated_entities__entity_submitter_id']
 
-    query_result: BQHarnessResult = bq_harness_with_result(sql=make_associated_entities_sql(),
-                                                           do_batch=False,
-                                                           verbose=False)
+    query_result: BQHarnessResult = query_and_retrieve_result(sql=make_associated_entities_sql())
 
     for record in query_result:
         file_id: str = record.get('file_gdc_id')
@@ -361,9 +357,7 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
     # Add case, project, program fields to file records
     print("Adding case, project, program fields to file records")
 
-    case_project_program_result: BQHarnessResult = bq_harness_with_result(sql=make_case_project_program_sql(),
-                                                                          do_batch=False,
-                                                                          verbose=False)
+    case_project_program_result: BQHarnessResult = query_and_retrieve_result(sql=make_case_project_program_sql())
 
     for row in case_project_program_result:
         file_gdc_id = row.get('file_gdc_id')
@@ -383,9 +377,7 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
     # Add index files to file records
     print("Adding index files to file records")
 
-    index_file_result: BQHarnessResult = bq_harness_with_result(sql=make_index_file_sql(),
-                                                                do_batch=False,
-                                                                verbose=False)
+    index_file_result: BQHarnessResult = query_and_retrieve_result(sql=make_index_file_sql())
 
     for row in index_file_result:
         file_gdc_id = row.get('file_gdc_id')
