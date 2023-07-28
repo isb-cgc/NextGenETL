@@ -32,13 +32,13 @@ YAML_HEADERS = ('params', 'steps')
 
 def create_merged_project_studies_disease_type_jsonl():
     """
-    todo
-    :return:
+    Adds disease type to projects and creates a mapping jsonl file, used for table creation, generates a schema,
+    and uploads them both to GCS bucket.
     """
-    def make_project_studies_disease_type_query():
+    def make_project_studies_disease_type_query() -> str:
         return f"""
         SELECT *
-        FROM {create_dev_table_id('project_studies_disease_type')}
+        FROM `{create_dev_table_id(PARAMS, 'project_studies_disease_type')}`
         """
 
     result = query_and_retrieve_result(sql=make_project_studies_disease_type_query())
@@ -86,23 +86,6 @@ def create_merged_project_studies_disease_type_jsonl():
                                       include_release=True)
 
 
-def create_table():
-    """
-    todo
-    :return:
-    """
-    table_name = f"{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
-    table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.{table_name}"
-    jsonl_file = f"{table_name}.jsonl"
-
-    table_schema = retrieve_bq_schema_object(PARAMS,
-                                             table_name=PARAMS['TABLE_NAME'],
-                                             include_release=True)
-
-    # Load jsonl data into BigQuery table
-    create_and_load_table_from_jsonl(PARAMS, jsonl_file=jsonl_file, table_id=table_id, schema=table_schema)
-
-
 def main(args):
     try:
         global PARAMS
@@ -113,7 +96,15 @@ def main(args):
     if 'create_jsonl_file_and_schema' in steps:
         create_merged_project_studies_disease_type_jsonl()
     if 'create_table' in steps:
-        create_table()
+        table_id = create_dev_table_id(PARAMS, PARAMS['TABLE_NAME'], True)
+        jsonl_file = f"{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}.jsonl"
+
+        table_schema = retrieve_bq_schema_object(PARAMS,
+                                                 table_name=PARAMS['TABLE_NAME'],
+                                                 include_release=True)
+
+        # Load jsonl data into BigQuery table
+        create_and_load_table_from_jsonl(PARAMS, jsonl_file=jsonl_file, table_id=table_id, schema=table_schema)
 
 
 if __name__ == "__main__":

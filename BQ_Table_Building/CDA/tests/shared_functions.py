@@ -27,7 +27,7 @@ from google.cloud.bigquery.table import RowIterator
 from common_etl.support import bq_harness_with_result
 from common_etl.utils import has_fatal_error
 
-BQHarnessResult = Union[None, RowIterator]
+BQQueryResult = Union[None, RowIterator]
 
 
 def compare_id_keys(old_table_id: str, new_table_id: str, primary_key: str):

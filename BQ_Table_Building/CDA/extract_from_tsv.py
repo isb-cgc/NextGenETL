@@ -29,7 +29,7 @@ import shutil
 from typing import Union
 
 from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket
-from cda_bq_etl.utils import get_scratch_fp, load_config, get_filepath, has_fatal_error
+from cda_bq_etl.utils import get_scratch_fp, load_config, get_filepath, has_fatal_error, create_dev_table_id
 from cda_bq_etl.data_helpers import create_normalized_tsv
 from cda_bq_etl.bq_helpers import retrieve_bq_schema_object, create_and_upload_schema_for_tsv, \
     create_and_load_table_from_tsv
@@ -191,19 +191,6 @@ def get_schema_filename(tsv_file_name: str) -> str:
     schema_file_name = f"{PARAMS['RELEASE']}_schema_{schema_file_name}.json"
 
     return schema_file_name
-
-
-def make_file_project_mapping_view():
-    working_project = PARAMS['WORKING_PROJECT']
-    working_dataset = PARAMS['WORKING_DATASET']
-    release = PARAMS['RELEASE']
-
-    return f"""
-    SELECT DISTINCT file_case.file_id, case_project.project_id 
-    FROM `{working_project}.{working_dataset}.{release}_file_in_case` file_case
-    JOIN `{working_project}.{working_dataset}.{release}_case_in_project` case_project
-        USING (case_id)
-    """
 
 
 def main(args):

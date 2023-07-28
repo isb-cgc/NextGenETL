@@ -28,10 +28,10 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
-def make_aliquot_case_table_sql() -> str:
+def make_aliquot_case_table_sql(legacy_table_id: str) -> str:
     """
     Make BigQuery sql statement, used to generate the aliquot_to_case_mapping table.
-    :return:
+    :return: sql query statement
     """
     return f"""
         (
@@ -52,26 +52,26 @@ def make_aliquot_case_table_sql() -> str:
                 an.submitter_id AS analyte_barcode,
                 al.aliquot_id AS aliquot_gdc_id,
                 al.submitter_id AS aliquot_barcode        
-            FROM {create_dev_table_id('aliquot')} al
-            JOIN {create_dev_table_id('aliquot_of_analyte')} aoa
+            FROM `{create_dev_table_id(PARAMS, 'aliquot')}` al
+            JOIN `{create_dev_table_id(PARAMS, 'aliquot_of_analyte')}` aoa
                 ON aoa.aliquot_id = al.aliquot_id
-            JOIN {create_dev_table_id('analyte')} an
+            JOIN `{create_dev_table_id(PARAMS, 'analyte')}` an
                 ON an.analyte_id = aoa.analyte_id
-            JOIN {create_dev_table_id('analyte_from_portion')} afp
+            JOIN `{create_dev_table_id(PARAMS, 'analyte_from_portion')}` afp
                 ON afp.analyte_id = an.analyte_id
-            JOIN {create_dev_table_id('portion')} p 
+            JOIN `{create_dev_table_id(PARAMS, 'portion')}` p 
                 ON p.portion_id = afp.portion_id
-            JOIN {create_dev_table_id('portion_from_sample')} pfs
+            JOIN `{create_dev_table_id(PARAMS, 'portion_from_sample')}` pfs
                 ON pfs.portion_id = p.portion_id
-            JOIN {create_dev_table_id('sample')} s
+            JOIN `{create_dev_table_id(PARAMS, 'sample')}` s
                 ON s.sample_id = pfs.sample_id
-            JOIN {create_dev_table_id('sample_from_case')} sfc
+            JOIN `{create_dev_table_id(PARAMS, 'sample_from_case')}` sfc
                 ON sfc.sample_id = s.sample_id
-            JOIN {create_dev_table_id('case_project_program')} cpp
+            JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
                 ON sfc.case_id = cpp.case_gdc_id
         ) UNION ALL (
             SELECT * 
-            FROM `isb-project-zero.cda_gdc_test.r37_aliquot_to_case_legacy` 
+            FROM `{legacy_table_id}`
         )
     """
 
@@ -84,8 +84,9 @@ def main(args):
         has_fatal_error(err, ValueError)
 
     if 'create_table_from_query' in steps:
-        table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.aliquot_to_case_{PARAMS['RELEASE']}"
-        load_table_from_query(params=PARAMS, table_id=table_id, query=make_aliquot_case_table_sql())
+        legacy_table_id = 'isb-project-zero.cda_gdc_test.r37_aliquot_to_case_legacy'
+        table_id = create_dev_table_id(PARAMS, 'aliquot_to_case', True)
+        load_table_from_query(params=PARAMS, table_id=table_id, query=make_aliquot_case_table_sql(legacy_table_id))
 
 
 if __name__ == "__main__":

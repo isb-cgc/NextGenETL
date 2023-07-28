@@ -32,7 +32,7 @@ API_PARAMS = dict()
 BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
-BQHarnessResult = Union[None, RowIterator, _EmptyRowIterator]
+BQQueryResult = Union[None, RowIterator, _EmptyRowIterator]
 
 
 def make_concat_column_query(table_id) -> str:
@@ -306,7 +306,7 @@ def make_compare_two_tables_query() -> str:
 
 
 def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
-    file_result: BQHarnessResult = bq_harness_with_result(sql=sql, do_batch=False, verbose=False)
+    file_result: BQQueryResult = bq_harness_with_result(sql=sql, do_batch=False, verbose=False)
 
     file_metadata_dict: dict = dict()
 

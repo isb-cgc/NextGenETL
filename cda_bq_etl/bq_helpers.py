@@ -40,7 +40,7 @@ ColumnTypes = Union[None, str, float, int, bool]
 RowDict = dict[str, Union[None, str, float, int, bool]]
 JSONList = list[RowDict]
 
-QueryResult = Union[None, RowIterator, _EmptyRowIterator]
+BQQueryResult = Union[None, RowIterator, _EmptyRowIterator]
 SchemaFieldFormat = dict[str, list[dict[str, str]]]
 
 
@@ -362,7 +362,7 @@ def retrieve_bq_schema_object(params: Params,
     return schema
 
 
-def query_and_retrieve_result(sql: str) -> Union[QueryResult, None]:
+def query_and_retrieve_result(sql: str) -> Union[BQQueryResult, None]:
     """
     Create and execute a BQ QueryJob, wait for and return query result.
     :param sql: the query for which to execute and return results

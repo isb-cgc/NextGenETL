@@ -28,10 +28,10 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
-def make_slide_case_table_sql():
+def make_slide_case_table_sql() -> str:
     """
-    todo
-    :return:
+    Make BigQuery sql statement that is used to create the slide to case map table
+    :return: slide to case map sql query
     """
     return f"""
     SELECT 
@@ -47,18 +47,18 @@ def make_slide_case_table_sql():
         p.submitter_id AS portion_barcode,
         sl.slide_id AS slide_gdc_id,
         sl.submitter_id AS slide_barcode
-    FROM {create_dev_table_id('slide')} sl
-    JOIN {create_dev_table_id('slide_from_portion')} sfp
+    FROM `{create_dev_table_id(PARAMS, 'slide')}` sl
+    JOIN `{create_dev_table_id(PARAMS, 'slide_from_portion')}` sfp
         ON sfp.slide_id = sl.slide_id
-    JOIN {create_dev_table_id('portion')} p 
+    JOIN `{create_dev_table_id(PARAMS, 'portion')}` p 
         ON p.portion_id = sfp.portion_id
-    JOIN {create_dev_table_id('portion_from_sample')} pfs  
+    JOIN `{create_dev_table_id(PARAMS, 'portion_from_sample')}` pfs  
         ON pfs.portion_id = p.portion_id
-    JOIN {create_dev_table_id('sample')} s
+    JOIN `{create_dev_table_id(PARAMS, 'sample')}` s
         ON s.sample_id = pfs.sample_id
-    JOIN {create_dev_table_id('sample_from_case')} sic
+    JOIN `{create_dev_table_id(PARAMS, 'sample_from_case')}` sic
         ON sic.sample_id = s.sample_id
-    JOIN {create_dev_table_id('case_project_program')} cpp
+    JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
         ON cpp.case_gdc_id = sic.case_id
     """
 
@@ -71,7 +71,7 @@ def main(args):
         has_fatal_error(err, ValueError)
 
     if 'create_table_from_query' in steps:
-        table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.slide_to_case_{PARAMS['RELEASE']}"
+        table_id = create_dev_table_id(PARAMS, 'slide_to_case', True)
 
         load_table_from_query(params=PARAMS, table_id=table_id, query=make_slide_case_table_sql())
 

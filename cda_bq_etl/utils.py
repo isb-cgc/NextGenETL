@@ -225,11 +225,15 @@ def get_scratch_fp(params: Params, filename: str) -> str:
     return get_filepath(params['SCRATCH_DIR'], filename)
 
 
-def create_dev_table_id(params, table_name) -> str:
+def create_dev_table_id(params: Params, table_name: str, release_as_suffix: bool = False) -> str:
     """
     Create table id reference to one of the CDA dev tables used to construct the joined data tables.
+    :param params: params supplied in yaml config
     :param table_name: name of the table
+    :param release_as_suffix: if True, adds release to end of table name, rather than the beginning; defaults to False
     :return: table id string
     """
-    return f"`{params['WORKING_PROJECT']}.{params['WORKING_DATASET']}.{params['RELEASE']}_{table_name}`"
-
+    if release_as_suffix:
+        return f"{params['WORKING_PROJECT']}.{params['WORKING_DATASET']}.{table_name}_{params['RELEASE']}"
+    else:
+        return f"{params['WORKING_PROJECT']}.{params['WORKING_DATASET']}.{params['RELEASE']}_{table_name}"

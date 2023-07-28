@@ -34,7 +34,10 @@ from cda_bq_etl.data_helpers import normalize_flat_json_values, write_list_to_js
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
-BQHarnessResult = Union[None, RowIterator, _EmptyRowIterator]
+BQQueryResult = Union[None, RowIterator, _EmptyRowIterator]
+ColumnTypes = Union[None, str, float, int, bool]
+RowDict = dict[str, Union[None, str, float, int, bool]]
+JSONList = list[RowDict]
 
 
 def convert_concat_to_multi(value_string: str, max_length: int = 8, filter_duplicates: bool = False) -> str:
@@ -58,26 +61,26 @@ def convert_concat_to_multi(value_string: str, max_length: int = 8, filter_dupli
         return value_string
 
 
-def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
+def create_file_metadata_dict() -> JSONList:
     """
-    todo
-    :return:
+    Create list of dicts containing file metadata, using successive queries.
+    :return: list of dicts representing file metadata table rows
     """
 
-    analysis_table_id: str = create_dev_table_id('analysis')
-    analysis_consumed_input_file_table_id: str = create_dev_table_id('analysis_consumed_input_file')
-    analysis_downstream_from_file_table_id: str = create_dev_table_id('analysis_downstream_from_file')
-    analysis_produced_file_table_id: str = create_dev_table_id('analysis_produced_file')
-    archive_table_id: str = create_dev_table_id('archive')
-    case_project_program_table_id: str = create_dev_table_id("case_project_program")
-    case_table_id: str = create_dev_table_id("case")
-    downstream_analysis_table_id: str = create_dev_table_id("downstream_analysis_produced_output_file")
-    file_table_id: str = create_dev_table_id('file')
-    file_associated_with_entity_table_id: str = create_dev_table_id('file_associated_with_entity')
-    file_has_acl_table_id: str = create_dev_table_id('file_has_acl')
-    file_has_index_file_table_id: str = create_dev_table_id('file_has_index_file')
-    file_in_archive_table_id: str = create_dev_table_id('file_in_archive')
-    file_in_case_table_id: str = create_dev_table_id('file_in_case')
+    analysis_table_id: str = create_dev_table_id(PARAMS, 'analysis')
+    analysis_consumed_input_file_table_id: str = create_dev_table_id(PARAMS, 'analysis_consumed_input_file')
+    analysis_downstream_from_file_table_id: str = create_dev_table_id(PARAMS, 'analysis_downstream_from_file')
+    analysis_produced_file_table_id: str = create_dev_table_id(PARAMS, 'analysis_produced_file')
+    archive_table_id: str = create_dev_table_id(PARAMS, 'archive')
+    case_project_program_table_id: str = create_dev_table_id(PARAMS, "case_project_program")
+    case_table_id: str = create_dev_table_id(PARAMS, "case")
+    downstream_analysis_table_id: str = create_dev_table_id(PARAMS, "downstream_analysis_produced_output_file")
+    file_table_id: str = create_dev_table_id(PARAMS, 'file')
+    file_associated_with_entity_table_id: str = create_dev_table_id(PARAMS, 'file_associated_with_entity')
+    file_has_acl_table_id: str = create_dev_table_id(PARAMS, 'file_has_acl')
+    file_has_index_file_table_id: str = create_dev_table_id(PARAMS, 'file_has_index_file')
+    file_in_archive_table_id: str = create_dev_table_id(PARAMS, 'file_in_archive')
+    file_in_case_table_id: str = create_dev_table_id(PARAMS, 'file_in_case')
 
     def make_base_file_metadata_sql() -> str:
         return f"""
@@ -105,16 +108,16 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
             f.submitter_id AS file_submitter_id,
             f.type AS file_type,
             f.updated_datetime
-            FROM {file_table_id} f
-            LEFT OUTER JOIN {analysis_produced_file_table_id} apf
+            FROM `{file_table_id}` f
+            LEFT OUTER JOIN `{analysis_produced_file_table_id}` apf
                 ON apf.file_id = f.file_id
-            LEFT OUTER JOIN {analysis_table_id} an
+            LEFT OUTER JOIN `{analysis_table_id}` an
                 ON apf.analysis_id = an.analysis_id
-            LEFT OUTER JOIN {file_in_archive_table_id} fia
+            LEFT OUTER JOIN `{file_in_archive_table_id}` fia
                 ON fia.file_id = f.file_id
-            LEFT OUTER JOIN {archive_table_id} ar
+            LEFT OUTER JOIN `{archive_table_id}` ar
                 ON ar.archive_id = fia.archive_id
-            LEFT OUTER JOIN {file_has_index_file_table_id} fhif
+            LEFT OUTER JOIN `{file_has_index_file_table_id}` fhif
                 ON fhif.file_id = f.file_id
         """
 
@@ -122,7 +125,7 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
         return f"""
             SELECT file_id AS file_gdc_id, 
                 STRING_AGG(acl_id, ';') AS acl
-            FROM {file_has_acl_table_id}
+            FROM `{file_has_acl_table_id}`
             GROUP BY file_gdc_id
         """
 
@@ -130,10 +133,10 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
         return f"""
             SELECT apf.file_id AS file_gdc_id, 
                 STRING_AGG(acif.input_file_id, ';') AS analysis_input_file_gdc_ids
-            FROM {analysis_produced_file_table_id} apf
-            JOIN {analysis_table_id} a
+            FROM `{analysis_produced_file_table_id}` apf
+            JOIN `{analysis_table_id}` a
                 ON apf.analysis_id = a.analysis_id
-            JOIN {analysis_consumed_input_file_table_id} acif
+            JOIN `{analysis_consumed_input_file_table_id}` acif
                 ON acif.analysis_id = a.analysis_id
             GROUP BY file_gdc_id
         """
@@ -142,10 +145,10 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
         return f"""
             SELECT adff.file_id AS file_gdc_id, 
                 STRING_AGG(da.output_file_id, ';') AS downstream_analyses__output_file_gdc_ids
-            FROM {analysis_downstream_from_file_table_id} adff
-            JOIN {analysis_table_id} a
+            FROM `{analysis_downstream_from_file_table_id}` adff
+            JOIN `{analysis_table_id}` a
                 ON a.analysis_id = adff.analysis_id
-            JOIN {downstream_analysis_table_id} da
+            JOIN `{downstream_analysis_table_id}` da
                 ON da.analysis_id = a.analysis_id
             GROUP BY file_gdc_id
         """
@@ -155,8 +158,8 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
             SELECT adff.file_id AS file_gdc_id, 
                 STRING_AGG(a.workflow_link, ';') AS downstream_analyses__workflow_link, 
                 STRING_AGG(a.workflow_type, ';') AS downstream_analyses__workflow_type
-            FROM {analysis_downstream_from_file_table_id} adff
-            JOIN {analysis_table_id} a
+            FROM `{analysis_downstream_from_file_table_id}` adff
+            JOIN `{analysis_table_id}` a
                 ON a.analysis_id = adff.analysis_id
             GROUP BY file_gdc_id
         """
@@ -168,7 +171,7 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
                 STRING_AGG(entity_case_id, ';') AS associated_entities__case_gdc_id,
                 STRING_AGG(entity_submitter_id, ';') AS associated_entities__entity_submitter_id,
                 entity_type AS associated_entities__entity_type
-            FROM {file_associated_with_entity_table_id}
+            FROM `{file_associated_with_entity_table_id}`
             GROUP BY file_gdc_id, entity_type
         """
 
@@ -181,13 +184,12 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
                 cpp.project_name, 
                 cpp.program_name, 
                 cpp.program_dbgap_accession_number,
-                # c.disease_type AS project_disease_type
-            FROM {file_table_id} f
-            JOIN {file_in_case_table_id} fc
+            FROM `{file_table_id}` f
+            JOIN `{file_in_case_table_id}` fc
                 ON f.file_id = fc.file_id
-            JOIN {case_project_program_table_id} cpp
+            JOIN `{case_project_program_table_id}` cpp
                 ON cpp.case_gdc_id = fc.case_id
-            JOIN {case_table_id} c
+            JOIN `{case_table_id}` c
                 ON cpp.case_gdc_id = c.case_id
             GROUP BY file_gdc_id, cpp.project_dbgap_accession_number, project_short_name, cpp.project_name, 
                 cpp.program_name, cpp.program_dbgap_accession_number
@@ -199,19 +201,18 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
             fhif.index_file_id AS index_file_gdc_id, 
             f.file_name AS index_file_name, 
             f.file_size AS index_file_size
-            FROM {file_has_index_file_table_id} fhif
-            JOIN {file_table_id} f
+            FROM `{file_has_index_file_table_id}` fhif
+            JOIN `{file_table_id}` f
                 ON fhif.index_file_id = f.file_id
         """
 
     def add_concat_fields_to_file_records(sql: str,
                                           concat_field_list: Union[None, list[str]],
                                           filter_duplicates: bool = False):
-
         # bq harness with result
         # manipulate and insert all fields in concat list
         # insert all fields in insert list
-        _query_result: BQHarnessResult = query_and_retrieve_result(sql=sql)
+        _query_result: BQQueryResult = query_and_retrieve_result(sql=sql)
 
         for _record in _query_result:
             _file_id: str = _record.get('file_gdc_id')
@@ -224,7 +225,7 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
 
     print("\nCreating base file metadata record objects")
 
-    file_record_result: BQHarnessResult = query_and_retrieve_result(sql=make_base_file_metadata_sql())
+    file_record_result: BQQueryResult = query_and_retrieve_result(sql=make_base_file_metadata_sql())
 
     file_records: dict[str, dict[str, Optional[Any]]] = dict()
 
@@ -324,7 +325,7 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
                                                         'associated_entities__entity_gdc_id',
                                                         'associated_entities__entity_submitter_id']
 
-    query_result: BQHarnessResult = query_and_retrieve_result(sql=make_associated_entities_sql())
+    query_result: BQQueryResult = query_and_retrieve_result(sql=make_associated_entities_sql())
 
     for record in query_result:
         file_id: str = record.get('file_gdc_id')
@@ -346,7 +347,7 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
     # Add case, project, program fields to file records
     print("Adding case, project, program fields to file records")
 
-    case_project_program_result: BQHarnessResult = query_and_retrieve_result(sql=make_case_project_program_sql())
+    case_project_program_result: BQQueryResult = query_and_retrieve_result(sql=make_case_project_program_sql())
 
     for row in case_project_program_result:
         file_gdc_id = row.get('file_gdc_id')
@@ -359,7 +360,7 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
         # file_records[file_gdc_id]['project_disease_type'] = row.get('project_disease_type')
 
         if row.get('case_gdc_id'):
-            file_records[file_gdc_id]['case_gdc_id'] = convertconcat_to_multi(row.get('case_gdc_id'),
+            file_records[file_gdc_id]['case_gdc_id'] = convert_concat_to_multi(row.get('case_gdc_id'),
                                                                                max_length=PARAMS['MAX_CONCAT_COUNT'])
 
     del case_project_program_result
@@ -367,7 +368,7 @@ def create_file_metadata_dict() -> list[dict[str, Optional[Any]]]:
     # Add index files to file records
     print("Adding index files to file records")
 
-    index_file_result: BQHarnessResult = query_and_retrieve_result(sql=make_index_file_sql())
+    index_file_result: BQQueryResult = query_and_retrieve_result(sql=make_index_file_sql())
 
     for row in index_file_result:
         file_gdc_id = row.get('file_gdc_id')
@@ -420,13 +421,10 @@ def main(args):
         # Download schema file from Google Cloud bucket
         table_schema = retrieve_bq_schema_object(PARAMS, table_name='file', include_release=True)
 
-        working_project = PARAMS['WORKING_PROJECT']
-        working_dataset = PARAMS['WORKING_DATASET']
-
         # Load jsonl data into BigQuery table
         create_and_load_table_from_jsonl(PARAMS,
                                          jsonl_file=f"file_{PARAMS['RELEASE']}.jsonl",
-                                         table_id=f"{working_project}.{working_dataset}.file_metadata_2023_03",
+                                         table_id=f"{create_dev_table_id(PARAMS, 'file_metadata', True)}",
                                          schema=table_schema)
 
     end_time = time.time()

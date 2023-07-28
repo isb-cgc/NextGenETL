@@ -21,22 +21,22 @@ SOFTWARE.
 """
 import sys
 
-from cda_bq_etl.utils import load_config, has_fatal_error
+from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id
 from cda_bq_etl.bq_helpers import delete_bq_table, load_table_from_query, query_and_retrieve_result
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
-def create_program_name_set():
+def create_program_name_set() -> set[str]:
     """
-    todo
-    :return:
+    Create a list of programs with case associations using the case_project_program view.
+    :return: set of program names
     """
     def make_program_name_set_query():
         return f"""
         SELECT DISTINCT program_name
-        FROM `{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.{PARAMS['RELEASE']}_case_project_program`
+        FROM `{create_dev_table_id(PARAMS, 'case_project_program')}`
         """
 
     result = query_and_retrieve_result(sql=make_program_name_set_query())
@@ -49,40 +49,15 @@ def create_program_name_set():
     return program_name_set
 
 
-def make_aliquot_count_query() -> str:
-    # todo could this be used in test suite?
-    # todo abstract this
-    return f"""
-        WITH aliquot_counts AS (
-            SELECT distinct file_gdc_id,
-            # Count the number of ';'' in the field, if any; if not, count is one, 
-            # which covers rows for both single aliquots and multi
-                CASE WHEN ARRAY_LENGTH(REGEXP_EXTRACT_ALL(associated_entities__entity_gdc_id, r'(;)')) >= 1
-                     THEN ARRAY_LENGTH(REGEXP_EXTRACT_ALL(associated_entities__entity_gdc_id, r'(;)')) + 1
-                     ELSE 1
-                END AS entity_count
-            FROM `isb-project-zero.cda_gdc_test.file_metadata_2023_03`
-            WHERE case_gdc_id NOT LIKE "%;%" AND
-                  case_gdc_id != "multi" AND
-                  associated_entities__entity_type = "aliquot"            
-        )
-    
-        SELECT sum(entity_count) AS aliquot_count            
-        FROM aliquot_counts
-    """
-
-
 def make_slide_entity_query(program_name: str) -> str:
     """
-    todo
-    :param program_name:
-    :return:
+    Make query to retrieve slide entities for per sample file table.
+    :param program_name: program used to filter query
+    :return: sql string
     """
-    working_project = PARAMS['WORKING_PROJECT']
-    working_dataset = PARAMS['WORKING_DATASET']
-    file_metadata_table_id = f"{working_project}.{working_dataset}.file_metadata_{PARAMS['RELEASE']}"
-    file_entity_table_id = f"{working_project}.{working_dataset}.{PARAMS['RELEASE']}_file_associated_with_entity"
-    slide_case_table_id = f"{working_project}.{working_dataset}.slide_to_case_{PARAMS['RELEASE']}"
+    file_metadata_table_id = create_dev_table_id(PARAMS, 'file_metadata', True)
+    file_entity_table_id = create_dev_table_id(PARAMS, 'file_associated_with_entity')
+    slide_case_table_id = create_dev_table_id(PARAMS, 'slide_to_case', True)
 
     return f"""
         SELECT DISTINCT 
@@ -124,16 +99,14 @@ def make_slide_entity_query(program_name: str) -> str:
 
 def make_aliquot_entity_query(program_name: str) -> str:
     """
-    todo
-    :param program_name:
-    :return:
+    Make query to retrieve aliquot entities for per sample file table.
+    :param program_name: program used to filter query
+    :return: sql string
     """
-    working_project = PARAMS['WORKING_PROJECT']
-    working_dataset = PARAMS['WORKING_DATASET']
-    file_metadata_table_id = f"{working_project}.{working_dataset}.file_metadata_{PARAMS['RELEASE']}"
-    case_metadata_table_id = f"{working_project}.{working_dataset}.case_metadata_{PARAMS['RELEASE']}"
-    file_entity_table_id = f"{working_project}.{working_dataset}.{PARAMS['RELEASE']}_file_associated_with_entity"
-    aliquot_case_table_id = f"{working_project}.{working_dataset}.aliquot_to_case_{PARAMS['RELEASE']}"
+    case_metadata_table_id = create_dev_table_id(PARAMS, 'case_metadata', True)
+    file_metadata_table_id = create_dev_table_id(PARAMS, 'file_metadata', True)
+    file_entity_table_id = create_dev_table_id(PARAMS, 'file_associated_with_entity')
+    aliquot_case_table_id = create_dev_table_id(PARAMS, 'aliquot_to_case', True)
 
     return f"""
         WITH fm1 AS ( 
@@ -263,9 +236,9 @@ def make_aliquot_entity_query(program_name: str) -> str:
 
 def make_case_entity_query(program_name: str) -> str:
     """
-    todo
-    :param program_name:
-    :return:
+    Make query to retrieve case entities for per sample file table.
+    :param program_name: program used to filter query
+    :return: sql string
     """
     working_project = PARAMS['WORKING_PROJECT']
     working_dataset = PARAMS['WORKING_DATASET']
@@ -308,9 +281,8 @@ def make_case_entity_query(program_name: str) -> str:
 
 def make_merged_sql_query(program_name: str) -> str:
     """
-    todo
-    :param program_name:
-    :return:
+    Merge sql statements to create one statement which creates the per sample file table for a given project.
+    :return: sql string
     """
     slide_entity_sql = make_slide_entity_query(program_name)
     aliquot_entity_sql = make_aliquot_entity_query(program_name)
@@ -333,10 +305,10 @@ def make_merged_sql_query(program_name: str) -> str:
 
 def make_add_uris_and_index_file_sql_query(no_uri_table_id: str, drs_uri_table_id: str) -> str:
     """
-    todo
-    :param no_uri_table_id:
-    :param drs_uri_table_id:
-    :return:
+    Make sql query that takes the almost completed per sample file table and adds drs uris for file and index file.
+    :param no_uri_table_id: Intermediate per sample file table id
+    :param drs_uri_table_id: DRS uri table id
+    :return: sql string
     """
     working_project = PARAMS['WORKING_PROJECT']
     working_dataset = PARAMS['WORKING_DATASET']
@@ -381,22 +353,6 @@ def main(args):
         PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(err, ValueError)
-
-    # Steps, perhaps--some may be mergeable. For each program:
-    # 1) find all slide associated entities in file metadata. There won't be multiples here, one slide = a file.
-    #    Using rows from slide associated entities, and slide_to_case_map, expand slide rows, and drop duplicates.
-    #    Then, get slide barcodes and sample id, barcode and sample_type_name, perhaps other columns?
-    # ** Able to do all this in a single query: make_slide_view_query()
-
-    # 2) find all aliquot associated entities in file metadata;
-    #    expand aliquots that are concatenated list into multiple rows.
-    #    If multi, then include the file, but leave sample id blank.
-    #    Then, get aliquot barcodes and sample id, barcode and sample_type_name, perhaps other columns?
-
-    # 4) add in files with "multi" aliquots. These get NULL gdc_sample_id, sample_barcode, sample_type_name.
-    # 5) find all case associated entities in file metadata where file doesn't have multiple case_gdc_ids.
-    #    These get NULL sample id, barcode, sample_type_name
-    # 6) finally, all these tables get merged together into a single table.
 
     if 'create_program_tables' in steps:
         program_set = create_program_name_set()
