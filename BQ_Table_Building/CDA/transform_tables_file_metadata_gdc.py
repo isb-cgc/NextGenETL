@@ -395,20 +395,8 @@ def main(args):
     if 'create_and_upload_file_metadata_json' in steps:
         file_record_list = create_file_metadata_dict()
 
-        count_dict = dict()
-
-        for record in file_record_list:
-            for key in record.keys():
-                if key not in count_dict:
-                    count_dict[key] = 0
-
-                if record[key] is not None:
-                    count_dict[key] += 1
-
-        for key in count_dict.keys():
-            print(f"{key}: {count_dict[key]} non-null values")
-
         normalized_file_record_list = normalize_flat_json_values(file_record_list)
+
         write_list_to_jsonl_and_upload(PARAMS, 'file', normalized_file_record_list)
         write_list_to_jsonl_and_upload(PARAMS, 'file_raw', file_record_list)
 
