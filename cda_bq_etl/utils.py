@@ -21,6 +21,7 @@ SOFTWARE.
 """
 import io
 import os
+import select
 import sys
 import time
 import re
@@ -237,3 +238,23 @@ def create_dev_table_id(params: Params, table_name: str, release_as_suffix: bool
         return f"{params['WORKING_PROJECT']}.{params['WORKING_DATASET']}.{table_name}_{params['RELEASE']}"
     else:
         return f"{params['WORKING_PROJECT']}.{params['WORKING_DATASET']}.{params['RELEASE']}_{table_name}"
+
+
+def input_with_timeout(seconds: int) -> Union[str, None]:
+    """
+    Wait for user response. Continue automatically after n seconds.
+    :param seconds: Number of seconds to wait before continuing automatically.
+    :return: keyboard input
+    """
+    input_poll = select.poll()
+    input_poll.register(sys.stdin.fileno(), select.POLLIN)
+
+    while True:
+        events = input_poll.poll(seconds * 1000)  # milliseconds
+
+        if not events:
+            return None
+
+        for fileno, event in events:
+            if fileno == sys.stdin.fileno():
+                return input()
