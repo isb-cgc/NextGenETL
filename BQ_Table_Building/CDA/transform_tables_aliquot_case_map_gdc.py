@@ -92,9 +92,8 @@ def main(args):
         load_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_aliquot_case_table_sql(legacy_table_id))
     if 'publish_tables' in steps:
         current_table_name = f"{PARAMS['PROD_TABLE_NAME']}_current"
-        versioned_table_name = f"{PARAMS['PROD_TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
-
         current_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}.{current_table_name}"
+        versioned_table_name = f"{PARAMS['PROD_TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
         versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}_versioned.{versioned_table_name}"
 
         publish_table(params=PARAMS,

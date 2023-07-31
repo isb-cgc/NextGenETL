@@ -22,7 +22,7 @@ SOFTWARE.
 import sys
 
 from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id
-from cda_bq_etl.bq_helpers import load_table_from_query
+from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, find_most_recent_published_table_id
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -79,11 +79,24 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
-    if 'create_table_from_query' in steps:
-        legacy_table_id = 'isb-project-zero.cda_gdc_test.r37_case_metadata_legacy'
-        table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.case_metadata_{PARAMS['RELEASE']}"
+    dev_table_id = create_dev_table_id(PARAMS, 'case_metadata', True)
 
-        load_table_from_query(params=PARAMS, table_id=table_id, query=make_case_metadata_table_sql(legacy_table_id))
+    if 'create_table_from_query' in steps:
+        legacy_table_id = PARAMS['LEGACY_TABLE_ID']
+
+        load_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_case_metadata_table_sql(legacy_table_id))
+
+    if 'publish_tables' in steps:
+        current_table_name = f"{PARAMS['PROD_TABLE_NAME']}_current"
+        current_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}.{current_table_name}"
+        versioned_table_name = f"{PARAMS['PROD_TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
+        versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}_versioned.{versioned_table_name}"
+
+        publish_table(params=PARAMS,
+                      source_table_id=dev_table_id,
+                      current_table_id=current_table_id,
+                      versioned_table_id=versioned_table_id,
+                      find_most_recent_published_table_id=find_most_recent_published_table_id)
 
 
 if __name__ == "__main__":
