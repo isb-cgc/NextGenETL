@@ -414,7 +414,7 @@ def repair_missing_case_data_sql_slides(case_table, broken_table):
         WITH
            a1 AS
           (SELECT case_gdc_id, project_id, case_barcode,
-             REGEXP_EXTRACT(project_id, r"^[A-Z]+-([A-Z]+$)") as project_short_name_suffix,
+             REGEXP_EXTRACT(project_id, r"^[^-]*-(.*)$") as project_short_name_suffix,
              program_name # TCGA
            FROM `{0}`
            ),
