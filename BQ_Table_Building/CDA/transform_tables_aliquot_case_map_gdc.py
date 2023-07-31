@@ -20,8 +20,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import sys
+import time
 
-from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id
+from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds
 from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, exists_bq_table, \
     find_most_recent_published_table_id
 
@@ -84,12 +85,15 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
+    start_time = time.time()
+
     dev_table_id = create_dev_table_id(PARAMS, 'aliquot_to_case', True)
 
     if 'create_table_from_query' in steps:
         legacy_table_id = PARAMS['LEGACY_TABLE_ID']
 
         load_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_aliquot_case_table_sql(legacy_table_id))
+
     if 'publish_tables' in steps:
         current_table_name = f"{PARAMS['PROD_TABLE_NAME']}_current"
         current_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}.{current_table_name}"
@@ -101,6 +105,10 @@ def main(args):
                       current_table_id=current_table_id,
                       versioned_table_id=versioned_table_id,
                       find_most_recent_published_table_id=find_most_recent_published_table_id)
+
+    end_time = time.time()
+
+    print(f"Script completed in: {format_seconds(end_time - start_time)}")
 
 
 if __name__ == "__main__":
