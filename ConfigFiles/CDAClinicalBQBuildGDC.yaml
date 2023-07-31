@@ -1,5 +1,5 @@
 #
-# YAML Configuration file used for script transform_tables_clinical_gdc.py
+# YAML Configuration file used for script create_tables_clinical_gdc.py
 # Builds BQ program-level tables for CDA_old-GDC clinical data.
 #
 

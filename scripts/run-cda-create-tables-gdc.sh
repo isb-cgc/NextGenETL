@@ -22,29 +22,33 @@ CASE_ARG="case"
 CLINICAL_ARG="clinical"
 FILE_ARG="file"
 PER_SAMPLE_FILE_ARG="per_sample_file"
-ALIQUOT_ARG="aliquot_to_case"
-SLIDE_ARG="slide_to_case"
+ALIQUOT_ARG="aliquot_case_map"
+SLIDE_ARG="slide_case_map"
+DISEASE_ARG="project_disease_type"
 
 if [[ ${SCRIPT_NAME} = ${CASE_ARG} ]] ; then
-    CONFIG_FILE="CDATestTransformCaseBQBuildGDC.yaml"
-    SCRIPT_FILE="test_transform_tables_base.py"
+    CONFIG_FILE="CDACreateTablesCaseGDC.yaml"
+    SCRIPT_FILE="create_tables_case_metadata_gdc.py"
 elif [[ ${SCRIPT_NAME} = ${CLINICAL_ARG} ]] ; then
-    CONFIG_FILE="CDATestTransformClinicalBQBuildGDC.yaml"
-    SCRIPT_FILE="test_transform_tables_clinical_gdc.py"
+    CONFIG_FILE="CDACreateTablesClinicalGDC.yaml"
+    SCRIPT_FILE="create_tables_clinical_gdc.py"
 elif [[ ${SCRIPT_NAME} = ${ALIQUOT_ARG} ]] ; then
-    CONFIG_FILE="CDATestTransformAliquotBQBuildGDC.yaml"
-    SCRIPT_FILE="test_transform_tables_base.py"
+    CONFIG_FILE="CDACreateTablesAliquotCaseMapGDC.yaml"
+    SCRIPT_FILE="create_tables_aliquot_case_map_gdc.py"
 elif [[ ${SCRIPT_NAME} = ${SLIDE_ARG} ]] ; then
-    CONFIG_FILE="CDATestTransformSlideBQBuildGDC.yaml"
-    SCRIPT_FILE="test_transform_tables_base.py"
+    CONFIG_FILE="CDACreateTablesSlideCaseMapGDC.yaml"
+    SCRIPT_FILE="create_tables_slide_case_map_gdc.py"
 elif [[ ${SCRIPT_NAME} = ${FILE_ARG} ]] ; then
-    CONFIG_FILE="CDATestTransformFileBQBuildGDC.yaml"
-    SCRIPT_FILE="test_transform_tables_file_metadata_gdc.py"
+    CONFIG_FILE="CDACreateTablesFileGDC.yaml"
+    SCRIPT_FILE="create_tables_file_metadata_gdc.py"
 elif [[ ${SCRIPT_NAME} = ${PER_SAMPLE_FILE_ARG} ]] ; then
-    CONFIG_FILE="CDATestTransformPerSampleFileBQBuildGDC.yaml"
-    SCRIPT_FILE="test_transform_tables_per_sample_file_gdc.py"
+    CONFIG_FILE="CDACreateTablesPerSampleFileGDC.yaml"
+    SCRIPT_FILE="create_tables_per_sample_file_gdc.py"
+elif [[ ${SCRIPT_NAME} = ${DISEASE_ARG} ]] ; then
+    CONFIG_FILE="CDACreateTablesProjectDiseaseTypeGDC.yaml"
+    SCRIPT_FILE="create_tables_project_disease_type.py"
 else
-    echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, per_sample_file, aliquot_to_case, slide_to_case"
+    echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, per_sample_file, aliquot_case_map, slide_case_map"
     exit 1
 fi
 
@@ -63,5 +67,5 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3.9 ./BQ_Table_Building/CDA/tests/${SCRIPT_FILE} ~/config/${CONFIG_FILE}
+python3.9 ./BQ_Table_Building/CDA/${SCRIPT_FILE} ~/config/${CONFIG_FILE}
 deactivate

@@ -24,29 +24,25 @@ FILE_ARG="file"
 PER_SAMPLE_FILE_ARG="per_sample_file"
 ALIQUOT_ARG="aliquot_to_case"
 SLIDE_ARG="slide_to_case"
-DISEASE_ARG="project_disease_type"
 
 if [[ ${SCRIPT_NAME} = ${CASE_ARG} ]] ; then
-    CONFIG_FILE="CDATransformCaseBQBuildGDC.yaml"
-    SCRIPT_FILE="transform_tables_case_metadata_gdc.py"
+    CONFIG_FILE="CDATestCreateTablesCaseGDC.yaml"
+    SCRIPT_FILE="test_create_tables_base.py"
 elif [[ ${SCRIPT_NAME} = ${CLINICAL_ARG} ]] ; then
-    CONFIG_FILE="CDATransformClinicalBQBuildGDC.yaml"
-    SCRIPT_FILE="transform_tables_clinical_gdc.py"
+    CONFIG_FILE="CDATestCreateTablesClinicalGDC.yaml"
+    SCRIPT_FILE="test_create_tables_clinical_gdc.py"
 elif [[ ${SCRIPT_NAME} = ${ALIQUOT_ARG} ]] ; then
-    CONFIG_FILE="CDATransformAliquotBQBuildGDC.yaml"
-    SCRIPT_FILE="transform_tables_aliquot_case_map_gdc.py"
+    CONFIG_FILE="CDATestCreateTablesAliquotCaseMapGDC.yaml"
+    SCRIPT_FILE="test_create_tables_base.py"
 elif [[ ${SCRIPT_NAME} = ${SLIDE_ARG} ]] ; then
-    CONFIG_FILE="CDATransformSlideBQBuildGDC.yaml"
-    SCRIPT_FILE="transform_tables_slide_case_map_gdc.py"
+    CONFIG_FILE="CDATestCreateTablesSlideCaseMapGDC.yaml"
+    SCRIPT_FILE="test_create_tables_base.py"
 elif [[ ${SCRIPT_NAME} = ${FILE_ARG} ]] ; then
-    CONFIG_FILE="CDATransformFileBQBuildGDC.yaml"
-    SCRIPT_FILE="transform_tables_file_metadata_gdc.py"
+    CONFIG_FILE="CDATestCreateTablesFileGDC.yaml"
+    SCRIPT_FILE="test_create_tables_file_metadata_gdc.py"
 elif [[ ${SCRIPT_NAME} = ${PER_SAMPLE_FILE_ARG} ]] ; then
-    CONFIG_FILE="CDATransformPerSampleFileBQBuildGDC.yaml"
-    SCRIPT_FILE="transform_tables_per_sample_file_gdc.py"
-elif [[ ${SCRIPT_NAME} = ${DISEASE_ARG} ]] ; then
-    CONFIG_FILE="CDATransformProjectDiseaseTypeBuildGDC.yaml"
-    SCRIPT_FILE="transform_tables_project_disease_type.py"
+    CONFIG_FILE="CDATestCreateTablesPerSampleFileGDC.yaml"
+    SCRIPT_FILE="test_create_tables_per_sample_file_gdc.py"
 else
     echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, per_sample_file, aliquot_to_case, slide_to_case"
     exit 1
@@ -67,5 +63,5 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3.9 ./BQ_Table_Building/CDA/${SCRIPT_FILE} ~/config/${CONFIG_FILE}
+python3.9 ./BQ_Table_Building/CDA/tests/${SCRIPT_FILE} ~/config/${CONFIG_FILE}
 deactivate
