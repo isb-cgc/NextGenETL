@@ -21,39 +21,38 @@ SOFTWARE.
 """
 import sys
 
-from BQ_Table_Building.CDA_old.tests.shared_functions import compare_row_counts, compare_id_keys, compare_table_columns
-from common_etl.utils import load_config, has_fatal_error
+from BQ_Table_Building.CDA.tests.shared_functions import compare_row_counts, compare_id_keys, compare_table_columns
+from cda_bq_etl.utils import load_config, has_fatal_error
 
-API_PARAMS = dict()
-BQ_PARAMS = dict()
-YAML_HEADERS = ('api_params', 'bq_params', 'steps')
+PARAMS = dict()
+YAML_HEADERS = ('params', 'steps')
 
 
 def main(args):
     try:
-        global API_PARAMS, BQ_PARAMS
-        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
+        global PARAMS
+        PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
     print("Comparing row counts!\n")
 
-    compare_row_counts(old_table_id=BQ_PARAMS['OLD_TABLE_ID'],
-                       new_table_id=BQ_PARAMS['NEW_TABLE_ID'])
+    compare_row_counts(old_table_id=PARAMS['OLD_TABLE_ID'],
+                       new_table_id=PARAMS['NEW_TABLE_ID'])
 
     print("Comparing table keys!\n")
 
-    compare_id_keys(old_table_id=BQ_PARAMS['OLD_TABLE_ID'],
-                    new_table_id=BQ_PARAMS['NEW_TABLE_ID'],
-                    primary_key=BQ_PARAMS['PRIMARY_KEY'])
+    compare_id_keys(old_table_id=PARAMS['OLD_TABLE_ID'],
+                    new_table_id=PARAMS['NEW_TABLE_ID'],
+                    primary_key=PARAMS['PRIMARY_KEY'])
 
-    columns_list = BQ_PARAMS["COLUMNS"]
+    columns_list = PARAMS["COLUMNS"]
 
     print("Comparing table columns!\n")
 
-    compare_table_columns(old_table_id=BQ_PARAMS['OLD_TABLE_ID'],
-                          new_table_id=BQ_PARAMS['NEW_TABLE_ID'],
-                          primary_key=BQ_PARAMS['PRIMARY_KEY'],
+    compare_table_columns(old_table_id=PARAMS['OLD_TABLE_ID'],
+                          new_table_id=PARAMS['NEW_TABLE_ID'],
+                          primary_key=PARAMS['PRIMARY_KEY'],
                           columns=columns_list)
 
 

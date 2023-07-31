@@ -21,16 +21,14 @@ SOFTWARE.
 """
 import sys
 
-from common_etl.support import bq_harness_with_result
+from cda_bq_etl.bq_helpers import query_and_retrieve_result
+from cda_bq_etl.utils import has_fatal_error, load_config
 from typing import Union
 
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
-from common_etl.utils import has_fatal_error, load_config
-
-API_PARAMS = dict()
-BQ_PARAMS = dict()
-YAML_HEADERS = ('api_params', 'bq_params', 'steps')
+PARAMS = dict()
+YAML_HEADERS = ('params', 'steps')
 
 BQQueryResult = Union[None, RowIterator, _EmptyRowIterator]
 
@@ -52,23 +50,19 @@ def make_concat_column_query(table_id) -> str:
 
 def compare_concat_columns(old_table_id: str, new_table_id: str, concat_columns):
     def make_records_dict(query: str) -> dict[str, dict[str, str]]:
-        result = bq_harness_with_result(sql=query, do_batch=False, verbose=False)
+        result = query_and_retrieve_result(sql=query)
 
         records_dict = dict()
 
-        record_count = 0
-
-        for record in result:
+        for record_count, record in enumerate(result):
             file_gdc_id = record.get('file_gdc_id')
 
             record_dict = dict()
 
-            for column in concat_columns:
-                record_dict[column] = record.get(column)
+            for _column in concat_columns:
+                record_dict[_column] = record.get(_column)
 
             records_dict[file_gdc_id] = record_dict
-
-            record_count += 1
 
             if record_count % 100000 == 0:
                 print(f"{record_count} records added to dict!")
@@ -80,9 +74,7 @@ def compare_concat_columns(old_table_id: str, new_table_id: str, concat_columns)
     new_records_dict = make_records_dict(query=make_concat_column_query(new_table_id))
     print("Created dict for new table records!")
 
-    count = 0
-
-    for file_id in old_records_dict.keys():
+    for count, file_id in enumerate(old_records_dict.keys()):
         for column in concat_columns:
             old_column_value = old_records_dict[file_id][column]
             new_column_value = new_records_dict[file_id][column]
@@ -102,8 +94,6 @@ def compare_concat_columns(old_table_id: str, new_table_id: str, concat_columns)
                     print(f'file id {file_id} value mismatch for {column}.')
                     print(f'old column values: {old_column_value} new column values: {new_column_value}')
 
-        count += 1
-
         if count % 100000 == 0:
             print(f"{count} records evaluated!")
 
@@ -117,9 +107,7 @@ def make_compare_table_column_query(old_table_id: str, new_table_id: str, column
         SELECT file_gdc_id, {column_name}
         FROM `{new_table_id}`
     )
-    
     UNION ALL
-    
     (
         SELECT file_gdc_id, {column_name}
         FROM `{new_table_id}`
@@ -134,7 +122,7 @@ def compare_non_concat_table_columns(old_table_id: str, new_table_id: str, colum
     for column in columns:
         column_comparison_query = make_compare_table_column_query(old_table_id, new_table_id, column)
 
-        result = bq_harness_with_result(sql=column_comparison_query, do_batch=False, verbose=False)
+        result = query_and_retrieve_result(sql=column_comparison_query)
 
         if result.total_rows > 0:
             print(f"\nFound mismatched data for {column}.")
@@ -306,7 +294,7 @@ def make_compare_two_tables_query() -> str:
 
 
 def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
-    file_result: BQQueryResult = bq_harness_with_result(sql=sql, do_batch=False, verbose=False)
+    file_result: BQQueryResult = query_and_retrieve_result(sql=sql)
 
     file_metadata_dict: dict = dict()
 
@@ -316,9 +304,7 @@ def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
                           'associated_entities__entity_gdc_id',
                           'associated_entities__entity_submitter_id'}
 
-    count = 0
-
-    for row in file_result:
+    for count, row in enumerate(file_result):
         file_id: str = row.get('file_gdc_id')
 
         record_dict: dict = dict()
@@ -377,8 +363,6 @@ def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
 
         file_metadata_dict[file_id] = record_dict
 
-        count += 1
-
         if count % 100000 == 0:
             print(f"{count} rows processed.")
 
@@ -387,10 +371,12 @@ def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
 
 def main(args):
     try:
-        global API_PARAMS, BQ_PARAMS
-        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
+        global PARAMS
+        PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(err, ValueError)
+
+    # todo this test file hasn't been converted to using yaml or shared functions
 
     non_concat_columns = [
         "dbName",

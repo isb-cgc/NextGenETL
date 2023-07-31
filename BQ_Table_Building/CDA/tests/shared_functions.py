@@ -109,45 +109,41 @@ def compare_table_columns(old_table_id: str,
     def make_compare_table_column_sql(column_name) -> str:
         if secondary_key is None:
             return f"""
-            (
-                SELECT {primary_key}, {column_name}
-                FROM `{old_table_id}`
-                EXCEPT DISTINCT 
-                SELECT {primary_key}, {column_name}
-                FROM `{new_table_id}`
-            )
-    
-            UNION ALL
-    
-            (
-                SELECT {primary_key}, {column_name}
-                FROM `{new_table_id}`
-                EXCEPT DISTINCT 
-                SELECT {primary_key}, {column_name}
-                FROM `{old_table_id}`
-            )
-            ORDER BY {primary_key}
+                (
+                    SELECT {primary_key}, {column_name}
+                    FROM `{old_table_id}`
+                    EXCEPT DISTINCT 
+                    SELECT {primary_key}, {column_name}
+                    FROM `{new_table_id}`
+                )
+                UNION ALL
+                (
+                    SELECT {primary_key}, {column_name}
+                    FROM `{new_table_id}`
+                    EXCEPT DISTINCT 
+                    SELECT {primary_key}, {column_name}
+                    FROM `{old_table_id}`
+                )
+                ORDER BY {primary_key}
             """
         else:
             return f"""
-            (
-                SELECT {primary_key}, {secondary_key}, {column_name}
-                FROM `{old_table_id}`
-                EXCEPT DISTINCT 
-                SELECT {primary_key}, {secondary_key}, {column_name}
-                FROM `{new_table_id}`
-            )
-
-            UNION ALL
-
-            (
-                SELECT {primary_key}, {secondary_key}, {column_name}
-                FROM `{new_table_id}`
-                EXCEPT DISTINCT 
-                SELECT {primary_key}, {secondary_key}, {column_name}
-                FROM `{old_table_id}`
-            )
-            ORDER BY {primary_key}
+                (
+                    SELECT {primary_key}, {secondary_key}, {column_name}
+                    FROM `{old_table_id}`
+                    EXCEPT DISTINCT 
+                    SELECT {primary_key}, {secondary_key}, {column_name}
+                    FROM `{new_table_id}`
+                )
+                UNION ALL
+                (
+                    SELECT {primary_key}, {secondary_key}, {column_name}
+                    FROM `{new_table_id}`
+                    EXCEPT DISTINCT 
+                    SELECT {primary_key}, {secondary_key}, {column_name}
+                    FROM `{old_table_id}`
+                )
+                ORDER BY {primary_key}
             """
 
     for column in columns:

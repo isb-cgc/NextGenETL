@@ -23,23 +23,26 @@ import sys
 
 from google.cloud import bigquery
 
-from BQ_Table_Building.CDA_old.tests.shared_functions import compare_row_counts, compare_id_keys, compare_table_columns
-from common_etl.utils import load_config, has_fatal_error
-from common_etl.support import bq_harness_with_result
+from BQ_Table_Building.CDA.tests.shared_functions import compare_row_counts, compare_id_keys, compare_table_columns
+from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id
+from cda_bq_etl.bq_helpers import query_and_retrieve_result
 
-API_PARAMS = dict()
-BQ_PARAMS = dict()
-YAML_HEADERS = ('api_params', 'bq_params', 'steps')
+PARAMS = dict()
+YAML_HEADERS = ('params', 'steps')
 
 
-def create_program_name_set(api_params, bq_params):
+def create_program_name_set() -> set[str]:
+    """
+    Create a list of programs with case associations using the case_project_program view.
+    :return: set of program names
+    """
     def make_program_name_set_query():
         return f"""
         SELECT DISTINCT program_name
-        FROM `{bq_params['WORKING_PROJECT']}.{bq_params['WORKING_DATASET']}.{api_params['RELEASE']}_case_project_program`
+        FROM `{create_dev_table_id(PARAMS, 'case_project_program')}`
         """
 
-    result = bq_harness_with_result(sql=make_program_name_set_query(), do_batch=False, verbose=False)
+    result = query_and_retrieve_result(sql=make_program_name_set_query())
 
     program_name_set = set()
 
@@ -51,8 +54,8 @@ def create_program_name_set(api_params, bq_params):
 
 def main(args):
     try:
-        global API_PARAMS, BQ_PARAMS
-        API_PARAMS, BQ_PARAMS, steps = load_config(args, YAML_HEADERS)
+        global PARAMS
+        PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
@@ -60,7 +63,7 @@ def main(args):
 
     table_id_tuple_set = set()
 
-    program_set = create_program_name_set(API_PARAMS, BQ_PARAMS)
+    program_set = create_program_name_set()
 
     for program in sorted(program_set):
         if program == "BEATAML1.0":
@@ -70,10 +73,10 @@ def main(args):
         else:
             program_name = program
 
-        gdc_table_name = f"{program_name}_per_sample_file_metadata_hg38_gdc_{API_PARAMS['GDC_RELEASE']}"
-        gdc_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['GDC_WORKING_DATASET']}.{gdc_table_name}"
-        cda_table_name = f"per_sample_file_metadata_hg38_{program_name}_{API_PARAMS['RELEASE']}"
-        cda_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['TARGET_DATASET']}.{cda_table_name}"
+        gdc_table_name = f"{program_name}_per_sample_file_metadata_hg38_gdc_{PARAMS['GDC_RELEASE']}"
+        gdc_table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['GDC_WORKING_DATASET']}.{gdc_table_name}"
+        cda_table_name = f"per_sample_file_metadata_hg38_{program_name}_{PARAMS['RELEASE']}"
+        cda_table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['TARGET_DATASET']}.{cda_table_name}"
 
         # check for valid hg38 table location
         gdc_table = client.get_table(table=gdc_table_id)
@@ -106,22 +109,22 @@ def main(args):
 
         compare_id_keys(old_table_id=gdc_table_id,
                         new_table_id=cda_table_id,
-                        primary_key=BQ_PARAMS['PRIMARY_KEY'])
+                        primary_key=PARAMS['PRIMARY_KEY'])
 
         print("\n** Comparing secondary table keys! **")
 
         compare_id_keys(old_table_id=gdc_table_id,
                         new_table_id=cda_table_id,
-                        primary_key=BQ_PARAMS['SECONDARY_KEY'])
+                        primary_key=PARAMS['SECONDARY_KEY'])
 
-        columns_list = BQ_PARAMS["COLUMNS"]
+        columns_list = PARAMS["COLUMNS"]
 
         print("\n** Comparing table columns! **\n")
 
         compare_table_columns(old_table_id=gdc_table_id,
                               new_table_id=cda_table_id,
-                              primary_key=BQ_PARAMS['PRIMARY_KEY'],
-                              secondary_key=BQ_PARAMS['SECONDARY_KEY'],
+                              primary_key=PARAMS['PRIMARY_KEY'],
+                              secondary_key=PARAMS['SECONDARY_KEY'],
                               columns=columns_list)
 
 
