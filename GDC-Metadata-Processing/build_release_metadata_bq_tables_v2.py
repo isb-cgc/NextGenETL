@@ -357,7 +357,7 @@ def extract_file_data_sql_slides(release_table, program_name):
             a.project_short_name, # TCGA-OV
             # Take everything after first hyphen, including following hyphens:
             CASE WHEN (a.project_short_name LIKE '%-%') THEN
-                   REGEXP_EXTRACT(project_short_name, r"^[A-Z0-9\.]+-(.+$)")
+                   REGEXP_EXTRACT(project_short_name, r"^[^-]*-(.*)$")
                  ELSE
                    CAST(null AS STRING)
             END as project_short_name_suffix, # not always disease code anymore, traditionally e.g. "OV"
