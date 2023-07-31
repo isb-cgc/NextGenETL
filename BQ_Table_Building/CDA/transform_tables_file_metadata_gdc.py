@@ -423,11 +423,8 @@ def main(args):
         versioned_table_name = f"{PARAMS['PROD_TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
         versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}_versioned.{versioned_table_name}"
 
-        publish_table(params=PARAMS,
-                      source_table_id=dev_table_id,
-                      current_table_id=current_table_id,
-                      versioned_table_id=versioned_table_id,
-                      find_most_recent_published_table_id=find_most_recent_published_table_id)
+        publish_table(params=PARAMS, source_table_id=dev_table_id, current_table_id=current_table_id,
+                      versioned_table_id=versioned_table_id)
 
     end_time = time.time()
 

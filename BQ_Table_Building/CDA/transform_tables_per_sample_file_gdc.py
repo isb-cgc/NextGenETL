@@ -20,9 +20,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import sys
+import time
 
-from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id
-from cda_bq_etl.bq_helpers import delete_bq_table, load_table_from_query, query_and_retrieve_result
+from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds
+from cda_bq_etl.bq_helpers import delete_bq_table, load_table_from_query, query_and_retrieve_result, publish_table, \
+    find_most_recent_published_table_id
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -354,9 +356,11 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
-    if 'create_program_tables' in steps:
-        program_set = create_program_name_set()
+    start_time = time.time()
 
+    program_set = create_program_name_set()
+
+    if 'create_program_tables' in steps:
         for program in sorted(program_set):
             if program == "BEATAML1.0":
                 program_name = "BEATAML1_0"
@@ -388,6 +392,31 @@ def main(args):
                                   query=make_add_uris_and_index_file_sql_query(no_url_table_id, drs_uri_table_id))
 
             delete_bq_table(no_url_table_id)
+
+    if 'publish_tables' in steps:
+        for program in sorted(program_set):
+            if program == "BEATAML1.0":
+                program_name = "BEATAML1_0"
+            elif program == "EXCEPTIONAL_RESPONDERS":
+                program_name = "EXC_RESPONDERS"
+            else:
+                program_name = program
+
+            dev_table_name = f"per_sample_file_metadata_hg38_{program_name}_{PARAMS['RELEASE']}"
+            dev_table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['TARGET_DATASET']}.{dev_table_name}"
+
+            current_table_name = f"{PARAMS['PROD_TABLE_NAME']}_current"
+            current_table_id = f"{PARAMS['PROD_PROJECT']}.{program_name}.{current_table_name}"
+
+            versioned_table_name = f"{PARAMS['PROD_TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
+            versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{program_name}_versioned.{versioned_table_name}"
+
+            publish_table(params=PARAMS, source_table_id=dev_table_id, current_table_id=current_table_id,
+                          versioned_table_id=versioned_table_id)
+
+    end_time = time.time()
+
+    print(f"Script completed in: {format_seconds(end_time - start_time)}")
 
 
 if __name__ == "__main__":

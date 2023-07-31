@@ -103,8 +103,7 @@ def main(args):
         publish_table(params=PARAMS,
                       source_table_id=dev_table_id,
                       current_table_id=current_table_id,
-                      versioned_table_id=versioned_table_id,
-                      find_most_recent_published_table_id=find_most_recent_published_table_id)
+                      versioned_table_id=versioned_table_id)
 
     end_time = time.time()
 

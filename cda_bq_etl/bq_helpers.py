@@ -22,10 +22,10 @@ SOFTWARE.
 
 import json
 import time
-from typing import Union, Optional, Any, Callable
+from typing import Union, Optional, Any
 
-from google.api_core.exceptions import NotFound
 from google.cloud import bigquery
+from google.cloud.exceptions import NotFound
 from google.cloud.bigquery import SchemaField, Client, LoadJobConfig, QueryJob
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
@@ -34,7 +34,7 @@ from cda_bq_etl.gcs_helpers import download_from_bucket, upload_to_bucket
 from cda_bq_etl.data_helpers import recursively_detect_object_structures, get_column_list_tsv, \
     aggregate_column_data_types_tsv, resolve_type_conflicts, resolve_type_conflict
 
-Params = dict[str, Union[str, dict, int]]
+Params = dict[str, Union[str, dict, int, bool]]
 ColumnTypes = Union[None, str, float, int, bool]
 RowDict = dict[str, Union[None, str, float, int, bool]]
 JSONList = list[RowDict]
@@ -315,9 +315,24 @@ def create_view_from_query(view_id: Union[Any, str], view_query: str):
         print(f"Created {view.table_type}: {str(view.reference)}")
 
 
+def exists_bq_dataset(dataset_id: str) -> bool:
+    """
+    Determine whether dataset exists in BigQuery project.
+    :param dataset_id: dataset id to validate
+    :return: True if dataset exists, False otherwise
+    """
+    client = bigquery.Client()
+
+    try:
+        client.get_dataset(dataset_id)
+        return True
+    except NotFound:
+        return False
+
+
 def exists_bq_table(table_id: str) -> bool:
     """
-    Determine whether bq table exists for given table_id.
+    Determine whether BigQuery table exists for given table_id.
     :param table_id: table id in standard SQL format
     :return: True if exists, False otherwise
     """
@@ -573,12 +588,7 @@ def convert_object_structure_dict_to_schema_dict(data_schema_dict: Union[RowDict
     return dataset_format_obj
 
 
-def publish_table(params: Params,
-                  source_table_id: str,
-                  current_table_id: str,
-                  versioned_table_id: str,
-                  find_most_recent_published_table_id: Callable,
-                  overwrite: bool = False):
+def publish_table(params: Params, source_table_id: str, current_table_id: str, versioned_table_id: str):
     """
     Publish production BigQuery tables using source_table_id:
         - create current/versioned table ids
@@ -589,14 +599,56 @@ def publish_table(params: Params,
     :param source_table_id: source (dev) table id
     :param current_table_id: published table id for current
     :param versioned_table_id: published table id for versioned
-    :param find_most_recent_published_table_id: function that returns previous versioned table id, if any;
-           should accept params as first argument, versioned_table_id as second
-    :param overwrite: replace existing BigQuery table if True; defaults to False to avoid unintentional overwrite
     """
     previous_versioned_table_id = find_most_recent_published_table_id(params, versioned_table_id)
 
+    if params['TEST_PUBLISH']:
+        print(f"\nEvaluating publish_tables step for {source_table_id}.\n")
+
+        # does source table exist?
+        if exists_bq_table(source_table_id):
+            print("Source table id is valid.")
+        else:
+            print("Source table id doesn't exist, cannot publish.")
+            exit(1)
+
+        # does current dataset exist?
+        current_dataset = ".".join(current_table_id.split('.')[:-1])
+        current_dataset_exists = exists_bq_dataset(current_dataset)
+
+        if current_dataset_exists:
+            print(f"Dataset {current_dataset} is valid.")
+        else:
+            print(f"Dataset {current_dataset} doesn't exist, cannot publish.")
+            exit(1)
+
+        # does versioned dataset exist?
+        versioned_dataset = ".".join(versioned_table_id.split('.')[:-1])
+        versioned_dataset_exists = exists_bq_dataset(versioned_dataset)
+
+        if versioned_dataset_exists:
+            print(f"Dataset {versioned_dataset} is valid.")
+        else:
+            print(f"Dataset {versioned_dataset} doesn't exist, cannot publish.")
+            exit(1)
+
+        has_new_data = table_has_new_data(previous_versioned_table_id, versioned_table_id)
+
+        # is there a previous version to compare with new table?
+        # use previous_versioned_table_id
+        if previous_versioned_table_id and has_new_data:
+            print(f"New data found compared to previous published table {previous_versioned_table_id}.")
+            print("Table will be published.")
+        elif previous_versioned_table_id and not has_new_data:
+            print(f"New table is identical to previous published table {previous_versioned_table_id}.")
+            print("Table will not be published.")
+        elif not previous_versioned_table_id:
+            print(f"No previous version found for table, will publish.")
+
+        exit(0)
+
     if exists_bq_table(source_table_id):
-        if publish_new_version_tables(previous_versioned_table_id, source_table_id):
+        if table_has_new_data(previous_versioned_table_id, source_table_id):
             delay = 5
 
             print(f"""\n\nPublishing the following tables:""")
@@ -609,10 +661,10 @@ def publish_table(params: Params,
                 exit("\nPublish aborted; exiting.")
 
             print(f"\nPublishing {versioned_table_id}")
-            copy_bq_table(params, source_table_id, versioned_table_id, overwrite)
+            copy_bq_table(params, source_table_id, versioned_table_id, replace_table=params['OVERWRITE_PROD_TABLE'])
 
             print(f"Publishing {current_table_id}")
-            copy_bq_table(params, source_table_id, current_table_id, overwrite)
+            copy_bq_table(params, source_table_id, current_table_id, replace_table=params['OVERWRITE_PROD_TABLE'])
 
             print(f"Updating friendly name for {versioned_table_id}")
             update_friendly_name(params, table_id=versioned_table_id)
@@ -626,7 +678,7 @@ def publish_table(params: Params,
             print(f"{source_table_id} not published, no changes detected")
 
 
-def publish_new_version_tables(previous_table_id: str, current_table_id: str) -> bool:
+def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
     """
     Compare newly created table and existing published table. Only publish new table if there's a difference.
     :param previous_table_id: table id for existing published table
