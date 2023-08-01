@@ -64,7 +64,7 @@ def write_list_to_jsonl_and_upload(params: Params,
     :param local_filepath: VM path where jsonl file is stored prior to upload
     """
     if not local_filepath:
-        jsonl_filename = f"{sanitize_file_prefix(prefix)}.jsonl"
+        jsonl_filename = f"{sanitize_file_prefix(prefix)}_{params['RELEASE']}.jsonl"
         local_filepath = get_scratch_fp(params, jsonl_filename)
 
     write_list_to_jsonl(local_filepath, record_list)
