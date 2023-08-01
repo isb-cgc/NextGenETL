@@ -1,0 +1,37 @@
+version: 1
+
+######################################################################################
+#
+#   params: configuration settings
+#
+######################################################################################
+
+params:
+  # Local VM directory in which to download and extract the CDA .tsv compressed archive
+  LOCAL_TAR_DIR: <your>/<local>/<dir>
+  # Name of folder created once archive is extracted
+  LOCAL_EXTRACT_DIR: cda_gdc
+  # Name of .tgz file from CDA containing GDC .tsv files
+  TAR_FILE: 2023_03_gdc_as_extracted.tgz
+  # GCS bucket path designating where CDA archive files are initially stored
+  ARCHIVE_BUCKET_PATH: <your>/<gcs>/<bucket>/<path>
+
+######################################################################################
+#
+#   steps: toggle script functions on and off (off = commented out).
+#          note: the order of steps here doesn't alter the order of execution,
+#          which is fixed.
+#
+######################################################################################
+
+steps:
+  # Download the CDA compressed archive from GCS
+  - download_cda_archive_file
+  # Extract the CDA archive
+  - extract_cda_archive_file
+  # Normalize CDA .tsv files and upload to GCS
+  - normalize_and_upload_tsvs
+  # Create BigQuery schemas for .tsv files
+  - create_schemas
+  # Create BigQuery tables using the normalized tsv files and schemas created above
+  - create_tables
