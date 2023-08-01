@@ -20,8 +20,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import sys
+import time
 
-from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id
+from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds
 from cda_bq_etl.bq_helpers import load_table_from_query, publish_table
 
 PARAMS = dict()
@@ -77,6 +78,8 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
+    start_time = time.time()
+
     dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
 
     if 'create_table_from_query' in steps:
@@ -94,6 +97,10 @@ def main(args):
                       source_table_id=dev_table_id,
                       current_table_id=current_table_id,
                       versioned_table_id=versioned_table_id)
+
+    end_time = time.time()
+
+    print(f"Script completed in: {format_seconds(end_time - start_time)}")
 
 
 if __name__ == "__main__":
