@@ -297,7 +297,7 @@ def main(args):
                 schema_object = retrieve_bq_schema_object(PARAMS, schema_filename=schema_file_name)
 
                 table_name = create_table_name(tsv_file_name)
-                table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['WORKING_DATASET']}.{table_name}"
+                table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}"
 
                 if get_data_row_count(f"{tsv_file_path}") >= 1:
                     create_and_load_table_from_tsv(PARAMS,
