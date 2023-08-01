@@ -393,7 +393,7 @@ def main(args):
 
     dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
 
-    if 'create_and_upload_file_metadata_json' in steps:
+    if 'create_and_upload_file_metadata_jsonl' in steps:
         file_record_list = create_file_metadata_dict()
 
         normalized_file_record_list = normalize_flat_json_values(file_record_list)

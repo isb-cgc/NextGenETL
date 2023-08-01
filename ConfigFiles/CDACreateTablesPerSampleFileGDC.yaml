@@ -1,0 +1,45 @@
+version: 1
+
+######################################################################################
+#
+#   params: configuration settings
+#
+######################################################################################
+
+params:
+  # Base name of per sample file tables
+  TABLE_NAME: per_sample_file_metadata_hg38_gdc
+  # Base name of case metadata table
+  CASE_TABLE_NAME: caseData
+  # Base name of file metadata table
+  FILE_TABLE_NAME: fileData
+  # Base name of aliquot to case id map table
+  ALIQUOT_TABLE_NAME: aliquot2caseIDmap
+
+  # Table id for DRS URI paths table, used to populate file locations
+  DRS_URI_TABLE_ID: <your-dev-project>.GDC_manifests.<current-release>_paths_active
+
+  # BQ production project name
+  PROD_PROJECT: <your-production-project>
+
+  # Should we overwrite production tables when inserting?
+  # If false, will not overwrite an existing published table.
+  OVERWRITE_PROD_TABLE: False
+  # Should we test the publishing step?
+  # - If true, does a dry run test for the publishing step
+  # - If false, publishes to production
+  TEST_PUBLISH: True
+
+######################################################################################
+#
+#   steps: toggle script functions on and off (off = commented out).
+#          note: the order of steps here doesn't alter the order of execution,
+#          which is fixed.
+#
+######################################################################################
+
+steps:
+  - create_program_tables
+  # either publishes table, if TEST_PUBLISH is set to False,
+  # or does a dry run, validating production table location(s) and confirming whether there's new data
+  - publish_tables
