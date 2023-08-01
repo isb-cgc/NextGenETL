@@ -56,9 +56,10 @@ def make_slide_entity_query(program_name: str) -> str:
     :param program_name: program used to filter query
     :return: sql string
     """
-    file_metadata_table_id = create_dev_table_id(PARAMS, 'file_metadata', True)
+    metadata_dataset_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}"
+    file_metadata_table_id = f"{metadata_dataset_id}.{PARAMS['FILE_TABLE_NAME']}_{PARAMS['RELEASE']}"
+    slide_case_table_id = f"{metadata_dataset_id}.{PARAMS['SLIDE_TABLE_NAME']}_{PARAMS['RELEASE']}"
     file_entity_table_id = create_dev_table_id(PARAMS, 'file_associated_with_entity')
-    slide_case_table_id = create_dev_table_id(PARAMS, 'slide_to_case', True)
 
     return f"""
         SELECT DISTINCT 
