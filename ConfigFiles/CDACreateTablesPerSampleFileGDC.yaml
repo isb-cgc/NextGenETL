@@ -13,6 +13,8 @@ params:
   CASE_TABLE_NAME: caseData
   # Base name of file metadata table
   FILE_TABLE_NAME: fileData
+  # Base name of slide to case id map table
+  SLIDE_TABLE_NAME: aliquot2caseIDmap
   # Base name of aliquot to case id map table
   ALIQUOT_TABLE_NAME: aliquot2caseIDmap
 
