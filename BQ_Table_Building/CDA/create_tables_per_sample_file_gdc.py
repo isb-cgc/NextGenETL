@@ -104,10 +104,6 @@ def make_aliquot_entity_query(program_name: str) -> str:
     :param program_name: program used to filter query
     :return: sql string
     """
-
-    dev_table_name = f"{PARAMS['TABLE_NAME']}_{program_name}_{PARAMS['RELEASE']}"
-    dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{dev_table_name}"
-
     metadata_dataset_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}"
     case_metadata_table_id = f"{metadata_dataset_id}.{PARAMS['CASE_TABLE_NAME']}_{PARAMS['RELEASE']}"
     file_metadata_table_id = f"{metadata_dataset_id}.{PARAMS['FILE_TABLE_NAME']}_{PARAMS['RELEASE']}"
