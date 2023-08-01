@@ -377,6 +377,8 @@ def main(args):
 
             print(f"\nCreating base table for {program}!\n")
 
+            print(make_merged_sql_query(program))
+
             # create table with everything but file uris from manifest
             load_table_from_query(params=PARAMS,
                                   table_id=no_url_table_id,
