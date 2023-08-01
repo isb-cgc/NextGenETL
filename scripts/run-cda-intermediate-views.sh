@@ -23,10 +23,13 @@ PDC_ARG="pdc"
 IDC_ARG="idc"
 
 if [[ ${DATA_SOURCE} = ${GDC_ARG} ]] ; then
+    SHARED_CONFIG_FILE="CDASharedConfigGDC.yaml"
     CONFIG_FILE="CDAIntermediateViewsBQBuildGDC.yaml"
 elif [[ ${DATA_SOURCE} = ${PDC_ARG} ]] ; then
+    SHARED_CONFIG_FILE="CDASharedConfigPDC.yaml"
     CONFIG_FILE="CDAIntermediateViewsBQBuildPDC.yaml"
 elif [[ ${DATA_SOURCE} = ${IDC_ARG} ]] ; then
+    SHARED_CONFIG_FILE="CDASharedConfigIDC.yaml"
     CONFIG_FILE="CDAIntermediateViewsBQBuildIDC.yaml"
 else
     echo "Error: incorrect or missing script data type argument. Accepted values: gdc, idc, pdc"
@@ -38,6 +41,7 @@ export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
 
 mkdir -p ~/config
 pushd ~/config > /dev/null
+gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/${SHARED_CONFIG_FILE} .
 gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/${CONFIG_FILE} .
 popd > /dev/null
 
@@ -48,5 +52,5 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3.9 ./BQ_Table_Building/CDA/create_intermediate_views.py ~/config/${CONFIG_FILE}
+python3.9 ./BQ_Table_Building/CDA/create_intermediate_views.py  ~/config/${SHARED_CONFIG_FILE} ~/config/${CONFIG_FILE}
 deactivate

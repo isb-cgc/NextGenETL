@@ -234,10 +234,13 @@ def create_dev_table_id(params: Params, table_name: str, release_as_suffix: bool
     :param release_as_suffix: if True, adds release to end of table name, rather than the beginning; defaults to False
     :return: table id string
     """
+
+    dev_dataset_id = f"{params['DEV_PROJECT']}.{params['DEV_RAW_DATASET']}"
+
     if release_as_suffix:
-        return f"{params['WORKING_PROJECT']}.{params['WORKING_DATASET']}.{table_name}_{params['RELEASE']}"
+        return f"{dev_dataset_id}.{table_name}_{params['RELEASE']}"
     else:
-        return f"{params['WORKING_PROJECT']}.{params['WORKING_DATASET']}.{params['RELEASE']}_{table_name}"
+        return f"{dev_dataset_id}.{params['RELEASE']}_{table_name}"
 
 
 def input_with_timeout(seconds: int) -> Union[str, None]:

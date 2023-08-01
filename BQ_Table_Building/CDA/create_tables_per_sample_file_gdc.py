@@ -23,8 +23,7 @@ import sys
 import time
 
 from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds
-from cda_bq_etl.bq_helpers import delete_bq_table, load_table_from_query, query_and_retrieve_result, publish_table, \
-    find_most_recent_published_table_id
+from cda_bq_etl.bq_helpers import delete_bq_table, load_table_from_query, query_and_retrieve_result, publish_table
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -105,10 +104,15 @@ def make_aliquot_entity_query(program_name: str) -> str:
     :param program_name: program used to filter query
     :return: sql string
     """
-    case_metadata_table_id = create_dev_table_id(PARAMS, 'case_metadata', True)
-    file_metadata_table_id = create_dev_table_id(PARAMS, 'file_metadata', True)
+
+    dev_table_name = f"{PARAMS['TABLE_NAME']}_{program_name}_{PARAMS['RELEASE']}"
+    dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{dev_table_name}"
+
+    metadata_dataset_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}"
+    case_metadata_table_id = f"{metadata_dataset_id}.{PARAMS['CASE_TABLE_NAME']}_{PARAMS['RELEASE']}"
+    file_metadata_table_id = f"{metadata_dataset_id}.{PARAMS['FILE_TABLE_NAME']}_{PARAMS['RELEASE']}"
+    aliquot_case_table_id = f"{metadata_dataset_id}.{PARAMS['ALIQUOT_TABLE_NAME']}_{PARAMS['RELEASE']}"
     file_entity_table_id = create_dev_table_id(PARAMS, 'file_associated_with_entity')
-    aliquot_case_table_id = create_dev_table_id(PARAMS, 'aliquot_to_case', True)
 
     return f"""
         WITH fm1 AS ( 
@@ -242,10 +246,9 @@ def make_case_entity_query(program_name: str) -> str:
     :param program_name: program used to filter query
     :return: sql string
     """
-    working_project = PARAMS['WORKING_PROJECT']
-    working_dataset = PARAMS['WORKING_DATASET']
-    file_metadata_table_id = f"{working_project}.{working_dataset}.file_metadata_{PARAMS['RELEASE']}"
-    case_metadata_table_id = f"{working_project}.{working_dataset}.case_metadata_{PARAMS['RELEASE']}"
+    metadata_dataset_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}"
+    case_metadata_table_id = f"{metadata_dataset_id}.{PARAMS['CASE_TABLE_NAME']}_{PARAMS['RELEASE']}"
+    file_metadata_table_id = f"{metadata_dataset_id}.{PARAMS['FILE_TABLE_NAME']}_{PARAMS['RELEASE']}"
 
     return f"""
         SELECT DISTINCT 
@@ -312,9 +315,8 @@ def make_add_uris_and_index_file_sql_query(no_uri_table_id: str, drs_uri_table_i
     :param drs_uri_table_id: DRS uri table id
     :return: sql string
     """
-    working_project = PARAMS['WORKING_PROJECT']
-    working_dataset = PARAMS['WORKING_DATASET']
-    file_metadata_table_id = f"{working_project}.{working_dataset}.file_metadata_{PARAMS['RELEASE']}"
+    metadata_dataset_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}"
+    file_metadata_table_id = f"{metadata_dataset_id}.{PARAMS['FILE_TABLE_NAME']}_{PARAMS['RELEASE']}"
 
     return f"""
         SELECT psf.file_gdc_id,
@@ -369,13 +371,13 @@ def main(args):
             else:
                 program_name = program
 
-            no_url_table_name = f"per_sample_file_metadata_hg38_{program_name}_{PARAMS['RELEASE']}_no_url"
-            no_url_table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['TARGET_DATASET']}.{no_url_table_name}"
+            no_url_table_name = f"{PARAMS['TABLE_NAME']}_{program_name}_{PARAMS['RELEASE']}_no_url"
+            no_url_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{no_url_table_name}"
 
-            table_name = f"per_sample_file_metadata_hg38_{program_name}_{PARAMS['RELEASE']}"
-            table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['TARGET_DATASET']}.{table_name}"
+            table_name = f"{PARAMS['TABLE_NAME']}_{program_name}_{PARAMS['RELEASE']}"
+            table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{table_name}"
 
-            drs_uri_table_id = f"isb-project-zero.GDC_manifests.dr37_paths_active"
+            drs_uri_table_id = PARAMS['DRS_URI_TABLE_ID']
 
             print(f"\nCreating base table for {program}!\n")
 
@@ -402,16 +404,18 @@ def main(args):
             else:
                 program_name = program
 
-            dev_table_name = f"per_sample_file_metadata_hg38_{program_name}_{PARAMS['RELEASE']}"
-            dev_table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['TARGET_DATASET']}.{dev_table_name}"
+            dev_table_name = f"{PARAMS['TABLE_NAME']}_{program_name}_{PARAMS['RELEASE']}"
+            dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{dev_table_name}"
 
-            current_table_name = f"{PARAMS['PROD_TABLE_NAME']}_current"
+            current_table_name = f"{PARAMS['TABLE_NAME']}_current"
             current_table_id = f"{PARAMS['PROD_PROJECT']}.{program_name}.{current_table_name}"
 
-            versioned_table_name = f"{PARAMS['PROD_TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
+            versioned_table_name = f"{PARAMS['TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
             versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{program_name}_versioned.{versioned_table_name}"
 
-            publish_table(params=PARAMS, source_table_id=dev_table_id, current_table_id=current_table_id,
+            publish_table(params=PARAMS,
+                          source_table_id=dev_table_id,
+                          current_table_id=current_table_id,
                           versioned_table_id=versioned_table_id)
 
     end_time = time.time()

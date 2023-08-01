@@ -96,7 +96,7 @@ def main(args):
     if 'create_jsonl_file_and_schema' in steps:
         create_merged_project_studies_disease_type_jsonl()
     if 'create_table' in steps:
-        table_id = create_dev_table_id(PARAMS, PARAMS['TABLE_NAME'], True)
+        table_id = create_dev_table_id(PARAMS, PARAMS['TABLE_NAME'])
         jsonl_file = f"{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}.jsonl"
 
         table_schema = retrieve_bq_schema_object(PARAMS,

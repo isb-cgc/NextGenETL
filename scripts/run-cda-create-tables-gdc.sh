@@ -26,6 +26,8 @@ ALIQUOT_ARG="aliquot_case_map"
 SLIDE_ARG="slide_case_map"
 DISEASE_ARG="project_disease_type"
 
+SHARED_CONFIG_FILE="CDASharedConfigGDC.yaml"
+
 if [[ ${SCRIPT_NAME} = ${CASE_ARG} ]] ; then
     CONFIG_FILE="CDACreateTablesCaseGDC.yaml"
     SCRIPT_FILE="create_tables_case_metadata_gdc.py"
@@ -57,6 +59,7 @@ export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
 
 mkdir -p ~/config
 pushd ~/config > /dev/null
+gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/${SHARED_CONFIG_FILE} .
 gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/${CONFIG_FILE} .
 popd > /dev/null
 
@@ -67,5 +70,5 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3.9 ./BQ_Table_Building/CDA/${SCRIPT_FILE} ~/config/${CONFIG_FILE}
+python3.9 ./BQ_Table_Building/CDA/${SCRIPT_FILE} ~/config/${SHARED_CONFIG_FILE} ~/config/${CONFIG_FILE}
 deactivate

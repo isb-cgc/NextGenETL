@@ -26,7 +26,7 @@ from typing import Any, Union, Optional
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
 from cda_bq_etl.bq_helpers import query_and_retrieve_result, create_and_upload_schema_for_json, \
-    create_and_load_table_from_jsonl, retrieve_bq_schema_object, find_most_recent_published_table_id, publish_table
+    create_and_load_table_from_jsonl, retrieve_bq_schema_object, publish_table
 from cda_bq_etl.utils import format_seconds, load_config, has_fatal_error, create_dev_table_id
 from cda_bq_etl.data_helpers import normalize_flat_json_values, write_list_to_jsonl_and_upload
 
@@ -357,7 +357,6 @@ def create_file_metadata_dict() -> JSONList:
         file_records[file_gdc_id]['project_short_name'] = row.get('project_short_name')
         file_records[file_gdc_id]['project_name'] = row.get('project_name')
         file_records[file_gdc_id]['program_name'] = row.get('program_name')
-        # file_records[file_gdc_id]['project_disease_type'] = row.get('project_disease_type')
 
         if row.get('case_gdc_id'):
             file_records[file_gdc_id]['case_gdc_id'] = convert_concat_to_multi(row.get('case_gdc_id'),
@@ -392,7 +391,7 @@ def main(args):
 
     start_time = time.time()
 
-    dev_table_id = create_dev_table_id(PARAMS, 'file_metadata', True)
+    dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
 
     if 'create_and_upload_file_metadata_json' in steps:
         file_record_list = create_file_metadata_dict()
@@ -418,9 +417,9 @@ def main(args):
                                          schema=table_schema)
 
     if 'publish_tables' in steps:
-        current_table_name = f"{PARAMS['PROD_TABLE_NAME']}_current"
+        current_table_name = f"{PARAMS['TABLE_NAME']}_current"
         current_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}.{current_table_name}"
-        versioned_table_name = f"{PARAMS['PROD_TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
+        versioned_table_name = f"{PARAMS['TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
         versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}_versioned.{versioned_table_name}"
 
         publish_table(params=PARAMS, source_table_id=dev_table_id, current_table_id=current_table_id,

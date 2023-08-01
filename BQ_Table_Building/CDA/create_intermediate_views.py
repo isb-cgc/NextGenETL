@@ -32,10 +32,6 @@ def make_case_project_program_view_query():
     """
     Make SQL query used to create a BigQuery view, merging case ids and barcodes with project and program metadata.
     """
-    release = PARAMS['RELEASE']
-    working_project = PARAMS['WORKING_PROJECT']
-    working_dataset = PARAMS['WORKING_DATASET']
-
     return f"""
         SELECT 
             case_proj.case_id AS case_gdc_id,
@@ -45,14 +41,14 @@ def make_case_project_program_view_query():
             proj.name AS project_name,
             prog.name AS program_name,
             prog.dbgap_accession_number AS program_dbgap_accession_number
-        FROM `{working_project}.{working_dataset}.{release}_project` proj
-        JOIN `{working_project}.{working_dataset}.{release}_project_in_program` proj_prog
+        FROM `{create_dev_table_id(PARAMS, 'project')}` proj
+        JOIN `{create_dev_table_id(PARAMS, 'project_in_program')}` proj_prog
             ON proj.project_id = proj_prog.project_id
-        JOIN `{working_project}.{working_dataset}.{release}_program` prog
+        JOIN `{create_dev_table_id(PARAMS, 'program')}` prog
             ON proj_prog.program_id = prog.program_id
-        JOIN `{working_project}.{working_dataset}.{release}_case_in_project` case_proj
+        JOIN `{create_dev_table_id(PARAMS, 'case_in_project')}` case_proj
             ON case_proj.project_id = proj.project_id
-        JOIN `{working_project}.{working_dataset}.{release}_case` c
+        JOIN `{create_dev_table_id(PARAMS, 'case')}` c
             ON c.case_id = case_proj.case_id
     """
 
@@ -67,7 +63,7 @@ def main(args):
     if 'create_case_project_program_view' in steps:
         print("Making case project program view!")
 
-        create_view_from_query(view_id=create_dev_table_id(PARAMS, 'case_project_program'),
+        create_view_from_query(view_id=create_dev_table_id(PARAMS, PARAMS['TABLE_NAME']),
                                view_query=make_case_project_program_view_query())
 
 
