@@ -644,38 +644,36 @@ def publish_table(params: Params, source_table_id: str, current_table_id: str, v
             print("Table will not be published.")
         elif not previous_versioned_table_id:
             print(f"No previous version found for table, will publish.")
+    else:
+        if exists_bq_table(source_table_id):
+            if table_has_new_data(previous_versioned_table_id, source_table_id):
+                delay = 5
 
-        exit(0)
+                print(f"""\n\nPublishing the following tables:""")
+                print(f"\t - {versioned_table_id}\n\t - {current_table_id}")
+                print(f"Proceed? Y/n (continues automatically in {delay} seconds)")
 
-    if exists_bq_table(source_table_id):
-        if table_has_new_data(previous_versioned_table_id, source_table_id):
-            delay = 5
+                response = str(input_with_timeout(seconds=delay)).lower()
 
-            print(f"""\n\nPublishing the following tables:""")
-            print(f"\t - {versioned_table_id}\n\t - {current_table_id}")
-            print(f"Proceed? Y/n (continues automatically in {delay} seconds)")
+                if response == 'n':
+                    exit("\nPublish aborted; exiting.")
 
-            response = str(input_with_timeout(seconds=delay)).lower()
+                print(f"\nPublishing {versioned_table_id}")
+                copy_bq_table(params, source_table_id, versioned_table_id, replace_table=params['OVERWRITE_PROD_TABLE'])
 
-            if response == 'n':
-                exit("\nPublish aborted; exiting.")
+                print(f"Publishing {current_table_id}")
+                copy_bq_table(params, source_table_id, current_table_id, replace_table=params['OVERWRITE_PROD_TABLE'])
 
-            print(f"\nPublishing {versioned_table_id}")
-            copy_bq_table(params, source_table_id, versioned_table_id, replace_table=params['OVERWRITE_PROD_TABLE'])
+                print(f"Updating friendly name for {versioned_table_id}")
+                update_friendly_name(params, table_id=versioned_table_id)
 
-            print(f"Publishing {current_table_id}")
-            copy_bq_table(params, source_table_id, current_table_id, replace_table=params['OVERWRITE_PROD_TABLE'])
+                if previous_versioned_table_id:
+                    print(f"Archiving {previous_versioned_table_id}")
+                    change_status_to_archived(previous_versioned_table_id)
+                    print()
 
-            print(f"Updating friendly name for {versioned_table_id}")
-            update_friendly_name(params, table_id=versioned_table_id)
-
-            if previous_versioned_table_id:
-                print(f"Archiving {previous_versioned_table_id}")
-                change_status_to_archived(previous_versioned_table_id)
-                print()
-
-        else:
-            print(f"{source_table_id} not published, no changes detected")
+            else:
+                print(f"{source_table_id} not published, no changes detected")
 
 
 def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
