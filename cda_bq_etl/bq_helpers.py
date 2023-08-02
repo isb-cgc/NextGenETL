@@ -634,6 +634,11 @@ def publish_table(params: Params, source_table_id: str, current_table_id: str, v
 
         has_new_data = table_has_new_data(previous_versioned_table_id, versioned_table_id)
 
+        # display published table_ids
+        print("Published table_ids (to be created--not yet published):")
+        print(f"current table_id: {current_table_id}")
+        print(f"versioned table_id: {versioned_table_id}")
+
         # is there a previous version to compare with new table?
         # use previous_versioned_table_id
         if previous_versioned_table_id and has_new_data:
