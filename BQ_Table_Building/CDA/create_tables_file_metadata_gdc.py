@@ -374,12 +374,8 @@ def create_file_metadata_dict() -> JSONList:
 
         for field in associated_entities_concat_field_list:
             file_records[file_id][field] = convert_concat_to_multi(record.get(field),
-                                                                   max_length=PARAMS['MAX_CONCAT_COUNT'])
-
-        associated_entities__case_gdc_ids = record.get("associated_entities__case_gdc_id")
-        # old table doesn't concatenate duplicate ids, so this eliminates any
-        file_records[file_id]['associated_entities__case_gdc_id'] \
-            = ";".join(set(associated_entities__case_gdc_ids.split(';')))
+                                                                   max_length=PARAMS['MAX_CONCAT_COUNT'],
+                                                                   filter_duplicates=True)
 
         associated_entities__entity_type = record.get("associated_entities__entity_type")
         # old table doesn't concatenate duplicate ids, so this eliminates any
