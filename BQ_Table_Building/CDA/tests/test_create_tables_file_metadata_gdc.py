@@ -208,7 +208,7 @@ def make_compare_two_tables_query() -> str:
             file_submitter_id,
             file_type,
             updated_datetime
-        FROM `isb-project-zero.cda_gdc_test.file_metadata_2023_03`
+        FROM `isb-project-zero.cda_gdc_metadata.fileData_active_2023_03`
     )
     
     UNION ALL
@@ -250,7 +250,7 @@ def make_compare_two_tables_query() -> str:
             file_submitter_id,
             file_type,
             updated_datetime
-        FROM `isb-project-zero.cda_gdc_test.file_metadata_2023_03`
+        FROM `isb-project-zero.cda_gdc_metadata.fileData_active_2023_03`
         EXCEPT DISTINCT 
         SELECT dbName,
             file_gdc_id, 
@@ -389,7 +389,7 @@ def main(args):
         "archive_submitter_id",
         "associated_entities__entity_type",
         "project_dbgap_accession_number",
-        # "project_disease_type", not yet correctly in data
+        "project_disease_type",  # not yet correctly in data
         "project_name",
         "program_dbgap_accession_number",
         "program_name",
@@ -420,12 +420,12 @@ def main(args):
         'associated_entities__entity_gdc_id',
         'associated_entities__entity_submitter_id',
         'case_gdc_id',
-        # "downstream_analyses__workflow_link",
-        # "downstream_analyses__workflow_type",
+        "downstream_analyses__workflow_link",
+        "downstream_analyses__workflow_type",
     ]
 
     old_table_id = 'isb-cgc-bq.GDC_case_file_metadata.fileData_active_current'
-    new_table_id = 'isb-project-zero.cda_gdc_test.file_metadata_2023_03'
+    new_table_id = 'isb-project-zero.cda_gdc_metadata.fileData_active_2023_03'
 
     print("\nComparing non-concatenated columns!\n")
     compare_non_concat_table_columns(old_table_id, new_table_id, non_concat_columns)
