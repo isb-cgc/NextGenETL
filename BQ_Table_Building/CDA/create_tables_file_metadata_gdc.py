@@ -48,16 +48,20 @@ def convert_concat_to_multi(value_string: str, max_length: int = 8, filter_dupli
     :param filter_duplicates: If true, remove any duplicate ids before conversion check
     :return: value string, either in original form, stripped of duplicates, or reset to "multi"
     """
+    print("*** In convert_concat_to_multi!")
     if filter_duplicates:
         value_set = set(value_string.split(';'))
         string_length = len(value_set)
         value_string = ';'.join(value_set)
     else:
-        string_length: int = len(value_string.split(';'))
+        string_length = len(value_string.split(';'))
 
+    print(f"string_length: {string_length}, max_length: {max_length}")
     if string_length > max_length:
+        print("multi!\n")
         return 'multi'
     else:
+        print("keep value string\n")
         return value_string
 
 
@@ -67,20 +71,20 @@ def create_file_metadata_dict() -> JSONList:
     :return: list of dicts representing file metadata table rows
     """
 
-    analysis_table_id: str = create_dev_table_id(PARAMS, 'analysis')
-    analysis_consumed_input_file_table_id: str = create_dev_table_id(PARAMS, 'analysis_consumed_input_file')
-    analysis_downstream_from_file_table_id: str = create_dev_table_id(PARAMS, 'analysis_downstream_from_file')
-    analysis_produced_file_table_id: str = create_dev_table_id(PARAMS, 'analysis_produced_file')
-    archive_table_id: str = create_dev_table_id(PARAMS, 'archive')
-    case_project_program_table_id: str = create_dev_table_id(PARAMS, "case_project_program")
-    case_table_id: str = create_dev_table_id(PARAMS, "case")
-    downstream_analysis_table_id: str = create_dev_table_id(PARAMS, "downstream_analysis_produced_output_file")
-    file_table_id: str = create_dev_table_id(PARAMS, 'file')
-    file_associated_with_entity_table_id: str = create_dev_table_id(PARAMS, 'file_associated_with_entity')
-    file_has_acl_table_id: str = create_dev_table_id(PARAMS, 'file_has_acl')
-    file_has_index_file_table_id: str = create_dev_table_id(PARAMS, 'file_has_index_file')
-    file_in_archive_table_id: str = create_dev_table_id(PARAMS, 'file_in_archive')
-    file_in_case_table_id: str = create_dev_table_id(PARAMS, 'file_in_case')
+    analysis_table_id = create_dev_table_id(PARAMS, 'analysis')
+    analysis_consumed_input_file_table_id = create_dev_table_id(PARAMS, 'analysis_consumed_input_file')
+    analysis_downstream_from_file_table_id = create_dev_table_id(PARAMS, 'analysis_downstream_from_file')
+    analysis_produced_file_table_id = create_dev_table_id(PARAMS, 'analysis_produced_file')
+    archive_table_id = create_dev_table_id(PARAMS, 'archive')
+    case_project_program_table_id = create_dev_table_id(PARAMS, "case_project_program")
+    case_table_id = create_dev_table_id(PARAMS, "case")
+    downstream_analysis_table_id = create_dev_table_id(PARAMS, "downstream_analysis_produced_output_file")
+    file_table_id = create_dev_table_id(PARAMS, 'file')
+    file_associated_with_entity_table_id = create_dev_table_id(PARAMS, 'file_associated_with_entity')
+    file_has_acl_table_id = create_dev_table_id(PARAMS, 'file_has_acl')
+    file_has_index_file_table_id = create_dev_table_id(PARAMS, 'file_has_index_file')
+    file_in_archive_table_id = create_dev_table_id(PARAMS, 'file_in_archive')
+    file_in_case_table_id = create_dev_table_id(PARAMS, 'file_in_case')
 
     def make_base_file_metadata_sql() -> str:
         return f"""
@@ -215,7 +219,7 @@ def create_file_metadata_dict() -> JSONList:
         _query_result: BQQueryResult = query_and_retrieve_result(sql=sql)
 
         for _record in _query_result:
-            _file_id: str = _record.get('file_gdc_id')
+            _file_id = _record.get('file_gdc_id')
 
             if concat_field_list:
                 for _field in concat_field_list:
@@ -231,7 +235,7 @@ def create_file_metadata_dict() -> JSONList:
 
     for row in file_record_result:
 
-        file_gdc_id: str = row.get('file_gdc_id')
+        file_gdc_id = row.get('file_gdc_id')
 
         if file_gdc_id in file_records:
             print(f"Duplicate record for file_gdc_id: {file_gdc_id}")
@@ -328,7 +332,7 @@ def create_file_metadata_dict() -> JSONList:
     query_result: BQQueryResult = query_and_retrieve_result(sql=make_associated_entities_sql())
 
     for record in query_result:
-        file_id: str = record.get('file_gdc_id')
+        file_id = record.get('file_gdc_id')
 
         for field in associated_entities_concat_field_list:
             file_records[file_id][field] = convert_concat_to_multi(record.get(field),
