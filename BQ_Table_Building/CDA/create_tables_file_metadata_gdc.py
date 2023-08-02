@@ -40,6 +40,7 @@ RowDict = dict[str, Union[None, str, float, int, bool]]
 JSONList = list[RowDict]
 
 
+'''
 def convert_concat_to_multi(value_string: str, max_length: int = 8, filter_duplicates: bool = False) -> str:
     """
     Evaluate number of values in concatenated string. If > max_length, set value to "multi" instead
@@ -58,6 +59,42 @@ def convert_concat_to_multi(value_string: str, max_length: int = 8, filter_dupli
     if string_length > 1:
         print("*** In convert_concat_to_multi!")
         print(f"string_length: {string_length}, max_length: {max_length}")
+
+    if string_length > max_length:
+        print("multi!\n")
+        return 'multi'
+    else:
+        return value_string
+'''
+
+
+def convert_concat_to_multi(value_string: str, max_length: int = 8, filter_duplicates: bool = False) -> str:
+    """
+    Evaluate number of values in concatenated string. If > max_length, set value to "multi" instead
+    :param value_string: string containing 0 or more id values, concatenated by ';' if multiple values
+    :param max_length: maximum number of values allowed in string before we substitute "multi"; Default is 8
+    :param filter_duplicates: If true, remove any duplicate ids before conversion check
+    :return: value string, either in original form, stripped of duplicates, or reset to "multi"
+    """
+    if filter_duplicates:
+        filtered_set_length = len(set(value_string.split(';')))
+
+        # if filtered set is small enough to not be converted to multi, do filtering step, otherwise don't bother
+        if filtered_set_length <= max_length:
+            filtered_value_list = list()
+            filtered_value_set = set()
+
+            for value in value_string.split(';'):
+                filtered_value_set.add(value)
+
+                # if you add value to set and the length doesn't change, it's already contained in the set,
+                # and therefore a duplicate, so don't add to list
+                if len(filtered_value_set) > len(filtered_value_list):
+                    filtered_value_list.append(value)
+
+            value_string = ';'.join(filtered_value_list)
+
+    string_length = len(value_string.split(';'))
 
     if string_length > max_length:
         print("multi!\n")
