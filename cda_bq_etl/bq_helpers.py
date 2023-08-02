@@ -607,7 +607,7 @@ def publish_table(params: Params, source_table_id: str, current_table_id: str, v
 
         # does source table exist?
         if exists_bq_table(source_table_id):
-            print("Source table id is valid.")
+            print("Source table id is valid.\n")
         else:
             print("Source table id doesn't exist, cannot publish.")
             exit(1)
@@ -627,7 +627,7 @@ def publish_table(params: Params, source_table_id: str, current_table_id: str, v
         versioned_dataset_exists = exists_bq_dataset(versioned_dataset)
 
         if versioned_dataset_exists:
-            print(f"Dataset {versioned_dataset} is valid.")
+            print(f"Dataset {versioned_dataset} is valid.\n")
         else:
             print(f"Dataset {versioned_dataset} doesn't exist, cannot publish.")
             exit(1)
@@ -637,18 +637,18 @@ def publish_table(params: Params, source_table_id: str, current_table_id: str, v
         # display published table_ids
         print("Published table_ids (to be created--not yet published):")
         print(f"current table_id: {current_table_id}")
-        print(f"versioned table_id: {versioned_table_id}")
+        print(f"versioned table_id: {versioned_table_id}\n")
 
         # is there a previous version to compare with new table?
         # use previous_versioned_table_id
         if previous_versioned_table_id and has_new_data:
             print(f"New data found compared to previous published table {previous_versioned_table_id}.")
-            print("Table will be published.")
+            print("Table will be published.\n")
         elif previous_versioned_table_id and not has_new_data:
             print(f"New table is identical to previous published table {previous_versioned_table_id}.")
-            print("Table will not be published.")
+            print("Table will not be published.\n")
         elif not previous_versioned_table_id:
-            print(f"No previous version found for table, will publish.")
+            print(f"No previous version found for table, will publish.\n")
     else:
         if exists_bq_table(source_table_id):
             if table_has_new_data(previous_versioned_table_id, source_table_id):
