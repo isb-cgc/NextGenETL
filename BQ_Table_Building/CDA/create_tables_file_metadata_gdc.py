@@ -97,7 +97,6 @@ def convert_concat_to_multi(value_string: str, max_length: int = 8, filter_dupli
     string_length = len(value_string.split(';'))
 
     if string_length > max_length:
-        print("multi!\n")
         return 'multi'
     else:
         return value_string
