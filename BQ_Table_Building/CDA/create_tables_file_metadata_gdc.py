@@ -48,7 +48,6 @@ def convert_concat_to_multi(value_string: str, max_length: int = 8, filter_dupli
     :param filter_duplicates: If true, remove any duplicate ids before conversion check
     :return: value string, either in original form, stripped of duplicates, or reset to "multi"
     """
-    print("*** In convert_concat_to_multi!")
     if filter_duplicates:
         value_set = set(value_string.split(';'))
         string_length = len(value_set)
@@ -56,12 +55,14 @@ def convert_concat_to_multi(value_string: str, max_length: int = 8, filter_dupli
     else:
         string_length = len(value_string.split(';'))
 
-    print(f"string_length: {string_length}, max_length: {max_length}")
+    if string_length > 1:
+        print("*** In convert_concat_to_multi!")
+        print(f"string_length: {string_length}, max_length: {max_length}")
+
     if string_length > max_length:
         print("multi!\n")
         return 'multi'
     else:
-        print("keep value string\n")
         return value_string
 
 
