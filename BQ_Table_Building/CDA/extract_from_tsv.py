@@ -250,6 +250,10 @@ def main(args):
             dest_path += f"/{directory[0]}"
             file_list = os.listdir(dest_path)
 
+            for file_name in file_list:
+                print(file_name)
+            exit()
+
             normalized_file_names = normalize_files(file_list=file_list, dest_path=dest_path)
 
         index_txt_file_name = f"{PARAMS['RELEASE']}_{PARAMS['DC_SOURCE']}_file_index.txt"
