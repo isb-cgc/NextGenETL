@@ -248,11 +248,11 @@ def main(args):
         elif PARAMS['DC_SOURCE'] == "gdc":
             directory = os.listdir(dest_path)
             dest_path += f"/{directory[0]}"
-            file_list = os.listdir(dest_path)
+            file_list = list()
 
-            for file_name in file_list:
-                print(file_name)
-            exit()
+            for file_name in os.listdir(dest_path):
+                if file_name[0] != '.' and file_name[0] != '_':
+                    file_list.append(file_name)
 
             normalized_file_names = normalize_files(file_list=file_list, dest_path=dest_path)
 
