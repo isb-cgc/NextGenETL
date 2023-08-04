@@ -25,11 +25,12 @@ import sys
 import os
 import csv
 import shutil
+import time
 
 from typing import Union
 
 from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket
-from cda_bq_etl.utils import get_scratch_fp, load_config, get_filepath, has_fatal_error, create_dev_table_id
+from cda_bq_etl.utils import get_scratch_fp, load_config, get_filepath, has_fatal_error, format_seconds
 from cda_bq_etl.data_helpers import create_normalized_tsv
 from cda_bq_etl.bq_helpers import retrieve_bq_schema_object, create_and_upload_schema_for_tsv, \
     create_and_load_table_from_tsv
@@ -200,6 +201,8 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
+    start_time = time.time()
+
     if "download_cda_archive_file" in steps:
         print("\n*** Downloading archive file from bucket!\n")
         local_tar_dir = get_filepath(PARAMS['LOCAL_TAR_DIR'])
@@ -311,6 +314,10 @@ def main(args):
                 os.remove(tsv_file_path)
 
         os.remove(get_scratch_fp(PARAMS, index_txt_file_name))
+
+    end_time = time.time()
+
+    print(f"Script completed in: {format_seconds(end_time - start_time)}")
 
 
 if __name__ == "__main__":

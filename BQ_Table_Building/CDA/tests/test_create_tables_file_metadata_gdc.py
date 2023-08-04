@@ -302,7 +302,9 @@ def create_file_metadata_dict(sql: str) -> dict[str, dict[str, str]]:
                           'analysis_input_file_gdc_ids',
                           'downstream_analyses__output_file_gdc_ids',
                           'associated_entities__entity_gdc_id',
-                          'associated_entities__entity_submitter_id'}
+                          'associated_entities__entity_submitter_id',
+                          'downstream_analyses__workflow_link',
+                          'downstream_analyses__workflow_type'}
 
     for count, row in enumerate(file_result):
         file_id: str = row.get('file_gdc_id')
@@ -403,8 +405,8 @@ def main(args):
         "file_size",
         "file_id",
         "index_file_gdc_id",
-        # "index_file_name", not yet in data
-        # "index_file_size", not yet in data
+        "index_file_name",  # not yet in data
+        "index_file_size",  # not yet in data
         "md5sum",
         "platform",
         "file_state",
