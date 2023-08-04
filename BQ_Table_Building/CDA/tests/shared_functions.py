@@ -210,10 +210,10 @@ def compare_concat_columns(old_table_id: str, new_table_id: str, concat_columns:
     new_records_dict = make_records_dict(query=make_concat_column_query(new_table_id))
     print("Created dict for new table records!")
 
-    for count, file_id in enumerate(old_records_dict.keys()):
+    for count, record_id in enumerate(old_records_dict.keys()):
         for column in concat_columns:
-            old_column_value = old_records_dict[file_id][column]
-            new_column_value = new_records_dict[file_id][column]
+            old_column_value = old_records_dict[record_id][column]
+            new_column_value = new_records_dict[record_id][column]
 
             if old_column_value and new_column_value:
                 old_column_value_set = set(old_column_value.split(';'))
@@ -222,12 +222,12 @@ def compare_concat_columns(old_table_id: str, new_table_id: str, concat_columns:
                 missing_values = old_column_value_set ^ new_column_value_set
 
                 if len(missing_values) > 0:
-                    print(f'file id {file_id} value mismatch for {column}.')
+                    print(f'id {record_id} value mismatch for {column}.')
                     print(f'old column values: {old_column_value} new column values: {new_column_value}')
             else:
                 # case in which one or both values are None
                 if new_column_value != new_column_value:
-                    print(f'file id {file_id} value mismatch for {column}.')
+                    print(f'id {record_id} value mismatch for {column}.')
                     print(f'old column values: {old_column_value} new column values: {new_column_value}')
 
         if count % 100000 == 0:

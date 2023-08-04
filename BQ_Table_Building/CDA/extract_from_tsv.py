@@ -227,6 +227,9 @@ def main(args):
 
         extract_tarfile(src_path, dest_path, overwrite=True)
 
+        print("List of files in archive:")
+        print(os.listdir(dest_path))
+
     if "normalize_and_upload_tsvs" in steps:
         print("\n*** Normalizing and uploading tsvs!\n")
         dest_path = get_filepath(PARAMS['LOCAL_EXTRACT_DIR'])
