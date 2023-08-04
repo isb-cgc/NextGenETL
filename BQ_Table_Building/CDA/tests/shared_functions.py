@@ -24,7 +24,7 @@ from typing import Union
 
 from google.cloud.bigquery.table import RowIterator
 
-from common_etl.support import bq_harness_with_result
+from cda_bq_etl.bq_helpers import query_and_retrieve_result
 from common_etl.utils import has_fatal_error
 
 BQQueryResult = Union[None, RowIterator]
@@ -41,9 +41,7 @@ def compare_id_keys(old_table_id: str, new_table_id: str, primary_key: str):
         """
 
     def compare_table_keys(table_id_1, table_id_2):
-        result = bq_harness_with_result(sql=make_compare_id_keys_sql(table_id_1, table_id_2),
-                                        do_batch=False,
-                                        verbose=False)
+        result = query_and_retrieve_result(sql=make_compare_id_keys_sql(table_id_1, table_id_2))
 
         if not result:
             has_fatal_error(f"Primary key {primary_key} not found in one or both compared tables")
@@ -80,8 +78,8 @@ def compare_row_counts(old_table_id: str, new_table_id: str):
     old_table_row_count_query = make_row_count_sql(old_table_id)
     new_table_row_count_query = make_row_count_sql(new_table_id)
 
-    old_count_result = bq_harness_with_result(sql=old_table_row_count_query, do_batch=False, verbose=False)
-    new_count_result = bq_harness_with_result(sql=new_table_row_count_query, do_batch=False, verbose=False)
+    old_count_result = query_and_retrieve_result(sql=old_table_row_count_query)
+    new_count_result = query_and_retrieve_result(sql=new_table_row_count_query)
 
     for row in old_count_result:
         old_count = row[0]
@@ -149,7 +147,7 @@ def compare_table_columns(old_table_id: str,
     for column in columns:
         column_comparison_query = make_compare_table_column_sql(column)
 
-        result = bq_harness_with_result(sql=column_comparison_query, do_batch=False, verbose=False)
+        result = query_and_retrieve_result(sql=column_comparison_query)
 
         if not result:
             print(f"\nNo results returned for {column}. This can mean that there's a column data type mismatch, "
@@ -176,3 +174,61 @@ def compare_table_columns(old_table_id: str,
                     break
         else:
             print(f"{column} column matches in published and new tables!")
+
+
+def compare_concat_columns(old_table_id: str, new_table_id: str, concat_columns: list[str]):
+    def make_concat_column_query(table_id: str) -> str:
+        concat_columns_str = ", ".join(concat_columns)
+
+        return f"""
+            SELECT {concat_columns_str}  
+            FROM `{table_id}`
+        """
+
+    def make_records_dict(query: str) -> dict[str, dict[str, str]]:
+        result = query_and_retrieve_result(sql=query)
+
+        records_dict = dict()
+
+        for record_count, record in enumerate(result):
+            file_gdc_id = record.get('file_gdc_id')
+
+            record_dict = dict()
+
+            for _column in concat_columns:
+                record_dict[_column] = record.get(_column)
+
+            records_dict[file_gdc_id] = record_dict
+
+            if record_count % 100000 == 0:
+                print(f"{record_count} records added to dict!")
+
+        return records_dict
+
+    old_records_dict = make_records_dict(query=make_concat_column_query(old_table_id))
+    print("Created dict for old table records!")
+    new_records_dict = make_records_dict(query=make_concat_column_query(new_table_id))
+    print("Created dict for new table records!")
+
+    for count, file_id in enumerate(old_records_dict.keys()):
+        for column in concat_columns:
+            old_column_value = old_records_dict[file_id][column]
+            new_column_value = new_records_dict[file_id][column]
+
+            if old_column_value and new_column_value:
+                old_column_value_set = set(old_column_value.split(';'))
+                new_column_value_set = set(new_column_value.split(';'))
+
+                missing_values = old_column_value_set ^ new_column_value_set
+
+                if len(missing_values) > 0:
+                    print(f'file id {file_id} value mismatch for {column}.')
+                    print(f'old column values: {old_column_value} new column values: {new_column_value}')
+            else:
+                # case in which one or both values are None
+                if new_column_value != new_column_value:
+                    print(f'file id {file_id} value mismatch for {column}.')
+                    print(f'old column values: {old_column_value} new column values: {new_column_value}')
+
+        if count % 100000 == 0:
+            print(f"{count} records evaluated!")
