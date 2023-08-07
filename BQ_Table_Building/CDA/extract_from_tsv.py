@@ -92,12 +92,18 @@ def scan_directories_and_create_file_dict(dest_path: str) -> tuple[dict[str, lis
     """
     top_level_dir = os.listdir(dest_path)
 
-    if len(top_level_dir) != 1:
+    non_hidden_dir = list()
+
+    for dir_name in top_level_dir:
+        if dir_name[0] != '.':
+            non_hidden_dir.append(dir_name)
+
+    if len(non_hidden_dir) != 1:
         print("Error: more than one folder in directory")
-        print(top_level_dir)
+        print(non_hidden_dir)
         exit(0)
 
-    dest_path = f"{dest_path}/{top_level_dir[0]}"
+    dest_path = f"{dest_path}/{non_hidden_dir[0]}"
 
     dir_list = os.listdir(dest_path)
     indices_to_remove = list()
