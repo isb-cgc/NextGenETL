@@ -161,6 +161,10 @@ def create_file_metadata_dict() -> JSONList:
                 ON ar.archive_id = fia.archive_id
             LEFT OUTER JOIN `{file_has_index_file_table_id}` fhif
                 ON fhif.file_id = f.file_id
+            WHERE f.file_id NOT IN (
+                SELECT index_file_id 
+                FROM `{file_has_index_file_table_id}`
+            )
         """
 
     def make_acl_sql() -> str:
