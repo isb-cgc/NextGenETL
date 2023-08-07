@@ -94,6 +94,7 @@ def scan_directories_and_create_file_dict(dest_path: str) -> tuple[dict[str, lis
 
     if len(top_level_dir) != 1:
         print("Error: more than one folder in directory")
+        print(top_level_dir)
         exit(0)
 
     dest_path = f"{dest_path}/{top_level_dir[0]}"
