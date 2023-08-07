@@ -240,6 +240,10 @@ def create_file_metadata_dict() -> JSONList:
                 ON cpp.case_gdc_id = c.case_id
             LEFT OUTER JOIN `{project_disease_type_table_id}` pdt
                 ON pdt.project_id = cpp.project_id
+            WHERE f.file_id NOT IN (
+                SELECT index_file_id 
+                FROM `{file_has_index_file_table_id}`
+            )
             GROUP BY file_gdc_id, cpp.project_dbgap_accession_number, project_short_name, cpp.project_name, 
                 cpp.program_name, cpp.program_dbgap_accession_number, project_disease_type
         """
