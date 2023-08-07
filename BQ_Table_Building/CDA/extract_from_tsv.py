@@ -110,7 +110,7 @@ def scan_directories_and_create_file_dict(dest_path: str) -> tuple[dict[str, lis
 
     # exclude hidden files
     for idx, directory in enumerate(dir_list):
-        if directory.startswith('__'):
+        if directory.startswith('__') or directory[0] == '.':
             indices_to_remove.append(idx)
 
     for idx in reversed(indices_to_remove):
@@ -120,7 +120,13 @@ def scan_directories_and_create_file_dict(dest_path: str) -> tuple[dict[str, lis
 
     for directory in dir_list:
         file_list = os.listdir(f"{dest_path}/{directory}")
-        dir_file_dict[directory] = file_list
+
+        non_hidden_files = list()
+        for file_name in file_list:
+            if file_name[0] != '.':
+                non_hidden_files.append(file_name)
+
+        dir_file_dict[directory] = non_hidden_files
 
     return dir_file_dict, dest_path
 
