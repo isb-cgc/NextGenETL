@@ -30,6 +30,10 @@ YAML_HEADERS = ('params', 'steps')
 
 
 def make_file_metadata_query() -> str:
+    """
+    Make BigQuery sql statement, used to generate the file_metadata table.
+    :return: sql query statement
+    """
     return f"""
         SELECT f.file_id,
         f.file_name,

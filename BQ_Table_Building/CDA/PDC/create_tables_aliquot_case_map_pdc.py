@@ -30,6 +30,10 @@ YAML_HEADERS = ('params', 'steps')
 
 
 def make_aliquot_table_query() -> str:
+    """
+    Make BigQuery sql statement, used to generate the aliquot_to_case_mapping table.
+    :return: sql query statement
+    """
     return f"""
         SELECT 
             prog.name AS program_name,

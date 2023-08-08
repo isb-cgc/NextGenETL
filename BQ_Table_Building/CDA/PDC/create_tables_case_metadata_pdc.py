@@ -30,6 +30,10 @@ YAML_HEADERS = ('params', 'steps')
 
 
 def make_case_metadata_query() -> str:
+    """
+    Make BigQuery sql statement, used to generate the case_metadata table.
+    :return: sql query statement
+    """
     return f"""
         WITH file_counts AS (
             SELECT case_id, COUNT(file_id) AS file_count

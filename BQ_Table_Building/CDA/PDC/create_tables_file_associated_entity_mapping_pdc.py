@@ -30,6 +30,10 @@ YAML_HEADERS = ('params', 'steps')
 
 
 def make_associated_entity_query() -> str:
+    """
+    Make BigQuery sql statement, used to generate the file_associated_entity_mapping table.
+    :return: sql query statement
+    """
     return f"""
         SELECT fa.file_id,
             ac.case_id,
