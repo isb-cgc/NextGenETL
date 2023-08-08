@@ -21,34 +21,37 @@ SCRIPT_NAME=$1
 CASE_ARG="case"
 CLINICAL_ARG="clinical"
 FILE_ARG="file"
+FILE_ENTITY_ARG="file_entity"
 PER_SAMPLE_FILE_ARG="per_sample_file"
 ALIQUOT_ARG="aliquot_case_map"
-SLIDE_ARG="slide_case_map"
-DISEASE_ARG="project_disease_type"
+STUDIES_ARG="study"
 
 SHARED_CONFIG_FILE="CDASharedConfigGDC.yaml"
 
 if [[ ${SCRIPT_NAME} = ${CASE_ARG} ]] ; then
-    CONFIG_FILE="CDACreateTablesCaseGDC.yaml"
-    SCRIPT_FILE="create_tables_case_metadata_gdc.py"
+    CONFIG_FILE="CDACreateTablesCasePDC.yaml"
+    SCRIPT_FILE="create_tables_case_metadata_pdc.py"
 elif [[ ${SCRIPT_NAME} = ${CLINICAL_ARG} ]] ; then
-    CONFIG_FILE="CDACreateTablesClinicalGDC.yaml"
-    SCRIPT_FILE="create_tables_clinical_gdc.py"
+    CONFIG_FILE="CDACreateTablesClinicalPDC.yaml"
+    SCRIPT_FILE="create_tables_clinical_pdc.py"
 elif [[ ${SCRIPT_NAME} = ${ALIQUOT_ARG} ]] ; then
-    CONFIG_FILE="CDACreateTablesAliquotCaseMapGDC.yaml"
-    SCRIPT_FILE="create_tables_aliquot_case_map_gdc.py"
-elif [[ ${SCRIPT_NAME} = ${SLIDE_ARG} ]] ; then
-    CONFIG_FILE="CDACreateTablesSlideCaseMapGDC.yaml"
-    SCRIPT_FILE="create_tables_slide_case_map_gdc.py"
+    CONFIG_FILE="CDACreateTablesAliquotCaseMapPDC.yaml"
+    SCRIPT_FILE="create_tables_aliquot_case_map_pdc.py"
 elif [[ ${SCRIPT_NAME} = ${FILE_ARG} ]] ; then
-    CONFIG_FILE="CDACreateTablesFileGDC.yaml"
-    SCRIPT_FILE="create_tables_file_metadata_gdc.py"
+    CONFIG_FILE="CDACreateTablesFilePDC.yaml"
+    SCRIPT_FILE="create_tables_file_metadata_pdc.py"
+elif [[ ${SCRIPT_NAME} = ${FILE_ENTITY_ARG} ]] ; then
+    CONFIG_FILE="CDACreateTablesFileAssociatedEntityMappingPDC.yaml"
+    SCRIPT_FILE="create_tables_file_associated_entity_mapping_pdc.py"
 elif [[ ${SCRIPT_NAME} = ${PER_SAMPLE_FILE_ARG} ]] ; then
-    CONFIG_FILE="CDACreateTablesPerSampleFileGDC.yaml"
-    SCRIPT_FILE="create_tables_per_sample_file_gdc.py"
-elif [[ ${SCRIPT_NAME} = ${DISEASE_ARG} ]] ; then
-    CONFIG_FILE="CDACreateTablesProjectDiseaseTypeGDC.yaml"
-    SCRIPT_FILE="create_tables_project_disease_type_gdc.py"
+    CONFIG_FILE="CDACreateTablesPerSampleFilePDC.yaml"
+    SCRIPT_FILE="create_tables_per_sample_file_pdc.py"
+elif [[ ${SCRIPT_NAME} = ${PER_SAMPLE_FILE_ARG} ]] ; then
+    CONFIG_FILE="CDACreateTablesPerSampleFilePDC.yaml"
+    SCRIPT_FILE="create_tables_per_sample_file_pdc.py"
+elif [[ ${SCRIPT_NAME} = ${STUDIES_ARG} ]] ; then
+    CONFIG_FILE="CDACreateTablesStudiesPDC.yaml"
+    SCRIPT_FILE="create_tables_studies_pdc.py"
 else
     echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, per_sample_file, aliquot_case_map, slide_case_map"
     exit 1
@@ -70,5 +73,5 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3.9 ./BQ_Table_Building/CDA/GDC/${SCRIPT_FILE} ~/config/${SHARED_CONFIG_FILE} ~/config/${CONFIG_FILE}
+python3.9 ./BQ_Table_Building/CDA/PDC/${SCRIPT_FILE} ~/config/${SHARED_CONFIG_FILE} ~/config/${CONFIG_FILE}
 deactivate
