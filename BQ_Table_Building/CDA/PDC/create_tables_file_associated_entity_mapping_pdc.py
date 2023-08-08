@@ -29,6 +29,21 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
+def make_associated_entity_query() -> str:
+    return f"""
+        SELECT fa.file_id,
+            ac.case_id,
+            a.aliquot_id,
+            a.aliquot_submitter_id,
+            "aliquot" AS entity_type
+        FROM `isb-project-zero.cda_pdc_raw.2023_06_file_aliquot_id` fa
+        JOIN `isb-project-zero.cda_pdc_raw.2023_06_aliquot` a
+            ON a.aliquot_id = fa.aliquot_id
+        JOIN `isb-project-zero.cda_pdc_raw.2023_06_aliquot_case_id` ac
+            ON ac.aliquot_id = a.aliquot_id
+    """
+
+
 def main(args):
     try:
         global PARAMS

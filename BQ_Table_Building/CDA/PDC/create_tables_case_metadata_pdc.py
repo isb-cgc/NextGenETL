@@ -29,6 +29,36 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
+def make_case_metadata_query() -> str:
+    return f"""
+        WITH file_counts AS (
+            SELECT case_id, COUNT(file_id) AS file_count
+            FROM `isb-project-zero.cda_pdc_raw.2023_06_file_case_id`
+            GROUP BY case_id
+        )
+
+        SELECT c.case_id,
+            c.case_submitter_id,
+            c.primary_site,
+            c.disease_type,
+            proj.name AS project_name,
+            prog.name AS program_name,
+            proj.project_id,
+            fc.file_count
+        FROM `isb-project-zero.cda_pdc_raw.2023_06_case` c 
+        LEFT JOIN `isb-project-zero.cda_pdc_raw.2023_06_case_project_id` cp
+            ON cp.case_id = c.case_id
+        LEFT JOIN `isb-project-zero.cda_pdc_raw.2023_06_project` proj
+            ON proj.project_id = cp.project_id
+        LEFT JOIN `isb-project-zero.cda_pdc_raw.2023_06_program_project_id` pp
+            ON pp.project_id = proj.project_id
+        LEFT JOIN `isb-project-zero.cda_pdc_raw.2023_06_program` prog
+            ON prog.program_id = pp.program_id
+        LEFT JOIN file_counts fc
+            ON fc.case_id = c.case_id       
+    """
+
+
 def main(args):
     try:
         global PARAMS

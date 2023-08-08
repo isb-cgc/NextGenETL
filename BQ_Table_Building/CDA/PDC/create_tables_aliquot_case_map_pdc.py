@@ -29,6 +29,48 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
+def make_aliquot_table_query() -> str:
+    return f"""
+        SELECT 
+            prog.name AS program_name,
+            proj.name AS project_name,
+            c.case_id,
+            c.case_submitter_id,
+            s.sample_id,
+            s.sample_submitter_id,
+            s.sample_type,
+            s.preservation_method,
+            s.freezing_method,
+            s.time_between_clamping_and_freezing,
+            s.time_between_excision_and_freezing,
+            s.days_to_collection,
+            s.initial_weight,
+            s.current_weight,
+            s.shortest_dimension,
+            s.intermediate_dimension,
+            s.longest_dimension, 
+            a.aliquot_id, 
+            a.aliquot_submitter_id
+        FROM `isb-project-zero.cda_pdc_raw.2023_06_aliquot` a
+        JOIN `isb-project-zero.cda_pdc_raw.2023_06_sample_aliquot_id` sa
+            ON a.aliquot_id = sa.aliquot_id
+        JOIN `isb-project-zero.cda_pdc_raw.2023_06_sample` s
+            ON sa.sample_id = s.sample_id
+        JOIN `isb-project-zero.cda_pdc_raw.2023_06_case_sample_id` cs
+            ON cs.sample_id = s.sample_id
+        JOIN `isb-project-zero.cda_pdc_raw.2023_06_case` c
+            ON cs.case_id = c.case_id
+        JOIN `isb-project-zero.cda_pdc_raw.2023_06_case_project_id` cp
+            ON cp.case_id = c.case_id
+        JOIN `isb-project-zero.cda_pdc_raw.2023_06_project` proj
+            ON proj.project_id = cp.project_id
+        JOIN `isb-project-zero.cda_pdc_raw.2023_06_program_project_id` pp
+            ON pp.project_id = proj.project_id
+        JOIN `isb-project-zero.cda_pdc_raw.2023_06_program` prog
+            ON prog.program_id = pp.program_id
+    """
+
+
 def main(args):
     try:
         global PARAMS
