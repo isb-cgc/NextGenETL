@@ -143,7 +143,7 @@ def make_case_metadata_table_query():
                 fc.file_id_count as file_count
             FROM `{case_external_mapping_table_id}` c
             JOIN `{study_table_id}` s
-                ON c.project_submitter_id = s.project_submitter_id
+                ON c.project_id = s.project_id
             JOIN `{file_count_table_id}` fc
                 ON c.case_id = fc.case_id
         )
