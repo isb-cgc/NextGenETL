@@ -187,7 +187,7 @@ def make_aliquot_to_case_id_query():
             SELECT DISTINCT ext_map.case_id, studies.program_name, studies.project_name
             FROM `{case_external_mapping_table_id}` ext_map
             JOIN `{study_table_id}` studies
-                ON studies.project_submitter_id = ext_map.project_submitter_id
+                ON studies.project_id = ext_map.project_id
         )
         
         SELECT p.program_name, p.project_name, 
