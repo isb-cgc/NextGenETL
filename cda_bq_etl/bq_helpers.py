@@ -795,5 +795,29 @@ def find_most_recent_published_table_id(params, versioned_table_id):
 
         # if there is no previously-published table, return None
         return None
+    elif params['DC_SOURCE'].lower() == 'pdc':
+        # Assuming PDC will use 2-digit minor releases--they said they didn't expect this to ever become 3 digits, and
+        # making 900 extraneous calls to google seems wasteful.
+        max_minor_release_num = 99
+        split_current_etl_release = params['RELEASE'][1:].split("_")
+        # set to current release initially, decremented in loop
+        last_major_rel_num = int(split_current_etl_release[0])
+        last_minor_rel_num = int(split_current_etl_release[1])
+
+        while True:
+            if last_minor_rel_num > 0 and last_major_rel_num >= 1:
+                last_minor_rel_num -= 1
+            elif last_major_rel_num > 1:
+                last_major_rel_num -= 1
+                last_minor_rel_num = max_minor_release_num
+            else:
+                return None
+
+            table_id_no_release = versioned_table_id.replace(f"_{params['RELEASE']}", '')
+            prev_release_table_id = f"{table_id_no_release}_V{last_major_rel_num}_{last_minor_rel_num}"
+
+            if exists_bq_table(prev_release_table_id):
+                # found last release table, stop iterating
+                return prev_release_table_id
     else:
         has_fatal_error(f"Need to create find_most_recent_published_table_id function for {params['DC_SOURCE']}.")
