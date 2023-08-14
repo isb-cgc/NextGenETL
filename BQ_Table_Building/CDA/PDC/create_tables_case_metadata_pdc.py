@@ -72,8 +72,21 @@ def main(args):
 
     start_time = time.time()
 
-    # code here
+    dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
 
+    if 'create_table_from_query' in steps:
+        load_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_case_metadata_query())
+
+    if 'publish_tables' in steps:
+        current_table_name = f"{PARAMS['TABLE_NAME']}_current"
+        current_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}.{current_table_name}"
+        versioned_table_name = f"{PARAMS['TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
+        versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}_versioned.{versioned_table_name}"
+
+        publish_table(params=PARAMS,
+                      source_table_id=dev_table_id,
+                      current_table_id=current_table_id,
+                      versioned_table_id=versioned_table_id)
     end_time = time.time()
 
     print(f"Script completed in: {format_seconds(end_time - start_time)}")
