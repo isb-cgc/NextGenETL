@@ -796,4 +796,4 @@ def find_most_recent_published_table_id(params, versioned_table_id):
         # if there is no previously-published table, return None
         return None
     else:
-        has_fatal_error("Need to define find_most_recent_published_table_id for the DC_SOURCE")
+        has_fatal_error(f"Need to create find_most_recent_published_table_id function for {params['DC_SOURCE']}.")
