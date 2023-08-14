@@ -84,10 +84,7 @@ def main(args):
 
     start_time = time.time()
 
-    dev_table_name = construct_table_name(params=PARAMS, prefix=PARAMS['TABLE_NAME'])
-    dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.{dev_table_name}"
-
-    print(f"table_id: {dev_table_id}")
+    dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
 
     if 'create_table_from_query' in steps:
         load_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_aliquot_table_query())
