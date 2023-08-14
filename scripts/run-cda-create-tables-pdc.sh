@@ -26,7 +26,7 @@ PER_SAMPLE_FILE_ARG="per_sample_file"
 ALIQUOT_ARG="aliquot_case_map"
 STUDIES_ARG="study"
 
-SHARED_CONFIG_FILE="CDASharedConfigGDC.yaml"
+SHARED_CONFIG_FILE="CDASharedConfigPDC.yaml"
 
 if [[ ${SCRIPT_NAME} = ${CASE_ARG} ]] ; then
     CONFIG_FILE="CDACreateTablesCasePDC.yaml"
