@@ -38,33 +38,7 @@ def main(args):
 
     start_time = time.time()
 
-    delete_tables = [
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_BEATAML1_0_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_CDDP_EAGLE_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_CGCI_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_CMI_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_CPTAC_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_CTSP_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_EXC_RESPONDERS_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_FM_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_GENIE_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_HCMI_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_MATCH_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_MMRF_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_MP2PRT_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_NCICCR_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_OHSU_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_ORGANOID_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_REBC_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_TARGET_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_TCGA_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_TRIO_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_VAREPOP_2023_03",
-        "isb-project-zero.cda_gdc_per_sample_file.per_sample_file_metadata_hg38_WCDT_2023_03"
-    ]
-
-    for table in delete_tables:
-        delete_bq_table(table)
+    # code here
 
     end_time = time.time()
 
