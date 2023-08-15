@@ -23,7 +23,7 @@ import sys
 import time
 
 from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds
-from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, delete_bq_table
+from cda_bq_etl.bq_helpers import load_table_from_query, publish_table
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')

@@ -23,8 +23,7 @@ import sys
 import time
 
 from cda_bq_etl.utils import load_config, has_fatal_error, format_seconds
-from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, update_table_schema_from_generic, \
-    delete_bq_table
+from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, update_table_schema_from_generic
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -90,6 +89,7 @@ def main(args):
                       source_table_id=dev_table_id,
                       current_table_id=current_table_id,
                       versioned_table_id=versioned_table_id)
+
     end_time = time.time()
 
     print(f"Script completed in: {format_seconds(end_time - start_time)}")
