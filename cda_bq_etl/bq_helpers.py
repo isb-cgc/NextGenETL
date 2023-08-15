@@ -962,7 +962,8 @@ def get_project_program_names(params, project_submitter_id):
     :return: tuple containing (project_short_name, program_short_name, project_name) strings
     """
 
-    study_table_name = (params=params, prefix=prefix)
+    # todo incorrect, fix
+    study_table_name = "studies"
     study_table_id = f"{params['DEV_PROJECT']}.{params['META_DATASET']}.{study_table_name}"
 
     query = f"""
