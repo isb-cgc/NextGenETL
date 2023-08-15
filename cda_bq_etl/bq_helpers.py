@@ -22,6 +22,7 @@ SOFTWARE.
 
 import json
 import time
+import os
 from typing import Union, Optional, Any
 
 from google.cloud import bigquery
@@ -29,7 +30,7 @@ from google.cloud.exceptions import NotFound
 from google.cloud.bigquery import SchemaField, Client, LoadJobConfig, QueryJob
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
-from cda_bq_etl.utils import has_fatal_error, get_filename, get_scratch_fp, input_with_timeout
+from cda_bq_etl.utils import has_fatal_error, get_filename, get_scratch_fp, input_with_timeout, get_filepath
 from cda_bq_etl.gcs_helpers import download_from_bucket, upload_to_bucket
 from cda_bq_etl.data_helpers import recursively_detect_object_structures, get_column_list_tsv, \
     aggregate_column_data_types_tsv, resolve_type_conflicts, resolve_type_conflict
@@ -821,3 +822,123 @@ def find_most_recent_published_table_id(params, versioned_table_id):
                 return prev_release_table_id
     else:
         has_fatal_error(f"Need to create find_most_recent_published_table_id function for {params['DC_SOURCE']}.")
+
+
+def update_table_schema_from_generic(params, table_id, schema_tags=None, metadata_file=None):
+    """
+    Insert schema tags into generic schema (currently located in BQEcosystem repo).
+    :param params: params from YAML config
+    :param table_id: table_id where schema metadata should be inserted
+    :param schema_tags: schema tags used to populate generic schema metadata
+    :param metadata_file: name of generic table metadata file
+    """
+    if schema_tags is None:
+        schema_tags = dict()
+
+    # remove underscore, add decimal to version number
+    schema_tags['version'] = ".".join(params['DC_RELEASE'].split('_'))
+    schema_tags['extracted-month-year'] = params['EXTRACTED_MONTH_YEAR']
+
+    add_generic_table_metadata(params=params,
+                               table_id=table_id,
+                               schema_tags=schema_tags,
+                               metadata_file=metadata_file)
+    add_column_descriptions(params=params, table_id=table_id)
+
+
+def add_generic_table_metadata(params: Params, table_id: str, schema_tags: dict[str, str], metadata_file: str = None):
+    """
+    todo
+    :param params: bq_params supplied in yaml config
+    :param table_id: table id for which to add the metadata
+    :param schema_tags: dictionary of generic schema tag keys and values
+    :param metadata_file:
+    """
+    generic_schema_path = f"{params['BQ_REPO']}/{params['GENERIC_SCHEMA_DIR']}"
+
+    if not metadata_file:
+        metadata_fp = get_filepath(f"{generic_schema_path}/{params['GENERIC_TABLE_METADATA_FILE']}")
+    else:
+        metadata_fp = get_filepath(f"{generic_schema_path}/{metadata_file}")
+
+    with open(metadata_fp) as file_handler:
+        table_schema = ''
+
+        for line in file_handler.readlines():
+            table_schema += line
+
+        for tag_key, tag_value in schema_tags.items():
+            tag = f"{{---tag-{tag_key}---}}"
+
+            table_schema = table_schema.replace(tag, tag_value)
+
+        table_metadata = json.loads(table_schema)
+        update_table_metadata(table_id, table_metadata)
+
+
+def update_table_metadata(table_id: str, metadata: dict[str, str]):
+    """
+    Modify an existing BigQuery table's metadata (labels, friendly name, description) using metadata dict argument
+    :param table_id: table id in standard SQL format
+    :param metadata: metadata containing new field and table attributes
+    """
+    client = bigquery.Client()
+    table = client.get_table(table_id)
+
+    table.labels = metadata['labels']
+    table.friendly_name = metadata['friendlyName']
+    table.description = metadata['description']
+    client.update_table(table, ["labels", "friendly_name", "description"])
+
+    assert table.labels == metadata['labels']
+    assert table.friendly_name == metadata['friendlyName']
+    assert table.description == metadata['description']
+
+
+def add_column_descriptions(params, table_id):
+    """
+    Alter an existing table's schema (currently, only column descriptions are mutable without a table rebuild,
+    Google's restriction).
+    :param params:
+    :param table_id:
+    :return:
+    """
+    print("\t - Adding column descriptions!")
+
+    column_desc_fp = f"{params['BQ_REPO']}/{params['COLUMN_DESCRIPTION_FILEPATH']}"
+    column_desc_fp = get_filepath(column_desc_fp)
+
+    if not os.path.exists(column_desc_fp):
+        has_fatal_error("BQEcosystem column description path not found", FileNotFoundError)
+    with open(column_desc_fp) as column_output:
+        descriptions = json.load(column_output)
+
+    update_schema(table_id, descriptions)
+
+
+def update_schema(table_id, new_descriptions):
+    """
+    Modify an existing table's field descriptions.
+    :param table_id: table id in standard SQL format
+    :param new_descriptions: dict of field names and new description strings
+    """
+    client = bigquery.Client()
+    table = client.get_table(table_id)
+
+    new_schema = []
+
+    for schema_field in table.schema:
+        column = schema_field.to_api_repr()
+
+        if column['name'] in new_descriptions.keys():
+            name = column['name']
+            column['description'] = new_descriptions[name]
+        elif column['description'] == '':
+            print(f"Still no description for field: {column['name']}")
+
+        mod_column = bigquery.SchemaField.from_api_repr(column)
+        new_schema.append(mod_column)
+
+    table.schema = new_schema
+
+    client.update_table(table, ['schema'])
