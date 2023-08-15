@@ -603,6 +603,7 @@ def publish_table(params: Params, source_table_id: str, current_table_id: str, v
     :param versioned_table_id: published table id for versioned
     """
     previous_versioned_table_id = find_most_recent_published_table_id(params, versioned_table_id)
+    print(f"previous_versioned_table_id: {previous_versioned_table_id}")
 
     if params['TEST_PUBLISH']:
         print(f"\nEvaluating publish_tables step for {source_table_id}.\n")
@@ -801,7 +802,8 @@ def find_most_recent_published_table_id(params, versioned_table_id):
         # Assuming PDC will use 2-digit minor releases--they said they didn't expect this to ever become 3 digits, and
         # making 900 extraneous calls to google seems wasteful.
         max_minor_release_num = 99
-        split_current_etl_release = params['DC_RELEASE'][1:].split("_")
+        dc_release = params['DC_RELEASE'].replace("V", "")
+        split_current_etl_release = dc_release.split("_")
         # set to current release initially, decremented in loop
         last_major_rel_num = int(split_current_etl_release[0])
         last_minor_rel_num = int(split_current_etl_release[1])
@@ -809,7 +811,8 @@ def find_most_recent_published_table_id(params, versioned_table_id):
         while True:
             if last_minor_rel_num > 0 and last_major_rel_num >= 1:
                 last_minor_rel_num -= 1
-            elif last_major_rel_num > 1:
+            elif last_minor_rel_num == 0 and last_major_rel_num > 1:
+                # go from version (n).0 to version (n-1).99
                 last_major_rel_num -= 1
                 last_minor_rel_num = max_minor_release_num
             else:
