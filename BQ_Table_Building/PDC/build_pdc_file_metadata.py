@@ -368,9 +368,14 @@ def main(args):
         mapping_table_id = f"{BQ_PARAMS['DEV_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{mapping_table_name}"
 
         query = f"""
-        SELECT case_id, count(file_id) AS file_id_count 
-        FROM `{mapping_table_id}` 
-        GROUP BY case_id
+            WITH case_file_ids AS (
+                SELECT distinct case_id, file_id
+                FROM `{mapping_table_id}`
+            )
+            
+            SELECT case_id, count(file_id) AS file_id_count
+            FROM case_file_ids
+            GROUP BY case_id
         """
 
         file_count_table_name = construct_table_name(API_PARAMS, prefix=BQ_PARAMS['FILE_COUNT_TABLE'])
