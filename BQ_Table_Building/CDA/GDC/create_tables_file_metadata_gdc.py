@@ -26,7 +26,7 @@ from typing import Any, Union, Optional
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
 from cda_bq_etl.bq_helpers import query_and_retrieve_result, create_and_upload_schema_for_json, \
-    create_and_load_table_from_jsonl, retrieve_bq_schema_object, publish_table
+    create_and_load_table_from_jsonl, retrieve_bq_schema_object, publish_table, update_table_schema_from_generic
 from cda_bq_etl.utils import format_seconds, load_config, has_fatal_error, create_dev_table_id
 from cda_bq_etl.data_helpers import normalize_flat_json_values, write_list_to_jsonl_and_upload
 
@@ -463,8 +463,10 @@ def main(args):
         # Load jsonl data into BigQuery table
         create_and_load_table_from_jsonl(PARAMS,
                                          jsonl_file=f"file_{PARAMS['RELEASE']}.jsonl",
-                                         table_id=f"{dev_table_id}",
+                                         table_id=dev_table_id,
                                          schema=table_schema)
+
+        update_table_schema_from_generic(params=PARAMS, table_id=dev_table_id)
 
     if 'publish_tables' in steps:
         current_table_name = f"{PARAMS['TABLE_NAME']}_current"
