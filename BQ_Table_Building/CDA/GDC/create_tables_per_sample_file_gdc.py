@@ -393,7 +393,15 @@ def main(args):
 
             schema_tags = get_program_schema_tags_gdc(params=PARAMS, program_name=program)
 
-            update_table_schema_from_generic(params=PARAMS, table_id=table_id, schema_tags=schema_tags)
+            if 'program-label' in schema_tags:
+                metadata_file = PARAMS['METADATA_FILE_SINGLE_PROGRAM']
+            elif 'program-label-1' in schema_tags:
+                metadata_file = PARAMS['METADATA_FILE_MULTI_PROGRAM']
+
+            update_table_schema_from_generic(params=PARAMS,
+                                             table_id=table_id,
+                                             schema_tags=schema_tags,
+                                             metadata_file=metadata_file)
 
             delete_bq_table(no_url_table_id)
 
