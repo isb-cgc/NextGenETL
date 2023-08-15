@@ -837,6 +837,14 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, metadat
 
     # remove underscore, add decimal to version number
     schema_tags['version'] = ".".join(params['DC_RELEASE'].split('_'))
+
+    release = params['DC_RELEASE']
+
+    if params['DC_SOURCE'].lower() == 'gdc':
+        release = release.replace('r', '')
+
+    # remove underscore, add decimal to version number
+    schema_tags['version'] = ".".join(release.split('_'))
     schema_tags['extracted-month-year'] = params['EXTRACTED_MONTH_YEAR']
 
     # gdc uses this
