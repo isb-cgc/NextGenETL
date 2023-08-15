@@ -923,9 +923,6 @@ def add_column_descriptions(params, table_id):
     with open(column_desc_fp) as column_output:
         descriptions = json.load(column_output)
 
-    print("Descriptions!")
-    print(descriptions)
-
     update_schema(table_id, descriptions)
 
 
@@ -942,6 +939,9 @@ def update_schema(table_id, new_descriptions):
 
     for schema_field in table.schema:
         column = schema_field.to_api_repr()
+
+        print("Column!")
+        print(column)
 
         if column['name'] in new_descriptions.keys():
             name = column['name']
