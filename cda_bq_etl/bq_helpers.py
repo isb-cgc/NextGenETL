@@ -839,6 +839,10 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, metadat
     schema_tags['version'] = ".".join(params['DC_RELEASE'].split('_'))
     schema_tags['extracted-month-year'] = params['EXTRACTED_MONTH_YEAR']
 
+    # gdc uses this
+    if 'RELEASE_NOTES_URL' in params:
+        schema_tags['release-notes-url'] = params['RELEASE_NOTES_URL']
+
     add_generic_table_metadata(params=params,
                                table_id=table_id,
                                schema_tags=schema_tags,
