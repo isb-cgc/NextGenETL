@@ -711,8 +711,9 @@ def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
 
     compare_result = query_and_retrieve_result(sql=compare_two_tables_sql())
 
-    if not compare_result:
-        return True
+    if isinstance(compare_result, _EmptyRowIterator):
+        # no distinct result rows, tables match
+        return False
 
     for row in compare_result:
         return True if row else False
