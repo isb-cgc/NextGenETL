@@ -940,9 +940,6 @@ def update_schema(table_id, new_descriptions):
     for schema_field in table.schema:
         column = schema_field.to_api_repr()
 
-        print("Column!")
-        print(column)
-
         if column['name'] in new_descriptions.keys():
             name = column['name']
             column['description'] = new_descriptions[name]
