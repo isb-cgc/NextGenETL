@@ -640,7 +640,7 @@ def publish_table(params: Params, source_table_id: str, current_table_id: str, v
         print(f"current table_id: {current_table_id}")
         print(f"versioned table_id: {versioned_table_id}\n")
 
-        has_new_data = table_has_new_data(previous_versioned_table_id, current_table_id)
+        has_new_data = table_has_new_data(previous_versioned_table_id, source_table_id)
 
         # is there a previous version to compare with new table?
         # use previous_versioned_table_id
