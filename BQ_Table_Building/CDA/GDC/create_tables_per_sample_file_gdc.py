@@ -23,7 +23,8 @@ import sys
 import time
 
 from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds
-from cda_bq_etl.bq_helpers import delete_bq_table, load_table_from_query, query_and_retrieve_result, publish_table
+from cda_bq_etl.bq_helpers import delete_bq_table, load_table_from_query, query_and_retrieve_result, publish_table, \
+    update_table_schema_from_generic, get_program_schema_tags_gdc
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -389,6 +390,10 @@ def main(args):
             load_table_from_query(params=PARAMS,
                                   table_id=table_id,
                                   query=make_add_uris_and_index_file_sql_query(no_url_table_id, drs_uri_table_id))
+
+            schema_tags = get_program_schema_tags_gdc(params=PARAMS, program_name=program)
+
+            update_table_schema_from_generic(params=PARAMS, table_id=table_id, schema_tags=schema_tags)
 
             delete_bq_table(no_url_table_id)
 

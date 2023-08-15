@@ -30,7 +30,8 @@ from google.cloud.exceptions import NotFound
 from google.cloud.bigquery import SchemaField, Client, LoadJobConfig, QueryJob
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
-from cda_bq_etl.utils import has_fatal_error, get_filename, get_scratch_fp, input_with_timeout, get_filepath
+from cda_bq_etl.utils import has_fatal_error, get_filename, get_scratch_fp, input_with_timeout, get_filepath, \
+    construct_table_name
 from cda_bq_etl.gcs_helpers import download_from_bucket, upload_to_bucket
 from cda_bq_etl.data_helpers import recursively_detect_object_structures, get_column_list_tsv, \
     aggregate_column_data_types_tsv, resolve_type_conflicts, resolve_type_conflict
@@ -835,9 +836,6 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, metadat
     if schema_tags is None:
         schema_tags = dict()
 
-    # remove underscore, add decimal to version number
-    schema_tags['version'] = ".".join(params['DC_RELEASE'].split('_'))
-
     release = params['DC_RELEASE']
 
     if params['DC_SOURCE'].lower() == 'gdc':
@@ -954,3 +952,100 @@ def update_schema(table_id, new_descriptions):
     table.schema = new_schema
 
     client.update_table(table, ['schema'])
+
+
+def get_project_program_names(params, project_submitter_id):
+    """
+    Get project short name, program short name and project name for given project submitter id.
+    :param params: params from YAML config
+    :param project_submitter_id: Project submitter id for which to retrieve names
+    :return: tuple containing (project_short_name, program_short_name, project_name) strings
+    """
+
+    study_table_name = (params=params, prefix=prefix)
+    study_table_id = f"{params['DEV_PROJECT']}.{params['META_DATASET']}.{study_table_name}"
+
+    query = f"""
+        SELECT project_short_name, program_short_name, project_name, project_friendly_name, program_labels
+        FROM {study_table_id}
+        WHERE project_submitter_id = '{project_submitter_id}'
+        LIMIT 1
+    """
+
+    res = query_and_retrieve_result(sql=query)
+
+    for row in res:
+        if not row:
+            has_fatal_error(f"No result for query: {query}")
+        project_short_name = row[0]
+        program_short_name = row[1]
+        project_name = row[2]
+        project_friendly_name = row[3]
+        program_labels = row[4]
+
+        project_name_dict = {
+            "project_short_name": project_short_name,
+            "program_short_name": program_short_name,
+            "project_name": project_name,
+            "project_friendly_name": project_friendly_name,
+            "program_labels": program_labels
+        }
+
+        return project_name_dict
+
+
+def get_project_level_schema_tags(params, project_submitter_id):
+    """
+    Get project-level schema tags for populating generic table metadata schema.
+    :param params: params from YAML config
+    :param project_submitter_id: Project submitter id for which to retrieve schema tags
+    :return: Dict of schema tags
+    """
+    project_name_dict = get_project_program_names(params, project_submitter_id)
+
+    program_labels_list = project_name_dict['program_labels'].split("; ")
+
+    if len(program_labels_list) > 2:
+        has_fatal_error("PDC clinical isn't set up to handle >2 program labels yet; support needs to be added.")
+    elif len(program_labels_list) == 0:
+        has_fatal_error(f"No program label included for {project_submitter_id}, please add to PDCStudy.yaml")
+    elif len(program_labels_list) == 2:
+        return {
+            "project-name": project_name_dict['project_name'],
+            "mapping-name": "",  # only used by clinical, but including it elsewhere is harmless
+            "friendly-project-name-upper": project_name_dict['project_friendly_name'],
+            "program-name-0-lower": program_labels_list[0].lower(),
+            "program-name-1-lower": program_labels_list[1].lower()
+        }
+    else:
+        return {
+            "project-name": project_name_dict['project_name'],
+            "mapping-name": "",  # only used by clinical, but including it elsewhere is harmless
+            "friendly-project-name-upper": project_name_dict['project_friendly_name'],
+            "program-name-lower": project_name_dict['program_labels'].lower()
+        }
+
+
+def get_program_schema_tags_gdc(params, program_name):
+    metadata_mappings_path = f"{params['BQ_REPO']}/{params['PROGRAM_METADATA_DIR']}"
+    program_metadata_fp = get_filepath(f"{metadata_mappings_path}/{params['PROGRAM_METADATA_FILE']}")
+
+    with open(program_metadata_fp, 'r') as fh:
+        program_metadata_dict = json.load(fh)
+
+        program_metadata = program_metadata_dict[program_name]
+
+        schema_tags = dict()
+
+        schema_tags['program-name'] = program_metadata['friendly_name']
+        schema_tags['friendly-name'] = program_metadata['friendly_name']
+
+        if 'program_label' in program_metadata:
+            schema_tags['program-label'] = program_metadata['program_label']
+        elif 'program_label_0' in program_metadata and 'program_label_1' in program_metadata:
+            schema_tags['program-label-0'] = program_metadata['program_label_0']
+            schema_tags['program-label-1'] = program_metadata['program_label_1']
+        else:
+            has_fatal_error("Did not find program_label OR program_label_0 and program_label_1 in schema json file.")
+
+        return schema_tags
