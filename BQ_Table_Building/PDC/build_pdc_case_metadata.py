@@ -144,7 +144,7 @@ def make_case_metadata_table_query():
                 fc.file_id_count as file_count
             FROM `{case_external_mapping_table_id}` c
             JOIN `{study_table_id}` s
-                ON c.project_submitter_id = s.project_submitter_id
+                ON c.project_id = s.project_id
             JOIN `{file_count_table_id}` fc
                 ON c.case_id = fc.case_id
         )
@@ -188,7 +188,7 @@ def make_aliquot_to_case_id_query():
             SELECT DISTINCT ext_map.case_id, studies.program_name, studies.project_name
             FROM `{case_external_mapping_table_id}` ext_map
             JOIN `{study_table_id}` studies
-                ON studies.project_submitter_id = ext_map.project_submitter_id
+                ON studies.project_id = ext_map.project_id
         )
         
         SELECT p.program_name, p.project_name, 

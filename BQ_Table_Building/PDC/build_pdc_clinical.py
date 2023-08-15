@@ -52,7 +52,8 @@ def make_cases_query():
     return """{
         allCases (acceptDUA: true) {
             case_id 
-            case_submitter_id 
+            case_submitter_id
+            project_id
             project_submitter_id 
             primary_site 
             disease_type

@@ -154,21 +154,21 @@ def extract_active_aliquot_file_data_sql(release_table, program_name):
               ELSE CAST(null AS STRING)
             END as aliquot_id_three,
             CASE WHEN LENGTH(TRIM(a.associated_entities__entity_gdc_id)) -
-                      LENGTH(TRIM(REPLACE(a.associated_entities__entity_gdc_id, ";", ""))) = 3
+                      LENGTH(TRIM(REPLACE(a.associated_entities__entity_gdc_id, ";", ""))) >= 3
                  THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
-                                     r"^[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$")
+                                     r"^[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;([a-zA-Z0-9-]+).*$")
               ELSE CAST(null AS STRING)
             END as aliquot_id_four,
             CASE WHEN LENGTH(TRIM(a.associated_entities__entity_gdc_id)) -
                       LENGTH(TRIM(REPLACE(a.associated_entities__entity_gdc_id, ";", ""))) = 4
                  THEN REGEXP_EXTRACT(a.associated_entities__entity_gdc_id,
-                                     r"^[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$")
+                                     r"^[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;[a-zA-Z0-9-]+;([a-zA-Z0-9-]+)$")
               ELSE CAST(null AS STRING)
             END as aliquot_id_five,
             a.project_short_name, # TCGA-OV
             # Take everything after first hyphen, including following hyphens:
             CASE WHEN (a.project_short_name LIKE '%-%') THEN
-                   REGEXP_EXTRACT(project_short_name, r"^[A-Z0-9\.]+-(.+$)")
+                   REGEXP_EXTRACT(project_short_name, r"^[^-]*-(.*)$")
                  ELSE
                    CAST(null AS STRING)
             END as project_short_name_suffix, # not always disease code anymore, traditionally e.g. "OV"
@@ -357,7 +357,7 @@ def extract_file_data_sql_slides(release_table, program_name):
             a.project_short_name, # TCGA-OV
             # Take everything after first hyphen, including following hyphens:
             CASE WHEN (a.project_short_name LIKE '%-%') THEN
-                   REGEXP_EXTRACT(project_short_name, r"^[A-Z0-9\.]+-(.+$)")
+                   REGEXP_EXTRACT(project_short_name, r"^[^-]*-(.*)$")
                  ELSE
                    CAST(null AS STRING)
             END as project_short_name_suffix, # not always disease code anymore, traditionally e.g. "OV"
@@ -414,7 +414,7 @@ def repair_missing_case_data_sql_slides(case_table, broken_table):
         WITH
            a1 AS
           (SELECT case_gdc_id, project_id, case_barcode,
-             REGEXP_EXTRACT(project_id, r"^[A-Z]+-([A-Z]+$)") as project_short_name_suffix,
+             REGEXP_EXTRACT(project_id, r"^[^-]*-(.*)$") as project_short_name_suffix,
              program_name # TCGA
            FROM `{0}`
            ),
@@ -472,7 +472,7 @@ def extract_active_case_file_data_sql(release_table, program_name):
             a.project_short_name, # TCGA-OV
             # Take everything after first hyphen, including following hyphens:
             CASE WHEN (a.project_short_name LIKE '%-%') THEN
-                   REGEXP_EXTRACT(project_short_name, r"^[A-Z0-9\.]+-(.+$)")
+                   REGEXP_EXTRACT(project_short_name, r"^[^-]*-(.*)$")
                  ELSE
                    CAST(null AS STRING)
             END as project_short_name_suffix, # not always disease code anymore, traditionally e.g. "OV"
