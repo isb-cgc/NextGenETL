@@ -395,7 +395,7 @@ def main(args):
 
             if 'program-label' in schema_tags:
                 metadata_file = PARAMS['METADATA_FILE_SINGLE_PROGRAM']
-            elif 'program-label-1' in schema_tags:
+            else:
                 metadata_file = PARAMS['METADATA_FILE_MULTI_PROGRAM']
 
             update_table_schema_from_generic(params=PARAMS,

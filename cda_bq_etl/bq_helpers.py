@@ -923,6 +923,9 @@ def add_column_descriptions(params, table_id):
     with open(column_desc_fp) as column_output:
         descriptions = json.load(column_output)
 
+    print("Descriptions!")
+    print(descriptions)
+
     update_schema(table_id, descriptions)
 
 
