@@ -40,7 +40,9 @@ def make_file_metadata_query() -> str:
                 STRING_AGG(DISTINCT instrument, ';') AS instruments
             FROM `{create_dev_table_id(PARAMS, 'file_instrument')}`
             GROUP BY file_id
-        ), embargoes AS (
+        )
+        # todo can remove this?
+        , embargoes AS (
             SELECT fs.file_id,
                 STRING_AGG(DISTINCT s.embargo_date, ';') AS embargo_dates
             FROM `{create_dev_table_id(PARAMS, 'file_study_id')}` fs
@@ -58,7 +60,7 @@ def make_file_metadata_query() -> str:
         
         SELECT f.file_id,
             f.file_name,
-            e.embargo_dates AS embargo_date,
+            # e.embargo_dates AS embargo_date,
             si.pdc_study_ids,
             srm.study_run_metadata_id,
             srm.study_run_metadata_submitter_id,
@@ -76,14 +78,15 @@ def make_file_metadata_query() -> str:
         FROM `{create_dev_table_id(PARAMS, 'file')}` f
         LEFT JOIN embargoes e
             ON e.file_id = f.file_id
-        LEFT JOIN file_instruments fi
-            ON fi.file_id = f.file_id
         LEFT JOIN study_ids si
             ON si.file_id = f.file_id
         LEFT JOIN `{create_dev_table_id(PARAMS, 'file_study_run_metadata_id')}` fsrm
             ON fsrm.file_id = f.file_id
+        # todo this is currently broken in PDC pipeline, awaiting fix from CDA
         LEFT JOIN `{create_dev_table_id(PARAMS, 'studyrunmetadata')}` srm
             ON srm.study_run_metadata_id = fsrm.study_run_metadata_id
+        LEFT JOIN file_instruments fi
+            ON fi.file_id = f.file_id
     """
 
 

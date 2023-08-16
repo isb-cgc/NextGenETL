@@ -26,9 +26,8 @@ from typing import Optional, Any
 
 from cda_bq_etl.data_helpers import normalize_flat_json_values, write_list_to_jsonl_and_upload
 from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds, get_filepath
-from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, query_and_retrieve_result, \
-    create_and_upload_schema_for_json, retrieve_bq_schema_object, create_and_load_table_from_jsonl, \
-    update_table_schema_from_generic
+from cda_bq_etl.bq_helpers import publish_table, query_and_retrieve_result, update_table_schema_from_generic, \
+    create_and_upload_schema_for_json, retrieve_bq_schema_object, create_and_load_table_from_jsonl
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -122,7 +121,7 @@ def make_study_primary_site_query() -> str:
 
 
 def create_study_record_list() -> list[dict[str, Optional[Any]]]:
-    project_metadata = get_project_metadata()
+    project_metadata_records = get_project_metadata()
     study_friendly_names = get_study_friendly_names()
 
     study_record_result = query_and_retrieve_result(sql=make_study_query())
@@ -151,13 +150,19 @@ def create_study_record_list() -> list[dict[str, Optional[Any]]]:
 
         pdc_study_id = row.get('pdc_study_id')
         study_friendly_name = study_friendly_names[pdc_study_id]
+        project_metadata = project_metadata_records[project_submitter_id]
 
-        project_metadata_record = project_metadata[project_submitter_id]
+        project_short_name = project_metadata['project_short_name']
+        project_friendly_name = project_metadata['project_friendly_name']
+        program_short_name = project_metadata['program_short_name']
 
-        project_short_name = project_metadata_record['project_short_name']
-        project_friendly_name = project_metadata_record['project_friendly_name']
-        program_short_name = project_metadata_record['program_short_name']
-        program_labels = project_metadata_record['program_labels']
+        if 'program_label' in project_metadata:
+            program_labels = project_metadata['program_label']
+        elif 'program_label_0' in project_metadata and 'program_label_1' in project_metadata:
+            program_labels = f"{project_metadata['program_label_0']}; {project_metadata['program_label_1']}"
+        else:
+            has_fatal_error(f"No program labels found for {project_submitter_id} in {PARAMS['PROJECT_METADATA_FILE']}.")
+            exit()   # just used to quiet PyCharm warnings, not needed
 
         disease_type = study_disease_types_records[pdc_study_id]['disease_type']
         primary_site = study_primary_site_records[pdc_study_id]['primary_site']

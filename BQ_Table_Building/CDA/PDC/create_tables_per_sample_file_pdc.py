@@ -22,11 +22,59 @@ SOFTWARE.
 import sys
 import time
 
+from cda_bq_etl.data_helpers import get_pdc_projects_list
 from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds
 from cda_bq_etl.bq_helpers import load_table_from_query, publish_table
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
+
+
+def make_project_per_sample_file_query(project_submitter_id):
+    return f"""
+        WITH file_instruments AS (
+            SELECT file_id, 
+                STRING_AGG(DISTINCT instrument, ';') AS instruments
+            FROM `{create_dev_table_id(PARAMS, 'file_instrument')}`
+            GROUP BY file_id
+        )
+
+        SELECT f.file_id,
+            c.case_id,
+            c.case_submitter_id,
+            s.sample_id,
+            s.sample_submitter_id,
+            s.sample_type,
+            study.project_short_name,
+            study.project_submitter_id,
+            study.program_short_name,
+            study.program_name,
+            f.data_category,
+            f.experiment_type,
+            f.file_type,
+            f.file_size,
+            f.file_format,
+            fi.instruments AS instrument,
+            f.file_name,
+            f.file_location,
+            "open" AS `access`
+        FROM `{create_dev_table_id(PARAMS, 'file')}` f
+        JOIN `{create_dev_table_id(PARAMS, 'file_case_id')}` fc
+            ON fc.file_id = f.file_id
+        JOIN `{create_dev_table_id(PARAMS, 'case')}` c
+            ON c.case_id = fc.case_id
+        JOIN `{create_dev_table_id(PARAMS, 'sample_case_id')}` sc
+            ON sc.case_id = c.case_id
+        JOIN `{create_dev_table_id(PARAMS, 'sample')}` s
+            ON s.sample_id = sc.sample_id
+        JOIN `{create_dev_table_id(PARAMS, 'file_study_id')}` fs
+            ON fs.file_id = f.file_id
+        JOIN `{create_dev_table_id(PARAMS, 'study')}` study
+            ON study.study_id = fs.study_id
+        JOIN file_instruments fi
+            ON fi.file_id = f.file_id
+        WHERE study.project_submitter_id = '{project_submitter_id}'
+    """
 
 
 def main(args):
@@ -38,7 +86,18 @@ def main(args):
 
     start_time = time.time()
 
-    # code here
+    projects_list = get_pdc_projects_list(PARAMS)
+
+    if 'create_project_tables' in steps:
+        for project in projects_list:
+            project_table_name = f"{PARAMS['TABLE_NAME']}_{project['project_short_name']}_{PARAMS['RELEASE']}"
+            project_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{project_table_name}"
+
+            load_table_from_query(params=PARAMS,
+                                  table_id=project_table_id,
+                                  query=make_project_per_sample_file_query(project['project_submitter_id']))
+
+            if
 
     end_time = time.time()
 
