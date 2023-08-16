@@ -30,8 +30,7 @@ from google.cloud.exceptions import NotFound
 from google.cloud.bigquery import SchemaField, Client, LoadJobConfig, QueryJob
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
-from cda_bq_etl.utils import has_fatal_error, get_filename, get_scratch_fp, input_with_timeout, get_filepath, \
-    construct_table_name
+from cda_bq_etl.utils import has_fatal_error, get_filename, get_scratch_fp, input_with_timeout, get_filepath
 from cda_bq_etl.gcs_helpers import download_from_bucket, upload_to_bucket
 from cda_bq_etl.data_helpers import recursively_detect_object_structures, get_column_list_tsv, \
     aggregate_column_data_types_tsv, resolve_type_conflicts, resolve_type_conflict
@@ -724,7 +723,7 @@ def update_friendly_name(params: Params, table_id: str, custom_name: Optional[st
     Modify BigQuery table's friendly name.
     :param params: API params, supplied via yaml config
     :param table_id: table id in standard SQL format
-    if is_gdc and no custom_name is specified, , we add REL before the version onto the existing friendly name;
+    if is_gdc and no custom_name is specified, we add REL before the version onto the existing friendly name;
         if custom_name is specified, this behavior is overridden, and the table's friendly name is replaced entirely.
     :param custom_name: specifies a custom friendly name;
            by default, if is_gdc, the following is appended to the friendly name for versioned tables:
