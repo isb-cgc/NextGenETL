@@ -126,6 +126,8 @@ def create_study_record_list() -> list[dict[str, Optional[Any]]]:
         pdc_study_id = row.get('pdc_study_id')
         study_disease_types_primary_site_records[pdc_study_id] = dict(row)
 
+        # todo eliminate duplicates
+
     study_records = list()
 
     for row in study_record_result:
