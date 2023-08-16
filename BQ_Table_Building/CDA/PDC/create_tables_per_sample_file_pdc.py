@@ -22,12 +22,53 @@ SOFTWARE.
 import sys
 import time
 
-from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, update_table_schema_from_generic
+from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, update_table_schema_from_generic, \
+    exists_bq_table, query_and_retrieve_result
 from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds
-from cda_bq_etl.data_helpers import get_pdc_projects_list
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
+
+
+def get_pdc_projects_list(params):
+    """
+    Return current list of PDC projects (pulled from study metadata table in BQEcosystem repo).
+    :param params: params from YAML config
+    """
+    def make_all_studies_query() -> str:
+        return f"""
+            SELECT * 
+            FROM `{studies_table_id}` 
+        """
+
+    studies_table_id = f"{params['DEV_PROJECT']}.{params['DEV_METADATA_DATASET']}.studies_{params['RELEASE']}"
+
+    if not exists_bq_table(studies_table_id):
+        has_fatal_error("Studies table for release {} does not exist. "
+                        "Run studies build script prior to running this script.")
+
+    studies_result = query_and_retrieve_result(make_all_studies_query())
+
+    studies_list = list()
+
+    for study in studies_result:
+        studies_list.append(dict(study.items()))
+
+    projects_list = list()
+    projects_set = set()
+
+    for study in studies_list:
+        if study['project_short_name'] not in projects_set:
+            projects_list.append({
+                'project_friendly_name': study['project_friendly_name'],
+                'project_short_name': study['project_short_name'],
+                'project_submitter_id': study['project_submitter_id'],
+                'program_short_name': study['program_short_name']
+            })
+
+            projects_set.add(study['project_short_name'])
+
+    return projects_list
 
 
 def make_project_per_sample_file_query(project_submitter_id):
