@@ -80,10 +80,10 @@ def make_study_query() -> str:
             s.experiment_type,
             proj.project_id,
             proj.project_submitter_id,
-            proj.project_name,
+            proj.name AS project_name,
             prog.program_id,
             prog.program_submitter_id,
-            prog.program_name,
+            prog.name AS program_name,
             prog.program_manager,
             prog.start_date,
             prog.end_date
