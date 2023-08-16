@@ -40,34 +40,6 @@ RowDict = dict[str, Union[None, str, float, int, bool]]
 JSONList = list[RowDict]
 
 
-'''
-def convert_concat_to_multi(value_string: str, max_length: int = 8, filter_duplicates: bool = False) -> str:
-    """
-    Evaluate number of values in concatenated string. If > max_length, set value to "multi" instead
-    :param value_string: string containing 0 or more id values, concatenated by ';' if multiple values
-    :param max_length: maximum number of values allowed in string before we substitute "multi"; Default is 8
-    :param filter_duplicates: If true, remove any duplicate ids before conversion check
-    :return: value string, either in original form, stripped of duplicates, or reset to "multi"
-    """
-    if filter_duplicates:
-        value_set = set(value_string.split(';'))
-        string_length = len(value_set)
-        value_string = ';'.join(value_set)
-    else:
-        string_length = len(value_string.split(';'))
-
-    if string_length > 1:
-        print("*** In convert_concat_to_multi!")
-        print(f"string_length: {string_length}, max_length: {max_length}")
-
-    if string_length > max_length:
-        print("multi!\n")
-        return 'multi'
-    else:
-        return value_string
-'''
-
-
 def convert_concat_to_multi(value_string: str, max_length: int = 8, filter_duplicates: bool = False) -> str:
     """
     Evaluate number of values in concatenated string. If > max_length, set value to "multi" instead
@@ -474,7 +446,9 @@ def main(args):
         versioned_table_name = f"{PARAMS['TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
         versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}_versioned.{versioned_table_name}"
 
-        publish_table(params=PARAMS, source_table_id=dev_table_id, current_table_id=current_table_id,
+        publish_table(params=PARAMS,
+                      source_table_id=dev_table_id,
+                      current_table_id=current_table_id,
                       versioned_table_id=versioned_table_id)
 
     end_time = time.time()
