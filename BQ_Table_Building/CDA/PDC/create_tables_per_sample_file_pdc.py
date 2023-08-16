@@ -24,7 +24,7 @@ import time
 
 from cda_bq_etl.data_helpers import get_pdc_projects_list
 from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds
-from cda_bq_etl.bq_helpers import load_table_from_query, publish_table
+from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, update_table_schema_from_generic
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -97,7 +97,46 @@ def main(args):
                                   table_id=project_table_id,
                                   query=make_project_per_sample_file_query(project['project_submitter_id']))
 
-            if
+            schema_tags = dict()
+
+            if 'program_label' in project:
+                schema_tags['program-name-lower'] = project['program_label'].lower().strip()
+
+                generic_table_metadata_file = PARAMS['GENERIC_TABLE_METADATA_FILE']
+            elif 'program_label_0' in project and 'program_label_1' in project:
+                schema_tags['program-name-0-lower'] = project['program_label_0'].lower().strip()
+                schema_tags['program-name-1-lower'] = project['program_label_1'].lower().strip()
+
+                generic_table_metadata_file = PARAMS['GENERIC_TABLE_METADATA_FILE_2_PROGRAM']
+            else:
+                has_fatal_error(f"No program labels found for {project['project_submitter_id']}.")
+                exit()  # just used to quiet PyCharm warnings, not needed
+
+            schema_tags['project-name'] = project['project_short_name'].strip()
+            schema_tags['friendly-project-name-upper'] = project['project_friendly_name'].upper().strip()
+
+            update_table_schema_from_generic(params=PARAMS,
+                                             table_id=project_table_id,
+                                             schema_tags=schema_tags,
+                                             metadata_file=generic_table_metadata_file)
+    if 'publish_tables' in steps:
+        for project in projects_list:
+            project_name = project['project_short_name']
+            program_name = project['program_short_name']
+
+            project_table_name = f"{PARAMS['TABLE_NAME']}_{project_name}_{PARAMS['RELEASE']}"
+            project_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{project_table_name}"
+
+            current_table_name = f"{PARAMS['TABLE_NAME']}_{project_name}_{PARAMS['DC_SOURCE']}_current"
+            current_table_id = f"{PARAMS['PROD_PROJECT']}.{program_name}.{current_table_name}"
+
+            versioned_table_name = f"{PARAMS['TABLE_NAME']}_{project_name}_{PARAMS['DC_SOURCE']}_{PARAMS['DC_RELEASE']}"
+            versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{program_name}_versioned.{versioned_table_name}"
+
+            publish_table(params=PARAMS,
+                          source_table_id=project_table_id,
+                          current_table_id=current_table_id,
+                          versioned_table_id=versioned_table_id)
 
     end_time = time.time()
 
