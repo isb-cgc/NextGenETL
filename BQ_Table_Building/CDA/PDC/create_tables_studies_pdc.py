@@ -97,15 +97,24 @@ def make_study_query() -> str:
     """
 
 
-def make_study_disease_type_primary_site_query() -> str:
+def make_study_disease_type_query() -> str:
     return f"""
         SELECT s.pdc_study_id,
             s.study_id,
             STRING_AGG(sdt.disease_type, ';') AS disease_type,
-            STRING_AGG(sps.primary_site, ';') AS primary_site
         FROM `{create_dev_table_id(PARAMS, "study")}` s
         LEFT JOIN `{create_dev_table_id(PARAMS, "study_disease_type")}` sdt
             ON s.study_id = sdt.study_id
+        GROUP BY s.pdc_study_id, s.study_id
+    """
+
+
+def make_study_primary_site_query() -> str:
+    return f"""
+        SELECT s.pdc_study_id,
+            s.study_id,
+            STRING_AGG(sps.primary_site, ';') AS primary_site
+        FROM `{create_dev_table_id(PARAMS, "study")}` s
         LEFT JOIN `{create_dev_table_id(PARAMS, "study_primary_site")}` sps
             ON s.study_id = sps.study_id
         GROUP BY s.pdc_study_id, s.study_id
@@ -118,15 +127,19 @@ def create_study_record_list() -> list[dict[str, Optional[Any]]]:
 
     study_record_result = query_and_retrieve_result(sql=make_study_query())
 
-    study_disease_type_primary_site_result = query_and_retrieve_result(sql=make_study_disease_type_primary_site_query())
+    study_disease_type_result = query_and_retrieve_result(sql=make_study_disease_type_query())
+    study_primary_site_result = query_and_retrieve_result(sql=make_study_primary_site_query())
 
-    study_disease_types_primary_site_records = dict()
+    study_disease_types_records = dict()
+    study_primary_site_records = dict()
 
-    for row in study_disease_type_primary_site_result:
+    for row in study_disease_type_result:
         pdc_study_id = row.get('pdc_study_id')
-        study_disease_types_primary_site_records[pdc_study_id] = dict(row)
+        study_disease_types_records[pdc_study_id] = dict(row)
 
-        # todo eliminate duplicates
+    for row in study_primary_site_result:
+        pdc_study_id = row.get('pdc_study_id')
+        study_primary_site_records[pdc_study_id] = dict(row)
 
     study_records = list()
 
@@ -146,8 +159,8 @@ def create_study_record_list() -> list[dict[str, Optional[Any]]]:
         program_short_name = project_metadata_record['program_short_name']
         program_labels = project_metadata_record['program_labels']
 
-        disease_type = study_disease_types_primary_site_records[pdc_study_id]['disease_type']
-        primary_site = study_disease_types_primary_site_records[pdc_study_id]['primary_site']
+        disease_type = study_disease_types_records[pdc_study_id]['disease_type']
+        primary_site = study_primary_site_records[pdc_study_id]['primary_site']
 
         study_records.append({
             'embargo_date': row.get('embargo_date'),
