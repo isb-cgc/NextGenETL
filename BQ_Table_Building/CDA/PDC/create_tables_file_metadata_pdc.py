@@ -82,7 +82,7 @@ def make_file_metadata_query() -> str:
             ON si.file_id = f.file_id
         LEFT JOIN `{create_dev_table_id(PARAMS, 'file_study_run_metadata_id')}` fsrm
             ON fsrm.file_id = f.file_id
-        LEFT JOIN `{create_dev_table_id(PARAMS, 'study_run_metadata')}` srm
+        LEFT JOIN `{create_dev_table_id(PARAMS, 'studyrunmetadata')}` srm
             ON srm.study_run_metadata_id = fsrm.study_run_metadata_id
     """
 
