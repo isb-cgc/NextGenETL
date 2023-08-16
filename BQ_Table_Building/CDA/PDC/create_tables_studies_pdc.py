@@ -107,6 +107,8 @@ def create_study_record_list() -> list[dict[str, Optional[Any]]]:
     project_metadata = get_project_metadata()
     study_friendly_names = get_study_friendly_names()
 
+    print(make_study_query())
+
     study_record_result = query_and_retrieve_result(sql=make_study_query())
 
     study_records = list()
