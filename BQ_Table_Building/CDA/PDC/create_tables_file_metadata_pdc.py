@@ -98,6 +98,8 @@ def main(args):
 
     dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
 
+    print(make_file_metadata_query())
+
     if 'create_table_from_query' in steps:
         load_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_file_metadata_query())
 
