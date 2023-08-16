@@ -74,8 +74,6 @@ def make_study_query() -> str:
             s.pdc_study_id,
             s.study_id,
             s.analytical_fraction,
-            STRING_AGG(sdt.disease_type, ';') AS disease_type,
-            STRING_AGG(sps.primary_site, ';') AS primary_site,
             s.acquisition_type,
             s.experiment_type,
             proj.project_id,
@@ -88,10 +86,6 @@ def make_study_query() -> str:
             prog.start_date,
             prog.end_date
         FROM `{create_dev_table_id(PARAMS, "study")}` s
-        JOIN `{create_dev_table_id(PARAMS, "study_disease_type")}` sdt
-            ON s.study_id = sdt.study_id
-        JOIN `{create_dev_table_id(PARAMS, "study_primary_site")}` sps
-            ON s.study_id = sps.study_id
         JOIN `{create_dev_table_id(PARAMS, "project_study_id")}` proj_study
             ON s.study_id = proj_study.study_id
         JOIN `{create_dev_table_id(PARAMS, "project")}` proj
@@ -103,6 +97,21 @@ def make_study_query() -> str:
     """
 
 
+def make_study_disease_type_primary_site_query() -> str:
+    return f"""
+        SELECT s.pdc_study_id,
+            s.study_id,
+            STRING_AGG(sdt.disease_type, ';') AS disease_type,
+            STRING_AGG(sps.primary_site, ';') AS primary_site
+        FROM `{create_dev_table_id(PARAMS, "study")}` s
+        LEFT JOIN `{create_dev_table_id(PARAMS, "study_disease_type")}` sdt
+            ON s.study_id = sdt.study_id
+        LEFT JOIN `{create_dev_table_id(PARAMS, "study_primary_site")}` sps
+            ON s.study_id = sps.study_id
+        GROUP BY s.pdc_study_id, s.study_id
+    """
+
+
 def create_study_record_list() -> list[dict[str, Optional[Any]]]:
     project_metadata = get_project_metadata()
     study_friendly_names = get_study_friendly_names()
@@ -110,6 +119,14 @@ def create_study_record_list() -> list[dict[str, Optional[Any]]]:
     print(make_study_query())
 
     study_record_result = query_and_retrieve_result(sql=make_study_query())
+
+    study_disease_type_primary_site_result = query_and_retrieve_result(sql=make_study_disease_type_primary_site_query())
+
+    study_disease_types_primary_site_records = dict()
+
+    for row in study_disease_type_primary_site_result:
+        pdc_study_id = row.get('pdc_study_id')
+        study_disease_types_primary_site_records[pdc_study_id] = dict(row)
 
     study_records = list()
 
@@ -129,6 +146,9 @@ def create_study_record_list() -> list[dict[str, Optional[Any]]]:
         program_short_name = project_metadata_record['program_short_name']
         program_labels = project_metadata_record['program_labels']
 
+        disease_type = study_disease_types_primary_site_records[pdc_study_id]['disease_type']
+        primary_site = study_disease_types_primary_site_records[pdc_study_id]['primary_site']
+
         study_records.append({
             'embargo_date': row.get('embargo_date'),
             'study_name': row.get('study_name'),
@@ -138,8 +158,8 @@ def create_study_record_list() -> list[dict[str, Optional[Any]]]:
             'study_id': row.get('study_id'),
             'study_friendly_name': study_friendly_name,
             'analytical_fraction': row.get('analytical_fraction'),
-            'disease_type': row.get('disease_type'),
-            'primary_site': row.get('primary_site'),
+            'disease_type': disease_type,
+            'primary_site': primary_site,
             'acquisition_type': row.get('acquisition_type'),
             'experiment_type': row.get('experiment_type'),
             'project_id': row.get('project_id'),
