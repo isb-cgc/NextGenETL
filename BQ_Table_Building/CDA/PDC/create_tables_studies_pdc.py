@@ -29,6 +29,32 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
+def make_study_query() -> str:
+    return """
+        SELECT s.embargo_date,
+            s.study_name,
+            s.study_submitter_id,
+            s.submitter_id_name,
+            s.pdc_study_id,
+            s.study_id,
+            s.analytical_fraction,
+            STRING_AGG(sdt.disease_type, ';') AS disease_type,
+            STRING_AGG(sps.primary_site, ';') AS primary_site,
+            s.acquisition_type,
+            s.experiment_type,
+            proj.project_id,
+            proj.project_submitter_id,
+            pproj.project_name,
+            prog.program_id,
+            prog.program_submitter_id,
+            prog.program_name,
+            prog.program_manager,
+            prog.start_date,
+            prog.end_date
+        FROM `isb-project-zero.cda_pdc_raw.study_`
+    """
+
+
 def main(args):
     try:
         global PARAMS

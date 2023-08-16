@@ -22,7 +22,7 @@ SOFTWARE.
 import sys
 import time
 
-from cda_bq_etl.utils import load_config, has_fatal_error, format_seconds
+from cda_bq_etl.utils import load_config, has_fatal_error, format_seconds, create_dev_table_id
 from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, update_table_schema_from_generic
 
 PARAMS = dict()
@@ -55,22 +55,22 @@ def make_aliquot_table_query() -> str:
             s.longest_dimension, 
             a.aliquot_id, 
             a.aliquot_submitter_id
-        FROM `isb-project-zero.cda_pdc_raw.2023_06_aliquot` a
-        JOIN `isb-project-zero.cda_pdc_raw.2023_06_sample_aliquot_id` sa
+        FROM `{create_dev_table_id(PARAMS, "aliquot")}` a
+        JOIN `{create_dev_table_id(PARAMS, "sample_aliquot_id")}` sa
             ON a.aliquot_id = sa.aliquot_id
-        JOIN `isb-project-zero.cda_pdc_raw.2023_06_sample` s
+        JOIN `{create_dev_table_id(PARAMS, "sample")}` s
             ON sa.sample_id = s.sample_id
-        JOIN `isb-project-zero.cda_pdc_raw.2023_06_case_sample_id` cs
+        JOIN `{create_dev_table_id(PARAMS, "case_sample_id")}` cs
             ON cs.sample_id = s.sample_id
-        JOIN `isb-project-zero.cda_pdc_raw.2023_06_case` c
+        JOIN `{create_dev_table_id(PARAMS, "case")}` c
             ON cs.case_id = c.case_id
-        JOIN `isb-project-zero.cda_pdc_raw.2023_06_case_project_id` cp
+        JOIN `{create_dev_table_id(PARAMS, "case_project_id")}` cp
             ON cp.case_id = c.case_id
-        JOIN `isb-project-zero.cda_pdc_raw.2023_06_project` proj
+        JOIN `{create_dev_table_id(PARAMS, "project")}` proj
             ON proj.project_id = cp.project_id
-        JOIN `isb-project-zero.cda_pdc_raw.2023_06_program_project_id` pp
+        JOIN `{create_dev_table_id(PARAMS, "program_project_id")}` pp
             ON pp.project_id = proj.project_id
-        JOIN `isb-project-zero.cda_pdc_raw.2023_06_program` prog
+        JOIN `{create_dev_table_id(PARAMS, "program")}` prog
             ON prog.program_id = pp.program_id
     """
 

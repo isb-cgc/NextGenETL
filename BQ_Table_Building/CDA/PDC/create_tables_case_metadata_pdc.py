@@ -22,7 +22,7 @@ SOFTWARE.
 import sys
 import time
 
-from cda_bq_etl.utils import load_config, has_fatal_error, format_seconds
+from cda_bq_etl.utils import load_config, has_fatal_error, format_seconds, create_dev_table_id
 from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, update_table_schema_from_generic
 
 PARAMS = dict()
@@ -37,7 +37,7 @@ def make_case_metadata_query() -> str:
     return f"""
         WITH file_counts AS (
             SELECT case_id, COUNT(file_id) AS file_count
-            FROM `isb-project-zero.cda_pdc_raw.2023_06_file_case_id`
+            FROM `{create_dev_table_id(PARAMS, "file_case_id")}`
             GROUP BY case_id
         )
 
@@ -49,17 +49,17 @@ def make_case_metadata_query() -> str:
             prog.name AS program_name,
             proj.project_id,
             fc.file_count
-        FROM `isb-project-zero.cda_pdc_raw.2023_06_case` c 
-        LEFT JOIN `isb-project-zero.cda_pdc_raw.2023_06_case_project_id` cp
+        FROM `{create_dev_table_id(PARAMS, "case")}` c 
+        LEFT JOIN `{create_dev_table_id(PARAMS, "case_project_id")}` cp
             ON cp.case_id = c.case_id
-        LEFT JOIN `isb-project-zero.cda_pdc_raw.2023_06_project` proj
+        LEFT JOIN `{create_dev_table_id(PARAMS, "project")}` proj
             ON proj.project_id = cp.project_id
-        LEFT JOIN `isb-project-zero.cda_pdc_raw.2023_06_program_project_id` pp
+        LEFT JOIN `{create_dev_table_id(PARAMS, "program_project_id")}` pp
             ON pp.project_id = proj.project_id
-        LEFT JOIN `isb-project-zero.cda_pdc_raw.2023_06_program` prog
+        LEFT JOIN `{create_dev_table_id(PARAMS, "program")}` prog
             ON prog.program_id = pp.program_id
         LEFT JOIN file_counts fc
-            ON fc.case_id = c.case_id       
+            ON fc.case_id = c.case_id
     """
 
 
