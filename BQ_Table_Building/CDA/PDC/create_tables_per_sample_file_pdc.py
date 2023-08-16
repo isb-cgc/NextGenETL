@@ -30,22 +30,21 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
-def get_pdc_projects_list(params):
+def get_pdc_projects_list():
     """
     Return current list of PDC projects (pulled from study metadata table in BQEcosystem repo).
-    :param params: params from YAML config
     """
     def make_all_studies_query() -> str:
+        studies_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.studies_{PARAMS['RELEASE']}"
+
+        if not exists_bq_table(studies_table_id):
+            has_fatal_error("Studies table for release {} does not exist. "
+                            "Run studies build script prior to running this script.")
+
         return f"""
             SELECT * 
             FROM `{studies_table_id}` 
         """
-
-    studies_table_id = f"{params['DEV_PROJECT']}.{params['DEV_METADATA_DATASET']}.studies_{params['RELEASE']}"
-
-    if not exists_bq_table(studies_table_id):
-        has_fatal_error("Studies table for release {} does not exist. "
-                        "Run studies build script prior to running this script.")
 
     studies_result = query_and_retrieve_result(make_all_studies_query())
 
