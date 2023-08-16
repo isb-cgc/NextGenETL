@@ -116,8 +116,6 @@ def create_study_record_list() -> list[dict[str, Optional[Any]]]:
     project_metadata = get_project_metadata()
     study_friendly_names = get_study_friendly_names()
 
-    print(make_study_query())
-
     study_record_result = query_and_retrieve_result(sql=make_study_query())
 
     study_disease_type_primary_site_result = query_and_retrieve_result(sql=make_study_disease_type_primary_site_query())
@@ -215,7 +213,7 @@ def main(args):
 
         update_table_schema_from_generic(params=PARAMS, table_id=dev_table_id)
 
-    if 'publish_table' in steps:
+    if 'publish_tables' in steps:
         current_table_name = f"{PARAMS['TABLE_NAME']}_current"
         current_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}.{current_table_name}"
         versioned_table_name = f"{PARAMS['TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
