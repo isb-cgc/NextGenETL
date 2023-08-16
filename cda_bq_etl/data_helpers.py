@@ -28,7 +28,6 @@ import datetime
 import csv
 from distutils import util
 
-from cda_bq_etl.bq_helpers import exists_bq_table, query_and_retrieve_result
 from cda_bq_etl.gcs_helpers import upload_to_bucket
 from cda_bq_etl.utils import sanitize_file_prefix, get_scratch_fp, has_fatal_error, make_string_bq_friendly
 
