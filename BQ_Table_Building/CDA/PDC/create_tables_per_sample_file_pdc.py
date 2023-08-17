@@ -39,7 +39,11 @@ def get_pdc_projects_list():
         studies_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.studies_{PARAMS['RELEASE']}"
 
         return f"""
-            SELECT distinct project_short_name, project_friendly_name, project_submitter_id, program_short_name
+            SELECT distinct project_short_name, 
+            project_friendly_name, 
+            project_submitter_id, 
+            program_short_name, 
+            program_labels
             FROM `{studies_table_id}`
         """
 
@@ -125,18 +129,24 @@ def main(args):
 
             schema_tags = dict()
 
-            if 'program_label' in project:
-                schema_tags['program-name-lower'] = project['program_label'].lower().strip()
+            if 'program_labels' not in project:
+                has_fatal_error(f"No program labels found for {project['project_submitter_id']}.")
 
+            program_label_list = project['program_labels'].split('; ')
+
+            if len(program_label_list) == 0:
+                has_fatal_error(f"No program labels found for {project['project_submitter_id']}.")
+                exit()
+            elif len(program_label_list) == 1:
+                schema_tags['program-name-lower'] = program_label_list[0].lower().strip()
                 generic_table_metadata_file = PARAMS['GENERIC_TABLE_METADATA_FILE']
-            elif 'program_label_0' in project and 'program_label_1' in project:
-                schema_tags['program-name-0-lower'] = project['program_label_0'].lower().strip()
-                schema_tags['program-name-1-lower'] = project['program_label_1'].lower().strip()
-
+            elif len(program_label_list) == 2:
+                schema_tags['program-name-0-lower'] = program_label_list[0].lower().strip()
+                schema_tags['program-name-1-lower'] = program_label_list[1].lower().strip()
                 generic_table_metadata_file = PARAMS['GENERIC_TABLE_METADATA_FILE_2_PROGRAM']
             else:
-                has_fatal_error(f"No program labels found for {project['project_submitter_id']}.")
-                exit()  # just used to quiet PyCharm warnings, not needed
+                has_fatal_error(f"Too many program labels found for {project['project_submitter_id']}.")
+                exit()
 
             schema_tags['project-name'] = project['project_short_name'].strip()
             schema_tags['friendly-project-name-upper'] = project['project_friendly_name'].upper().strip()
