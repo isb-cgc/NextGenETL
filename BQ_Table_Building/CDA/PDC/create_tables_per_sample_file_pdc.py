@@ -46,11 +46,16 @@ def get_pdc_projects_list():
             FROM `{studies_table_id}`
         """
 
-    studies_result = query_and_retrieve_result(make_all_studies_query())
+    projects_result = query_and_retrieve_result(make_all_studies_query())
+
+    projects_list = list(projects_result)
+
+    print(projects_list)
+    exit()
 
     studies_list = list()
 
-    for study in studies_result:
+    for study in projects_result:
         studies_list.append(dict(study.items()))
 
     print(studies_list)
