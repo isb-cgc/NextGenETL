@@ -42,8 +42,8 @@ def get_pdc_projects_list():
                             "Run studies build script prior to running this script.")
 
         return f"""
-            SELECT * 
-            FROM `{studies_table_id}` 
+            SELECT distinct project_short_name, project_friendly_name, project_submitter_id, program_short_name
+            FROM `{studies_table_id}`
         """
 
     studies_result = query_and_retrieve_result(make_all_studies_query())
