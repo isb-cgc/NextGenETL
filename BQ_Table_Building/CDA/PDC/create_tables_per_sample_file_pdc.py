@@ -37,10 +37,6 @@ def get_pdc_projects_list():
     def make_all_studies_query() -> str:
         studies_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.studies_{PARAMS['RELEASE']}"
 
-        if not exists_bq_table(studies_table_id):
-            has_fatal_error("Studies table for release {} does not exist. "
-                            "Run studies build script prior to running this script.")
-
         return f"""
             SELECT distinct project_short_name, project_friendly_name, project_submitter_id, program_short_name
             FROM `{studies_table_id}`
@@ -52,22 +48,6 @@ def get_pdc_projects_list():
 
     for project in projects_result:
         projects_list.append(dict(project))
-
-    print(projects_list)
-    exit()
-
-    projects_set = set()
-
-    for study in studies_list:
-        if study['project_short_name'] not in projects_set:
-            projects_list.append({
-                'project_friendly_name': study['project_friendly_name'],
-                'project_short_name': study['project_short_name'],
-                'project_submitter_id': study['project_submitter_id'],
-                'program_short_name': study['program_short_name']
-            })
-
-            projects_set.add(study['project_short_name'])
 
     return projects_list
 
