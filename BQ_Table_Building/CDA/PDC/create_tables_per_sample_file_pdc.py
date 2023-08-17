@@ -110,40 +110,40 @@ def main(args):
     projects_dict = get_project_metadata()
 
     if 'create_project_tables' in steps:
-        for project in projects_dict.values():
-            project_table_name = f"{PARAMS['TABLE_NAME']}_{project['project_short_name']}_{PARAMS['RELEASE']}"
+        for project_submitter_id, project_metadata in projects_dict.items():
+            project_table_name = f"{PARAMS['TABLE_NAME']}_{project_metadata['project_short_name']}_{PARAMS['RELEASE']}"
             project_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{project_table_name}"
 
             load_table_from_query(params=PARAMS,
                                   table_id=project_table_id,
-                                  query=make_project_per_sample_file_query(project['project_submitter_id']))
+                                  query=make_project_per_sample_file_query(project_submitter_id))
 
             schema_tags = dict()
 
-            if 'program_label' in project:
-                schema_tags['program-name-lower'] = project['program_label'].lower().strip()
+            if 'program_label' in project_metadata:
+                schema_tags['program-name-lower'] = project_metadata['program_label'].lower().strip()
 
                 generic_table_metadata_file = PARAMS['GENERIC_TABLE_METADATA_FILE']
-            elif 'program_label_0' in project and 'program_label_1' in project:
-                schema_tags['program-name-0-lower'] = project['program_label_0'].lower().strip()
-                schema_tags['program-name-1-lower'] = project['program_label_1'].lower().strip()
+            elif 'program_label_0' in project_metadata and 'program_label_1' in project_metadata:
+                schema_tags['program-name-0-lower'] = project_metadata['program_label_0'].lower().strip()
+                schema_tags['program-name-1-lower'] = project_metadata['program_label_1'].lower().strip()
 
                 generic_table_metadata_file = PARAMS['GENERIC_TABLE_METADATA_FILE_2_PROGRAM']
             else:
-                has_fatal_error(f"No program labels found for {project['project_submitter_id']}.")
+                has_fatal_error(f"No program labels found for {project_submitter_id}.")
                 exit()  # just used to quiet PyCharm warnings, not needed
 
-            schema_tags['project-name'] = project['project_short_name'].strip()
-            schema_tags['friendly-project-name-upper'] = project['project_friendly_name'].upper().strip()
+            schema_tags['project-name'] = project_metadata['project_short_name'].strip()
+            schema_tags['friendly-project-name-upper'] = project_metadata['project_friendly_name'].upper().strip()
 
             update_table_schema_from_generic(params=PARAMS,
                                              table_id=project_table_id,
                                              schema_tags=schema_tags,
                                              metadata_file=generic_table_metadata_file)
     if 'publish_tables' in steps:
-        for project in projects_dict.values():
-            project_name = project['project_short_name']
-            program_name = project['program_short_name']
+        for project_metadata in projects_dict.values():
+            project_name = project_metadata['project_short_name']
+            program_name = project_metadata['program_short_name']
 
             project_table_name = f"{PARAMS['TABLE_NAME']}_{project_name}_{PARAMS['RELEASE']}"
             project_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{project_table_name}"
