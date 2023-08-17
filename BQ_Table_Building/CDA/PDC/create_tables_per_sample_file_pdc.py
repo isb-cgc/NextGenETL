@@ -53,6 +53,8 @@ def get_pdc_projects_list():
     for study in studies_result:
         studies_list.append(dict(study.items()))
 
+    print(studies_list)
+
     projects_list = list()
     projects_set = set()
 
