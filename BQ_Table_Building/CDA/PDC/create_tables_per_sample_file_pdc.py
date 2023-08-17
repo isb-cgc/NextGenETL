@@ -115,6 +115,7 @@ def main(args):
 
     if 'create_project_tables' in steps:
         for project in projects_list:
+            print(project)
             project_table_name = f"{PARAMS['TABLE_NAME']}_{project['project_short_name']}_{PARAMS['RELEASE']}"
             project_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{project_table_name}"
 
