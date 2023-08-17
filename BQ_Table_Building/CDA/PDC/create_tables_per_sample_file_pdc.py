@@ -130,7 +130,7 @@ def main(args):
 
     start_time = time.time()
 
-    projects_list = get_pdc_projects_list(PARAMS)
+    projects_list = get_pdc_projects_list()
 
     if 'create_project_tables' in steps:
         for project in projects_list:
