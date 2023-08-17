@@ -23,8 +23,7 @@ import json
 import sys
 import time
 
-from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, update_table_schema_from_generic, \
-    exists_bq_table, query_and_retrieve_result
+from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, update_table_schema_from_generic
 from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds, get_filepath
 
 PARAMS = dict()
