@@ -19,37 +19,35 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import json
 import sys
 import time
 
 from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, update_table_schema_from_generic, \
     exists_bq_table, query_and_retrieve_result
-from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds
+from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds, get_filepath
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
-def get_pdc_projects_list():
+def get_project_metadata():
     """
-    Return current list of PDC projects (pulled from study metadata table in BQEcosystem repo).
+    Load project metadata from BQEcosystem/MetadataMappings/pdc_project_metadata.json as dict.
+    :return dict of project dicts of the following form. Key equals PDC field "project_submitter_id."
+    Example project dict:
+        { "CPTAC-TCGA": {
+            "project_short_name": "CPTAC_TCGA",
+            "project_friendly_name": "CPTAC-TCGA",
+            "program_short_name": "TCGA",
+            "program_labels": "cptac2; tcga"
+        }
     """
-    def make_all_studies_query() -> str:
-        studies_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.studies_{PARAMS['RELEASE']}"
+    metadata_mappings_path = f"{PARAMS['BQ_REPO']}/{PARAMS['PROJECT_STUDY_METADATA_DIR']}"
+    project_metadata_fp = get_filepath(f"{metadata_mappings_path}/{PARAMS['PROJECT_METADATA_FILE']}")
 
-        return f"""
-            SELECT distinct project_short_name, project_friendly_name, project_submitter_id, program_short_name
-            FROM `{studies_table_id}`
-        """
-
-    projects_result = query_and_retrieve_result(make_all_studies_query())
-
-    projects_list = list()
-
-    for project in projects_result:
-        projects_list.append(dict(project))
-
-    return projects_list
+    with open(project_metadata_fp, 'r') as fh:
+        return json.load(fh)
 
 
 def make_project_per_sample_file_query(project_submitter_id):
@@ -110,10 +108,10 @@ def main(args):
 
     start_time = time.time()
 
-    projects_list = get_pdc_projects_list()
+    projects_dict = get_project_metadata()
 
     if 'create_project_tables' in steps:
-        for project in projects_list:
+        for project in projects_dict.values():
             project_table_name = f"{PARAMS['TABLE_NAME']}_{project['project_short_name']}_{PARAMS['RELEASE']}"
             project_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{project_table_name}"
 
@@ -144,7 +142,7 @@ def main(args):
                                              schema_tags=schema_tags,
                                              metadata_file=generic_table_metadata_file)
     if 'publish_tables' in steps:
-        for project in projects_list:
+        for project in projects_dict.values():
             project_name = project['project_short_name']
             program_name = project['program_short_name']
 
