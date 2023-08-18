@@ -46,16 +46,16 @@ def main(args):
         has_fatal_error("COLUMN_LIST missing from yaml config.")
 
     if 'compare_row_counts' in steps:
-        print("Comparing row counts!\n")
+        print("***** Comparing row counts! *****\n")
         compare_row_counts(left_table_id=PARAMS['LEFT_TABLE_ID'],
                            right_table_id=PARAMS['RIGHT_TABLE_ID'])
     if 'compare_table_keys' in steps:
-        print("Comparing table keys!")
+        print("***** Comparing table keys! *****")
         compare_id_keys(left_table_id=PARAMS['LEFT_TABLE_ID'],
                         right_table_id=PARAMS['RIGHT_TABLE_ID'],
                         primary_key=PARAMS['PRIMARY_KEY'])
     if 'compare_table_columns' in steps:
-        print("Comparing table columns!\n")
+        print("***** Comparing table columns! *****\n")
         secondary_key = PARAMS['SECONDARY_KEY'] if "SECONDARY_KEY" in PARAMS else None
 
         compare_table_columns(left_table_id=PARAMS['LEFT_TABLE_ID'],
