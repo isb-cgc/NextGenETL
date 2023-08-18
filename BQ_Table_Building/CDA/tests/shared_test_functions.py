@@ -288,7 +288,7 @@ def compare_concat_columns(left_table_id: str,
                 right_column_value_set = set(right_column_value_list)
 
                 if len(left_column_value_list) == len(right_column_value_list) \
-                        and len(left_column_value_set ^ right_column_value_set) > 0:
+                        and len(left_column_value_set ^ right_column_value_set) == 0:
                     correct_records_count += 1
                 else:
                     if len(left_column_value_list) != len(right_column_value_list):
@@ -313,12 +313,12 @@ def compare_concat_columns(left_table_id: str,
         print(f"Different values in record: {different_values_count}")
 
         if len(mismatched_records) > 0:
-            print("Example values:")
+            print("\nExample values:\n")
             i = 0
             for mismatched_record in mismatched_records:
                 print(f"{primary_key}: {mismatched_record['record_id']}")
                 print(f"left table value: {mismatched_record['left_table_value']}")
-                print(f"right table value: {mismatched_record['right_table_value']}")
+                print(f"right table value: {mismatched_record['right_table_value']}\n")
                 i += 1
 
                 if i == 5:
