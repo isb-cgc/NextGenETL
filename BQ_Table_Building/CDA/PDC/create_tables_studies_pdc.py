@@ -66,7 +66,8 @@ def get_study_friendly_names():
 
 def make_study_query() -> str:
     return f"""
-        SELECT s.embargo_date,
+        SELECT 
+            # s.embargo_date,
             s.study_name,
             s.study_submitter_id,
             s.submitter_id_name,
@@ -168,7 +169,7 @@ def create_study_record_list() -> list[dict[str, Optional[Any]]]:
         primary_site = study_primary_site_records[pdc_study_id]['primary_site']
 
         study_records.append({
-            'embargo_date': row.get('embargo_date'),
+            # 'embargo_date': row.get('embargo_date'),
             'study_name': row.get('study_name'),
             'study_submitter_id': row.get('study_submitter_id'),
             'submitter_id_name': row.get('submitter_id_name'),

@@ -42,41 +42,37 @@ def main(args):
         has_fatal_error("LEFT_TABLE_ID missing from yaml config.")
     if 'PRIMARY_KEY' not in PARAMS:
         has_fatal_error("PRIMARY_KEY missing from yaml config.")
-    if 'PRIMARY_KEY' not in PARAMS:
-        has_fatal_error("PRIMARY_KEY missing from yaml config.")
     if 'COLUMN_LIST' not in PARAMS:
         has_fatal_error("COLUMN_LIST missing from yaml config.")
 
-    print("Comparing row counts!\n")
+    if 'compare_row_counts' in steps:
+        print("Comparing row counts!\n")
+        compare_row_counts(left_table_id=PARAMS['LEFT_TABLE_ID'],
+                           right_table_id=PARAMS['RIGHT_TABLE_ID'])
+    if 'compare_table_keys' in steps:
+        print("Comparing table keys!\n")
+        compare_id_keys(left_table_id=PARAMS['LEFT_TABLE_ID'],
+                        right_table_id=PARAMS['RIGHT_TABLE_ID'],
+                        primary_key=PARAMS['PRIMARY_KEY'])
+    if 'compare_table_columns' in steps:
+        print("Comparing table columns!\n")
+        secondary_key = PARAMS['SECONDARY_KEY'] if "SECONDARY_KEY" in PARAMS else None
 
-    compare_row_counts(left_table_id=PARAMS['LEFT_TABLE_ID'],
-                       right_table_id=PARAMS['RIGHT_TABLE_ID'])
+        compare_table_columns(left_table_id=PARAMS['LEFT_TABLE_ID'],
+                              right_table_id=PARAMS['RIGHT_TABLE_ID'],
+                              column_list=PARAMS["COLUMN_LIST"],
+                              primary_key=PARAMS["PRIMARY_KEY"],
+                              secondary_key=secondary_key)
 
-    print("Comparing table keys!\n")
-
-    compare_id_keys(left_table_id=PARAMS['LEFT_TABLE_ID'],
-                    right_table_id=PARAMS['RIGHT_TABLE_ID'],
-                    primary_key=PARAMS['PRIMARY_KEY'])
-
-    print("Comparing table columns!\n")
-
-    secondary_key = PARAMS['SECONDARY_KEY'] if "SECONDARY_KEY" in PARAMS else None
-
-    compare_table_columns(left_table_id=PARAMS['LEFT_TABLE_ID'],
-                          right_table_id=PARAMS['RIGHT_TABLE_ID'],
-                          column_list=PARAMS["COLUMN_LIST"],
-                          primary_key=PARAMS["PRIMARY_KEY"],
-                          secondary_key=secondary_key)
-
-    if "CONCAT_COLUMN_LIST" in PARAMS:
-        compare_concat_columns(left_table_id=PARAMS['LEFT_TABLE_ID'],
-                               right_table_id=PARAMS['RIGHT_TABLE_ID'],
-                               concat_column_list=PARAMS["CONCAT_COLUMN_LIST"],
-                               primary_key=PARAMS["PRIMARY_KEY"],
-                               secondary_key=secondary_key)
-    else:
-        print("No concat column list defined, not evaluating that. If this is unintentional, "
-              "please define CONCAT_COLUMN_LIST in yaml config.")
+        if "CONCAT_COLUMN_LIST" in PARAMS:
+            compare_concat_columns(left_table_id=PARAMS['LEFT_TABLE_ID'],
+                                   right_table_id=PARAMS['RIGHT_TABLE_ID'],
+                                   concat_column_list=PARAMS["CONCAT_COLUMN_LIST"],
+                                   primary_key=PARAMS["PRIMARY_KEY"],
+                                   secondary_key=secondary_key)
+        else:
+            print("No concat column list defined, not evaluating that. If this is unintentional, "
+                  "please define CONCAT_COLUMN_LIST in yaml config.")
 
 
 if __name__ == "__main__":

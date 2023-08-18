@@ -24,32 +24,11 @@ import sys
 from google.cloud import bigquery
 
 from BQ_Table_Building.CDA.tests.shared_test_functions import compare_row_counts, compare_id_keys, compare_table_columns
-from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id
-from cda_bq_etl.bq_helpers import query_and_retrieve_result
+from cda_bq_etl.utils import load_config, has_fatal_error
+from cda_bq_etl.bq_helpers import get_project_or_program_list
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
-
-
-def create_program_name_set() -> set[str]:
-    """
-    Create a list of programs with case associations using the case_project_program view.
-    :return: set of program names
-    """
-    def make_program_name_set_query():
-        return f"""
-        SELECT DISTINCT program_name
-        FROM `{create_dev_table_id(PARAMS, 'case_project_program')}`
-        """
-
-    result = query_and_retrieve_result(sql=make_program_name_set_query())
-
-    program_name_set = set()
-
-    for row in result:
-        program_name_set.add(row[0])
-
-    return program_name_set
 
 
 def main(args):
@@ -63,17 +42,10 @@ def main(args):
 
     table_id_tuple_set = set()
 
-    program_set = create_program_name_set()
+    program_set = get_project_or_program_list()
 
-    for program in sorted(program_set):
-        if program == "BEATAML1.0":
-            program_name = "BEATAML1_0"
-        elif program == "EXCEPTIONAL_RESPONDERS":
-            program_name = "EXC_RESPONDERS"
-        else:
-            program_name = program
-
-        gdc_table_name = f"{program_name}_per_sample_file_metadata_hg38_gdc_{PARAMS['GDC_RELEASE']}"
+    for program_name in sorted(program_set):
+        gdc_table_name = f"{program_name}_per_sample_file_metadata_hg38_gdc_{PARAMS['DC_RELEASE']}"
         gdc_table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['GDC_WORKING_DATASET']}.{gdc_table_name}"
         cda_table_name = f"per_sample_file_metadata_hg38_{program_name}_{PARAMS['RELEASE']}"
         cda_table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['TARGET_DATASET']}.{cda_table_name}"
@@ -88,7 +60,7 @@ def main(args):
             if cda_table is None:
                 print(f"No table found: {cda_table_id}")
         else:
-            table_id_tuple = (program, gdc_table_id, cda_table_id)
+            table_id_tuple = (program_name, gdc_table_id, cda_table_id)
             table_id_tuple_set.add(table_id_tuple)
 
     for table_id_tuple in sorted(table_id_tuple_set):
