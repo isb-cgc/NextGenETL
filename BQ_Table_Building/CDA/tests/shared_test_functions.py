@@ -171,8 +171,15 @@ def compare_table_columns(left_table_id: str,
             for row in result:
                 primary_key_value = row.get(primary_key)
                 column_value = row.get(column)
+
+                print(primary_key_value)
+                print(column_value)
+
                 if secondary_key is not None:
                     secondary_key_value = row.get(secondary_key)
+
+                    print(secondary_key_value)
+
                     print(f"{primary_key_value:30} {secondary_key_value:30} {column_value:30}")
                 else:
                     print(f"{primary_key_value:30} {column_value:30}")
@@ -182,7 +189,7 @@ def compare_table_columns(left_table_id: str,
                     print()
                     break
         else:
-            print(f"{column} column matches in published and new tables!\n")
+            print(f"{column} column matches in published and new tables!")
 
 
 def compare_concat_columns(left_table_id: str,
