@@ -44,6 +44,9 @@ elif [[ ${SCRIPT_NAME} = ${FILE_ENTITY_ARG} ]] ; then
 elif [[ ${SCRIPT_NAME} = ${PER_SAMPLE_FILE_ARG} ]] ; then
     CONFIG_FILE="CDATestCreateTablesPerSampleFilePDC.yaml"
     SCRIPT_FILE="test_create_tables_program_or_project.py"
+elif [[ ${SCRIPT_NAME} = ${STUDIES_ARG} ]] ; then
+    CONFIG_FILE="CDATestCreateTablesStudiesPDC.yaml"
+    SCRIPT_FILE="test_create_tables_base.py"
 else
     echo "Error: incorrect or missing script data type argument."
     echo "Accepted values: aliquot_case_map, case, clinical, file, file_entity, per_sample_file, study"
