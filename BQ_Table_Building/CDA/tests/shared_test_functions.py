@@ -294,13 +294,9 @@ def compare_concat_columns(left_table_id: str,
                     if len(left_column_value_list) != len(right_column_value_list):
                         # if length mismatch, there may be duplicates, so definitely not identical;
                         # set eliminates duplicates, so this is necessary
-                        print(f'id {record_id} value mismatch for {column}.')
-                        print(f'left column values: {left_column_value} right column values: {right_column_value}\n')
                         different_lengths_count += 1
                     elif len(left_column_value_set ^ right_column_value_set) > 0:
                         # exclusive or -- values only in exactly one set
-                        print(f'id {record_id} value mismatch for {column}.')
-                        print(f'left column values: {left_column_value} right column values: {right_column_value}\n')
                         different_values_count += 1
 
                     mismatched_records.append({
