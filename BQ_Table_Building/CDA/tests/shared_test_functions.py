@@ -157,22 +157,22 @@ def compare_table_columns(left_table_id: str,
             print(f"\nNo results returned for {column}. This can mean that there's a column data type mismatch, "
                   f"or that the column name differs.\n")
         elif result.total_rows > 0:
-            print(f"\nFound data in {left_table_id} that was missing from {right_table_id}.")
-            print(f"{result.total_rows} records missing from {right_table_id}.\nExample values:")
+            print(f"\nFound {result.total_rows} rows in {left_table_id} that were missing from {right_table_id}.")
+            print(f"Example values:")
 
             if secondary_key is not None:
-                print(f"{primary_key:20} {secondary_key:20} {column:20}")
+                print(f"{primary_key:30} {secondary_key:30} {column:30}")
             else:
-                print(f"{primary_key:20} {column:20}")
+                print(f"{primary_key:30} {column:30}")
 
             count = 0
 
             for row in result:
                 if secondary_key is not None:
                     # reverse order for row[]
-                    print(f"{row.get(primary_key):20} {row.get(secondary_key):20} {row[column]:20}")
+                    print(f"{row.get(primary_key):30} {row.get(secondary_key):30} {row.get(column):30}")
                 else:
-                    print(f"{row.get(primary_key):20} {row[column]:20}")
+                    print(f"{row.get(primary_key):30} {row.get(column):30}")
 
                 count += 1
                 if count == max_display_rows:
