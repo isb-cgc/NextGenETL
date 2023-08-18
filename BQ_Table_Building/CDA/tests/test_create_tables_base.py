@@ -56,6 +56,8 @@ def main(args):
                         primary_key=PARAMS['PRIMARY_KEY'])
     if 'compare_table_columns' in steps:
         print("***** Comparing table columns! *****\n")
+        print("Note: if it seems like two values should be identical (both are None), "
+              "None is probably a string in one table and a null value in the other.")
         secondary_key = PARAMS['SECONDARY_KEY'] if "SECONDARY_KEY" in PARAMS else None
 
         compare_table_columns(left_table_id=PARAMS['LEFT_TABLE_ID'],
