@@ -137,16 +137,15 @@ def compare_table_columns(left_table_id: str,
         if secondary_key is not None:
             secondary_key_sql_string = f"{secondary_key},"
 
-        if secondary_key is None:
-            # outputs values from left table that are not found in right table
-            return f"""
-                SELECT {secondary_key_sql_string} {primary_key}, {column_name}
-                FROM `{left_table_id}`
-                EXCEPT DISTINCT 
-                SELECT {secondary_key_sql_string} {primary_key}, {column_name}
-                FROM `{right_table_id}`
-                ORDER BY {primary_key}
-            """
+        # outputs values from left table that are not found in right table
+        return f"""
+            SELECT {secondary_key_sql_string} {primary_key}, {column_name}
+            FROM `{left_table_id}`
+            EXCEPT DISTINCT 
+            SELECT {secondary_key_sql_string} {primary_key}, {column_name}
+            FROM `{right_table_id}`
+            ORDER BY {primary_key}
+        """
 
     for column in column_list:
         column_comparison_query = make_compare_table_column_sql(column)
