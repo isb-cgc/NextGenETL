@@ -162,9 +162,9 @@ def compare_table_columns(left_table_id: str,
             print(f"Example values:\n")
 
             if secondary_key is not None:
-                print(f"{primary_key:30} {secondary_key:30} {column:30}")
+                print(f"{primary_key:30} {secondary_key:30} {column}")
             else:
-                print(f"{primary_key:30} {column:30}")
+                print(f"{primary_key:30} {column}")
 
             count = 0
 
@@ -172,17 +172,12 @@ def compare_table_columns(left_table_id: str,
                 primary_key_value = row.get(primary_key)
                 column_value = row.get(column)
 
-                print(primary_key_value)
-                print(column_value)
-
                 if secondary_key is not None:
                     secondary_key_value = row.get(secondary_key)
 
-                    print(secondary_key_value)
-
-                    print(f"{primary_key_value:30} {secondary_key_value:30} {column_value:30}")
+                    print(f"{primary_key_value:30} {secondary_key_value:30} {column_value}")
                 else:
-                    print(f"{primary_key_value:30} {column_value:30}")
+                    print(f"{primary_key_value:30} {column_value}")
 
                 count += 1
                 if count == max_display_rows:
