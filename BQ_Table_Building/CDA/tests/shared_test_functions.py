@@ -184,7 +184,7 @@ def compare_table_columns(left_table_id: str,
                     print()
                     break
         else:
-            print(f"{column} column matches in tables!")
+            print(f"No missing values found for {column} in {table_id_2}!")
 
     for column in column_list:
         compare_table_column_left_table(left_table_id, right_table_id)
