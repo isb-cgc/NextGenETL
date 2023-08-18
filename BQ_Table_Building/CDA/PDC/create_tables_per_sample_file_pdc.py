@@ -31,7 +31,7 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
-def get_pdc_projects_list():
+def get_pdc_projects_metadata_list():
     """
     Return current list of PDC projects (pulled from study metadata table in BQEcosystem repo).
     """
@@ -115,7 +115,7 @@ def main(args):
 
     start_time = time.time()
 
-    projects_list = get_pdc_projects_list()
+    projects_list = get_pdc_projects_metadata_list()
 
     if 'create_project_tables' in steps:
         for project in projects_list:

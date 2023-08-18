@@ -21,7 +21,8 @@ SOFTWARE.
 """
 import sys
 
-from BQ_Table_Building.CDA.tests.shared_functions import compare_row_counts, compare_id_keys, compare_table_columns
+from BQ_Table_Building.CDA.tests.shared_test_functions import compare_row_counts, compare_id_keys, \
+    compare_table_columns, compare_concat_columns
 from cda_bq_etl.utils import load_config, has_fatal_error
 
 PARAMS = dict()
@@ -35,25 +36,47 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
+    if 'LEFT_TABLE_ID' not in PARAMS:
+        has_fatal_error("LEFT_TABLE_ID missing from yaml config.")
+    if 'RIGHT_TABLE_ID' not in PARAMS:
+        has_fatal_error("LEFT_TABLE_ID missing from yaml config.")
+    if 'PRIMARY_KEY' not in PARAMS:
+        has_fatal_error("PRIMARY_KEY missing from yaml config.")
+    if 'PRIMARY_KEY' not in PARAMS:
+        has_fatal_error("PRIMARY_KEY missing from yaml config.")
+    if 'COLUMN_LIST' not in PARAMS:
+        has_fatal_error("COLUMN_LIST missing from yaml config.")
+
     print("Comparing row counts!\n")
 
-    compare_row_counts(old_table_id=PARAMS['OLD_TABLE_ID'],
-                       new_table_id=PARAMS['NEW_TABLE_ID'])
+    compare_row_counts(left_table_id=PARAMS['LEFT_TABLE_ID'],
+                       right_table_id=PARAMS['RIGHT_TABLE_ID'])
 
     print("Comparing table keys!\n")
 
-    compare_id_keys(old_table_id=PARAMS['OLD_TABLE_ID'],
-                    new_table_id=PARAMS['NEW_TABLE_ID'],
+    compare_id_keys(left_table_id=PARAMS['LEFT_TABLE_ID'],
+                    right_table_id=PARAMS['RIGHT_TABLE_ID'],
                     primary_key=PARAMS['PRIMARY_KEY'])
-
-    columns_list = PARAMS["COLUMNS"]
 
     print("Comparing table columns!\n")
 
-    compare_table_columns(old_table_id=PARAMS['OLD_TABLE_ID'],
-                          new_table_id=PARAMS['NEW_TABLE_ID'],
-                          primary_key=PARAMS['PRIMARY_KEY'],
-                          columns=columns_list)
+    secondary_key = PARAMS['SECONDARY_KEY'] if "SECONDARY_KEY" in PARAMS else None
+
+    compare_table_columns(left_table_id=PARAMS['LEFT_TABLE_ID'],
+                          right_table_id=PARAMS['RIGHT_TABLE_ID'],
+                          column_list=PARAMS["COLUMN_LIST"],
+                          primary_key=PARAMS["PRIMARY_KEY"],
+                          secondary_key=secondary_key)
+
+    if "CONCAT_COLUMN_LIST" in PARAMS:
+        compare_concat_columns(left_table_id=PARAMS['LEFT_TABLE_ID'],
+                               right_table_id=PARAMS['RIGHT_TABLE_ID'],
+                               concat_column_list=PARAMS["CONCAT_COLUMN_LIST"],
+                               primary_key=PARAMS["PRIMARY_KEY"],
+                               secondary_key=secondary_key)
+    else:
+        print("No concat column list defined, not evaluating that. If this is unintentional, "
+              "please define CONCAT_COLUMN_LIST in yaml config.")
 
 
 if __name__ == "__main__":

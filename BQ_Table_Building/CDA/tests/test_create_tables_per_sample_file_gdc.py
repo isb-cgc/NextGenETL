@@ -23,7 +23,7 @@ import sys
 
 from google.cloud import bigquery
 
-from BQ_Table_Building.CDA.tests.shared_functions import compare_row_counts, compare_id_keys, compare_table_columns
+from BQ_Table_Building.CDA.tests.shared_test_functions import compare_row_counts, compare_id_keys, compare_table_columns
 from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id
 from cda_bq_etl.bq_helpers import query_and_retrieve_result
 
@@ -102,30 +102,26 @@ def main(args):
 
         print("\n** Comparing row counts! **\n")
 
-        compare_row_counts(old_table_id=gdc_table_id,
-                           new_table_id=cda_table_id)
+        compare_row_counts(left_table_id=gdc_table_id,
+                           right_table_id=cda_table_id)
 
         print("\n** Comparing primary table keys! **")
 
-        compare_id_keys(old_table_id=gdc_table_id,
-                        new_table_id=cda_table_id,
+        compare_id_keys(left_table_id=gdc_table_id,
+                        right_table_id=cda_table_id,
                         primary_key=PARAMS['PRIMARY_KEY'])
 
         print("\n** Comparing secondary table keys! **")
 
-        compare_id_keys(old_table_id=gdc_table_id,
-                        new_table_id=cda_table_id,
+        compare_id_keys(left_table_id=gdc_table_id,
+                        right_table_id=cda_table_id,
                         primary_key=PARAMS['SECONDARY_KEY'])
 
         columns_list = PARAMS["COLUMNS"]
 
         print("\n** Comparing table columns! **\n")
 
-        compare_table_columns(old_table_id=gdc_table_id,
-                              new_table_id=cda_table_id,
-                              primary_key=PARAMS['PRIMARY_KEY'],
-                              secondary_key=PARAMS['SECONDARY_KEY'],
-                              columns=columns_list)
+        compare_table_columns(,
 
 
 if __name__ == "__main__":

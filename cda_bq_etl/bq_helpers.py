@@ -30,7 +30,8 @@ from google.cloud.exceptions import NotFound
 from google.cloud.bigquery import SchemaField, Client, LoadJobConfig, QueryJob
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
-from cda_bq_etl.utils import has_fatal_error, get_filename, get_scratch_fp, input_with_timeout, get_filepath
+from cda_bq_etl.utils import has_fatal_error, get_filename, get_scratch_fp, input_with_timeout, get_filepath, \
+    create_dev_table_id
 from cda_bq_etl.gcs_helpers import download_from_bucket, upload_to_bucket
 from cda_bq_etl.data_helpers import recursively_detect_object_structures, get_column_list_tsv, \
     aggregate_column_data_types_tsv, resolve_type_conflicts, resolve_type_conflict
@@ -1053,3 +1054,52 @@ def get_program_schema_tags_gdc(params, program_name):
             has_fatal_error("Did not find program_label OR program_label_0 and program_label_1 in schema json file.")
 
         return schema_tags
+
+
+def get_project_or_program_list(params: Params):
+    """
+    Get whichever list is used to divide the data into grouped tables; GDC uses program, PDC uses project.
+    :param params: params defined in yaml config
+    :return: set of programs or projects
+    """
+    if params['DC_SOURCE'] == 'gdc':
+        def make_program_name_set_query():
+            return f"""
+                SELECT DISTINCT program_name
+                FROM `{create_dev_table_id(params, 'case_project_program')}`
+            """
+
+        result = query_and_retrieve_result(sql=make_program_name_set_query())
+        program_name_set = set()
+
+        for row in result:
+            program_name = row[0]
+
+            if program_name == "BEATAML1.0":
+                program_name = "BEATAML1_0"
+            elif program_name == "EXCEPTIONAL_RESPONDERS":
+                program_name = "EXC_RESPONDERS"
+
+            program_name_set.add(program_name)
+
+        return list(sorted(program_name_set))
+
+    elif params['DC_SOURCE'] == 'pdc':
+        def make_all_studies_query() -> str:
+            return f"""
+                SELECT DISTINCT project_short_name
+                FROM `{params['DEV_PROJECT']}.{params['DEV_METADATA_DATASET']}.studies_{params['RELEASE']}`
+            """
+
+        projects_result = query_and_retrieve_result(make_all_studies_query())
+        project_set = set()
+
+        for row in projects_result:
+            project_set.add(row[0])
+
+        return list(sorted(project_set))
+
+    elif params['DC_SOURCE'] == 'idc':
+        print("get_project_list() is not yet defined for IDC.")
+    else:
+        print(f"get_project_list() is not yet defined for {params['DC_SOURCE']}.")
