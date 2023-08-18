@@ -157,8 +157,8 @@ def compare_table_columns(left_table_id: str,
             print(f"\nNo results returned for {column}. This can mean that there's a column data type mismatch, "
                   f"or that the column name differs.\n")
         elif result.total_rows > 0:
-            print(f"\nFor {column}, found {result.total_rows} rows in {table_id_1} "
-                  f"that were missing from {table_id_2}.\n")
+            print(f"\nFor {column}, found {result.total_rows} values in {table_id_1} "
+                  f"that didn't match value in {table_id_2}.\n")
             print(f"Example values:\n")
 
             if secondary_key is not None:
@@ -187,8 +187,10 @@ def compare_table_columns(left_table_id: str,
             print(f"No missing values found for {column} in {table_id_2}!")
 
     for column in column_list:
+        print(f"\n*** for {column}: ***")
         compare_table_column_left_table(left_table_id, right_table_id)
         compare_table_column_left_table(right_table_id, left_table_id)
+        print()
 
 
 def compare_concat_columns(left_table_id: str,
