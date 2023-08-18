@@ -132,7 +132,7 @@ def compare_table_columns(left_table_id: str,
     :param secondary_key: optional; secondary key used to map data
     :param max_display_rows: maximum result rows to display in output
     """
-    def make_compare_table_column_sql(column_name) -> str:
+    def make_compare_table_column_sql(column_name, table_id_1, table_id_2) -> str:
         secondary_key_sql_string = ''
 
         if secondary_key is not None:
@@ -141,15 +141,15 @@ def compare_table_columns(left_table_id: str,
         # outputs values from left table that are not found in right table
         return f"""
             SELECT {secondary_key_sql_string} {primary_key}, {column_name}
-            FROM `{left_table_id}`
+            FROM `{table_id_1}`
             EXCEPT DISTINCT 
             SELECT {secondary_key_sql_string} {primary_key}, {column_name}
-            FROM `{right_table_id}`
+            FROM `{table_id_2}`
             ORDER BY {primary_key}
         """
 
-    for column in column_list:
-        column_comparison_query = make_compare_table_column_sql(column)
+    def compare_table_column_left_table(table_id_1, table_id_2):
+        column_comparison_query = make_compare_table_column_sql(column, table_id_1, table_id_2)
 
         result = query_and_retrieve_result(sql=column_comparison_query)
 
@@ -157,8 +157,8 @@ def compare_table_columns(left_table_id: str,
             print(f"\nNo results returned for {column}. This can mean that there's a column data type mismatch, "
                   f"or that the column name differs.\n")
         elif result.total_rows > 0:
-            print(f"\nFor {column}, found {result.total_rows} rows in {left_table_id} "
-                  f"that were missing from {right_table_id}.\n")
+            print(f"\nFor {column}, found {result.total_rows} rows in {table_id_1} "
+                  f"that were missing from {table_id_2}.\n")
             print(f"Example values:\n")
 
             if secondary_key is not None:
@@ -185,6 +185,10 @@ def compare_table_columns(left_table_id: str,
                     break
         else:
             print(f"{column} column matches in published and new tables!")
+
+    for column in column_list:
+        compare_table_column_left_table(left_table_id, right_table_id)
+        compare_table_column_left_table(right_table_id, left_table_id)
 
 
 def compare_concat_columns(left_table_id: str,
