@@ -237,7 +237,7 @@ def compare_concat_columns(left_table_id: str,
 
             records_dict[records_dict_key] = record_dict
 
-            if record_count % 100000 == 0:
+            if record_count % 100000 == 0 and record_count > 0:
                 print(f"{record_count}/{result.total_rows} records added to dict!")
 
         return records_dict
@@ -320,9 +320,10 @@ def compare_concat_columns(left_table_id: str,
             print("Example values:")
             i = 0
             for mismatched_record in mismatched_records:
-                print(f"{primary_key}: {mismatched_record[i]['record_id']}")
-                print(f"left table value: {mismatched_record[i]['left_table_value']}")
-                print(f"right table value: {mismatched_record[i]['right_table_value']}")
+                print(f"{primary_key}: {mismatched_record['record_id']}")
+                print(f"left table value: {mismatched_record['left_table_value']}")
+                print(f"right table value: {mismatched_record['right_table_value']}")
                 i += 1
+
                 if i == 5:
                     break
