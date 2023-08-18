@@ -54,7 +54,7 @@ def compare_id_keys(left_table_id: str, right_table_id: str, primary_key: str, m
         if not result:
             has_fatal_error(f"Primary key {primary_key} not found in one or both compared tables")
         elif result.total_rows == 0:
-            print(f"\nNo missing values for key: {primary_key}. Great!")
+            print(f"\nNo missing values for key: {primary_key} in table {table_2}. Great!")
         else:
             print(f"\n{table_1} has {result.total_rows} {primary_key} values which don't exist in {table_2}.")
             print(f"\nExample values:")

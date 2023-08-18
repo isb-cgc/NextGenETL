@@ -50,7 +50,7 @@ def main(args):
         compare_row_counts(left_table_id=PARAMS['LEFT_TABLE_ID'],
                            right_table_id=PARAMS['RIGHT_TABLE_ID'])
     if 'compare_table_keys' in steps:
-        print("Comparing table keys!\n")
+        print("Comparing table keys!")
         compare_id_keys(left_table_id=PARAMS['LEFT_TABLE_ID'],
                         right_table_id=PARAMS['RIGHT_TABLE_ID'],
                         primary_key=PARAMS['PRIMARY_KEY'])
