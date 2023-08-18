@@ -72,6 +72,7 @@ def compare_id_keys(left_table_id: str, right_table_id: str, primary_key: str, m
 
     # find primary keys in right table that are missing from left table
     compare_table_keys(right_table_id, left_table_id)
+    print()
 
 
 def compare_row_counts(left_table_id: str, right_table_id: str):
