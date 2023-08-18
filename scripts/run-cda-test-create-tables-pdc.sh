@@ -45,7 +45,8 @@ elif [[ ${SCRIPT_NAME} = ${PER_SAMPLE_FILE_ARG} ]] ; then
     CONFIG_FILE="CDATestCreateTablesPerSampleFileGDC.yaml"
     SCRIPT_FILE="test_create_tables_program_or_project.py"
 else
-    echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, per_sample_file, aliquot_to_case, slide_to_case"
+    echo "Error: incorrect or missing script data type argument."
+    echo "Accepted values: aliquot_case_map, case, clinical, file, file_entity, per_sample_file, study"
     exit 1
 fi
 

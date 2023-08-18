@@ -44,7 +44,8 @@ elif [[ ${SCRIPT_NAME} = ${SLIDE_ARG} ]] ; then
     CONFIG_FILE="CDATestCreateTablesSlideCaseMapGDC.yaml"
     SCRIPT_FILE="test_create_tables_base.py"
 else
-    echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, per_sample_file, aliquot_to_case, slide_to_case"
+    echo "Error: incorrect or missing script data type argument."
+    echo "Accepted values: aliquot_case_map, case, clinical, file, per_sample_file, slide_case_map"
     exit 1
 fi
 
