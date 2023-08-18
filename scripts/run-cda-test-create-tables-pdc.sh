@@ -27,22 +27,22 @@ PER_SAMPLE_FILE_ARG="per_sample_file"
 STUDIES_ARG="study"
 
 if [[ ${SCRIPT_NAME} = ${ALIQUOT_ARG} ]] ; then
-    CONFIG_FILE="CDATestCreateTablesAliquotCaseMapGDC.yaml"
+    CONFIG_FILE="CDATestCreateTablesAliquotCaseMapPDC.yaml"
     SCRIPT_FILE="test_create_tables_base.py"
 elif [[ ${SCRIPT_NAME} = ${CASE_ARG} ]] ; then
-    CONFIG_FILE="CDATestCreateTablesCaseGDC.yaml"
+    CONFIG_FILE="CDATestCreateTablesCasePDC.yaml"
     SCRIPT_FILE="test_create_tables_base.py"
 elif [[ ${SCRIPT_NAME} = ${CLINICAL_ARG} ]] ; then
-    CONFIG_FILE="CDATestCreateTablesClinicalGDC.yaml"
+    CONFIG_FILE="CDATestCreateTablesClinicalPDC.yaml"
     SCRIPT_FILE="test_create_tables_program_or_project.py"
 elif [[ ${SCRIPT_NAME} = ${FILE_ARG} ]] ; then
-    CONFIG_FILE="CDATestCreateTablesFileGDC.yaml"
+    CONFIG_FILE="CDATestCreateTablesFilePDC.yaml"
     SCRIPT_FILE="test_create_tables_base.py"
 elif [[ ${SCRIPT_NAME} = ${FILE_ENTITY_ARG} ]] ; then
-    CONFIG_FILE="CDATestCreateTablesFileEntityGDC.yaml"
+    CONFIG_FILE="CDATestCreateTablesFileEntityPDC.yaml"
     SCRIPT_FILE="test_create_tables_base.py"
 elif [[ ${SCRIPT_NAME} = ${PER_SAMPLE_FILE_ARG} ]] ; then
-    CONFIG_FILE="CDATestCreateTablesPerSampleFileGDC.yaml"
+    CONFIG_FILE="CDATestCreateTablesPerSampleFilePDC.yaml"
     SCRIPT_FILE="test_create_tables_program_or_project.py"
 else
     echo "Error: incorrect or missing script data type argument."

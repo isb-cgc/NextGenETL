@@ -45,6 +45,8 @@ def main(args):
     if 'COLUMN_LIST' not in PARAMS:
         has_fatal_error("COLUMN_LIST missing from yaml config.")
 
+    print("\nTable Comparision Testing\n")
+
     if 'compare_row_counts' in steps:
         print("***** Comparing row counts! *****\n")
         compare_row_counts(left_table_id=PARAMS['LEFT_TABLE_ID'],
