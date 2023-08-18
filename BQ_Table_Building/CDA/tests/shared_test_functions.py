@@ -184,7 +184,7 @@ def compare_table_columns(left_table_id: str,
                     print()
                     break
         else:
-            print(f"{column} column matches in published and new tables!")
+            print(f"{column} column matches in tables!")
 
     for column in column_list:
         compare_table_column_left_table(left_table_id, right_table_id)
