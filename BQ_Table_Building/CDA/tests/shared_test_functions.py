@@ -154,11 +154,10 @@ def compare_table_columns(left_table_id: str,
         result = query_and_retrieve_result(sql=column_comparison_query)
 
         if not result:
-            print(f"\nNo results returned for {column}. This can mean that there's a column data type mismatch, "
+            print(f"\nNo results returned. This can mean that there's a column data type mismatch, "
                   f"or that the column name differs.\n")
         elif result.total_rows > 0:
-            print(f"\nFor {column}, found {result.total_rows} values in {table_id_1} "
-                  f"that didn't match value in {table_id_2}.\n")
+            print(f"\n{result.total_rows} values in {table_id_1} didn't match value found in {table_id_2}.\n")
             print(f"Example values:\n")
 
             if secondary_key is not None:
@@ -184,10 +183,10 @@ def compare_table_columns(left_table_id: str,
                     print()
                     break
         else:
-            print(f"No missing values found for {column} in {table_id_2}!")
+            print(f"No missing values found in {table_id_2}!")
 
     for column in column_list:
-        print(f"\n*** for {column}: ***")
+        print(f"\n* For {column}: *")
         compare_table_column_left_table(left_table_id, right_table_id)
         compare_table_column_left_table(right_table_id, left_table_id)
         print()
