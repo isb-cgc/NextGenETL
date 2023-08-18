@@ -107,7 +107,7 @@ def compare_row_counts(left_table_id: str, right_table_id: str):
         right_count = row[0]
 
     if left_count == right_count:
-        print(f"Same row count between old and new tables: {left_count}")
+        print(f"Same row count between old and new tables: {left_count}\n")
     else:
         print(f"Mismatched row counts.\n"
               f"Old table row count: {left_count}.\n"
