@@ -251,46 +251,78 @@ def compare_concat_columns(left_table_id: str,
     record_key_set = set(left_table_records_dict.keys())
     record_key_set.update(right_table_records_dict.keys())
 
-    for count, record_id in enumerate(record_key_set):
+    for column in concat_column_list:
+        total_record_count = len(record_key_set)
         correct_records_count = 0
+        left_table_missing_record_count = 0
+        right_table_missing_record_count = 0
+        different_lengths_count = 0
+        different_values_count = 0
+        mismatched_records = list()
 
-        for column in concat_column_list:
+        for record_id in record_key_set:
             if record_id not in left_table_records_dict:
-                print(f"{record_id} not found in left table.")
+                left_table_missing_record_count += 1
                 break
             elif record_id not in right_table_records_dict:
-                print(f"{record_id} not found in right table.")
+                right_table_missing_record_count += 1
                 break
 
             left_column_value = left_table_records_dict[record_id][column]
             right_column_value = right_table_records_dict[record_id][column]
 
-            if left_column_value and right_column_value:
-                left_column_value_list = left_column_value.split(';')
-                right_column_value_list = right_column_value.split(';')
+            if left_column_value is None and right_column_value is None:
+                correct_records_count += 1
+            else:
+                if left_column_value is None:
+                    left_column_value_list = list()
+                else:
+                    left_column_value_list = left_column_value.split(';')
+
+                if right_column_value is None:
+                    right_column_value_list = list()
+                else:
+                    right_column_value_list = right_column_value.split(';')
 
                 left_column_value_set = set(left_column_value_list)
                 right_column_value_set = set(right_column_value_list)
 
-                if len(left_column_value_list) != len(right_column_value_list):
-                    # if length mismatch, there may be duplicates, so definitely not identical;
-                    # set eliminates duplicates, so this is necessary
-                    print(f'id {record_id} value mismatch for {column}.')
-                    print(f'left column values: {left_column_value} right column values: {right_column_value}\n')
-                elif len(left_column_value_set ^ right_column_value_set) > 0:
-                    # exclusive or -- values only in exactly one set
-                    print(f'id {record_id} value mismatch for {column}.')
-                    print(f'left column values: {left_column_value} right column values: {right_column_value}\n')
-            elif left_column_value != right_column_value:
-                # case in which one or both values are None--if both aren't none, that's a mismatch
-                print(f'id {record_id} value mismatch for {column}.')
-                print(f'old column values: {left_column_value} new column values: {right_column_value}')
-            else:
-                correct_records_count += 1
+                if len(left_column_value_list) == len(right_column_value_list) \
+                        and len(left_column_value_set ^ right_column_value_set) > 0:
+                    correct_records_count += 1
+                else:
+                    if len(left_column_value_list) != len(right_column_value_list):
+                        # if length mismatch, there may be duplicates, so definitely not identical;
+                        # set eliminates duplicates, so this is necessary
+                        print(f'id {record_id} value mismatch for {column}.')
+                        print(f'left column values: {left_column_value} right column values: {right_column_value}\n')
+                        different_lengths_count += 1
+                    elif len(left_column_value_set ^ right_column_value_set) > 0:
+                        # exclusive or -- values only in exactly one set
+                        print(f'id {record_id} value mismatch for {column}.')
+                        print(f'left column values: {left_column_value} right column values: {right_column_value}\n')
+                        different_values_count += 1
 
-        total_record_count = len(record_key_set)
+                    mismatched_records.append({
+                        "record_id": record_id,
+                        "left_table_value": left_column_value,
+                        "right_table_value": right_column_value
+                    })
 
-        if count % 100000 == 0:
-            print(f"{count}/{total_record_count} records evaluated")
-        elif count == len(record_key_set):
-            print(f"Record evaluation complete, {total_record_count} records evaluated")
+        print(f"For column {column}:")
+        print(f"Correct records: {correct_records_count}/{total_record_count}")
+        print(f"Missing records from left table: {left_table_missing_record_count}")
+        print(f"Missing records from right table: {right_table_missing_record_count}")
+        print(f"Different number of values in record: {different_lengths_count}")
+        print(f"Different values in record: {different_values_count}")
+
+        if len(mismatched_records) > 0:
+            print("Example values:")
+            i = 0
+            for mismatched_record in mismatched_records:
+                print(f"{primary_key}: {mismatched_record[i]['record_id']}")
+                print(f"left table value: {mismatched_record[i]['left_table_value']}")
+                print(f"right table value: {mismatched_record[i]['right_table_value']}")
+                i += 1
+                if i == 5:
+                    break
