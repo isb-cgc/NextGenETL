@@ -317,8 +317,16 @@ def compare_concat_columns(left_table_id: str,
             i = 0
             for mismatched_record in mismatched_records:
                 print(f"{primary_key}: {mismatched_record['record_id']}")
-                print(f"left table value(s): {sorted(mismatched_record['left_table_value'].split(';'))}")
-                print(f"right table value(s): {sorted(mismatched_record['right_table_value'].split(';'))}\n")
+                if len(mismatched_record['left_table_value']) > 0:
+                    print(f"left table value(s): {sorted(mismatched_record['left_table_value'].split(';'))}")
+                else:
+                    print("left table value: None")
+
+                if len(mismatched_record['right_table_value']) > 0:
+                    print(f"right table value(s): {sorted(mismatched_record['right_table_value'].split(';'))}\n")
+                else:
+                    print("right table value: None")
+
                 i += 1
 
                 if i == 5:
