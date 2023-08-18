@@ -309,7 +309,7 @@ def compare_concat_columns(left_table_id: str,
         print(f"Correct records: {correct_records_count}/{total_record_count}")
         print(f"Missing records from left table: {left_table_missing_record_count}")
         print(f"Missing records from right table: {right_table_missing_record_count}")
-        print(f"Different number of values in record: {different_lengths_count}")
+        print(f"\nDifferent number of values in record: {different_lengths_count}")
         print(f"Different values in record: {different_values_count}")
 
         if len(mismatched_records) > 0:
@@ -317,8 +317,8 @@ def compare_concat_columns(left_table_id: str,
             i = 0
             for mismatched_record in mismatched_records:
                 print(f"{primary_key}: {mismatched_record['record_id']}")
-                print(f"left table value: {mismatched_record['left_table_value']}")
-                print(f"right table value: {mismatched_record['right_table_value']}\n")
+                print(f"left table value(s): {sorted(mismatched_record['left_table_value'].split(';'))}")
+                print(f"right table value(s): {sorted(mismatched_record['right_table_value'].split(';'))}\n")
                 i += 1
 
                 if i == 5:
