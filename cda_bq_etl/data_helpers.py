@@ -402,7 +402,7 @@ def normalize_value(value: Any, is_tsv: bool = False) -> Any:
         return value
 
 
-def normalize_header_row(header_row):
+def normalize_header_row(header_row: list[str]) -> list[str]:
     new_header_row = list()
 
     for value in header_row:

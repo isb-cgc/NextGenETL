@@ -41,14 +41,6 @@ def make_file_metadata_query() -> str:
             FROM `{create_dev_table_id(PARAMS, 'file_instrument')}`
             GROUP BY file_id
         )
-        # todo can remove this?
-        , embargoes AS (
-            SELECT fs.file_id,
-                STRING_AGG(DISTINCT s.embargo_date, ';') AS embargo_dates
-            FROM `{create_dev_table_id(PARAMS, 'file_study_id')}` fs
-            JOIN `{create_dev_table_id(PARAMS, 'study')}` s
-                ON s.study_id = fs.study_id
-            GROUP BY fs.file_id
         ), study_ids AS (
             SELECT fs.file_id,
                 STRING_AGG(DISTINCT s.pdc_study_id, ';') as pdc_study_ids
@@ -60,7 +52,6 @@ def make_file_metadata_query() -> str:
         
         SELECT f.file_id,
             f.file_name,
-            # e.embargo_dates AS embargo_date,
             si.pdc_study_ids,
             srm.study_run_metadata_id,
             srm.study_run_metadata_submitter_id,
@@ -76,8 +67,6 @@ def make_file_metadata_query() -> str:
             f.md5sum,
             "open" AS `access`
         FROM `{create_dev_table_id(PARAMS, 'file')}` f
-        LEFT JOIN embargoes e
-            ON e.file_id = f.file_id
         LEFT JOIN study_ids si
             ON si.file_id = f.file_id
         LEFT JOIN `{create_dev_table_id(PARAMS, 'file_study_run_metadata_id')}` fsrm
@@ -100,8 +89,6 @@ def main(args):
     start_time = time.time()
 
     dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
-
-    print(make_file_metadata_query())
 
     if 'create_table_from_query' in steps:
         load_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_file_metadata_query())

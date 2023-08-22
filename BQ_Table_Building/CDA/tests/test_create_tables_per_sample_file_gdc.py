@@ -72,28 +72,33 @@ def main(args):
         print(f"For program: {program}")
         print("**********\n")
 
-        print("\n** Comparing row counts! **\n")
+        if 'compare_row_counts' in steps:
+            print("\n** Comparing row counts! **\n")
 
-        compare_row_counts(left_table_id=gdc_table_id,
-                           right_table_id=cda_table_id)
+            compare_row_counts(left_table_id=gdc_table_id,
+                               right_table_id=cda_table_id)
 
-        print("\n** Comparing primary table keys! **")
+        if 'compare_table_keys' in steps:
+            print("\n** Comparing primary table keys! **")
 
-        compare_id_keys(left_table_id=gdc_table_id,
-                        right_table_id=cda_table_id,
-                        primary_key=PARAMS['PRIMARY_KEY'])
+            compare_id_keys(left_table_id=gdc_table_id,
+                            right_table_id=cda_table_id,
+                            primary_key=PARAMS['PRIMARY_KEY'])
 
-        print("\n** Comparing secondary table keys! **")
+        if 'compare_table_columns' in steps:
+            print("\n** Comparing table columns! **\n")
 
-        compare_id_keys(left_table_id=gdc_table_id,
-                        right_table_id=cda_table_id,
-                        primary_key=PARAMS['SECONDARY_KEY'])
-
-        columns_list = PARAMS["COLUMNS"]
-
-        print("\n** Comparing table columns! **\n")
-
-        compare_table_columns(,
+            if "SECONDARY_KEY" in PARAMS and PARAMS['SECONDARY_KEY'] is not None:
+                compare_table_columns(left_table_id=gdc_table_id,
+                                      right_table_id=cda_table_id,
+                                      column_list=PARAMS["COLUMN_LIST"],
+                                      primary_key=PARAMS["PRIMARY_KEY"],
+                                      secondary_key=PARAMS['SECONDARY_KEY'])
+            else:
+                compare_table_columns(left_table_id=gdc_table_id,
+                                      right_table_id=cda_table_id,
+                                      column_list=PARAMS["COLUMN_LIST"],
+                                      primary_key=PARAMS["PRIMARY_KEY"])
 
 
 if __name__ == "__main__":

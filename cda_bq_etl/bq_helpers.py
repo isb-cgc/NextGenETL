@@ -867,10 +867,10 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, metadat
 def add_generic_table_metadata(params: Params, table_id: str, schema_tags: dict[str, str], metadata_file: str = None):
     """
     todo
-    :param params: bq_params supplied in yaml config
+    :param params: params supplied in yaml config
     :param table_id: table id for which to add the metadata
     :param schema_tags: dictionary of generic schema tag keys and values
-    :param metadata_file:
+    :param metadata_file: todo
     """
     generic_schema_path = f"{params['BQ_REPO']}/{params['GENERIC_SCHEMA_DIR']}"
 
@@ -913,13 +913,12 @@ def update_table_metadata(table_id: str, metadata: dict[str, str]):
     assert table.description == metadata['description']
 
 
-def add_column_descriptions(params, table_id):
+def add_column_descriptions(params: Params, table_id: str):
     """
     Alter an existing table's schema (currently, only column descriptions are mutable without a table rebuild,
     Google's restriction).
-    :param params:
-    :param table_id:
-    :return:
+    :param params: params supplied in yaml config
+    :param table_id: table id in standard SQL format
     """
     print("\t - Adding column descriptions!")
 
@@ -934,7 +933,7 @@ def add_column_descriptions(params, table_id):
     update_schema(table_id, descriptions)
 
 
-def update_schema(table_id, new_descriptions):
+def update_schema(table_id: str, new_descriptions: dict[str, str]):
     """
     Modify an existing table's field descriptions.
     :param table_id: table id in standard SQL format
@@ -962,7 +961,7 @@ def update_schema(table_id, new_descriptions):
     client.update_table(table, ['schema'])
 
 
-def get_project_program_names(params, project_submitter_id):
+def get_project_program_names(params: Params, project_submitter_id: str) -> dict[str, str]:
     """
     Get project short name, program short name and project name for given project submitter id.
     :param params: params from YAML config
@@ -1003,7 +1002,7 @@ def get_project_program_names(params, project_submitter_id):
         return project_name_dict
 
 
-def get_project_level_schema_tags(params, project_submitter_id):
+def get_project_level_schema_tags(params: Params, project_submitter_id: str) -> dict[str, str]:
     """
     Get project-level schema tags for populating generic table metadata schema.
     :param params: params from YAML config
@@ -1035,7 +1034,7 @@ def get_project_level_schema_tags(params, project_submitter_id):
         }
 
 
-def get_program_schema_tags_gdc(params, program_name):
+def get_program_schema_tags_gdc(params: Params, program_name: str) -> dict[str, str]:
     metadata_mappings_path = f"{params['BQ_REPO']}/{params['PROGRAM_METADATA_DIR']}"
     program_metadata_fp = get_filepath(f"{metadata_mappings_path}/{params['PROGRAM_METADATA_FILE']}")
 
@@ -1060,7 +1059,7 @@ def get_program_schema_tags_gdc(params, program_name):
         return schema_tags
 
 
-def get_project_or_program_list(params: Params):
+def get_project_or_program_list(params: Params) -> list[str]:
     """
     Get whichever list is used to divide the data into grouped tables; GDC uses program, PDC uses project.
     :param params: params defined in yaml config
@@ -1104,6 +1103,6 @@ def get_project_or_program_list(params: Params):
         return list(sorted(project_set))
 
     elif params['DC_SOURCE'] == 'idc':
-        print("get_project_list() is not yet defined for IDC.")
+        has_fatal_error("get_project_list() is not yet defined for IDC.")
     else:
-        print(f"get_project_list() is not yet defined for {params['DC_SOURCE']}.")
+        has_fatal_error(f"get_project_list() is not yet defined for {params['DC_SOURCE']}.")
