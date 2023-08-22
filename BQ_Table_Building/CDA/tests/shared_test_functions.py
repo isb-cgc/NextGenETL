@@ -313,8 +313,10 @@ def compare_concat_columns(left_table_id: str,
         print(f"Different values in record: {different_values_count}")
 
         if len(mismatched_records) > 0:
-            print("\nExample values:\n")
             i = 0
+
+            print("\nExample values:\n")
+
             for mismatched_record in mismatched_records:
                 print(f"{primary_key}: {mismatched_record['record_id']}")
                 if len(mismatched_record['left_table_value']) > 0:

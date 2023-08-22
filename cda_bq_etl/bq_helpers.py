@@ -715,6 +715,10 @@ def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
         # no distinct result rows, tables match
         return False
 
+    if compare_result is None:
+        print("No result returned for table comparison query. Often means that tables have differing schemas.")
+        return True
+
     for row in compare_result:
         return True if row else False
 
