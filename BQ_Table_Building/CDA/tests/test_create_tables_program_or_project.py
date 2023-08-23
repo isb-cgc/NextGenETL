@@ -42,7 +42,7 @@ def main(args):
 
     table_id_tuple_set = set()
 
-    program_set = get_project_or_program_list()
+    program_set = get_project_or_program_list(PARAMS)
 
     for program_name in sorted(program_set):
         old_table_name = f"{program_name}_{PARAMS['TABLE_BASE_NAME']}_{PARAMS['DATA_SOURCE']}_{PARAMS['DC_RELEASE']}"
