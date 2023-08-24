@@ -1094,6 +1094,8 @@ def get_project_or_program_list(params: Params) -> list[str]:
                 FROM `{params['DEV_PROJECT']}.{params['DEV_METADATA_DATASET']}.studies_{params['RELEASE']}`
             """
 
+        print(make_all_studies_query())
+
         projects_result = query_and_retrieve_result(make_all_studies_query())
         project_set = set()
 
