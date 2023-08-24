@@ -93,6 +93,9 @@ def compare_row_counts(left_table_id: str, right_table_id: str):
     left_count_result = query_and_retrieve_result(sql=left_table_row_count_query)
     right_count_result = query_and_retrieve_result(sql=right_table_row_count_query)
 
+    print(left_count_result)
+    print(right_count_result)
+
     left_count = right_count = 0
 
     if left_count_result.total_rows == 0 or left_count_result.total_rows > 1:
