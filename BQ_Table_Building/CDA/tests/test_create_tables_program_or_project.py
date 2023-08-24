@@ -45,13 +45,11 @@ def main(args):
     program_set = get_project_or_program_list(PARAMS)
 
     for program_name in sorted(program_set):
-        old_table_name = f"{program_name}_{PARAMS['TABLE_BASE_NAME']}_{PARAMS['DC_SOURCE']}_{PARAMS['DC_RELEASE']}"
+        old_table_name = f"{PARAMS['TABLE_BASE_NAME']}_{program_name}_{PARAMS['DC_SOURCE']}_{PARAMS['DC_RELEASE']}"
         old_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['OLD_DEV_DATASET']}.{old_table_name}"
 
         new_table_name = f"{PARAMS['TABLE_BASE_NAME']}_{program_name}_{PARAMS['RELEASE']}"
         new_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['TARGET_DATASET']}.{new_table_name}"
-
-        print(old_table_id)
 
         # check for valid hg38 table location
         old_table = client.get_table(table=old_table_id)
