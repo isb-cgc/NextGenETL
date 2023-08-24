@@ -51,6 +51,8 @@ def main(args):
         new_table_name = f"{PARAMS['TABLE_BASE_NAME']}_{program_name}_{PARAMS['RELEASE']}"
         new_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['TARGET_DATASET']}.{new_table_name}"
 
+        print(old_table_id)
+
         # check for valid hg38 table location
         old_table = client.get_table(table=old_table_id)
         new_table = client.get_table(table=new_table_id)
