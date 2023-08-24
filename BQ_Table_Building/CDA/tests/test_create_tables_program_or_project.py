@@ -45,8 +45,8 @@ def main(args):
     program_set = get_project_or_program_list(PARAMS)
 
     for program_name in sorted(program_set):
-        old_table_name = f"{program_name}_{PARAMS['TABLE_BASE_NAME']}_{PARAMS['DATA_SOURCE']}_{PARAMS['DC_RELEASE']}"
-        old_table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['GDC_WORKING_DATASET']}.{old_table_name}"
+        old_table_name = f"{program_name}_{PARAMS['TABLE_BASE_NAME']}_{PARAMS['DC_SOURCE']}_{PARAMS['DC_RELEASE']}"
+        old_table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['OLD_WORKING_DATASET']}.{old_table_name}"
 
         new_table_name = f"{PARAMS['TABLE_BASE_NAME']}_{program_name}_{PARAMS['RELEASE']}"
         new_table_id = f"{PARAMS['WORKING_PROJECT']}.{PARAMS['TARGET_DATASET']}.{new_table_name}"
