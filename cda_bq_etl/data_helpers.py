@@ -25,6 +25,8 @@ from typing import Union, Any, Optional
 import json
 import re
 import datetime
+import time
+import logging
 import csv
 from distutils import util
 
@@ -624,3 +626,30 @@ def json_datetime_to_str_converter(datetime_obj: datetime) -> str:
     if isinstance(datetime_obj, datetime.time):
         return str(datetime_obj)
 
+
+def initialize_logging(log_filepath: str) -> logging.Logger:
+    # initialize Logger object
+    logger = logging.getLogger(name='base_script')
+    logger.setLevel(logging.DEBUG)
+
+    # emit logger output to a file
+    log_file_handler = logging.FileHandler(log_filepath)
+    log_file_handler.setLevel(logging.DEBUG)
+
+    # emit logger output to the console
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+
+    # format log output: levelname is the severity level, e.g. INFO, WARNING
+    # name is the location from which the message was emitted; lineno is the line
+    formatter = logging.Formatter('[%(levelname)s][%(name)s:%(lineno)s] %(message)s')
+    log_file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+
+    logger.addHandler(log_file_handler)
+    logger.addHandler(console_handler)
+
+    start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+    logger.info(f"Logging started: {start_time}")
+
+    return logger

@@ -19,6 +19,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import logging
 import sys
 import time
 from typing import Any, Union, Optional
@@ -27,9 +28,8 @@ from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
 from cda_bq_etl.bq_helpers import query_and_retrieve_result, create_and_upload_schema_for_json, \
     create_and_load_table_from_jsonl, retrieve_bq_schema_object, publish_table, update_table_schema_from_generic
-from cda_bq_etl.utils import format_seconds, load_config, has_fatal_error, create_dev_table_id
-from cda_bq_etl.data_helpers import normalize_flat_json_values, write_list_to_jsonl_and_upload
-
+from cda_bq_etl.utils import format_seconds, load_config, create_dev_table_id
+from cda_bq_etl.data_helpers import normalize_flat_json_values, write_list_to_jsonl_and_upload, initialize_logging
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -248,7 +248,8 @@ def create_file_metadata_dict() -> JSONList:
                                                                              max_length=PARAMS['MAX_CONCAT_COUNT'],
                                                                              filter_duplicates=filter_duplicates)
 
-    print("\nCreating base file metadata record objects")
+    logger = logging.getLogger('base_script')
+    logger.info("Creating base file metadata record objects")
 
     file_record_result: BQQueryResult = query_and_retrieve_result(sql=make_base_file_metadata_sql())
 
@@ -259,7 +260,7 @@ def create_file_metadata_dict() -> JSONList:
         file_gdc_id = row.get('file_gdc_id')
 
         if file_gdc_id in file_records:
-            print(f"Duplicate record for file_gdc_id: {file_gdc_id}")
+            logger.info(f"Duplicate record for file_gdc_id: {file_gdc_id}")
 
         file_records[file_gdc_id]: dict[str, Optional[Any]] = {
             'dbName': row.get('dbName'),
@@ -307,7 +308,7 @@ def create_file_metadata_dict() -> JSONList:
         }
 
     # Add acl ids to file records
-    print("Adding acl ids to file records")
+    logger.info("Adding acl ids to file records")
 
     acl_concat_field_list: list[str] = ['acl']
 
@@ -316,7 +317,7 @@ def create_file_metadata_dict() -> JSONList:
                                       filter_duplicates=True)
 
     # Add analysis input file ids to file records
-    print("Adding analysis input file ids to file records")
+    logger.info("Adding analysis input file ids to file records")
 
     analysis_input_concat_field_list: list[str] = ['analysis_input_file_gdc_ids']
 
@@ -325,7 +326,7 @@ def create_file_metadata_dict() -> JSONList:
                                       filter_duplicates=True)
 
     # Add downstream analyses output file ids to file records
-    print("Adding downstream analyses output file ids to file records")
+    logger.info("Adding downstream analyses output file ids to file records")
 
     downstream_output_concat_field_list: list[str] = ['downstream_analyses__output_file_gdc_ids']
 
@@ -334,7 +335,7 @@ def create_file_metadata_dict() -> JSONList:
                                       filter_duplicates=True)
 
     # Add downstream analyses fields to file records
-    print("Adding downstream analyses fields to file records")
+    logger.info("Adding downstream analyses fields to file records")
 
     downstream_analyses_concat_field_list: list[str] = ['downstream_analyses__workflow_link',
                                                         'downstream_analyses__workflow_type']
@@ -344,7 +345,7 @@ def create_file_metadata_dict() -> JSONList:
                                       filter_duplicates=True)
 
     # Add associated entity fields to file records
-    print("Adding associated entity fields to file records")
+    logger.info("Adding associated entity fields to file records")
 
     associated_entities_concat_field_list: list[str] = ['associated_entities__case_gdc_id',
                                                         'associated_entities__entity_gdc_id',
@@ -366,7 +367,7 @@ def create_file_metadata_dict() -> JSONList:
             = ";".join(set(associated_entities__entity_type.split(';')))
 
     # Add case, project, program fields to file records
-    print("Adding case, project, program fields to file records")
+    logger.info("Adding case, project, program fields to file records")
 
     case_project_program_result: BQQueryResult = query_and_retrieve_result(sql=make_case_project_program_sql())
 
@@ -387,7 +388,7 @@ def create_file_metadata_dict() -> JSONList:
     del case_project_program_result
 
     # Add index files to file records
-    print("Adding index files to file records")
+    logger.info("Adding index files to file records")
 
     index_file_result: BQQueryResult = query_and_retrieve_result(sql=make_index_file_sql())
 
@@ -400,22 +401,28 @@ def create_file_metadata_dict() -> JSONList:
     del index_file_result
 
     # convert into a list of dict objects--this is the form needed to create the jsonl file
-    print("Done! File records merged.\n")
+    logger.info("Done! File records merged.\n")
     return list(file_records.values())
 
 
 def main(args):
     try:
+        start_time = time.time()
+
         global PARAMS
         PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
-        has_fatal_error(err, ValueError)
+        sys.exit(err)
 
-    start_time = time.time()
+    log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
+    log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
+    logger = initialize_logging(log_filepath)
 
     dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
 
     if 'create_and_upload_file_metadata_jsonl' in steps:
+        logger.info("Entering create_and_upload_file_metadata_jsonl")
+
         file_record_list = create_file_metadata_dict()
 
         normalized_file_record_list = normalize_flat_json_values(file_record_list)
@@ -429,6 +436,8 @@ def main(args):
                                           include_release=True)
 
     if 'create_table' in steps:
+        logger.info("Entering create_table")
+
         # Download schema file from Google Cloud bucket
         table_schema = retrieve_bq_schema_object(PARAMS, table_name='file', include_release=True)
 
@@ -441,6 +450,8 @@ def main(args):
         update_table_schema_from_generic(params=PARAMS, table_id=dev_table_id)
 
     if 'publish_tables' in steps:
+        logger.info("Entering publish_tables")
+
         current_table_name = f"{PARAMS['TABLE_NAME']}_current"
         current_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}.{current_table_name}"
         versioned_table_name = f"{PARAMS['TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
@@ -453,7 +464,7 @@ def main(args):
 
     end_time = time.time()
 
-    print(f"Script completed in: {format_seconds(end_time - start_time)}")
+    logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
 
 
 if __name__ == "__main__":

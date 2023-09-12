@@ -20,11 +20,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import sys
+import time
 
-from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id
+from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds
 from cda_bq_etl.bq_helpers import query_and_retrieve_result, create_and_load_table_from_jsonl, \
     retrieve_bq_schema_object, create_and_upload_schema_for_json
-from cda_bq_etl.data_helpers import write_list_to_jsonl_and_upload
+from cda_bq_etl.data_helpers import write_list_to_jsonl_and_upload, initialize_logging
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -88,14 +89,22 @@ def create_merged_project_studies_disease_type_jsonl():
 
 def main(args):
     try:
+        start_time = time.time()
+
         global PARAMS
         PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
-        has_fatal_error(err, ValueError)
+        sys.exit(err)
+
+    log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
+    log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
+    logger = initialize_logging(log_filepath)
 
     if 'create_jsonl_file_and_schema' in steps:
+        logger.info("Entering create_jsonl_file_and_schema")
         create_merged_project_studies_disease_type_jsonl()
     if 'create_table' in steps:
+        logger.info("Entering create_table")
         table_id = create_dev_table_id(PARAMS, PARAMS['TABLE_NAME'])
         jsonl_file = f"{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}.jsonl"
 
@@ -105,6 +114,9 @@ def main(args):
 
         # Load jsonl data into BigQuery table
         create_and_load_table_from_jsonl(PARAMS, jsonl_file=jsonl_file, table_id=table_id, schema=table_schema)
+
+    end_time = time.time()
+    logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
 
 
 if __name__ == "__main__":
