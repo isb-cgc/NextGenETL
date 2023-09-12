@@ -23,9 +23,9 @@ import sys
 import time
 
 from cda_bq_etl.data_helpers import initialize_logging
-from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds
-from cda_bq_etl.bq_helpers import delete_bq_table, load_table_from_query, query_and_retrieve_result, publish_table, \
-    update_table_schema_from_generic, get_program_schema_tags_gdc, get_project_or_program_list
+from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds
+from cda_bq_etl.bq_helpers import delete_bq_table, load_table_from_query, publish_table, get_project_or_program_list, \
+    update_table_schema_from_generic, get_program_schema_tags_gdc
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
