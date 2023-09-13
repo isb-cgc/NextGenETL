@@ -20,8 +20,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import sys
+import time
 
-from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id
+from cda_bq_etl.data_helpers import initialize_logging
+from cda_bq_etl.utils import load_config, create_dev_table_id
 from cda_bq_etl.bq_helpers import create_view_from_query
 
 PARAMS = dict()
@@ -58,10 +60,14 @@ def main(args):
         global PARAMS
         PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
-        has_fatal_error(err, ValueError)
+        sys.exit(err)
+
+    log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
+    log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
+    logger = initialize_logging(log_filepath)
 
     if 'create_case_project_program_view' in steps:
-        print("Making case project program view!")
+        logger.info("Making case project program view!")
 
         create_view_from_query(view_id=create_dev_table_id(PARAMS, PARAMS['TABLE_NAME']),
                                view_query=make_case_project_program_view_query())

@@ -19,7 +19,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
+import logging
 import tarfile
 import sys
 import os
@@ -30,8 +30,8 @@ import time
 from typing import Union
 
 from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket
-from cda_bq_etl.utils import get_scratch_fp, load_config, get_filepath, has_fatal_error, format_seconds
-from cda_bq_etl.data_helpers import create_normalized_tsv
+from cda_bq_etl.utils import get_scratch_fp, load_config, get_filepath, format_seconds
+from cda_bq_etl.data_helpers import create_normalized_tsv, initialize_logging
 from cda_bq_etl.bq_helpers import retrieve_bq_schema_object, create_and_upload_schema_for_tsv, \
     create_and_load_table_from_tsv
 
@@ -51,19 +51,20 @@ def extract_tarfile(src_path: str, dest_path: str, print_contents: bool = False,
     """
     tar = tarfile.open(name=src_path, mode="r:gz")
 
+    logger = logging.getLogger('base_script')
+
     if print_contents:
-        print(f"\nContents of {src_path}:")
+        logging.info(f"Contents of {src_path}:")
         for tar_info in tar:
             if tar_info.isreg():
-                print(f"{tar_info.name}, {tar_info.size} bytes")
-        print()
+                logging.info(f"{tar_info.name}, {tar_info.size} bytes")
 
     # create file list
     for tar_info in tar:
         if tar_info.isreg():
             if not overwrite and os.path.exists(dest_path + "/" + tar_info.name):
-                print(f"file {tar_info.name} already exists in {dest_path}")
-                exit(1)
+                logger.critical(f"file {tar_info.name} already exists in {dest_path}")
+                sys.exit(-1)
 
     tar.extractall(dest_path)
     tar.close()
@@ -90,8 +91,9 @@ def scan_directories_and_create_file_dict(dest_path: str) -> tuple[dict[str, lis
     :return: dictionary of subdirectories and file names; path to subdirectory to traverse
     :rtype: tuple[dict[str, list], str]
     """
-    top_level_dir = os.listdir(dest_path)
+    logger = logging.getLogger('base_script')
 
+    top_level_dir = os.listdir(dest_path)
     non_hidden_dir = list()
 
     for dir_name in top_level_dir:
@@ -99,9 +101,9 @@ def scan_directories_and_create_file_dict(dest_path: str) -> tuple[dict[str, lis
             non_hidden_dir.append(dir_name)
 
     if len(non_hidden_dir) != 1:
-        print("Error: more than one folder in directory")
-        print(non_hidden_dir)
-        exit(0)
+        logger.critical("more than one folder in directory")
+        logger.critical(non_hidden_dir)
+        sys.exit(-1)
 
     dest_path = f"{dest_path}/{non_hidden_dir[0]}"
 
@@ -156,6 +158,8 @@ def normalize_files(file_list: list[str], dest_path: str) -> list[str]:
     """
     normalized_file_names = list()
 
+    logger = logging.getLogger('base_script')
+
     for tsv_file in file_list:
         file_type = tsv_file.split(".")[-1]
 
@@ -176,14 +180,14 @@ def normalize_files(file_list: list[str], dest_path: str) -> list[str]:
         normalized_file_names.append(f"{normalized_tsv_file}\n")
 
         # create normalized file list
-        print(f"\nNormalizing {tsv_file}")
+        logger.info(f"\nNormalizing {tsv_file}")
         create_normalized_tsv(raw_tsv_path, normalized_tsv_path)
 
         # upload raw and normalized tsv files to google cloud storage
         upload_to_bucket(PARAMS, raw_tsv_path, delete_local=True, verbose=False)
         upload_to_bucket(PARAMS, normalized_tsv_path, delete_local=True, verbose=False)
 
-        print(f"Successfully uploaded raw and normalized {normalized_tsv_file} files to bucket.")
+        logger.info(f"Successfully uploaded raw and normalized {normalized_tsv_file} files to bucket.")
 
     return normalized_file_names
 
@@ -212,12 +216,16 @@ def main(args):
         global PARAMS
         PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
-        has_fatal_error(err, ValueError)
+        sys.exit(err)
+
+    log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
+    log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
+    logger = initialize_logging(log_filepath)
 
     start_time = time.time()
 
     if "download_cda_archive_file" in steps:
-        print("\n*** Downloading archive file from bucket!\n")
+        logger.info("*** Downloading archive file from bucket!")
         local_tar_dir = get_filepath(PARAMS['LOCAL_TAR_DIR'])
 
         if not os.path.exists(local_tar_dir):
@@ -229,7 +237,7 @@ def main(args):
                              dir_path=local_tar_dir)
 
     if "extract_cda_archive_file" in steps:
-        print("\n*** Extracting archive file!\n")
+        logger.info("*** Extracting archive file!")
         local_tar_dir = get_filepath(PARAMS['LOCAL_TAR_DIR'])
 
         src_path = f"{local_tar_dir}/{PARAMS['TAR_FILE']}"
@@ -240,7 +248,7 @@ def main(args):
 
         extract_tarfile(src_path, dest_path, overwrite=True)
     if "normalize_and_upload_tsvs" in steps:
-        print("\n*** Normalizing and uploading tsvs!\n")
+        logger.info("*** Normalizing and uploading tsvs!")
         dest_path = get_filepath(PARAMS['LOCAL_EXTRACT_DIR'])
 
         normalized_file_names = list()
@@ -273,13 +281,12 @@ def main(args):
         upload_to_bucket(PARAMS, index_txt_file_name, delete_local=True)
 
     if "create_schemas" in steps:
-        print("\n*** Creating schemas!\n")
+        logger.info("*** Creating schemas!")
         # download index file
         index_txt_file_name = f"{PARAMS['RELEASE']}_{PARAMS['DC_SOURCE']}_file_index.txt"
         download_from_bucket(PARAMS, index_txt_file_name)
 
         with open(get_scratch_fp(PARAMS, index_txt_file_name), mode="r") as index_file:
-            print("")
             file_names = index_file.readlines()
 
             for tsv_file_name in file_names:
@@ -299,7 +306,7 @@ def main(args):
                 os.remove(local_file_path)
 
     if "create_tables" in steps:
-        print("\n*** Creating tables!\n")
+        logger.info("*** Creating tables!")
         index_txt_file_name = f"{PARAMS['RELEASE']}_{PARAMS['DC_SOURCE']}_file_index.txt"
         download_from_bucket(PARAMS, index_txt_file_name)
 
@@ -307,7 +314,6 @@ def main(args):
             file_names = index_file.readlines()
 
             for tsv_file_name in file_names:
-                print("")
                 tsv_file_name = tsv_file_name.strip()
                 tsv_file_path = get_scratch_fp(PARAMS, tsv_file_name)
                 download_from_bucket(PARAMS, tsv_file_name)
@@ -325,7 +331,7 @@ def main(args):
                                                    num_header_rows=1,
                                                    schema=schema_object)
                 else:
-                    print(f"No rows found, table not created: {table_id}")
+                    logger.info(f"No rows found, table not created: {table_id}")
 
                 os.remove(tsv_file_path)
 
@@ -333,7 +339,7 @@ def main(args):
 
     end_time = time.time()
 
-    print(f"Script completed in: {format_seconds(end_time - start_time)}")
+    logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
 
 
 if __name__ == "__main__":
