@@ -180,7 +180,7 @@ def normalize_files(file_list: list[str], dest_path: str) -> list[str]:
         normalized_file_names.append(f"{normalized_tsv_file}\n")
 
         # create normalized file list
-        logger.info(f"\nNormalizing {tsv_file}")
+        logger.info(f"Normalizing {tsv_file}")
         create_normalized_tsv(raw_tsv_path, normalized_tsv_path)
 
         # upload raw and normalized tsv files to google cloud storage
