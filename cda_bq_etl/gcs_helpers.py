@@ -19,11 +19,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import logging
 import os
+import sys
 from typing import Union, Optional
 
 from google.cloud import storage, exceptions
-from cda_bq_etl.utils import get_scratch_fp, has_fatal_error
+from cda_bq_etl.utils import get_scratch_fp
 
 Params = dict[str, Union[str, dict, int]]
 
@@ -60,7 +62,8 @@ def download_from_bucket(params: Params,
         blob.download_to_file(file_obj)
 
     if os.path.isfile(file_path):
-        print(f"File successfully downloaded from bucket to {file_path}")
+        logger = logging.getLogger('base_script.cda_bq_etl.gcs_helpers')
+        logger.info(f"File successfully downloaded from bucket to {file_path}")
 
 
 def upload_to_bucket(params: Params, scratch_fp: str, delete_local: bool = False, verbose: bool = True):
@@ -69,10 +72,13 @@ def upload_to_bucket(params: Params, scratch_fp: str, delete_local: bool = False
     :param params: bq param object from yaml config
     :param scratch_fp: name of file to upload to bucket
     :param delete_local: delete scratch file created on VM
-    :param verbose: if True, print a confirmation for each file uploaded
+    :param verbose: if True, log a confirmation for each file uploaded
     """
+    logger = logging.getLogger('base_script.cda_bq_etl.gcs_helpers')
+
     if not os.path.exists(scratch_fp):
-        has_fatal_error(f"Invalid filepath: {scratch_fp}", FileNotFoundError)
+        logger.critical(f"Invalid filepath: {scratch_fp}", FileNotFoundError)
+        sys.exit(-1)
 
     try:
         storage_client = storage.Client(project="")
@@ -86,17 +92,19 @@ def upload_to_bucket(params: Params, scratch_fp: str, delete_local: bool = False
         blob.upload_from_filename(scratch_fp)
 
         if verbose:
-            print(f"Successfully uploaded file to {bucket_name}/{blob_name}. ", end="")
+            logger.info(f"Successfully uploaded file to {bucket_name}/{blob_name}.")
 
         if delete_local:
             os.remove(scratch_fp)
             if verbose:
-                print("Local file deleted.")
+                logger.info("Local file deleted.")
         else:
             if verbose:
-                print(f"Local file not deleted.")
+                logger.info(f"Local file not deleted.")
 
     except exceptions.GoogleCloudError as err:
-        has_fatal_error(f"Failed to upload to bucket.\n{err}")
+        logger.critical(f"Failed to upload to bucket.\n{err}")
+        sys.exit(err)
     except FileNotFoundError as err:
-        has_fatal_error(f"File not found, failed to access local file.\n{err}")
+        logger.critical(f"File not found, failed to access local file.\n{err}")
+        sys.exit(err)

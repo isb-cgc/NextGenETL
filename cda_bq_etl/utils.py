@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import io
+import logging
 import os
 import select
 import sys
@@ -39,7 +40,6 @@ def load_config(args: str, yaml_dict_keys: tuple[str, ...]) -> tuple[Any, ...]:
     top-level dict keys
     :return: tuple of dicts from yaml file (as requested in yaml_dict_keys)
     """
-
     def open_yaml_and_return_dict(yaml_name: str) -> dict:
         """
         Open yaml file and return contents as dict.
@@ -47,22 +47,27 @@ def load_config(args: str, yaml_dict_keys: tuple[str, ...]) -> tuple[Any, ...]:
         :return: dictionary of parameters
         """
         with open(yaml_name, mode='r') as yaml_file:
-            yaml_dict = None
             config_stream = io.StringIO(yaml_file.read())
 
             try:
                 yaml_dict = yaml.load(config_stream, Loader=yaml.FullLoader)
             except yaml.YAMLError as ex:
-                has_fatal_error(ex, str(yaml.YAMLError))
+                logger.critical(ex, str(yaml.YAMLError))
+                sys.exit(-1)
+
             if yaml_dict is None:
-                has_fatal_error("Bad YAML load, exiting.", ValueError)
+                logger.critical("Bad YAML load, exiting.")
+                sys.exit(-1)
 
             # Dynamically generate a list of dictionaries for the return statement,
             # since tuples are immutable
             return {key: yaml_dict[key] for key in yaml_dict_keys}
 
+    logger = logging.getLogger('base_script.cda_bq_etl.utils')
+
     if len(args) < 2 or len(args) > 3:
-        has_fatal_error("")
+        logger.critical("Incorrect number of args.")
+        sys.exit(-1)
     if len(args) == 2:
         singleton_yaml_dict = open_yaml_and_return_dict(args[1])
         return tuple([singleton_yaml_dict[key] for key in yaml_dict_keys])
@@ -75,9 +80,11 @@ def load_config(args: str, yaml_dict_keys: tuple[str, ...]) -> tuple[Any, ...]:
 
     for key in yaml_dict_keys:
         if key not in shared_yaml_dict and key not in data_type_yaml_dict:
-            has_fatal_error(f"{key} not found in shared or data type-specific yaml config")
+            logger.critical(f"{key} not found in shared or data type-specific yaml config")
+            logger = logging.getLogger('base_script.cda_bq_etl.utils')
         elif not shared_yaml_dict[key] and not data_type_yaml_dict[key]:
-            has_fatal_error(f"No values found for {key} in shared or data type-specific yaml config")
+            logger.critical(f"No values found for {key} in shared or data type-specific yaml config")
+            logger = logging.getLogger('base_script.cda_bq_etl.utils')
 
         if key in shared_yaml_dict and shared_yaml_dict[key]:
             merged_yaml_dict[key] = shared_yaml_dict[key]

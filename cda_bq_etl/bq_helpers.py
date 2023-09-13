@@ -21,6 +21,8 @@ SOFTWARE.
 """
 
 import json
+import logging
+import sys
 import time
 import os
 from typing import Union, Optional, Any
@@ -30,8 +32,7 @@ from google.cloud.exceptions import NotFound
 from google.cloud.bigquery import SchemaField, Client, LoadJobConfig, QueryJob
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
-from cda_bq_etl.utils import has_fatal_error, get_filename, get_scratch_fp, input_with_timeout, get_filepath, \
-    create_dev_table_id
+from cda_bq_etl.utils import get_filename, get_scratch_fp, input_with_timeout, get_filepath, create_dev_table_id
 from cda_bq_etl.gcs_helpers import download_from_bucket, upload_to_bucket
 from cda_bq_etl.data_helpers import recursively_detect_object_structures, get_column_list_tsv, \
     aggregate_column_data_types_tsv, resolve_type_conflicts, resolve_type_conflict
@@ -55,15 +56,19 @@ def load_create_table_job(params: Params, data_file: str, client: Client, table_
     """
     gs_uri = f"gs://{params['WORKING_BUCKET']}/{params['WORKING_BUCKET_DIR']}/{data_file}"
 
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
     try:
         load_job = client.load_table_from_uri(source_uris=gs_uri,
                                               destination=table_id,
                                               job_config=job_config)
-        print(f' - Inserting into {table_id}... ', end="")
+
+        logger.info(f' - Inserting into {table_id}... ')
         await_insert_job(params, client, table_id, load_job)
 
     except TypeError as err:
-        has_fatal_error(err)
+        logger.critical(err)
+        sys.exit(-1)
 
 
 def await_job(params: Params, client: Client, bq_job: QueryJob) -> bool:
@@ -77,11 +82,13 @@ def await_job(params: Params, client: Client, bq_job: QueryJob) -> bool:
     location = params['LOCATION']
     job_state = "NOT_STARTED"
 
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
     while job_state != 'DONE':
         bq_job = client.get_job(bq_job.job_id, location=location)
 
         if time.time() - last_report_time > 30:
-            print(f'\tcurrent job state: {bq_job.state}...\t', end='')
+            logger.info(f'\tcurrent job state: {bq_job.state}...\t')
             last_report_time = time.time()
 
         job_state = bq_job.state
@@ -94,7 +101,8 @@ def await_job(params: Params, client: Client, bq_job: QueryJob) -> bool:
     if bq_job.error_result is not None:
         err_res = bq_job.error_result
         errs = bq_job.errors
-        has_fatal_error(f"While running BigQuery job: {err_res}\n{errs}")
+        logger.critical(f"While running BigQuery job: {err_res}\n{errs}")
+        sys.exit(-1)
 
     return True
 
@@ -107,17 +115,21 @@ def await_insert_job(params: Params, client: Client, table_id: str, bq_job: Quer
     :param table_id: BigQuery table identifier
     :param bq_job: QueryJob object
     """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
 
     if await_job(params, client, bq_job):
         table = client.get_table(table_id)
 
         if table.num_rows == 0:
-            has_fatal_error(f"[ERROR] Insert job for {table_id} inserted 0 rows. Exiting.")
+            logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+            logger.critical(f"Insert job for {table_id} inserted 0 rows. Exiting.")
+            sys.exit(-1)
 
-        print(f" done. {table.num_rows} rows inserted.")
+        logger.info(f" done. {table.num_rows} rows inserted.")
     else:
         # if this happens, it may not work to call await_job--trying not to have duplicate code fragments
-        has_fatal_error(f"await_job didn't return for table_id: {table_id}.")
+        logger.critical(f"await_job didn't return for table_id: {table_id}.")
+        sys.exit(-1)
 
 
 def create_and_upload_schema_for_tsv(params: Params,
@@ -143,15 +155,17 @@ def create_and_upload_schema_for_tsv(params: Params,
     :param schema_fp: path to schema location on local vm
     :param delete_local: delete local file after uploading to cloud bucket
     """
-    print(f"Creating schema for {tsv_fp}")
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
+    logger.info(f"Creating schema for {tsv_fp}")
 
     # third condition required to account for header row at 0 index
-
     # if no header list supplied here, headers are generated from header_row.
     column_headers = get_column_list_tsv(header_list, tsv_fp, header_row)
 
     if isinstance(header_row, int) and header_row >= skip_rows:
-        has_fatal_error("Header row not excluded by skip_rows.")
+        logger.critical("Header row not excluded by skip_rows.")
+        sys.exit(-1)
 
     data_types_dict = aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, row_check_interval)
 
@@ -260,10 +274,12 @@ def create_and_load_table_from_jsonl(params: Params,
     client = bigquery.Client()
     job_config = bigquery.LoadJobConfig()
 
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
     if schema:
         job_config.schema = schema
     else:
-        print(f" - No schema supplied for {table_id}, using schema autodetect.")
+        logger.info(f" - No schema supplied for {table_id}, using schema autodetect.")
         job_config.autodetect = True
 
     job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
@@ -283,12 +299,15 @@ def load_table_from_query(params: Params, table_id: str, query: str):
     job_config = bigquery.QueryJobConfig(destination=table_id)
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
 
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
     try:
         query_job = client.query(query, job_config=job_config)
-        print(f' - Inserting into {table_id}... ', end="")
+        logger.info(f' - Inserting into {table_id}... ')
         await_insert_job(params, client, table_id, query_job)
     except TypeError as err:
-        has_fatal_error(err)
+        logger.critical(err)
+        sys.exit(-1)
 
 
 def create_view_from_query(view_id: Union[Any, str], view_query: str):
@@ -300,21 +319,25 @@ def create_view_from_query(view_id: Union[Any, str], view_query: str):
     client = bigquery.Client()
     view = bigquery.Table(view_id)
 
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
     if exists_bq_table(view_id):
         existing_table = client.get_table(view_id)
 
         if existing_table.table_type == 'VIEW':
             client.delete_table(view_id)
         else:
-            has_fatal_error(f"{view_id} already exists and is type ({view.table_type}). Cannot create view, exiting.")
+            logger.critical(f"{view_id} already exists and is type ({view.table_type}). Cannot create view, exiting.")
+            sys.exit(-1)
 
     view.view_query = view_query
     view = client.create_table(view)
 
     if not exists_bq_table(view_id):
-        has_fatal_error(f"View {view_id} not created, exiting.")
+        logger.critical(f"View {view_id} not created, exiting.")
+        sys.exit(-1)
     else:
-        print(f"Created {view.table_type}: {str(view.reference)}")
+        logger.info(f"Created {view.table_type}: {str(view.reference)}")
 
 
 def exists_bq_dataset(dataset_id: str) -> bool:
@@ -367,14 +390,16 @@ def copy_bq_table(params, src_table, dest_table, replace_table=False):
     client = bigquery.Client()
     job_config = bigquery.CopyJobConfig()
 
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
     if replace_table:
         delete_bq_table(dest_table)
 
     bq_job = client.copy_table(src_table, dest_table, job_config=job_config)
 
     if await_job(params, client, bq_job):
-        print("Successfully copied table:")
-        print(f"src: {src_table}\n dest: {dest_table}\n")
+        logger.info("Successfully copied table:")
+        logger.info(f"src: {src_table}\n dest: {dest_table}\n")
 
 
 def retrieve_bq_schema_object(params: Params,
@@ -428,6 +453,8 @@ def query_and_retrieve_result(sql: str) -> Union[BQQueryResult, None]:
     job_config = bigquery.QueryJobConfig()
     location = 'US'
 
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
     # Initialize QueryJob
     query_job = client.query(query=sql, location=location, job_config=job_config)
 
@@ -440,7 +467,7 @@ def query_and_retrieve_result(sql: str) -> Union[BQQueryResult, None]:
     query_job = client.get_job(job_id=query_job.job_id, location=location)
 
     if query_job.error_result is not None:
-        print(f"[ERROR] {query_job.error_result}")
+        logger.error(f"{query_job.error_result}")
         return None
 
     return query_job.result()
@@ -515,7 +542,9 @@ def generate_bq_schema_fields(schema_obj_list: JSONList) -> list[SchemaField]:
             child_schema_fields = list()
 
             if not _schema_obj['fields']:
-                has_fatal_error("Schema object has 'type': 'RECORD' but no 'fields' key.")
+                logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+                logger.critical("Schema object has 'type': 'RECORD' but no 'fields' key.")
+                sys.exit(-1)
 
             for child_obj in _schema_obj['fields']:
                 generate_bq_schema_field(child_obj, child_schema_fields)
@@ -602,86 +631,87 @@ def publish_table(params: Params, source_table_id: str, current_table_id: str, v
     :param current_table_id: published table id for current
     :param versioned_table_id: published table id for versioned
     """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
     previous_versioned_table_id = find_most_recent_published_table_id(params, versioned_table_id)
-    print(f"previous_versioned_table_id: {previous_versioned_table_id}")
+    logger.info(f"previous_versioned_table_id: {previous_versioned_table_id}")
 
     if params['TEST_PUBLISH']:
-        print(f"\nEvaluating publish_tables step for {source_table_id}.\n")
+        logger.info(f"Evaluating publish_tables step for {source_table_id}.")
 
         # does source table exist?
         if exists_bq_table(source_table_id):
-            print("Source table id is valid.\n")
+            logger.info("Source table id is valid.")
         else:
-            print("Source table id doesn't exist, cannot publish.")
-            exit(1)
+            logger.critical("Source table id doesn't exist, cannot publish.")
+            sys.exit(-1)
 
         # does current dataset exist?
         current_dataset = ".".join(current_table_id.split('.')[:-1])
         current_dataset_exists = exists_bq_dataset(current_dataset)
 
         if current_dataset_exists:
-            print(f"Dataset {current_dataset} is valid.")
+            logger.info(f"Dataset {current_dataset} is valid.")
         else:
-            print(f"Dataset {current_dataset} doesn't exist, cannot publish.")
-            exit(1)
+            logger.critical(f"Dataset {current_dataset} doesn't exist, cannot publish.")
+            sys.exit(-1)
 
         # does versioned dataset exist?
         versioned_dataset = ".".join(versioned_table_id.split('.')[:-1])
         versioned_dataset_exists = exists_bq_dataset(versioned_dataset)
 
         if versioned_dataset_exists:
-            print(f"Dataset {versioned_dataset} is valid.\n")
+            logger.info(f"Dataset {versioned_dataset} is valid.")
         else:
-            print(f"Dataset {versioned_dataset} doesn't exist, cannot publish.")
-            exit(1)
+            logger.critical(f"Dataset {versioned_dataset} doesn't exist, cannot publish.")
+            sys.exit(-1)
 
         # display published table_ids
-        print("Published table_ids (to be created--not yet published):")
-        print(f"current table_id: {current_table_id}")
-        print(f"versioned table_id: {versioned_table_id}\n")
+        logger.info("Published table_ids (to be created--not yet published):")
+        logger.info(f"current table_id: {current_table_id}")
+        logger.info(f"versioned table_id: {versioned_table_id}")
 
         has_new_data = table_has_new_data(previous_versioned_table_id, source_table_id)
 
         # is there a previous version to compare with new table?
         # use previous_versioned_table_id
         if previous_versioned_table_id and has_new_data:
-            print(f"New data found compared to previous published table {previous_versioned_table_id}.")
-            print("Table will be published.\n")
+            logger.info(f"New data found compared to previous published table {previous_versioned_table_id}.")
+            logger.info("Table will be published.")
         elif previous_versioned_table_id and not has_new_data:
-            print(f"New table is identical to previous published table {previous_versioned_table_id}.")
-            print("Table will not be published.\n")
+            logger.info(f"New table is identical to previous published table {previous_versioned_table_id}.")
+            logger.info("Table will not be published.")
         elif not previous_versioned_table_id:
-            print(f"No previous version found for table, will publish.\n")
+            logger.info(f"No previous version found for table, will publish.")
     else:
         if exists_bq_table(source_table_id):
             if table_has_new_data(previous_versioned_table_id, source_table_id):
                 delay = 5
 
-                print(f"""\n\nPublishing the following tables:""")
-                print(f"\t - {versioned_table_id}\n\t - {current_table_id}")
-                print(f"Proceed? Y/n (continues automatically in {delay} seconds)")
+                logger.info(f"""\n\nPublishing the following tables:""")
+                logger.info(f"\t - {versioned_table_id}\n\t - {current_table_id}")
+                logger.info(f"Proceed? Y/n (continues automatically in {delay} seconds)")
 
                 response = str(input_with_timeout(seconds=delay)).lower()
 
                 if response == 'n':
                     exit("\nPublish aborted; exiting.")
 
-                print(f"\nPublishing {versioned_table_id}")
+                logger.info(f"\nPublishing {versioned_table_id}")
                 copy_bq_table(params, source_table_id, versioned_table_id, replace_table=params['OVERWRITE_PROD_TABLE'])
 
-                print(f"Publishing {current_table_id}")
+                logger.info(f"Publishing {current_table_id}")
                 copy_bq_table(params, source_table_id, current_table_id, replace_table=params['OVERWRITE_PROD_TABLE'])
 
-                print(f"Updating friendly name for {versioned_table_id}")
+                logger.info(f"Updating friendly name for {versioned_table_id}")
                 update_friendly_name(params, table_id=versioned_table_id)
 
                 if previous_versioned_table_id:
-                    print(f"Archiving {previous_versioned_table_id}")
+                    logger.info(f"Archiving {previous_versioned_table_id}")
                     change_status_to_archived(previous_versioned_table_id)
-                    print()
 
             else:
-                print(f"{source_table_id} not published, no changes detected")
+                logger.info(f"{source_table_id} not published, no changes detected")
 
 
 def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
@@ -716,7 +746,8 @@ def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
         return False
 
     if compare_result is None:
-        print("No result returned for table comparison query. Often means that tables have differing schemas.\n")
+        logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+        logger.info("No result returned for table comparison query. Often means that tables have differing schemas.")
         return True
 
     for row in compare_result:
@@ -770,8 +801,8 @@ def change_status_to_archived(archived_table_id: str):
         client.update_table(prev_table, ["labels"])
         assert prev_table.labels['status'] == 'archived'
     except NotFound:
-        print("Couldn't find a table to archive. Most likely, this is the table's first release. "
-              "If not, there's an issue.")
+        logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+        logger.warning("Couldn't find a table to archive. Likely this table's first release; otherwise an error.")
 
 
 def find_most_recent_published_table_id(params, versioned_table_id):
@@ -830,7 +861,9 @@ def find_most_recent_published_table_id(params, versioned_table_id):
                 # found last release table, stop iterating
                 return prev_release_table_id
     else:
-        has_fatal_error(f"Need to create find_most_recent_published_table_id function for {params['DC_SOURCE']}.")
+        logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+        logger.critical(f"Need to create find_most_recent_published_table_id function for {params['DC_SOURCE']}.")
+        sys.exit(-1)
 
 
 def update_table_schema_from_generic(params, table_id, schema_tags=None, metadata_file=None):
@@ -920,13 +953,15 @@ def add_column_descriptions(params: Params, table_id: str):
     :param params: params supplied in yaml config
     :param table_id: table id in standard SQL format
     """
-    print("\t - Adding column descriptions!")
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+    logger.info("\t - Adding column descriptions!")
 
     column_desc_fp = f"{params['BQ_REPO']}/{params['COLUMN_DESCRIPTION_FILEPATH']}"
     column_desc_fp = get_filepath(column_desc_fp)
 
     if not os.path.exists(column_desc_fp):
-        has_fatal_error("BQEcosystem column description path not found", FileNotFoundError)
+        logger.critical("BQEcosystem column description path not found")
+        sys.exit(-1)
     with open(column_desc_fp) as column_output:
         descriptions = json.load(column_output)
 
@@ -951,7 +986,8 @@ def update_schema(table_id: str, new_descriptions: dict[str, str]):
             name = column['name']
             column['description'] = new_descriptions[name]
         elif column['description'] == '':
-            print(f"Still no description for field: {column['name']}")
+            logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+            logger.info(f"Still no description for field: {column['name']}")
 
         mod_column = bigquery.SchemaField.from_api_repr(column)
         new_schema.append(mod_column)
@@ -984,7 +1020,10 @@ def get_project_program_names(params: Params, project_submitter_id: str) -> dict
 
     for row in res:
         if not row:
-            has_fatal_error(f"No result for query: {query}")
+            logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+            logger.critical(f"No result for query: {query}")
+            sys.exit(-1)
+
         project_short_name = row[0]
         program_short_name = row[1]
         project_name = row[2]
@@ -1010,13 +1049,16 @@ def get_project_level_schema_tags(params: Params, project_submitter_id: str) -> 
     :return: Dict of schema tags
     """
     project_name_dict = get_project_program_names(params, project_submitter_id)
-
     program_labels_list = project_name_dict['program_labels'].split("; ")
 
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
     if len(program_labels_list) > 2:
-        has_fatal_error("PDC clinical isn't set up to handle >2 program labels yet; support needs to be added.")
+        logger.critical("PDC clinical isn't set up to handle >2 program labels yet; support needs to be added.")
+        sys.exit(-1)
     elif len(program_labels_list) == 0:
-        has_fatal_error(f"No program label included for {project_submitter_id}, please add to PDCStudy.yaml")
+        logger.critical(f"No program label included for {project_submitter_id}, please add to PDCStudy.yaml")
+        sys.exit(-1)
     elif len(program_labels_list) == 2:
         return {
             "project-name": project_name_dict['project_name'],
@@ -1038,6 +1080,8 @@ def get_program_schema_tags_gdc(params: Params, program_name: str) -> dict[str, 
     metadata_mappings_path = f"{params['BQ_REPO']}/{params['PROGRAM_METADATA_DIR']}"
     program_metadata_fp = get_filepath(f"{metadata_mappings_path}/{params['PROGRAM_METADATA_FILE']}")
 
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
     with open(program_metadata_fp, 'r') as fh:
         program_metadata_dict = json.load(fh)
 
@@ -1054,7 +1098,8 @@ def get_program_schema_tags_gdc(params: Params, program_name: str) -> dict[str, 
             schema_tags['program-label-0'] = program_metadata['program_label_0']
             schema_tags['program-label-1'] = program_metadata['program_label_1']
         else:
-            has_fatal_error("Did not find program_label OR program_label_0 and program_label_1 in schema json file.")
+            logger.critical("Did not find program_label OR program_label_0 and program_label_1 in schema json file.")
+            sys.exit(-1)
 
         return schema_tags
 
@@ -1065,6 +1110,8 @@ def get_project_or_program_list(params: Params) -> list[str]:
     :param params: params defined in yaml config
     :return: set of programs or projects
     """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
     if params['DC_SOURCE'] == 'gdc':
         def make_program_name_set_query():
             return f"""
@@ -1103,6 +1150,8 @@ def get_project_or_program_list(params: Params) -> list[str]:
         return list(sorted(project_set))
 
     elif params['DC_SOURCE'] == 'idc':
-        has_fatal_error("get_project_list() is not yet defined for IDC.")
+        logger.critical("get_project_list() is not yet defined for IDC.")
+        sys.exit(-1)
     else:
-        has_fatal_error(f"get_project_list() is not yet defined for {params['DC_SOURCE']}.")
+        logger.critical(f"get_project_list() is not yet defined for {params['DC_SOURCE']}.")
+        sys.exit(-1)

@@ -19,7 +19,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
+import sys
 from typing import Union, Any, Optional
 
 import json
@@ -31,7 +31,7 @@ import csv
 from distutils import util
 
 from cda_bq_etl.gcs_helpers import upload_to_bucket
-from cda_bq_etl.utils import sanitize_file_prefix, get_scratch_fp, has_fatal_error, make_string_bq_friendly
+from cda_bq_etl.utils import sanitize_file_prefix, get_scratch_fp, make_string_bq_friendly
 
 ColumnTypes = Union[None, str, float, int, bool]
 RowDict = dict[str, Union[None, str, float, int, bool]]
@@ -139,11 +139,14 @@ def get_column_list_tsv(header_list: Optional[list[str]] = None,
     :return list of columns with BQ-compatible names
     :rtype list
     """
+    logger = logging.getLogger('base_script.cda_bq_etl.data_helpers')
 
     if not header_list and not header_row_index and not isinstance(header_row_index, int):
-        has_fatal_error("Must supply either the header row index or header list for tsv schema creation.")
+        logger.critical("Must supply either the header row index or header list for tsv schema creation.")
+        sys.exit(-1)
     if header_row_index and header_list:
-        has_fatal_error("Can't supply both a header row index and header list for tsv schema creation.")
+        logger.critical("Can't supply both a header row index and header list for tsv schema creation.")
+        sys.exit(-1)
 
     column_list = list()
 
@@ -161,7 +164,8 @@ def get_column_list_tsv(header_list: Optional[list[str]] = None,
             columns = column_row.split('\t')
 
             if len(columns) == 0:
-                has_fatal_error("No column name values supplied by header row index")
+                logger.critical("No column name values supplied by header row index")
+                sys.exit(-1)
 
             for column in columns:
                 column = make_string_bq_friendly(column)
@@ -270,8 +274,9 @@ def resolve_type_conflict(field: str, types_set: Union[set[str], ColumnTypes]):
 
     if "ARRAY" in types_set or "RECORD" in types_set:
         # these types cannot be implicitly converted to any other, exit
-        print(f"Invalid datatype combination for {field}: {types_set}")
-        has_fatal_error("", TypeError)
+        logger = logging.getLogger('base_script.cda_bq_etl.data_helpers')
+        logging.critical(f"Invalid datatype combination for {field}: {types_set}")
+        sys.exit(-1)
 
     if "STRING" in types_set:
         # if it's partly classified as a string, it has to be a string--other data type values are converted
@@ -418,7 +423,8 @@ def normalize_header_row(header_row: list[str]) -> list[str]:
             suffix_value += 1
 
         if value != test_value:
-            print(f"Changing header value {value} to {test_value} (due to encountering duplicate header).")
+            logger = logging.getLogger('base_script.cda_bq_etl.data_helpers')
+            logger.warning(f"Changing header value {value} to {test_value} (due to encountering duplicate header).")
 
         new_header_row.append(test_value)
 
@@ -431,6 +437,9 @@ def create_normalized_tsv(raw_tsv_fp: str, normalized_tsv_fp: str):
     :param raw_tsv_fp: path to non-normalized data file
     :param normalized_tsv_fp: destination file for normalized data
     """
+
+    logger = logging.getLogger('base_script.cda_bq_etl.data_helpers')
+
     with open(normalized_tsv_fp, mode="w", newline="") as normalized_tsv_file:
         tsv_writer = csv.writer(normalized_tsv_file, delimiter="\t")
 
@@ -455,9 +464,9 @@ def create_normalized_tsv(raw_tsv_fp: str, normalized_tsv_fp: str):
                 tsv_writer.writerow(normalized_record)
                 raw_row_count += 1
                 if raw_row_count % 500000 == 0:
-                    print(f"Normalized {raw_row_count} rows.")
+                    logger.info(f"Normalized {raw_row_count} rows.")
 
-            print(f"Normalized {raw_row_count} rows.")
+            logger.info(f"Normalized {raw_row_count} rows.")
 
     with open(normalized_tsv_fp, mode="r", newline="") as normalized_tsv_file:
         tsv_reader = csv.reader(normalized_tsv_file, delimiter="\t")
@@ -465,8 +474,8 @@ def create_normalized_tsv(raw_tsv_fp: str, normalized_tsv_fp: str):
         normalized_row_count = sum(1 for _ in tsv_reader)
 
     if normalized_row_count != raw_row_count:
-        print(f"ERROR: Row count changed. Original: {raw_row_count}; Normalized: {normalized_row_count}")
-        exit()
+        logger.critical(f"ERROR: Row count changed. Original: {raw_row_count}; Normalized: {normalized_row_count}")
+        sys.exit()
 
 
 def normalize_flat_json_values(records: JSONList) -> JSONList:
