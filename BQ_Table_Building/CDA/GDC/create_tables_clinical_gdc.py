@@ -191,6 +191,7 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     if 'find_program_tables' in steps:
+        # creates dict of programs and base, supplemental tables to be created
         tables_per_program_dict = find_program_tables(PARAMS['TSV_FIELD_GROUP_CONFIG'])
 
         for program, tables in tables_per_program_dict.items():
@@ -214,9 +215,9 @@ def main(args):
 
         all_program_columns[program] = program_columns
 
-    logger.info("\n*** Non-null columns, by program\n")
+    logger.info("*** Non-null columns, by program and field group")
     for program, column_groups in all_program_columns.items():
-        logger.info(f"\n{program}\n")
+        logger.info(f"{program}")
         for field_group, columns in column_groups.items():
             logger.info(f"{field_group}: {columns}")
 
