@@ -250,6 +250,14 @@ def main(args):
             shutil.rmtree(dest_path)
 
         extract_tarfile(src_path, dest_path, overwrite=True)
+
+        directory = os.listdir(dest_path)
+
+        for dir_name in directory:
+            if dir_name[0] == '.' or dir_name[0] == '_':
+                path = os.path.join(dest_path, dir_name)
+                os.remove(path)
+
     if "normalize_and_upload_tsvs" in steps:
         logger.info("*** Normalizing and uploading tsvs!")
         dest_path = get_filepath(PARAMS['LOCAL_EXTRACT_DIR'])
@@ -267,12 +275,6 @@ def main(args):
                 normalized_file_names.extend(directory_normalized_file_names)
         elif PARAMS['DC_SOURCE'] == "gdc":
             directory = os.listdir(dest_path)
-
-            for dir_name in directory:
-                if dir_name[0] == '.' or dir_name[0] == '_':
-                    path = os.path.join(dest_path, dir_name)
-                    os.remove(path)
-
             dest_path += f"/{directory[0]}"
 
             file_list = list()
