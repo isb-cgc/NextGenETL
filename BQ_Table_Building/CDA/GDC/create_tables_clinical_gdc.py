@@ -87,7 +87,7 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
         sys.exit(-1)
 
     for base_program in programs:
-        tables_per_program_dict[base_program[0]] = {PARAMS['MASTER_TABLE']}
+        tables_per_program_dict[base_program] = {PARAMS['MASTER_TABLE']}
 
     # Create set of programs for each mapping table type,
     # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
