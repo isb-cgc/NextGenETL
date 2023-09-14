@@ -1,4 +1,4 @@
-'''
+"""
 Copyright 2023, Institute for Systems Biology
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,26 +19,19 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import logging
 import sys
+import time
 
-from cda_bq_etl.utils import create_dev_table_id, load_config, has_fatal_error
-from cda_bq_etl.bq_helpers import query_and_retrieve_result
+from cda_bq_etl.data_helpers import initialize_logging
+from cda_bq_etl.utils import create_dev_table_id, load_config, format_seconds
+from cda_bq_etl.bq_helpers import query_and_retrieve_result, get_project_or_program_list
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
 def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[str, set[str]]:
-    # todo abstract this
-    def make_programs_with_cases_sql() -> str:
-        # Retrieving programs from this view rather than from the programs table to avoid pulling programs with no
-        # clinical case associations, which has happened in the past
-        return f"""
-        SELECT DISTINCT program_name
-        FROM `isb-project-zero.cda_gdc_test.2023_03_case_project_program`
-
-        """
-
     def make_programs_with_multiple_ids_per_case_sql() -> str:
         parent_field_group = table_vocabulary_dict['first_level_field_group']
 
@@ -49,58 +42,74 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
         table_join_word = table_vocabulary_dict['table_join_word']
 
         if child_field_group:
+            base_table_id = create_dev_table_id(PARAMS, f"{child_field_group}_{table_join_word}_{parent_field_group}")
+            child_table_id = create_dev_table_id(PARAMS, f"{parent_field_group}_of_case")
+
             return f"""
                 WITH programs AS (
                     SELECT DISTINCT case_proj.project_id
-                    FROM `isb-project-zero.cda_gdc_test.2023_03_{child_field_group}_{table_join_word}_{parent_field_group}` parent
-                    JOIN `isb-project-zero.cda_gdc_test.2023_03_{parent_field_group}_of_case` child_case
+                    FROM `{base_table_id}` base_table
+                    JOIN `{child_table_id}` child_case
                         USING ({parent_field_group}_id)
-                    JOIN `isb-project-zero.cda_gdc_test.2023_03_case_in_project` case_proj
+                    JOIN `{create_dev_table_id(PARAMS, 'case_in_project')}` case_proj
                         ON child_case.case_id = case_proj.case_id
-                    GROUP BY parent.{parent_field_group}_id, case_proj.project_id
-                    HAVING COUNT(parent.{parent_field_group}_id) > 1
+                    GROUP BY base_table.{parent_field_group}_id, case_proj.project_id
+                    HAVING COUNT(base_table.{parent_field_group}_id) > 1
                 )
 
                 SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
                 FROM programs
             """
         else:
+            base_table_id = create_dev_table_id(PARAMS, f"{parent_field_group}_of_case")
+
             return f"""
                 WITH programs AS (
                     SELECT DISTINCT case_proj.project_id
-                    FROM `isb-project-zero.cda_gdc_test.2023_03_{parent_field_group}_of_case` child_case
-                    JOIN `isb-project-zero.cda_gdc_test.2023_03_case_in_project` case_proj
-                        ON child_case.case_id = case_proj.case_id
-                    GROUP BY child_case.case_id, case_proj.project_id
-                    HAVING COUNT(child_case.case_id) > 1
+                    FROM `{base_table_id}` base_table
+                    JOIN `{create_dev_table_id(PARAMS, 'case_in_project')}` case_proj
+                        ON base_table.case_id = case_proj.case_id
+                    GROUP BY base_table.case_id, case_proj.project_id
+                    HAVING COUNT(base_table.case_id) > 1
                 )
 
                 SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
                 FROM programs
             """
 
+    logger = logging.getLogger('base_script')
+    # Create program set for base clinical tables -- will include every program with clinical cases
+    programs = get_project_or_program_list(PARAMS)
     tables_per_program_dict = dict()
 
-    # Create program set for base clinical tables -- will include every program with clinical cases
-    base_programs = bq_harness_with_result(sql=make_programs_with_cases_sql(), do_batch=False, verbose=False)
+    if programs is None:
+        logger.critical("No programs found, exiting.")
+        sys.exit(-1)
 
-    if base_programs is not None:
-        for base_program in base_programs:
-            tables_per_program_dict[base_program[0]] = {'clinical'}
+    for base_program in programs:
+        tables_per_program_dict[base_program[0]] = {PARAMS['MASTER_TABLE']}
 
     # Create set of programs for each mapping table type,
     # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
     for field_group_name, table_vocabulary_dict in field_groups_dict.items():
         # create the query and retrieve results
-        programs = bq_harness_with_result(sql=make_programs_with_multiple_ids_per_case_sql(),
-                                          do_batch=False,
-                                          verbose=False)
+        programs = query_and_retrieve_result(sql=make_programs_with_multiple_ids_per_case_sql())
 
         if programs is not None:
             for program in programs:
                 tables_per_program_dict[program[0]].add(field_group_name)
 
     return tables_per_program_dict
+
+
+def get_field_groups() -> list[str]:
+    field_group_list = list()
+
+    for field_group in PARAMS['TSV_FIELD_GROUP_CONFIG'].keys():
+        field_group_name = field_group.split('.')[-1]
+        field_group_list.append(field_group_name)
+
+    return field_group_list
 
 
 def find_null_columns_by_program(program, field_group):
@@ -112,8 +121,8 @@ def find_null_columns_by_program(program, field_group):
 
         count_sql_str = ''
 
-        for column in columns:
-            count_sql_str += f'\nSUM(CASE WHEN child_table.{column} is null THEN 0 ELSE 1 END) AS {column}_count, '
+        for col in columns:
+            count_sql_str += f'\nSUM(CASE WHEN child_table.{col} is null THEN 0 ELSE 1 END) AS {col}_count, '
 
         # remove extra comma (due to looping) from end of string
         count_sql_str = count_sql_str[:-2]
@@ -121,10 +130,10 @@ def find_null_columns_by_program(program, field_group):
         if parent_table == 'case':
             return f"""
             SELECT {count_sql_str}
-            FROM `{create_dev_table_id(field_group)}` child_table
-            JOIN `{create_dev_table_id(mapping_table)}` mapping_table
+            FROM `{create_dev_table_id(PARAMS, field_group)}` child_table
+            JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
                 ON mapping_table.{id_key} = child_table.{id_key}
-            JOIN `{create_dev_table_id('case_project_program')}` cpp
+            JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
                 ON mapping_table.case_id = cpp.case_gdc_id
             WHERE cpp.program_name = '{program}'
             """
@@ -134,14 +143,14 @@ def find_null_columns_by_program(program, field_group):
 
             return f"""
             SELECT {count_sql_str}
-            FROM `{create_dev_table_id(field_group)}` child_table
-            JOIN `{create_dev_table_id(mapping_table)}` mapping_table
+            FROM `{create_dev_table_id(PARAMS, field_group)}` child_table
+            JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
                 ON mapping_table.{id_key} = child_table.{id_key}
-            JOIN `{create_dev_table_id(parent_table)}` parent_table
+            JOIN `{create_dev_table_id(PARAMS, parent_table)}` parent_table
                 ON parent_table.{parent_id_key} = mapping_table.{parent_id_key}
-            JOIN `{create_dev_table_id(parent_mapping_table)}` parent_mapping_table
+            JOIN `{create_dev_table_id(PARAMS, parent_mapping_table)}` parent_mapping_table
                 ON parent_mapping_table.{parent_id_key} = parent_table.{parent_id_key}
-            JOIN `{create_dev_table_id('case_project_program')}` cpp
+            JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
                 ON parent_mapping_table.case_id = cpp.case_gdc_id
             WHERE cpp.program_name = '{program}'
             """
@@ -149,7 +158,7 @@ def find_null_columns_by_program(program, field_group):
             pass
             # handle project and case field groups
 
-    column_count_result = bq_harness_with_result(sql=make_count_column_sql(), do_batch=False, verbose=False)
+    column_count_result = query_and_retrieve_result(sql=make_count_column_sql())
 
     non_null_columns = list()
 
@@ -173,30 +182,32 @@ def create_base_clinical_table_for_program():
 
 def main(args):
     try:
+        start_time = time.time()
+
         global PARAMS
         PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
-        has_fatal_error(err, ValueError)
+        sys.exit(err)
+
+    log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
+    log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
+    logger = initialize_logging(log_filepath)
 
     if 'find_program_tables' in steps:
-
         tables_per_program_dict = find_program_tables(PARAMS['TSV_FIELD_GROUP_CONFIG'])
 
-        # for program, tables in tables_per_program_dict.items():
-        #     print(f"{program}: {tables}")
+        for program, tables in tables_per_program_dict.items():
+            print(f"{program}: {tables}")
 
-    programs = ['APOLLO', 'BEATAML1.0', 'CDDP_EAGLE', 'CGCI', 'CMI', 'CPTAC', 'CTSP', 'EXCEPTIONAL_RESPONDERS', 'FM',
-                'GENIE', 'HCMI', 'MATCH', 'MMRF', 'MP2PRT', 'NCICCR', 'OHSU', 'ORGANOID', 'REBC', 'TARGET', 'TCGA',
-                'TRIO', 'VAREPOP', 'WCDT']
-    field_groups = ['demographic', 'diagnosis', 'annotation', 'treatment', 'pathology_detail', 'exposure',
-                    'family_history', 'follow_up', 'molecular_test']
-
-    # NOTE: counts returned may be null if program has no values within a table, e.g. TCGA has no annotation records
+    # counts returned may be null if program has no values within a table, e.g. TCGA has no annotation records
 
     all_program_columns = dict()
 
+    programs = get_project_or_program_list(PARAMS)
+    field_groups = get_field_groups()
+
     for program in programs:
-        print(f"Finding columns for {program}")
+        logger.info(f"Finding columns for {program}")
         program_columns = dict()
 
         for field_group in field_groups:
@@ -206,11 +217,11 @@ def main(args):
 
         all_program_columns[program] = program_columns
 
-    print("\n*** Non-null columns, by program\n")
+    logger.info("\n*** Non-null columns, by program\n")
     for program, column_groups in all_program_columns.items():
-        print(f"\n{program}\n")
+        logger.info(f"\n{program}\n")
         for field_group, columns in column_groups.items():
-            print(f"{field_group}: {columns}")
+            logger.info(f"{field_group}: {columns}")
 
     # steps:
     # use all_program_columns and tables_per_program_dict to stitch together queries to build each program's tables
@@ -218,7 +229,9 @@ def main(args):
     # use the FG_CONFIG to order fields by FG and to account for last_keys_in_table
     # use these queries to build the clinical tables
 
+    end_time = time.time()
+    logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
+
 
 if __name__ == "__main__":
     main(sys.argv)
-'''
