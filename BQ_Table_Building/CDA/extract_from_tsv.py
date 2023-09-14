@@ -267,6 +267,10 @@ def main(args):
                 normalized_file_names.extend(directory_normalized_file_names)
         elif PARAMS['DC_SOURCE'] == "gdc":
             directory = os.listdir(dest_path)
+
+            for dir_name in directory:
+                logger.debug(dir_name)
+
             dest_path += f"/{directory[0]}"
             file_list = list()
 
