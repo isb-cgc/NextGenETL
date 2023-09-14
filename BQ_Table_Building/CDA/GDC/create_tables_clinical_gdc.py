@@ -33,40 +33,33 @@ YAML_HEADERS = ('params', 'steps')
 
 def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[str, set[str]]:
     def make_programs_with_multiple_ids_per_case_sql() -> str:
-        parent_field_group = table_vocabulary_dict['first_level_field_group']
-
-        # only has a value if this field group is a child of another (e.g. diagnoses.treatments)
-        child_field_group = table_vocabulary_dict['second_level_field_group']
-
-        # mapping tables variously use "of", "from", or "has" for joining names
-        table_join_word = table_vocabulary_dict['table_join_word']
-
-        if child_field_group:
-            base_table_id = create_dev_table_id(PARAMS, f"{child_field_group}_{table_join_word}_{parent_field_group}")
-            child_table_id = create_dev_table_id(PARAMS, f"{parent_field_group}_of_case")
+        if table_vocabulary_dict['parent_field_group']:
+            child_parent_map_table_id = create_dev_table_id(PARAMS, f"{table_vocabulary_dict['join_table_name']}")
+            parent_case_map_table_id = create_dev_table_id(PARAMS,
+                                                           f"{table_vocabulary_dict['parent_field_group']}_of_case")
 
             return f"""
                 WITH programs AS (
                     SELECT DISTINCT case_proj.project_id
-                    FROM `{base_table_id}` base_table
-                    JOIN `{child_table_id}` child_case
-                        USING ({parent_field_group}_id)
+                    FROM `{child_parent_map_table_id}` child_parent
+                    JOIN `{parent_case_map_table_id}` parent_case
+                        USING ({table_vocabulary_dict['parent_field_group']}_id)
                     JOIN `{create_dev_table_id(PARAMS, 'case_in_project')}` case_proj
-                        ON child_case.case_id = case_proj.case_id
-                    GROUP BY base_table.{parent_field_group}_id, case_proj.project_id
-                    HAVING COUNT(base_table.{parent_field_group}_id) > 1
+                        ON parent_case.case_id = case_proj.case_id
+                    GROUP BY child_parent.{table_vocabulary_dict['table_name']}_id, case_proj.project_id
+                    HAVING COUNT(child_parent.{table_vocabulary_dict['table_name']}_id) > 1
                 )
 
                 SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
                 FROM programs
             """
         else:
-            base_table_id = create_dev_table_id(PARAMS, f"{parent_field_group}_of_case")
+            parent_case_map_table_id = create_dev_table_id(PARAMS, f"{table_vocabulary_dict['table_name']}_of_case")
 
             return f"""
                 WITH programs AS (
                     SELECT DISTINCT case_proj.project_id
-                    FROM `{base_table_id}` base_table
+                    FROM `{parent_case_map_table_id}` base_table
                     JOIN `{create_dev_table_id(PARAMS, 'case_in_project')}` case_proj
                         ON base_table.case_id = case_proj.case_id
                     GROUP BY base_table.case_id, case_proj.project_id
