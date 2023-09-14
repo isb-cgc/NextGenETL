@@ -124,9 +124,12 @@ def scan_directories_and_create_file_dict(dest_path: str) -> tuple[dict[str, lis
         file_list = os.listdir(f"{dest_path}/{directory}")
 
         non_hidden_files = list()
+
         for file_name in file_list:
             if file_name[0] != '.':
                 non_hidden_files.append(file_name)
+
+        non_hidden_files.sort()
 
         dir_file_dict[directory] = non_hidden_files
 
@@ -271,6 +274,8 @@ def main(args):
                 if file_name[0] != '.' and file_name[0] != '_':
                     file_list.append(file_name)
 
+            file_list.sort()
+
             normalized_file_names = normalize_files(file_list=file_list, dest_path=dest_path)
 
         index_txt_file_name = f"{PARAMS['RELEASE']}_{PARAMS['DC_SOURCE']}_file_index.txt"
@@ -288,6 +293,8 @@ def main(args):
 
         with open(get_scratch_fp(PARAMS, index_txt_file_name), mode="r") as index_file:
             file_names = index_file.readlines()
+
+            file_names.sort()
 
             for tsv_file_name in file_names:
                 tsv_file_name = tsv_file_name.strip()
@@ -312,6 +319,8 @@ def main(args):
 
         with open(get_scratch_fp(PARAMS, index_txt_file_name), mode="r") as index_file:
             file_names = index_file.readlines()
+
+            file_names.sort()
 
             for tsv_file_name in file_names:
                 tsv_file_name = tsv_file_name.strip()

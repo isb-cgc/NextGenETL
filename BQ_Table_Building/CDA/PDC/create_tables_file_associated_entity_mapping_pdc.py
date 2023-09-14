@@ -22,7 +22,8 @@ SOFTWARE.
 import sys
 import time
 
-from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds
+from cda_bq_etl.data_helpers import initialize_logging
+from cda_bq_etl.utils import load_config, format_seconds
 from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, update_table_schema_from_generic
 
 PARAMS = dict()
@@ -50,21 +51,29 @@ def make_associated_entity_query() -> str:
 
 def main(args):
     try:
+        start_time = time.time()
+
         global PARAMS
         PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
-        has_fatal_error(err, ValueError)
+        sys.exit(err)
 
-    start_time = time.time()
+    log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
+    log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
+    logger = initialize_logging(log_filepath)
 
     dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
 
     if 'create_table_from_query' in steps:
+        logger.info("Entering create_table_from_query")
+
         load_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_associated_entity_query())
 
         update_table_schema_from_generic(params=PARAMS, table_id=dev_table_id)
 
     if 'publish_tables' in steps:
+        logger.info("Entering publish_tables")
+
         current_table_name = f"{PARAMS['TABLE_NAME']}_current"
         current_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}.{current_table_name}"
         versioned_table_name = f"{PARAMS['TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
@@ -77,7 +86,7 @@ def main(args):
 
     end_time = time.time()
 
-    print(f"Script completed in: {format_seconds(end_time - start_time)}")
+    logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
 
 
 if __name__ == "__main__":

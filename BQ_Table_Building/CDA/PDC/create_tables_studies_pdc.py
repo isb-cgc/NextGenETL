@@ -19,13 +19,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import logging
 import sys
 import time
 import json
 from typing import Optional, Any
 
-from cda_bq_etl.data_helpers import normalize_flat_json_values, write_list_to_jsonl_and_upload
-from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds, get_filepath
+from cda_bq_etl.data_helpers import normalize_flat_json_values, write_list_to_jsonl_and_upload, initialize_logging
+from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds, get_filepath
 from cda_bq_etl.bq_helpers import publish_table, query_and_retrieve_result, update_table_schema_from_generic, \
     create_and_upload_schema_for_json, retrieve_bq_schema_object, create_and_load_table_from_jsonl
 
@@ -121,6 +122,8 @@ def make_study_primary_site_query() -> str:
 
 
 def create_study_record_list() -> list[dict[str, Optional[Any]]]:
+    logger = logging.getLogger('base_script')
+
     project_metadata_records = get_project_metadata()
     study_friendly_names = get_study_friendly_names()
 
@@ -161,8 +164,8 @@ def create_study_record_list() -> list[dict[str, Optional[Any]]]:
         elif 'program_label_0' in project_metadata and 'program_label_1' in project_metadata:
             program_labels = f"{project_metadata['program_label_0']}; {project_metadata['program_label_1']}"
         else:
-            has_fatal_error(f"No program labels found for {project_submitter_id} in {PARAMS['PROJECT_METADATA_FILE']}.")
-            exit()   # just used to quiet PyCharm warnings, not needed
+            logger.critical(f"No program labels found for {project_submitter_id} in {PARAMS['PROJECT_METADATA_FILE']}.")
+            sys.exit(-1)
 
         disease_type = study_disease_types_records[pdc_study_id]['disease_type']
         primary_site = study_primary_site_records[pdc_study_id]['primary_site']
@@ -199,16 +202,22 @@ def create_study_record_list() -> list[dict[str, Optional[Any]]]:
 
 def main(args):
     try:
+        start_time = time.time()
+
         global PARAMS
         PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
-        has_fatal_error(err, ValueError)
+        sys.exit(err)
 
-    start_time = time.time()
+    log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
+    log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
+    logger = initialize_logging(log_filepath)
 
     dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
 
     if 'create_and_upload_study_jsonl' in steps:
+        logger.info("Entering create_and_upload_study_jsonl")
+
         study_records = create_study_record_list()
         normalized_study_records = normalize_flat_json_values(study_records)
 
@@ -221,6 +230,8 @@ def main(args):
                                           include_release=True)
 
     if 'create_table' in steps:
+        logger.info("Entering create_table")
+
         # Download schema file from Google Cloud bucket
         table_schema = retrieve_bq_schema_object(PARAMS, table_name='study', include_release=True)
 
@@ -233,6 +244,8 @@ def main(args):
         update_table_schema_from_generic(params=PARAMS, table_id=dev_table_id)
 
     if 'publish_tables' in steps:
+        logger.info("Entering publish_tables")
+
         current_table_name = f"{PARAMS['TABLE_NAME']}_current"
         current_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}.{current_table_name}"
         versioned_table_name = f"{PARAMS['TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
@@ -245,7 +258,7 @@ def main(args):
 
     end_time = time.time()
 
-    print(f"Script completed in: {format_seconds(end_time - start_time)}")
+    logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
 
 
 if __name__ == "__main__":

@@ -424,7 +424,7 @@ def normalize_header_row(header_row: list[str]) -> list[str]:
 
         if value != test_value:
             logger = logging.getLogger('base_script.cda_bq_etl.data_helpers')
-            logger.warning(f"Changing header value {value} to {test_value} (due to encountering duplicate header).")
+            logger.warning(f"Changing header value {value} to {test_value} (header value is a duplicate).")
 
         new_header_row.append(test_value)
 

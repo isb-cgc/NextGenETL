@@ -22,7 +22,8 @@ SOFTWARE.
 import sys
 import time
 
-from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds
+from cda_bq_etl.data_helpers import initialize_logging
+from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds
 from cda_bq_etl.bq_helpers import load_table_from_query, publish_table
 
 PARAMS = dict()
@@ -31,18 +32,22 @@ YAML_HEADERS = ('params', 'steps')
 
 def main(args):
     try:
+        start_time = time.time()
+
         global PARAMS
         PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
-        has_fatal_error(err, ValueError)
+        sys.exit(err)
 
-    start_time = time.time()
+    log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
+    log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
+    logger = initialize_logging(log_filepath)
 
     # code here
 
     end_time = time.time()
 
-    print(f"Script completed in: {format_seconds(end_time - start_time)}")
+    logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
 
 
 if __name__ == "__main__":

@@ -19,13 +19,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-import json
 import sys
 import time
 
 from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, update_table_schema_from_generic, \
-    exists_bq_table, query_and_retrieve_result
-from cda_bq_etl.utils import load_config, has_fatal_error, create_dev_table_id, format_seconds
+    query_and_retrieve_result
+from cda_bq_etl.data_helpers import initialize_logging
+from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -108,16 +108,22 @@ def make_project_per_sample_file_query(project_submitter_id):
 
 def main(args):
     try:
+        start_time = time.time()
+
         global PARAMS
         PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
-        has_fatal_error(err, ValueError)
+        sys.exit(err)
 
-    start_time = time.time()
+    log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
+    log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
+    logger = initialize_logging(log_filepath)
 
     projects_list = get_pdc_projects_metadata_list()
 
     if 'create_project_tables' in steps:
+        logger.info("Entering create_project_tables")
+
         for project in projects_list:
             project_table_name = f"{PARAMS['TABLE_NAME']}_{project['project_short_name']}_{PARAMS['RELEASE']}"
             project_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{project_table_name}"
@@ -129,13 +135,14 @@ def main(args):
             schema_tags = dict()
 
             if 'program_labels' not in project:
-                has_fatal_error(f"No program labels found for {project['project_submitter_id']}.")
+                logger.critical(f"No program labels found for {project['project_submitter_id']}.")
+                sys.exit(-1)
 
             program_label_list = project['program_labels'].split('; ')
 
             if len(program_label_list) == 0:
-                has_fatal_error(f"No program labels found for {project['project_submitter_id']}.")
-                exit()
+                logger.critical(f"No program labels found for {project['project_submitter_id']}.")
+                sys.exit(-1)
             elif len(program_label_list) == 1:
                 schema_tags['program-name-lower'] = program_label_list[0].lower().strip()
                 generic_table_metadata_file = PARAMS['GENERIC_TABLE_METADATA_FILE']
@@ -144,8 +151,8 @@ def main(args):
                 schema_tags['program-name-1-lower'] = program_label_list[1].lower().strip()
                 generic_table_metadata_file = PARAMS['GENERIC_TABLE_METADATA_FILE_2_PROGRAM']
             else:
-                has_fatal_error(f"Too many program labels found for {project['project_submitter_id']}.")
-                exit()
+                logger.critical(f"Too many program labels found for {project['project_submitter_id']}.")
+                sys.exit(-1)
 
             schema_tags['project-name'] = project['project_short_name'].strip()
             schema_tags['friendly-project-name-upper'] = project['project_friendly_name'].upper().strip()
@@ -155,6 +162,8 @@ def main(args):
                                              schema_tags=schema_tags,
                                              metadata_file=generic_table_metadata_file)
     if 'publish_tables' in steps:
+        logger.info("Entering publish_tables")
+
         for project in projects_list:
             project_name = project['project_short_name']
             program_name = project['program_short_name']
@@ -175,7 +184,7 @@ def main(args):
 
     end_time = time.time()
 
-    print(f"Script completed in: {format_seconds(end_time - start_time)}")
+    logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
 
 
 if __name__ == "__main__":
