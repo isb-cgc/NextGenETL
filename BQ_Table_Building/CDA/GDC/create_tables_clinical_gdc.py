@@ -46,7 +46,7 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
                         USING ({table_vocabulary_dict['parent_field_group']}_id)
                     JOIN `{create_dev_table_id(PARAMS, 'case_in_project')}` case_proj
                         ON parent_case.case_id = case_proj.case_id
-                    GROUP BY child_parent.{table_name}_id, case_proj.project_id
+                    GROUP BY child_parent.{table_vocabulary_dict['parent_field_group']}_id, case_proj.project_id
                     HAVING COUNT(child_parent.{table_name}_id) > 1
                 )
 
