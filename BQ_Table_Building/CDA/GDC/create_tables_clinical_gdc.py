@@ -33,7 +33,7 @@ YAML_HEADERS = ('params', 'steps')
 
 def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[str, set[str]]:
     def make_programs_with_multiple_ids_per_case_sql() -> str:
-        if table_vocabulary_dict['parent_field_group']:
+        if table_vocabulary_dict['parent_field_group'] is not None:
             child_parent_map_table_id = create_dev_table_id(PARAMS, f"{table_name}")
             parent_case_map_table_id = create_dev_table_id(PARAMS,
                                                            f"{table_vocabulary_dict['parent_field_group']}_of_case")
