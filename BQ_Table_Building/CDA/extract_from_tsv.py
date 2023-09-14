@@ -269,14 +269,16 @@ def main(args):
             directory = os.listdir(dest_path)
 
             for dir_name in directory:
-                logger.debug(dir_name)
+                if dir_name[0] == '.' or dir_name[0] == '_':
+                    path = os.path.join(dest_path, dir_name)
+                    os.remove(path)
 
             dest_path += f"/{directory[0]}"
+
             file_list = list()
 
             for file_name in os.listdir(dest_path):
-                if file_name[0] != '.' and file_name[0] != '_':
-                    file_list.append(file_name)
+                file_list.append(file_name)
 
             file_list.sort()
 
