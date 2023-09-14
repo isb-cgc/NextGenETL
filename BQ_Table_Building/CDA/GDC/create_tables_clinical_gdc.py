@@ -84,15 +84,11 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
     # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
     for table_name, table_vocabulary_dict in field_groups_dict.items():
         # create the query and retrieve results
-        print(make_programs_with_multiple_ids_per_case_sql())
-        # programs = query_and_retrieve_result(sql=make_programs_with_multiple_ids_per_case_sql())
+        programs = query_and_retrieve_result(sql=make_programs_with_multiple_ids_per_case_sql())
 
         if programs is not None:
             for program in programs:
-                print(program)
-                # tables_per_program_dict[program[0]].add(field_group_name)
-
-    exit()
+                tables_per_program_dict[program].add(table_name)
 
     return tables_per_program_dict
 
