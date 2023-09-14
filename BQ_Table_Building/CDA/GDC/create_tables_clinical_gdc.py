@@ -95,11 +95,10 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
         # create the query and retrieve results
         programs = query_and_retrieve_result(sql=make_programs_with_multiple_ids_per_case_sql())
 
-        print(programs)
-
         if programs is not None:
             for program in programs:
-                tables_per_program_dict[program[0]].add(field_group_name)
+                print(program)
+                # tables_per_program_dict[program[0]].add(field_group_name)
 
     return tables_per_program_dict
 
