@@ -89,6 +89,8 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
     for base_program in programs:
         tables_per_program_dict[base_program] = {PARAMS['MASTER_TABLE']}
 
+    print(tables_per_program_dict)
+
     # Create set of programs for each mapping table type,
     # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
     for field_group_name, table_vocabulary_dict in field_groups_dict.items():
@@ -97,7 +99,7 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
 
         if programs is not None:
             for program in programs:
-                tables_per_program_dict[program].add(field_group_name)
+                tables_per_program_dict[program[0]].add(field_group_name)
 
     return tables_per_program_dict
 
