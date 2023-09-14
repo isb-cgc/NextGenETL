@@ -34,7 +34,7 @@ YAML_HEADERS = ('params', 'steps')
 def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[str, set[str]]:
     def make_programs_with_multiple_ids_per_case_sql() -> str:
         if table_vocabulary_dict['parent_field_group']:
-            child_parent_map_table_id = create_dev_table_id(PARAMS, f"{table_vocabulary_dict['join_table_name']}")
+            child_parent_map_table_id = create_dev_table_id(PARAMS, f"{table_name}")
             parent_case_map_table_id = create_dev_table_id(PARAMS,
                                                            f"{table_vocabulary_dict['parent_field_group']}_of_case")
 
@@ -46,20 +46,18 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
                         USING ({table_vocabulary_dict['parent_field_group']}_id)
                     JOIN `{create_dev_table_id(PARAMS, 'case_in_project')}` case_proj
                         ON parent_case.case_id = case_proj.case_id
-                    GROUP BY child_parent.{table_vocabulary_dict['table_name']}_id, case_proj.project_id
-                    HAVING COUNT(child_parent.{table_vocabulary_dict['table_name']}_id) > 1
+                    GROUP BY child_parent.{table_name}_id, case_proj.project_id
+                    HAVING COUNT(child_parent.{table_name}_id) > 1
                 )
 
                 SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
                 FROM programs
             """
         else:
-            parent_case_map_table_id = create_dev_table_id(PARAMS, f"{table_vocabulary_dict['table_name']}_of_case")
-
             return f"""
                 WITH programs AS (
                     SELECT DISTINCT case_proj.project_id
-                    FROM `{parent_case_map_table_id}` base_table
+                    FROM `{create_dev_table_id(PARAMS, f"{table_name}_of_case")}` base_table
                     JOIN `{create_dev_table_id(PARAMS, 'case_in_project')}` case_proj
                         ON base_table.case_id = case_proj.case_id
                     GROUP BY base_table.case_id, case_proj.project_id
@@ -84,7 +82,7 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
 
     # Create set of programs for each mapping table type,
     # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
-    for field_group_name, table_vocabulary_dict in field_groups_dict.items():
+    for table_name, table_vocabulary_dict in field_groups_dict.items():
         # create the query and retrieve results
         programs = query_and_retrieve_result(sql=make_programs_with_multiple_ids_per_case_sql())
 
@@ -92,6 +90,8 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
             for program in programs:
                 print(program)
                 # tables_per_program_dict[program[0]].add(field_group_name)
+
+    exit()
 
     return tables_per_program_dict
 
