@@ -97,7 +97,7 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
 
         if programs is not None:
             for program in programs:
-                tables_per_program_dict[program[0]].add(field_group_name)
+                tables_per_program_dict[program].add(field_group_name)
 
     return tables_per_program_dict
 
