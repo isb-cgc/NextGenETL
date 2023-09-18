@@ -109,7 +109,7 @@ def get_field_groups() -> list[str]:
     return field_group_list
 
 
-def find_null_columns_by_program(program, field_group):
+def find_non_null_columns_by_program(program, field_group):
     def make_count_column_sql() -> str:
         columns = PARAMS['FIELD_CONFIG'][field_group]['column_order']
         mapping_table = PARAMS['FIELD_CONFIG'][field_group]['mapping_table']
@@ -209,7 +209,7 @@ def main(args):
         program_columns = dict()
 
         for field_group in field_groups:
-            non_null_columns = find_null_columns_by_program(program=program, field_group=field_group)
+            non_null_columns = find_non_null_columns_by_program(program=program, field_group=field_group)
             if len(non_null_columns) > 0:
                 program_columns[field_group] = non_null_columns
 
