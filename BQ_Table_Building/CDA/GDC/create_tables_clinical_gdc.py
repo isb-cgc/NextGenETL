@@ -177,7 +177,7 @@ def create_base_clinical_table_for_program():
     # don't include columns that are null for every case within the given program
 
 
-def find_missing_fields():
+def find_missing_fields(include_trivial_columns: bool = False):
     # get list of columns from CDA table
     # compare to table order and excluded column lists in FIELD_CONFIG[table]
     # any missing columns? print
@@ -236,9 +236,12 @@ def find_missing_fields():
         trivial_columns = missing_columns - non_trivial_columns
 
         logger.info(f"For {table_name}:")
-        logger.info(f"Columns no longer found in CDA: {deprecated_columns}")
-        logger.info(f"Trivial (only null) columns missing from FIELD_CONFIG: {trivial_columns}")
-        logger.error(f"Non-trivial columns missing from FIELD_CONFIG: {non_trivial_columns}")
+        if len(deprecated_columns) > 0:
+            logger.info(f"Columns no longer found in CDA: {deprecated_columns}")
+        if len(trivial_columns) > 0 and include_trivial_columns:
+            logger.info(f"Trivial (only null) columns missing from FIELD_CONFIG: {trivial_columns}")
+        if len(non_trivial_columns) > 0:
+            logger.error(f"Non-trivial columns missing from FIELD_CONFIG: {non_trivial_columns}")
 
 
 def main(args):
