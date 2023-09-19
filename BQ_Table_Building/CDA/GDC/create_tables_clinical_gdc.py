@@ -190,7 +190,6 @@ def find_missing_fields(include_trivial_columns: bool = False):
             WHERE table_name = '{full_table_name}' 
         """
 
-
     def make_column_values_query():
         return f"""
             SELECT DISTINCT {column}
@@ -198,9 +197,9 @@ def find_missing_fields(include_trivial_columns: bool = False):
             WHERE {column} IS NOT NULL
         """
 
-
-
     logger = logging.getLogger('base_script')
+
+    has_missing_columns = False
 
     for table_name in PARAMS['FIELD_CONFIG'].keys():
         result = query_and_retrieve_result(make_column_query())
@@ -235,13 +234,24 @@ def find_missing_fields(include_trivial_columns: bool = False):
 
         trivial_columns = missing_columns - non_trivial_columns
 
-        logger.info(f"For {table_name}:")
-        if len(deprecated_columns) > 0:
-            logger.info(f"Columns no longer found in CDA: {deprecated_columns}")
-        if len(trivial_columns) > 0 and include_trivial_columns:
-            logger.info(f"Trivial (only null) columns missing from FIELD_CONFIG: {trivial_columns}")
-        if len(non_trivial_columns) > 0:
-            logger.error(f"Non-trivial columns missing from FIELD_CONFIG: {non_trivial_columns}")
+        if len(deprecated_columns) > 0 \
+                or (len(trivial_columns) > 0 and include_trivial_columns) \
+                or len(non_trivial_columns) > 0:
+            logger.info(f"For {table_name}:")
+
+            if len(deprecated_columns) > 0:
+                logger.info(f"Columns no longer found in CDA: {deprecated_columns}")
+            if len(trivial_columns) > 0 and include_trivial_columns:
+                logger.info(f"Trivial (only null) columns missing from FIELD_CONFIG: {trivial_columns}")
+            if len(non_trivial_columns) > 0:
+                logger.error(f"Non-trivial columns missing from FIELD_CONFIG: {non_trivial_columns}")
+                has_missing_columns = True
+
+    if has_missing_columns:
+        logger.critical("Missing columns found (see above output). Please take the following steps, then restart:")
+        logger.critical(" - add columns to FIELD_CONFIG in yaml config")
+        logger.critical(" - confirm column description is provided in BQEcosystem/TableFieldUpdates.")
+        sys.exit(-1)
 
 
 def main(args):
