@@ -185,10 +185,20 @@ def find_missing_fields():
         full_table_name = create_dev_table_id(PARAMS, table_name).split('.')[2]
 
         return f"""
-        SELECT column_name
-        FROM {PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.INFORMATION_SCHEMA.COLUMNS
-        WHERE table_name = '{full_table_name}' 
+            SELECT column_name
+            FROM {PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.INFORMATION_SCHEMA.COLUMNS
+            WHERE table_name = '{full_table_name}' 
         """
+
+
+    def make_column_values_query():
+        return f"""
+            SELECT DISTINCT {column}
+            FROM {create_dev_table_id(PARAMS, table_name)}
+            WHERE {column} IS NOT NULL
+        """
+
+
 
     logger = logging.getLogger('base_script')
 
@@ -214,9 +224,21 @@ def find_missing_fields():
         deprecated_columns = all_columns_set - cda_columns_set
         missing_columns = cda_columns_set - all_columns_set
 
+        non_trivial_columns = set()
+
+        for column in missing_columns:
+            result = query_and_retrieve_result(make_column_values_query())
+            result_list = list(result)
+
+            if len(result_list) > 0:
+                non_trivial_columns.add(column)
+
+        trivial_columns = missing_columns - non_trivial_columns
+
         logger.info(f"For {table_name}:")
         logger.info(f"Columns no longer found in CDA: {deprecated_columns}")
-        logger.error(f"Columns missing from FIELD_CONFIG: {missing_columns}")
+        logger.info(f"Trivial (only null) columns missing from FIELD_CONFIG: {trivial_columns}")
+        logger.error(f"Non-trivial columns missing from FIELD_CONFIG: {non_trivial_columns}")
 
 
 def main(args):
