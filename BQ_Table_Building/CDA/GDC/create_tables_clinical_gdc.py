@@ -202,7 +202,11 @@ def find_missing_fields():
 
         # columns should either be listed in column order or excluded columns in FIELD_CONFIG
         included_columns_set = set(PARAMS['FIELD_CONFIG'][table_name]['column_order'])
-        excluded_columns_set = set(PARAMS['FIELD_CONFIG'][table_name]['excluded_columns'])
+
+        if 'excluded_columns' in PARAMS['FIELD_CONFIG'][table_name]:
+            excluded_columns_set = set(PARAMS['FIELD_CONFIG'][table_name]['excluded_columns'])
+        else:
+            excluded_columns_set = set()
 
         # join into one set
         all_columns_set = included_columns_set | excluded_columns_set
