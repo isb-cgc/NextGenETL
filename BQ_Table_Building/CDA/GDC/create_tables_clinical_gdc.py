@@ -177,6 +177,44 @@ def create_base_clinical_table_for_program():
     # don't include columns that are null for every case within the given program
 
 
+def find_missing_fields():
+    # get list of columns from CDA table
+    # compare to table order and excluded column lists in FIELD_CONFIG[table]
+    # any missing columns? print
+    def make_column_query():
+        full_table_name = create_dev_table_id(PARAMS, table_name).split('.')[2]
+
+        return f"""
+        SELECT column_name
+        FROM {PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.INFORMATION_SCHEMA.COLUMNS
+        WHERE table_name = '{full_table_name}' 
+        """
+
+    logger = logging.getLogger('base_script')
+
+    for table_name in PARAMS['FIELD_CONFIG'].keys():
+        result = query_and_retrieve_result(make_column_query())
+
+        cda_columns_set = set()
+
+        for row in result:
+            cda_columns_set.add(row[0])
+
+        # columns should either be listed in column order or excluded columns in FIELD_CONFIG
+        included_columns_set = set(PARAMS['FIELD_CONFIG'][table_name]['column_order'])
+        excluded_columns_set = set(PARAMS['FIELD_CONFIG'][table_name]['excluded_columns'])
+
+        # join into one set
+        all_columns_set = included_columns_set | excluded_columns_set
+
+        deprecated_columns = all_columns_set - cda_columns_set
+        missing_columns = cda_columns_set - all_columns_set
+
+        logger.info(f"For {table_name}:")
+        logger.info(f"Columns no longer found in CDA: {deprecated_columns}")
+        logger.error(f"Columns missing from FIELD_CONFIG: {missing_columns}")
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -190,6 +228,9 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
+    find_missing_fields()
+
+    """
     if 'find_program_tables' in steps:
         # creates dict of programs and base, supplemental tables to be created
         tables_per_program_dict = find_program_tables(PARAMS['TSV_FIELD_GROUP_CONFIG'])
@@ -220,6 +261,7 @@ def main(args):
         logger.info(f"{program}")
         for field_group, columns in column_groups.items():
             logger.info(f"{field_group}: {columns}")
+    """
 
     # steps:
     # use all_program_columns and tables_per_program_dict to stitch together queries to build each program's tables

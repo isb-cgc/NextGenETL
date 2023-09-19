@@ -116,7 +116,19 @@ def find_changes_to_table(source_table_id: str, versioned_table_id: str):
             ...            
     """
 
+    # Get total row count--do 2x (once for each release)
+    """
+    SELECT COUNT(*) as record_count
+      FROM `isb-project-zero.GDC_metadata.rel35_fileData_current`
+    """
+
+    #then display old rel count, new rel count, difference between versions
+
     # For added aliquots (really portions)
+    # aliquot matches for r35, r37
+    # slide matches for r35, r37
+    # case matches for r35, r37
+    # file matches for r35, r37
     """
     WITH new_rows AS (
       SELECT * 
@@ -145,6 +157,9 @@ def find_changes_to_table(source_table_id: str, versioned_table_id: str):
     """
 
     # For removed aliquots (really portions)
+    # aliquot matches for r35, r37
+    # slide matches for r35, r37 (no removed for either)
+    # case matches for r35, r37 (no removed for either)
     """
     WITH new_rows AS (
       SELECT * 
@@ -172,7 +187,11 @@ def find_changes_to_table(source_table_id: str, versioned_table_id: str):
     ORDER BY project_id, sample_type_name
     """
 
-    # intersects
+    # intersects / changed aliquots
+    # aliquot: this works for r35 but not r37, what am I missing?
+    # slide: matches for r35 and r37, but no changes to either
+    # case: similar for r35 and r37, but some project_ids have differing counts (my counts are higher)
+    # file: way higher counts in mine and also some data formats in mine that aren't found in compare_to_last
     """
     WITH new_rows AS (
         SELECT * 
@@ -201,6 +220,10 @@ def find_changes_to_table(source_table_id: str, versioned_table_id: str):
     GROUP BY project_id, sample_type_name
     ORDER BY project_id, sample_type_name
     """
+
+
+def get_change_details():
+    pass
 
 
 def publish_table(source_table_id: str, current_table_id: str, versioned_table_id: str):
