@@ -22,8 +22,7 @@ SOFTWARE.
 import sys
 import time
 
-from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, update_table_schema_from_generic, \
-    query_and_retrieve_result
+from cda_bq_etl.bq_helpers import load_table_from_query, update_table_schema_from_generic, query_and_retrieve_result
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds
 
@@ -161,6 +160,7 @@ def main(args):
                                              table_id=project_table_id,
                                              schema_tags=schema_tags,
                                              metadata_file=generic_table_metadata_file)
+    """
     if 'publish_tables' in steps:
         logger.info("Entering publish_tables")
 
@@ -181,6 +181,7 @@ def main(args):
                           source_table_id=project_table_id,
                           current_table_id=current_table_id,
                           versioned_table_id=versioned_table_id)
+    """
 
     end_time = time.time()
 

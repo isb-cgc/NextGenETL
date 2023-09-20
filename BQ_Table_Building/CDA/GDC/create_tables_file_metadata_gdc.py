@@ -27,7 +27,7 @@ from typing import Any, Union, Optional
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
 from cda_bq_etl.bq_helpers import query_and_retrieve_result, create_and_upload_schema_for_json, \
-    create_and_load_table_from_jsonl, retrieve_bq_schema_object, publish_table, update_table_schema_from_generic
+    create_and_load_table_from_jsonl, retrieve_bq_schema_object, update_table_schema_from_generic
 from cda_bq_etl.utils import format_seconds, load_config, create_dev_table_id
 from cda_bq_etl.data_helpers import normalize_flat_json_values, write_list_to_jsonl_and_upload, initialize_logging
 
@@ -142,7 +142,7 @@ def create_file_metadata_dict() -> JSONList:
     def make_acl_sql() -> str:
         return f"""
             SELECT file_id AS file_gdc_id, 
-                STRING_AGG(acl_id, ';') AS acl
+                STRING_AGG(acl_id, ';' ORDER BY acl_id) AS acl
             FROM `{file_has_acl_table_id}`
             GROUP BY file_gdc_id
         """
@@ -150,7 +150,7 @@ def create_file_metadata_dict() -> JSONList:
     def make_analysis_input_file_gdc_ids_sql() -> str:
         return f"""
             SELECT apf.file_id AS file_gdc_id, 
-                STRING_AGG(acif.input_file_id, ';') AS analysis_input_file_gdc_ids
+                STRING_AGG(acif.input_file_id, ';' ORDER BY acif.input_file_id) AS analysis_input_file_gdc_ids
             FROM `{analysis_produced_file_table_id}` apf
             JOIN `{analysis_table_id}` a
                 ON apf.analysis_id = a.analysis_id
@@ -162,70 +162,102 @@ def create_file_metadata_dict() -> JSONList:
     def make_downstream_analyses_output_file_gdc_ids_sql() -> str:
         return f"""
             SELECT adff.file_id AS file_gdc_id, 
-                STRING_AGG(da.output_file_id, ';') AS downstream_analyses__output_file_gdc_ids
+                STRING_AGG(da.output_file_id, ';' ORDER BY da.output_file_id) 
+                    AS downstream_analyses__output_file_gdc_ids
             FROM `{analysis_downstream_from_file_table_id}` adff
             JOIN `{analysis_table_id}` a
                 ON a.analysis_id = adff.analysis_id
             JOIN `{downstream_analysis_table_id}` da
                 ON da.analysis_id = a.analysis_id
             GROUP BY file_gdc_id
+            ORDER BY da.output_file_id
         """
 
     def make_downstream_analyses_sql() -> str:
         return f"""
-            SELECT adff.file_id AS file_gdc_id, 
-                STRING_AGG(a.workflow_link, ';') AS downstream_analyses__workflow_link, 
-                STRING_AGG(a.workflow_type, ';') AS downstream_analyses__workflow_type
-            FROM `{analysis_downstream_from_file_table_id}` adff
-            JOIN `{analysis_table_id}` a
-                ON a.analysis_id = adff.analysis_id
+            WITH downstream AS (
+                SELECT adff.file_id AS file_gdc_id, 
+                    a.workflow_link,
+                    a.workflow_type,
+                    a.analysis_id
+                FROM `{analysis_downstream_from_file_table_id}` adff
+                JOIN `{analysis_table_id}` a
+                    ON a.analysis_id = adff.analysis_id
+                ORDER BY a.workflow_type
+            )
+            
+            SELECT file_gdc_id, 
+                STRING_AGG(workflow_link, ';') AS downstream_analyses__workflow_link, 
+                STRING_AGG(workflow_type, ';') AS downstream_analyses__workflow_type
+            FROM downstream
             GROUP BY file_gdc_id
         """
 
     def make_associated_entities_sql() -> str:
         return f"""
-            SELECT file_id AS file_gdc_id,
+            WITH assoc_entities AS (
+                SELECT file_id AS file_gdc_id,
+                    entity_id,
+                    entity_case_id,
+                    entity_submitter_id,
+                    entity_type
+            FROM `{file_associated_with_entity_table_id}`
+            )
+            
+            SELECT file_gdc_id,
                 STRING_AGG(entity_id, ';') AS associated_entities__entity_gdc_id,
                 STRING_AGG(entity_case_id, ';') AS associated_entities__case_gdc_id,
                 STRING_AGG(entity_submitter_id, ';') AS associated_entities__entity_submitter_id,
                 entity_type AS associated_entities__entity_type
-            FROM `{file_associated_with_entity_table_id}`
+            FROM assoc_entities
             GROUP BY file_gdc_id, entity_type
         """
 
     def make_case_project_program_sql() -> str:
         return f"""
-            SELECT f.file_id AS file_gdc_id, 
-                STRING_AGG(cpp.case_gdc_id, ';') AS case_gdc_id,
-                cpp.project_dbgap_accession_number, 
-                cpp.project_id AS project_short_name, 
-                cpp.project_name, 
-                cpp.program_name, 
-                cpp.program_dbgap_accession_number,
-                pdt.disease_type AS project_disease_type
-            FROM `{file_table_id}` f
-            JOIN `{file_in_case_table_id}` fc
-                ON f.file_id = fc.file_id
-            JOIN `{case_project_program_table_id}` cpp
-                ON cpp.case_gdc_id = fc.case_id
-            JOIN `{case_table_id}` c
-                ON cpp.case_gdc_id = c.case_id
-            LEFT OUTER JOIN `{project_disease_type_table_id}` pdt
-                ON pdt.project_id = cpp.project_id
-            WHERE f.file_id NOT IN (
-                SELECT index_file_id 
-                FROM `{file_has_index_file_table_id}`
+            WITH case_proj_prog AS (
+                SELECT f.file_id AS file_gdc_id, 
+                    cpp.case_gdc_id,
+                    cpp.project_dbgap_accession_number, 
+                    cpp.project_id AS project_short_name, 
+                    cpp.project_name, 
+                    cpp.program_name, 
+                    cpp.program_dbgap_accession_number,
+                    pdt.disease_type AS project_disease_type
+                FROM `{file_table_id}` f
+                JOIN `{file_in_case_table_id}` fc
+                    ON f.file_id = fc.file_id
+                JOIN `{case_project_program_table_id}` cpp
+                    ON cpp.case_gdc_id = fc.case_id
+                JOIN `{case_table_id}` c
+                    ON cpp.case_gdc_id = c.case_id
+                LEFT OUTER JOIN `{project_disease_type_table_id}` pdt
+                    ON pdt.project_id = cpp.project_id
+                WHERE f.file_id NOT IN (
+                    SELECT index_file_id 
+                    FROM `{file_has_index_file_table_id}`
+                )
             )
-            GROUP BY file_gdc_id, cpp.project_dbgap_accession_number, project_short_name, cpp.project_name, 
-                cpp.program_name, cpp.program_dbgap_accession_number, project_disease_type
+            
+            SELECT file_gdc_id, 
+                STRING_AGG(case_gdc_id, ';') AS case_gdc_id,
+                project_dbgap_accession_number, 
+                project_short_name, 
+                project_name, 
+                program_name, 
+                program_dbgap_accession_number,
+                project_disease_type
+            FROM case_proj_prog
+            GROUP BY file_gdc_id, project_dbgap_accession_number, project_short_name, project_name, program_name, 
+                program_dbgap_accession_number, project_disease_type
         """
 
     def make_index_file_sql() -> str:
         return f"""
             SELECT fhif.file_id AS file_gdc_id, 
-            fhif.index_file_id AS index_file_gdc_id, 
-            f.file_name AS index_file_name, 
-            f.file_size AS index_file_size
+                fhif.index_file_id AS index_file_gdc_id, 
+                f.file_name AS index_file_name, 
+                f.file_size AS index_file_size
             FROM `{file_has_index_file_table_id}` fhif
             JOIN `{file_table_id}` f
                 ON fhif.index_file_id = f.file_id
@@ -448,19 +480,6 @@ def main(args):
                                          schema=table_schema)
 
         update_table_schema_from_generic(params=PARAMS, table_id=dev_table_id)
-
-    if 'publish_tables' in steps:
-        logger.info("Entering publish_tables")
-
-        current_table_name = f"{PARAMS['TABLE_NAME']}_current"
-        current_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}.{current_table_name}"
-        versioned_table_name = f"{PARAMS['TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
-        versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}_versioned.{versioned_table_name}"
-
-        publish_table(params=PARAMS,
-                      source_table_id=dev_table_id,
-                      current_table_id=current_table_id,
-                      versioned_table_id=versioned_table_id)
 
     end_time = time.time()
 

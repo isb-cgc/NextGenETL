@@ -129,6 +129,18 @@ def find_changes_to_table(source_table_id: str, versioned_table_id: str):
     # slide matches for r35, r37
     # case matches for r35, r37
     # file matches for r35, r37
+    # program_name, project_id, case_gdc_id, case_barcode, sample_gdc_id, sample_barcode, sample_type, sample_type_name
+
+    # dbName, file_gdc_id, access, acl, analysis_workflow_link, analysis_workflow_type,
+
+    file_columns = """
+    dbName, `access`, analysis_workflow_link, analysis_workflow_type, archive_gdc_id, archive_revision, archive_state,
+    archive_submitter_id, associated_entities__entity_type, project_dbgap_accession_number, project_disease_type, 
+    project_name, program_dbgap_accession_number, program_name, project_short_name, created_datetime, data_category,
+    data_format, data_type, experimental_strategy, file_name, file_size, file_id, index_file_gdc_id, index_file_name,
+    index_file_size, md5sum, platform, file_state, file_submitter_id, file_type, updated_datetime
+    """
+
     """
     WITH new_rows AS (
       SELECT * 

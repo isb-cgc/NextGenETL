@@ -24,7 +24,7 @@ import time
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds
-from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, update_table_schema_from_generic
+from cda_bq_etl.bq_helpers import load_table_from_query, update_table_schema_from_generic
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -38,13 +38,13 @@ def make_file_metadata_query() -> str:
     return f"""
         WITH file_instruments AS (
             SELECT file_id, 
-                STRING_AGG(DISTINCT instrument, ';') AS instruments
+                STRING_AGG(DISTINCT instrument, ';' ORDER BY instrument) AS instruments
             FROM `{create_dev_table_id(PARAMS, 'file_instrument')}`
             GROUP BY file_id
         )
         ), study_ids AS (
             SELECT fs.file_id,
-                STRING_AGG(DISTINCT s.pdc_study_id, ';') as pdc_study_ids
+                STRING_AGG(DISTINCT s.pdc_study_id, ';' ORDER BY s.pdc_study_id) as pdc_study_ids
             FROM `{create_dev_table_id(PARAMS, 'file_study_id')}` fs
             JOIN `{create_dev_table_id(PARAMS, 'study')}` s
                 ON s.study_id = fs.study_id
@@ -101,19 +101,6 @@ def main(args):
         load_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_file_metadata_query())
 
         update_table_schema_from_generic(params=PARAMS, table_id=dev_table_id)
-
-    if 'publish_tables' in steps:
-        logger.info("Entering publish_tables")
-
-        current_table_name = f"{PARAMS['TABLE_NAME']}_current"
-        current_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}.{current_table_name}"
-        versioned_table_name = f"{PARAMS['TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
-        versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}_versioned.{versioned_table_name}"
-
-        publish_table(params=PARAMS,
-                      source_table_id=dev_table_id,
-                      current_table_id=current_table_id,
-                      versioned_table_id=versioned_table_id)
 
     end_time = time.time()
 

@@ -24,7 +24,7 @@ import time
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds
-from cda_bq_etl.bq_helpers import load_table_from_query, publish_table, update_table_schema_from_generic
+from cda_bq_etl.bq_helpers import load_table_from_query, update_table_schema_from_generic
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -95,19 +95,6 @@ def main(args):
         load_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_case_metadata_table_sql(legacy_table_id))
 
         update_table_schema_from_generic(params=PARAMS, table_id=dev_table_id)
-
-    if 'publish_tables' in steps:
-        logger.info("Entering publish_tables")
-
-        current_table_name = f"{PARAMS['TABLE_NAME']}_current"
-        current_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}.{current_table_name}"
-        versioned_table_name = f"{PARAMS['TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
-        versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}_versioned.{versioned_table_name}"
-
-        publish_table(params=PARAMS,
-                      source_table_id=dev_table_id,
-                      current_table_id=current_table_id,
-                      versioned_table_id=versioned_table_id)
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")

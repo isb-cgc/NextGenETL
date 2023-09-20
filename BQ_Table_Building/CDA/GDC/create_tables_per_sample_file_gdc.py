@@ -24,7 +24,7 @@ import time
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds
-from cda_bq_etl.bq_helpers import delete_bq_table, load_table_from_query, publish_table, get_project_or_program_list, \
+from cda_bq_etl.bq_helpers import delete_bq_table, load_table_from_query, get_project_or_program_list, \
     update_table_schema_from_generic, get_program_schema_tags_gdc
 
 PARAMS = dict()
@@ -390,24 +390,6 @@ def main(args):
                                              metadata_file=metadata_file)
 
             delete_bq_table(no_url_table_id)
-
-    if 'publish_tables' in steps:
-        logger.info("Entering publish_tables")
-
-        for program_name in program_list:
-            dev_table_name = f"{PARAMS['TABLE_NAME']}_{program_name}_{PARAMS['RELEASE']}"
-            dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{dev_table_name}"
-
-            current_table_name = f"{PARAMS['TABLE_NAME']}_current"
-            current_table_id = f"{PARAMS['PROD_PROJECT']}.{program_name}.{current_table_name}"
-
-            versioned_table_name = f"{PARAMS['TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
-            versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{program_name}_versioned.{versioned_table_name}"
-
-            publish_table(params=PARAMS,
-                          source_table_id=dev_table_id,
-                          current_table_id=current_table_id,
-                          versioned_table_id=versioned_table_id)
 
     end_time = time.time()
 

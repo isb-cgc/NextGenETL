@@ -27,7 +27,7 @@ from typing import Optional, Any
 
 from cda_bq_etl.data_helpers import normalize_flat_json_values, write_list_to_jsonl_and_upload, initialize_logging
 from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds, get_filepath
-from cda_bq_etl.bq_helpers import publish_table, query_and_retrieve_result, update_table_schema_from_generic, \
+from cda_bq_etl.bq_helpers import query_and_retrieve_result, update_table_schema_from_generic, \
     create_and_upload_schema_for_json, retrieve_bq_schema_object, create_and_load_table_from_jsonl
 
 PARAMS = dict()
@@ -101,7 +101,7 @@ def make_study_disease_type_query() -> str:
     return f"""
         SELECT s.pdc_study_id,
             s.study_id,
-            STRING_AGG(sdt.disease_type, ';') AS disease_type,
+            STRING_AGG(sdt.disease_type, ';' ORDER BY sdt.disease_type) AS disease_type,
         FROM `{create_dev_table_id(PARAMS, "study")}` s
         LEFT JOIN `{create_dev_table_id(PARAMS, "study_disease_type")}` sdt
             ON s.study_id = sdt.study_id
@@ -113,7 +113,7 @@ def make_study_primary_site_query() -> str:
     return f"""
         SELECT s.pdc_study_id,
             s.study_id,
-            STRING_AGG(sps.primary_site, ';') AS primary_site
+            STRING_AGG(sps.primary_site, ';' ORDER BY sps.primary_site) AS primary_site
         FROM `{create_dev_table_id(PARAMS, "study")}` s
         LEFT JOIN `{create_dev_table_id(PARAMS, "study_primary_site")}` sps
             ON s.study_id = sps.study_id
@@ -242,19 +242,6 @@ def main(args):
                                          schema=table_schema)
 
         update_table_schema_from_generic(params=PARAMS, table_id=dev_table_id)
-
-    if 'publish_tables' in steps:
-        logger.info("Entering publish_tables")
-
-        current_table_name = f"{PARAMS['TABLE_NAME']}_current"
-        current_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}.{current_table_name}"
-        versioned_table_name = f"{PARAMS['TABLE_NAME']}_{PARAMS['DC_RELEASE']}"
-        versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}_versioned.{versioned_table_name}"
-
-        publish_table(params=PARAMS,
-                      source_table_id=dev_table_id,
-                      current_table_id=current_table_id,
-                      versioned_table_id=versioned_table_id)
 
     end_time = time.time()
 

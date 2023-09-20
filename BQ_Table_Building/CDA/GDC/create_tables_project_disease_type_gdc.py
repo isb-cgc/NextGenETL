@@ -64,7 +64,7 @@ def create_merged_project_studies_disease_type_jsonl():
             disease_type_string = None
         else:
             disease_type_string = ''
-            for disease_type in disease_type_set:
+            for disease_type in sorted(disease_type_set):
                 if disease_type is not None:
                     disease_type_string += f";{disease_type}"
 
