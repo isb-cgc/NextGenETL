@@ -84,11 +84,11 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
     # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
     for table_name, table_vocabulary_dict in field_groups_dict.items():
         # create the query and retrieve results
-        print(make_programs_with_multiple_ids_per_case_sql())
         result = query_and_retrieve_result(sql=make_programs_with_multiple_ids_per_case_sql())
 
         if programs is not None:
             for program_row in result:
+                # change certain program names (currently EXCEPTIONAL_RESPONDERS and BEATAML1.0)
                 if program_row[0] in PARAMS['ALTER_PROGRAM_NAME_LIST'].keys():
                     program_name = PARAMS['ALTER_PROGRAM_NAME_LIST'][program_row[0]]
                 else:
@@ -269,13 +269,14 @@ def main(args):
 
     find_missing_fields()
 
-    """
     if 'find_program_tables' in steps:
         # creates dict of programs and base, supplemental tables to be created
         tables_per_program_dict = find_program_tables(PARAMS['TSV_FIELD_GROUP_CONFIG'])
 
         for program, tables in tables_per_program_dict.items():
             print(f"{program}: {tables}")
+
+    """
 
     # counts returned may be null if program has no values within a table, e.g. TCGA has no annotation records
 
