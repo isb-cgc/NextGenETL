@@ -55,6 +55,39 @@ def make_case_project_program_view_query():
     """
 
 
+def make_treatment_diagnosis_case_query() -> str:
+    return f"""
+        SELECT treatment_id, diagnosis_id, case_id
+        FROM `{create_dev_table_id(PARAMS, 'treatment_of_diagnosis')}`
+        JOIN `{create_dev_table_id(PARAMS, 'diagnosis_of_case')}`
+            USING(diagnosis_id)
+    """
+
+def make_pathology_detail_diagnosis_case_query() -> str:
+    return f"""
+        SELECT pathology_detail_id, diagnosis_id, case_id
+        FROM `{create_dev_table_id(PARAMS, 'pathology_detail_of_diagnosis')}`
+        JOIN `{create_dev_table_id(PARAMS, 'diagnosis_of_case')}`
+            USING(diagnosis_id)
+    """
+
+def make_annotation_diagnosis_case_query() -> str:
+    return f"""
+        SELECT pathology_detail_id, diagnosis_id, case_id
+        FROM `{create_dev_table_id(PARAMS, 'diagnosis_has_annotation')}`
+        JOIN `{create_dev_table_id(PARAMS, 'diagnosis_of_case')}`
+            USING(diagnosis_id)
+    """
+
+def make_molecular_test_follow_up_case_query() -> str:
+    return f"""
+        SELECT molecular_test_id, follow_up_id, case_id
+        FROM `{create_dev_table_id(PARAMS, 'molecular_test_from_follow_up')}`
+        JOIN `{create_dev_table_id(PARAMS, 'follow_up_of_case')}`
+            USING(follow_up_id)
+    """
+
+
 def main(args):
     try:
         global PARAMS
@@ -69,8 +102,29 @@ def main(args):
     if 'create_case_project_program_view' in steps:
         logger.info("Making case project program view!")
 
-        create_view_from_query(view_id=create_dev_table_id(PARAMS, PARAMS['TABLE_NAME']),
+        create_view_from_query(view_id=create_dev_table_id(PARAMS, 'case_project_program'),
                                view_query=make_case_project_program_view_query())
+
+    if 'create_clinical_views' in steps:
+        logger.info("Making treatment_diagnosis_case_id_map view!")
+
+        create_view_from_query(view_id=create_dev_table_id(PARAMS, 'treatment_diagnosis_case_id_map'),
+                               view_query=make_treatment_diagnosis_case_query())
+
+        logger.info("Making pathology_detail_diagnosis_case_id_map view!")
+
+        create_view_from_query(view_id=create_dev_table_id(PARAMS, 'pathology_detail_diagnosis_case_id_map'),
+                               view_query=make_pathology_detail_diagnosis_case_query())
+
+        logger.info("Making annotation_diagnosis_case_id_map view!")
+
+        create_view_from_query(view_id=create_dev_table_id(PARAMS, 'annotation_diagnosis_case_id_map'),
+                               view_query=make_annotation_diagnosis_case_query())
+
+        logger.info("Making molecular_test_follow_up_case_id_map view!")
+
+        create_view_from_query(view_id=create_dev_table_id(PARAMS, 'molecular_test_follow_up_case_id_map'),
+                               view_query=make_molecular_test_follow_up_case_query())
 
 
 if __name__ == "__main__":

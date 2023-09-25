@@ -254,6 +254,110 @@ def find_missing_fields(include_trivial_columns: bool = False):
         sys.exit(-1)
 
 
+def create_sql_for_program_tables():
+    """
+    store sql strings in dictionary?
+    yes, in two parts.
+    table_sql_dict = {
+        "clinical": {
+            "select": "SELECT ...",
+            "from": "FROM ..."
+            # here we have to add counts for any child associated tables (not grandchildren)
+        },
+        "diagnosis": {
+            # here we have to add the associated case_id and counts for any child associated tables
+        },
+        "treatment": {
+            # here we have to add the associated diagnosis id and case id
+        },
+        ...
+    }
+
+    I could build the basic tables, then later insert the associated child row counts?
+    How are we going to know which tables require which counts.
+    What if we build the basic scaffolding as a data structure...
+    {
+        clinical: {
+            diagnosis: {
+                treatment: {}
+                pathology_detail: {}
+            },
+            follow_up: {
+                molecular_test: {}
+            }
+        }
+    }
+
+    so traversing this forward would tell us that we'd need counts for any keys at a given level.
+    traversing back out tells us which mapping keys we need to include in the table.
+    case: {
+        mapping_keys: {},
+        count_keys: {diagnosis, follow_up}
+    },
+    diagnosis: {
+        mapping_keys: {case},
+        count_keys: {treatment, pathology_detail}
+    },
+    treatment: {
+        mapping_keys: {case, diagnosis}.
+        count_keys: {}
+    }
+
+    We can get the key counts from the child join tables. Create WITH statements that we can then use as lookup tables.
+    Sometimes these won't be children, they can be grandchildren. clinical can have diag__treat__count, for instance.
+
+    e.g.
+    '''
+    WITH treatment_counts AS (
+        SELECT diagnosis.diagnosis_id, COUNT(treatment_diagnosis.treatment_id) AS treatment_count
+        FROM `isb-project-zero.cda_gdc_raw.2023_09_diagnosis` diagnosis
+        LEFT JOIN `isb-project-zero.cda_gdc_raw.2023_09_treatment_of_diagnosis` treatment_diagnosis
+            USING(diagnosis_id)
+        GROUP BY diagnosis_id
+    )
+    '''
+
+    First we add the primary key to the select statement.
+
+    select = "SELECT treatment_id AS diag__treat__treatment_id"
+
+    create_sql_alias_with_prefix() will create the string for the column. It adds the table alias and modifies the
+    column name to include a prefix if needed.
+
+    select = f"SELECT {create_sql_alias_with_prefix("treatment", "treatment_id")}"
+    from = f"FROM {create_dev_table_id(PARAMS, "treatment")}"
+
+    parent_table = TABLE_PARAMS['treatment']['child_of']
+    parent_column_alias = create_sql_alias_with_prefix(parent_table, f"{parent_table}_id")}
+
+    select += f", {parent_column_alias}"
+
+    mapping_table = TABLE_PARAMS['treatment']['mapping_table']
+
+    Then, if there are any mapping keys, we add them in order of ancestry.
+    We also add joins to allow for those associations.
+
+
+
+    """
+
+
+def create_sql_alias_with_prefix(table_name: str, column_name: str) -> str:
+    """
+    Create column alias string using table prefix and column name. Uses table_name as table alias.
+    :param table_name: table where column is originally located
+    :param column_name: column name
+    :return: "<column_name> AS <table_prefix>__<column_name>
+    """
+    prefix = PARAMS['TABLE_PARAMS'][table_name]['prefix']
+
+    if prefix is not None:
+        aliased_column_name = f"{prefix}__{column_name}"
+        return f"{table_name}.{column_name} AS {aliased_column_name}"
+    else:
+        return f"{table_name}.{column_name}"
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -267,6 +371,7 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
+    # todo add some logging text for this in cases where it doesn't find any issues
     find_missing_fields()
 
     if 'find_program_tables' in steps:
