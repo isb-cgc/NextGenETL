@@ -63,6 +63,7 @@ def make_treatment_diagnosis_case_query() -> str:
             USING(diagnosis_id)
     """
 
+
 def make_pathology_detail_diagnosis_case_query() -> str:
     return f"""
         SELECT pathology_detail_id, diagnosis_id, case_id
@@ -71,6 +72,7 @@ def make_pathology_detail_diagnosis_case_query() -> str:
             USING(diagnosis_id)
     """
 
+
 def make_annotation_diagnosis_case_query() -> str:
     return f"""
         SELECT pathology_detail_id, diagnosis_id, case_id
@@ -78,6 +80,7 @@ def make_annotation_diagnosis_case_query() -> str:
         JOIN `{create_dev_table_id(PARAMS, 'diagnosis_of_case')}`
             USING(diagnosis_id)
     """
+
 
 def make_molecular_test_follow_up_case_query() -> str:
     return f"""

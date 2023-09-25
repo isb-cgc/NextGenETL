@@ -325,7 +325,7 @@ def create_sql_for_program_tables():
     column name to include a prefix if needed.
 
     select = f"SELECT {create_sql_alias_with_prefix("treatment", "treatment_id")}"
-    from = f"FROM {create_dev_table_id(PARAMS, "treatment")}"
+    from = f"FROM {create_dev_table_id(PARAMS, "treatment")}\n"
 
     parent_table = TABLE_PARAMS['treatment']['child_of']
     parent_column_alias = create_sql_alias_with_prefix(parent_table, f"{parent_table}_id")}
@@ -333,29 +333,39 @@ def create_sql_for_program_tables():
     select += f", {parent_column_alias}"
 
     mapping_table = TABLE_PARAMS['treatment']['mapping_table']
+    from += f"{create_dev_table_id(PARAMS, mapping_table)} mapping_table"
 
     Then, if there are any mapping keys, we add them in order of ancestry.
-    We also add joins to allow for those associations.
+    We also add join to allow for those associations.
+
 
 
 
     """
 
 
-def create_sql_alias_with_prefix(table_name: str, column_name: str) -> str:
+def create_sql_alias_with_prefix(table_name: str, column_name: str, table_alias: str = None) -> str:
     """
     Create column alias string using table prefix and column name. Uses table_name as table alias.
     :param table_name: table where column is originally located
     :param column_name: column name
+    :param table_alias: Optional, override the joined table associated with this column (e.g. when using a view)
     :return: "<column_name> AS <table_prefix>__<column_name>
     """
     prefix = PARAMS['TABLE_PARAMS'][table_name]['prefix']
 
     if prefix is not None:
         aliased_column_name = f"{prefix}__{column_name}"
-        return f"{table_name}.{column_name} AS {aliased_column_name}"
+
+        if table_alias:
+            return f"{table_alias}.{column_name} AS {aliased_column_name}"
+        else:
+            return f"{table_name}.{column_name} AS {aliased_column_name}"
     else:
-        return f"{table_name}.{column_name}"
+        if table_alias:
+            return f"{table_alias}.{column_name}"
+        else:
+            return f"{table_name}.{column_name}"
 
 
 def main(args):
