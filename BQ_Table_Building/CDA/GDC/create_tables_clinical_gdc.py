@@ -235,11 +235,10 @@ def find_non_null_columns_by_program(program, field_group):
 
 
 def create_sql_for_program_tables(program: str, tables: set[str]):
+    logger = logging.getLogger('base_script')
     table_sql_dict = dict()
     # this gets me this mapping and count columns
     mapping_count_columns = get_mapping_and_count_columns(tables)
-
-    print(mapping_count_columns)
 
     for table in tables:
         table_sql_dict[table] = {
@@ -248,8 +247,6 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
             "from": "",
             "join": dict()
         }
-
-        print(PARAMS['TABLE_PARAMS'][table])
 
         # add first columns to the 'select' sql string
         for column in PARAMS['TABLE_PARAMS'][table]['column_order']['first']:
@@ -288,7 +285,7 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
                 count_mapping_table = PARAMS['TABLE_PARAMS'][child_table]['mapping_table']
 
                 with_sql = f"""
-                    WITH {child_table}_counts AS (
+                    {child_table}_counts AS (
                         SELECT {table_id_key}, COUNT({count_id_key}) AS {count_prefix}__count
                         FROM `{create_dev_table_id(PARAMS, count_mapping_table)}`
                         GROUP BY {table_id_key} 
@@ -298,7 +295,40 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
                 table_sql_dict[table]['with'].append(with_sql)
                 table_sql_dict[table]['select'].append(f"{child_table}_counts.{count_prefix}__count")
 
-        print(table_sql_dict)
+        # stitch together query
+        sql_query = ""
+
+        if table_sql_dict['with']:
+            sql_query += "WITH "
+            sql_query += ", ".join(table_sql_dict['with'])
+            sql_query += '\n'
+
+        if not table_sql_dict['select']:
+            logger.critical("No columns found for 'SELECT' clause.")
+            sys.exit(-1)
+
+        sql_query += "SELECT "
+        sql_query += ", ".join(table_sql_dict['select'])
+        sql_query += "\n"
+
+        if not table_sql_dict['from']:
+            logger.critical("No columns found for 'FROM' clause.")
+            sys.exit(-1)
+
+        sql_query += table_sql_dict['from']
+        sql_query += "\n"
+
+        if table_sql_dict['join']:
+            for table_id in table_sql_dict['join'].keys():
+                join_type = table_sql_dict['join'][table_id]['join_type']
+                left_key = table_sql_dict['join'][table_id]['left_key']
+                right_key = table_sql_dict['join'][table_id]['right_key']
+                table_alias = table_sql_dict['join'][table_id]['table_alias']
+
+                join_str = f"{join_type} JOIN {table_id} {table_alias} ON {left_key} = {right_key}\n"
+                sql_query += join_str
+
+        print(sql_query)
         exit()
 
 
