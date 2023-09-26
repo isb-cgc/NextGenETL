@@ -31,22 +31,22 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
-def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[str, set[str]]:
+def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[str]]:
     def make_programs_with_multiple_ids_per_case_sql() -> str:
-        if table_vocabulary_dict['parent_field_group'] is not None:
-            child_parent_map_table_id = create_dev_table_id(PARAMS, f"{table_vocabulary_dict['join_table_name']}")
+        if table_metadata['child_of'] is not None:
+            child_parent_map_table_id = create_dev_table_id(PARAMS, f"{table_metadata['mapping_table']}")
             parent_case_map_table_id = create_dev_table_id(PARAMS,
-                                                           f"{table_vocabulary_dict['parent_field_group']}_of_case")
+                                                           f"{table_metadata['child_of']}_of_case")
 
             return f"""
                 WITH programs AS (
                     SELECT DISTINCT case_proj.project_id
                     FROM `{child_parent_map_table_id}` child_parent
                     JOIN `{parent_case_map_table_id}` parent_case
-                        USING ({table_vocabulary_dict['parent_field_group']}_id)
+                        USING ({table_metadata['child_of']}_id)
                     JOIN `{create_dev_table_id(PARAMS, 'case_in_project')}` case_proj
                         ON parent_case.case_id = case_proj.case_id
-                    GROUP BY child_parent.{table_vocabulary_dict['parent_field_group']}_id, case_proj.project_id
+                    GROUP BY child_parent.{table_metadata['child_of']}_id, case_proj.project_id
                     HAVING COUNT(child_parent.{table_name}_id) > 1
                 )
 
@@ -78,19 +78,19 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
         sys.exit(-1)
 
     for base_program in programs:
-        tables_per_program_dict[base_program] = {PARAMS['MASTER_TABLE']}
+        tables_per_program_dict[base_program] = {'case'}
 
     # Create set of programs for each mapping table type,
     # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
-    for table_name, table_vocabulary_dict in field_groups_dict.items():
+    for table_name, table_metadata in table_dict.items():
         # create the query and retrieve results
         result = query_and_retrieve_result(sql=make_programs_with_multiple_ids_per_case_sql())
 
         if programs is not None:
             for program_row in result:
                 # change certain program names (currently EXCEPTIONAL_RESPONDERS and BEATAML1.0)
-                if program_row[0] in PARAMS['ALTER_PROGRAM_NAME_LIST'].keys():
-                    program_name = PARAMS['ALTER_PROGRAM_NAME_LIST'][program_row[0]]
+                if program_row[0] in PARAMS['ALTER_PROGRAM_NAMES'].keys():
+                    program_name = PARAMS['ALTER_PROGRAM_NAMES'][program_row[0]]
                 else:
                     program_name = program_row[0]
 
@@ -99,22 +99,12 @@ def find_program_tables(field_groups_dict: dict[str, dict[str, str]]) -> dict[st
     return tables_per_program_dict
 
 
-def get_field_groups() -> list[str]:
-    field_group_list = list()
-
-    for field_group in PARAMS['TSV_FIELD_GROUP_CONFIG'].keys():
-        field_group_name = field_group.split('.')[-1]
-        field_group_list.append(field_group_name)
-
-    return field_group_list
-
-
 def find_non_null_columns_by_program(program, field_group):
     def make_count_column_sql() -> str:
-        columns = PARAMS['FIELD_CONFIG'][field_group]['column_order']
-        mapping_table = PARAMS['FIELD_CONFIG'][field_group]['mapping_table']
-        id_key = PARAMS['FIELD_CONFIG'][field_group]['id_key']
-        parent_table = PARAMS['FIELD_CONFIG'][field_group]['child_of']
+        columns = PARAMS['TABLE_PARAMS'][field_group]['column_order']
+        mapping_table = PARAMS['TABLE_PARAMS'][field_group]['mapping_table']
+        id_key = f"{field_group}_id"
+        parent_table = PARAMS['TABLE_PARAMS'][field_group]['child_of']
 
         count_sql_str = ''
 
@@ -135,8 +125,8 @@ def find_non_null_columns_by_program(program, field_group):
             WHERE cpp.program_name = '{program}'
             """
         elif parent_table:
-            parent_mapping_table = PARAMS['FIELD_CONFIG'][parent_table]['mapping_table']
-            parent_id_key = PARAMS['FIELD_CONFIG'][parent_table]['id_key']
+            parent_mapping_table = PARAMS['TABLE_PARAMS'][parent_table]['mapping_table']
+            parent_id_key = f"{parent_table}_id"
 
             return f"""
             SELECT {count_sql_str}
@@ -161,7 +151,7 @@ def find_non_null_columns_by_program(program, field_group):
 
     for row in column_count_result:
         # get columns for field group
-        for column in PARAMS['FIELD_CONFIG'][field_group]['column_order']:
+        for column in PARAMS['TABLE_PARAMS'][field_group]['column_order']:
             count = row.get(f"{column}_count")
 
             if count is not None and count > 0:
@@ -179,7 +169,7 @@ def create_base_clinical_table_for_program():
 
 def find_missing_fields(include_trivial_columns: bool = False):
     # get list of columns from CDA table
-    # compare to table order and excluded column lists in FIELD_CONFIG[table]
+    # compare to table order and excluded column lists in TABLE_PARAMS[table]
     # any missing columns? print
     def make_column_query():
         full_table_name = create_dev_table_id(PARAMS, table_name).split('.')[2]
@@ -201,7 +191,7 @@ def find_missing_fields(include_trivial_columns: bool = False):
 
     has_missing_columns = False
 
-    for table_name in PARAMS['FIELD_CONFIG'].keys():
+    for table_name in PARAMS['TABLE_PARAMS'].keys():
         result = query_and_retrieve_result(make_column_query())
 
         cda_columns_set = set()
@@ -209,11 +199,11 @@ def find_missing_fields(include_trivial_columns: bool = False):
         for row in result:
             cda_columns_set.add(row[0])
 
-        # columns should either be listed in column order or excluded columns in FIELD_CONFIG
-        included_columns_set = set(PARAMS['FIELD_CONFIG'][table_name]['column_order'])
+        # columns should either be listed in column order or excluded columns in TABLE_PARAMS
+        included_columns_set = set(PARAMS['TABLE_PARAMS'][table_name]['column_order'])
 
-        if PARAMS['FIELD_CONFIG'][table_name]['excluded_columns'] is not None:
-            excluded_columns_set = set(PARAMS['FIELD_CONFIG'][table_name]['excluded_columns'])
+        if PARAMS['TABLE_PARAMS'][table_name]['excluded_columns'] is not None:
+            excluded_columns_set = set(PARAMS['TABLE_PARAMS'][table_name]['excluded_columns'])
         else:
             excluded_columns_set = set()
 
@@ -242,14 +232,14 @@ def find_missing_fields(include_trivial_columns: bool = False):
             if len(deprecated_columns) > 0:
                 logger.info(f"Columns no longer found in CDA: {deprecated_columns}")
             if len(trivial_columns) > 0 and include_trivial_columns:
-                logger.info(f"Trivial (only null) columns missing from FIELD_CONFIG: {trivial_columns}")
+                logger.info(f"Trivial (only null) columns missing from TABLE_PARAMS: {trivial_columns}")
             if len(non_trivial_columns) > 0:
-                logger.error(f"Non-trivial columns missing from FIELD_CONFIG: {non_trivial_columns}")
+                logger.error(f"Non-trivial columns missing from TABLE_PARAMS: {non_trivial_columns}")
                 has_missing_columns = True
 
     if has_missing_columns:
         logger.critical("Missing columns found (see above output). Please take the following steps, then restart:")
-        logger.critical(" - add columns to FIELD_CONFIG in yaml config")
+        logger.critical(" - add columns to TABLE_PARAMS in yaml config")
         logger.critical(" - confirm column description is provided in BQEcosystem/TableFieldUpdates.")
         sys.exit(-1)
 
@@ -318,7 +308,7 @@ def create_sql_for_program_tables():
     '''
 
     First we add the primary key to the select statement.
-
+  
     select = "SELECT treatment_id AS diag__treat__treatment_id"
 
     create_sql_alias_with_prefix() will create the string for the column. It adds the table alias and modifies the
@@ -368,6 +358,44 @@ def create_sql_alias_with_prefix(table_name: str, column_name: str, table_alias:
             return f"{table_name}.{column_name}"
 
 
+def get_mapping_and_count_columns(program_table_set: set[str]) -> dict[str, list[str]]:
+    column_dict = dict()
+
+    for table_name in program_table_set:
+        column_dict[table_name] = {
+            'mapping_keys': [],
+            'count_keys': []
+        }
+
+        # fetch children for table
+        children = PARAMS['TABLE_PARAMS'][table_name]['parent_of']
+
+        if children is not None:
+            # scan through children--do any make supplemental tables?
+            # will need to add a count column to show how many records are available for given row.
+            for child in children:
+                if child in program_table_set:
+                    column_dict[table_name]['count_keys'].append(child)
+                else:
+                    grandchildren = PARAMS['TABLE_PARAMS'][child]['parent_of']
+
+                    if grandchildren is not None:
+                        for grandchild in grandchildren:
+                            if grandchild in program_table_set:
+                                column_dict[table_name]['count_keys'].append(grandchild)
+
+        parent = PARAMS['TABLE_PARAMS'][table_name]['child_of']
+
+        if parent is not None:
+            column_dict[table_name]['mapping_keys'].append(parent)
+
+            grandparent = PARAMS['TABLE_PARAMS'][parent]['child_of']
+            if grandparent is not None:
+                column_dict[table_name]['mapping_keys'].append(grandparent)
+
+    return column_dict
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -386,10 +414,15 @@ def main(args):
 
     if 'find_program_tables' in steps:
         # creates dict of programs and base, supplemental tables to be created
-        tables_per_program_dict = find_program_tables(PARAMS['TSV_FIELD_GROUP_CONFIG'])
+        tables_per_program_dict = find_program_tables(PARAMS['TABLE_PARAMS'])
 
         for program, tables in tables_per_program_dict.items():
-            print(f"{program}: {tables}")
+            logger.info(f"{program}: {tables}")
+
+            column_dict = get_mapping_and_count_columns(tables)
+
+            for table in column_dict.keys():
+                logger.info(f"{table}: {column_dict[table]}")
 
     """
 
@@ -421,7 +454,7 @@ def main(args):
     # steps:
     # use all_program_columns and tables_per_program_dict to stitch together queries to build each program's tables
     # note: case and project fields are still not completed
-    # use the FG_CONFIG to order fields by FG and to account for last_keys_in_table
+    # use the TABLE_INSERT_ORDER to order fields by FG and to account for last_keys_in_table
     # use these queries to build the clinical tables
 
     end_time = time.time()
