@@ -31,202 +31,6 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
-def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[str]]:
-    def make_programs_with_multiple_ids_per_case_sql() -> str:
-        return f"""
-            WITH programs AS (
-                SELECT DISTINCT case_proj.project_id
-                FROM `{create_dev_table_id(PARAMS, table_metadata['mapping_table'])}` base_table
-                JOIN `{create_dev_table_id(PARAMS, 'case_in_project')}` case_proj
-                    ON base_table.case_id = case_proj.case_id
-                GROUP BY base_table.case_id, case_proj.project_id
-                HAVING COUNT(base_table.case_id) > 1
-            )
-
-            SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
-            FROM programs
-            """
-
-    logger = logging.getLogger('base_script')
-    # Create program set for base clinical tables -- will include every program with clinical cases
-    programs = get_project_or_program_list(PARAMS)
-    tables_per_program_dict = dict()
-
-    if programs is None:
-        logger.critical("No programs found, exiting.")
-        sys.exit(-1)
-
-    for base_program in programs:
-        tables_per_program_dict[base_program] = {'case'}
-
-    # Create set of programs for each mapping table type,
-    # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
-    for table_name, table_metadata in table_dict.items():
-        logger.info(table_name)
-        if table_name == 'case' or table_name == 'project':
-            continue
-
-        # create the query and retrieve results
-        result = query_and_retrieve_result(sql=make_programs_with_multiple_ids_per_case_sql())
-
-        if result is None:
-            logger.error("result is none")
-
-        for program_row in result:
-            # change certain program names (currently EXCEPTIONAL_RESPONDERS and BEATAML1.0)
-            if program_row[0] in PARAMS['ALTER_PROGRAM_NAMES'].keys():
-                program_name = PARAMS['ALTER_PROGRAM_NAMES'][program_row[0]]
-            else:
-                program_name = program_row[0]
-
-            tables_per_program_dict[program_name].add(table_name)
-
-    return tables_per_program_dict
-
-
-'''
-def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[str]]:
-    def make_programs_with_multiple_ids_per_case_sql() -> str:
-        if table_metadata['child_of'] is not None and table_metadata['child_of'] != 'case':
-            child_parent_map_table_id = create_dev_table_id(PARAMS, f"{table_metadata['mapping_table']}")
-            parent_case_map_table_id = create_dev_table_id(PARAMS,
-                                                           f"{table_metadata['child_of']}_of_case")
-
-            return f"""
-                WITH programs AS (
-                    SELECT DISTINCT case_proj.project_id
-                    FROM `{child_parent_map_table_id}` child_parent
-                    JOIN `{parent_case_map_table_id}` parent_case
-                        USING ({table_metadata['child_of']}_id)
-                    JOIN `{create_dev_table_id(PARAMS, 'case_in_project')}` case_proj
-                        ON parent_case.case_id = case_proj.case_id
-                    GROUP BY child_parent.{table_metadata['child_of']}_id, case_proj.project_id
-                    HAVING COUNT(child_parent.{table_name}_id) > 1
-                )
-
-                SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
-                FROM programs
-            """
-        else:
-            return f"""
-                WITH programs AS (
-                    SELECT DISTINCT case_proj.project_id
-                    FROM `{create_dev_table_id(PARAMS, f"{table_name}_of_case")}` base_table
-                    JOIN `{create_dev_table_id(PARAMS, 'case_in_project')}` case_proj
-                        ON base_table.case_id = case_proj.case_id
-                    GROUP BY base_table.case_id, case_proj.project_id
-                    HAVING COUNT(base_table.case_id) > 1
-                )
-
-                SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
-                FROM programs
-            """
-
-    logger = logging.getLogger('base_script')
-    # Create program set for base clinical tables -- will include every program with clinical cases
-    programs = get_project_or_program_list(PARAMS)
-    tables_per_program_dict = dict()
-
-    if programs is None:
-        logger.critical("No programs found, exiting.")
-        sys.exit(-1)
-
-    for base_program in programs:
-        tables_per_program_dict[base_program] = {'case'}
-
-    # Create set of programs for each mapping table type,
-    # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
-    for table_name, table_metadata in table_dict.items():
-        logger.info(table_name)
-        if table_name == 'case' or table_name == 'project':
-            continue
-
-        # create the query and retrieve results
-        result = query_and_retrieve_result(sql=make_programs_with_multiple_ids_per_case_sql())
-
-        if result is None:
-            logger.error("result is none")
-
-        for program_row in result:
-            # change certain program names (currently EXCEPTIONAL_RESPONDERS and BEATAML1.0)
-            if program_row[0] in PARAMS['ALTER_PROGRAM_NAMES'].keys():
-                program_name = PARAMS['ALTER_PROGRAM_NAMES'][program_row[0]]
-            else:
-                program_name = program_row[0]
-
-            tables_per_program_dict[program_name].add(table_name)
-
-    return tables_per_program_dict
-'''
-
-def find_non_null_columns_by_program(program, field_group):
-    def make_count_column_sql() -> str:
-        columns = PARAMS['TABLE_PARAMS'][field_group]['column_order']
-        mapping_table = PARAMS['TABLE_PARAMS'][field_group]['mapping_table']
-        id_key = f"{field_group}_id"
-        parent_table = PARAMS['TABLE_PARAMS'][field_group]['child_of']
-
-        count_sql_str = ''
-
-        for col in columns:
-            count_sql_str += f'\nSUM(CASE WHEN child_table.{col} is null THEN 0 ELSE 1 END) AS {col}_count, '
-
-        # remove extra comma (due to looping) from end of string
-        count_sql_str = count_sql_str[:-2]
-
-        if parent_table == 'case':
-            return f"""
-            SELECT {count_sql_str}
-            FROM `{create_dev_table_id(PARAMS, field_group)}` child_table
-            JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
-                ON mapping_table.{id_key} = child_table.{id_key}
-            JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-                ON mapping_table.case_id = cpp.case_gdc_id
-            WHERE cpp.program_name = '{program}'
-            """
-        elif parent_table:
-            parent_mapping_table = PARAMS['TABLE_PARAMS'][parent_table]['mapping_table']
-            parent_id_key = f"{parent_table}_id"
-
-            return f"""
-            SELECT {count_sql_str}
-            FROM `{create_dev_table_id(PARAMS, field_group)}` child_table
-            JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
-                ON mapping_table.{id_key} = child_table.{id_key}
-            JOIN `{create_dev_table_id(PARAMS, parent_table)}` parent_table
-                ON parent_table.{parent_id_key} = mapping_table.{parent_id_key}
-            JOIN `{create_dev_table_id(PARAMS, parent_mapping_table)}` parent_mapping_table
-                ON parent_mapping_table.{parent_id_key} = parent_table.{parent_id_key}
-            JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-                ON parent_mapping_table.case_id = cpp.case_gdc_id
-            WHERE cpp.program_name = '{program}'
-            """
-        else:
-            pass
-            # handle project and case field groups
-
-    column_count_result = query_and_retrieve_result(sql=make_count_column_sql())
-
-    non_null_columns = list()
-
-    for row in column_count_result:
-        # get columns for field group
-        for column in PARAMS['TABLE_PARAMS'][field_group]['column_order']:
-            count = row.get(f"{column}_count")
-
-            if count is not None and count > 0:
-                non_null_columns.append(column)
-
-    return non_null_columns
-
-
-def create_base_clinical_table_for_program():
-    pass
-    # get list of mapping tables to flatten into clinical -- exclude those in tables_per_program_dict
-    # create query that contains all the columns for each included field group
-    # don't include columns that are null for every case within the given program
-
-
 def find_missing_fields(include_trivial_columns: bool = False):
     # get list of columns from CDA table
     # compare to table order and excluded column lists in TABLE_PARAMS[table]
@@ -307,7 +111,199 @@ def find_missing_fields(include_trivial_columns: bool = False):
         logger.info("No missing fields!")
 
 
-def create_sql_for_program_tables():
+def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[str]]:
+    def make_programs_with_multiple_ids_per_case_sql() -> str:
+        return f"""
+            WITH programs AS (
+                SELECT DISTINCT case_proj.project_id
+                FROM `{create_dev_table_id(PARAMS, table_metadata['mapping_table'])}` base_table
+                JOIN `{create_dev_table_id(PARAMS, 'case_in_project')}` case_proj
+                    ON base_table.case_id = case_proj.case_id
+                GROUP BY base_table.case_id, case_proj.project_id
+                HAVING COUNT(base_table.case_id) > 1
+            )
+
+            SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
+            FROM programs
+            """
+
+    logger = logging.getLogger('base_script')
+    # Create program set for base clinical tables -- will include every program with clinical cases
+    programs = get_project_or_program_list(PARAMS)
+    tables_per_program_dict = dict()
+
+    if programs is None:
+        logger.critical("No programs found, exiting.")
+        sys.exit(-1)
+
+    for base_program in programs:
+        tables_per_program_dict[base_program] = {'case'}
+
+    # Create set of programs for each mapping table type,
+    # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
+    for table_name, table_metadata in table_dict.items():
+        logger.info(table_name)
+        if table_name == 'case' or table_name == 'project':
+            continue
+
+        # create the query and retrieve results
+        result = query_and_retrieve_result(sql=make_programs_with_multiple_ids_per_case_sql())
+
+        if result is None:
+            logger.error("result is none")
+
+        for program_row in result:
+            # change certain program names (currently EXCEPTIONAL_RESPONDERS and BEATAML1.0)
+            if program_row[0] in PARAMS['ALTER_PROGRAM_NAMES'].keys():
+                program_name = PARAMS['ALTER_PROGRAM_NAMES'][program_row[0]]
+            else:
+                program_name = program_row[0]
+
+            tables_per_program_dict[program_name].add(table_name)
+
+    return tables_per_program_dict
+
+
+# todo probably needs to be re-written due to changing mapping tables
+def find_non_null_columns_by_program(program, field_group):
+    def make_count_column_sql() -> str:
+        mapping_table = PARAMS['TABLE_PARAMS'][field_group]['mapping_table']
+        id_key = f"{field_group}_id"
+        parent_table = PARAMS['TABLE_PARAMS'][field_group]['child_of']
+
+        count_sql_str = ''
+
+        for col in columns:
+            count_sql_str += f'\nSUM(CASE WHEN child_table.{col} is null THEN 0 ELSE 1 END) AS {col}_count, '
+
+        # remove extra comma (due to looping) from end of string
+        count_sql_str = count_sql_str[:-2]
+
+        if parent_table == 'case':
+            return f"""
+            SELECT {count_sql_str}
+            FROM `{create_dev_table_id(PARAMS, field_group)}` child_table
+            JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
+                ON mapping_table.{id_key} = child_table.{id_key}
+            JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
+                ON mapping_table.case_id = cpp.case_gdc_id
+            WHERE cpp.program_name = '{program}'
+            """
+        elif parent_table:
+            parent_mapping_table = PARAMS['TABLE_PARAMS'][parent_table]['mapping_table']
+            parent_id_key = f"{parent_table}_id"
+
+            return f"""
+            SELECT {count_sql_str}
+            FROM `{create_dev_table_id(PARAMS, field_group)}` child_table
+            JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
+                ON mapping_table.{id_key} = child_table.{id_key}
+            JOIN `{create_dev_table_id(PARAMS, parent_table)}` parent_table
+                ON parent_table.{parent_id_key} = mapping_table.{parent_id_key}
+            JOIN `{create_dev_table_id(PARAMS, parent_mapping_table)}` parent_mapping_table
+                ON parent_mapping_table.{parent_id_key} = parent_table.{parent_id_key}
+            JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
+                ON parent_mapping_table.case_id = cpp.case_gdc_id
+            WHERE cpp.program_name = '{program}'
+            """
+        else:
+            pass
+            # handle project and case field groups
+
+    first_columns = PARAMS['TABLE_PARAMS'][field_group]['column_order']['first']
+    middle_columns = PARAMS['TABLE_PARAMS'][field_group]['column_order']['middle']
+    last_columns = PARAMS['TABLE_PARAMS'][field_group]['column_order']['last']
+
+    columns = first_columns + middle_columns
+
+    if last_columns is not None:
+        columns += last_columns
+
+    column_count_result = query_and_retrieve_result(sql=make_count_column_sql())
+
+    non_null_columns = list()
+
+    for row in column_count_result:
+        # get columns for field group
+        for column in columns:
+            count = row.get(f"{column}_count")
+
+            if count is not None and count > 0:
+                non_null_columns.append(column)
+
+    return non_null_columns
+
+
+def create_sql_for_program_tables(program: str, tables: set[str]):
+    table_sql_dict = dict()
+    # this gets me this mapping and count columns
+    mapping_count_columns = get_mapping_and_count_columns(tables)
+
+    for table in tables:
+        table_sql_dict[table] = {
+            "with": list(),
+            "select": list(),
+            "from": "",
+            "join": dict()
+        }
+
+        # add first columns to the 'select' sql string
+        for column in PARAMS['TABLE_PARAMS'][table]['column_order']['first']:
+            table_sql_dict[table]['select'].append(create_sql_alias_with_prefix(table_name=table, column_name=column))
+
+        table_sql_dict[table]['from'] += f"FROM {create_dev_table_id(PARAMS, table)} {table}"
+
+        if mapping_count_columns['mapping_columns'] is not None:
+            # add mapping id columns to 'select'
+            for parent_table in mapping_count_columns['mapping_columns']:
+                mapping_table_alias = PARAMS['TABLE_PARAMS'][table]['mapping_table']
+                column_select = create_sql_alias_with_prefix(table_name=parent_table,
+                                                             column_name=f"{parent_table}_id",
+                                                             table_alias=mapping_table_alias)
+                table_sql_dict[table]['select'].append(column_select)
+
+                # add mapping table to 'join'
+                mapping_table_id = create_dev_table_id(PARAMS, PARAMS['TABLE_PARAMS'][table]['mapping_table'])
+
+                if mapping_table_id not in table_sql_dict[table]['join']:
+                    table_sql_dict[table]['join'][mapping_table_id] = {
+                        'join_type': 'LEFT',
+                        'left_key': f'{table}_id',
+                        'right_key': f'{table}_id',
+                        'table_alias': mapping_table_alias
+                    }
+
+        if mapping_count_columns['count_columns'] is not None:
+            for child_table in mapping_count_columns['count_columns']:
+                # current table: diagnosis
+                # count table: treatment
+
+                table_id_key = f"{table}_id"
+                count_id_key = f"{child_table}_id"
+                count_prefix = PARAMS['TABLE_PARAMS'][child_table]['prefix']
+                count_mapping_table = PARAMS['TABLE_PARAMS'][child_table]['mapping_table']
+
+                with_sql = f"""
+                    WITH {child_table}_counts AS (
+                        SELECT {table_id_key}, COUNT({count_id_key}) AS {count_prefix}__count
+                        FROM `{create_dev_table_id(PARAMS, count_mapping_table)}`
+                        GROUP BY {table_id_key} 
+                    )
+                """
+
+                table_sql_dict[table]['with'].append(with_sql)
+                table_sql_dict[table]['select'].append(f"{child_table}_counts.{count_prefix}__count")
+
+        print(table_sql_dict)
+        exit()
+
+
+        # then add filtered middle columns.
+        # then we add filtered columns from other tables.
+        # then add last columns.
+
+
+
     """
     store sql strings in dictionary?
     yes, in two parts.
@@ -326,35 +322,6 @@ def create_sql_for_program_tables():
         ...
     }
 
-    I could build the basic tables, then later insert the associated child row counts?
-    How are we going to know which tables require which counts.
-    What if we build the basic scaffolding as a data structure...
-    {
-        clinical: {
-            diagnosis: {
-                treatment: {}
-                pathology_detail: {}
-            },
-            follow_up: {
-                molecular_test: {}
-            }
-        }
-    }
-
-    so traversing this forward would tell us that we'd need counts for any keys at a given level.
-    traversing back out tells us which mapping keys we need to include in the table.
-    case: {
-        mapping_keys: {},
-        count_keys: {diagnosis, follow_up}
-    },
-    diagnosis: {
-        mapping_keys: {case},
-        count_keys: {treatment, pathology_detail}
-    },
-    treatment: {
-        mapping_keys: {case, diagnosis}.
-        count_keys: {}
-    }
 
     We can get the key counts from the child join tables. Create WITH statements that we can then use as lookup tables.
     Sometimes these won't be children, they can be grandchildren. clinical can have diag__treat__count, for instance.
@@ -362,10 +329,8 @@ def create_sql_for_program_tables():
     e.g.
     '''
     WITH treatment_counts AS (
-        SELECT diagnosis.diagnosis_id, COUNT(treatment_diagnosis.treatment_id) AS treatment_count
-        FROM `isb-project-zero.cda_gdc_raw.2023_09_diagnosis` diagnosis
-        LEFT JOIN `isb-project-zero.cda_gdc_raw.2023_09_treatment_of_diagnosis` treatment_diagnosis
-            USING(diagnosis_id)
+        SELECT diagnosis_id, COUNT(treatment_id) AS diag__treat__count
+        FROM `isb-project-zero.cda_gdc_raw.2023_09_treatment_diagnosis_case_id_map`
         GROUP BY diagnosis_id
     )
     '''
@@ -405,20 +370,15 @@ def create_sql_alias_with_prefix(table_name: str, column_name: str, table_alias:
     :param table_alias: Optional, override the joined table associated with this column (e.g. when using a view)
     :return: "<column_name> AS <table_prefix>__<column_name>
     """
+    if table_alias is None:
+        table_alias = table_name
+
     prefix = PARAMS['TABLE_PARAMS'][table_name]['prefix']
 
-    if prefix is not None:
-        aliased_column_name = f"{prefix}__{column_name}"
-
-        if table_alias:
-            return f"{table_alias}.{column_name} AS {aliased_column_name}"
-        else:
-            return f"{table_name}.{column_name} AS {aliased_column_name}"
+    if prefix is None:
+        return f"{table_alias}.{column_name}"
     else:
-        if table_alias:
-            return f"{table_alias}.{column_name}"
-        else:
-            return f"{table_name}.{column_name}"
+        return f"{table_alias}.{column_name} AS {prefix}__{column_name}"
 
 
 def get_mapping_and_count_columns(program_table_set: set[str]) -> dict[str, list[str]]:
@@ -426,8 +386,8 @@ def get_mapping_and_count_columns(program_table_set: set[str]) -> dict[str, list
 
     for table_name in program_table_set:
         column_dict[table_name] = {
-            'mapping_keys': [],
-            'count_keys': []
+            'mapping_columns': [],
+            'count_columns': []
         }
 
         # fetch children for table
@@ -438,23 +398,23 @@ def get_mapping_and_count_columns(program_table_set: set[str]) -> dict[str, list
             # will need to add a count column to show how many records are available for given row.
             for child in children:
                 if child in program_table_set:
-                    column_dict[table_name]['count_keys'].append(child)
+                    column_dict[table_name]['count_columns'].append(child)
                 else:
                     grandchildren = PARAMS['TABLE_PARAMS'][child]['parent_of']
 
                     if grandchildren is not None:
                         for grandchild in grandchildren:
                             if grandchild in program_table_set:
-                                column_dict[table_name]['count_keys'].append(grandchild)
+                                column_dict[table_name]['count_columns'].append(grandchild)
 
         parent = PARAMS['TABLE_PARAMS'][table_name]['child_of']
 
         if parent is not None:
-            column_dict[table_name]['mapping_keys'].append(parent)
+            column_dict[table_name]['mapping_columns'].append(parent)
 
             grandparent = PARAMS['TABLE_PARAMS'][parent]['child_of']
             if grandparent is not None:
-                column_dict[table_name]['mapping_keys'].append(grandparent)
+                column_dict[table_name]['mapping_columns'].append(grandparent)
 
     return column_dict
 
@@ -480,6 +440,7 @@ def main(args):
         tables_per_program_dict = find_program_tables(PARAMS['TABLE_PARAMS'])
 
         for program, tables in tables_per_program_dict.items():
+            logger.info()
             logger.info(f"{program}: {tables}")
 
             column_dict = get_mapping_and_count_columns(tables)
