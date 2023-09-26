@@ -33,7 +33,7 @@ YAML_HEADERS = ('params', 'steps')
 
 def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[str]]:
     def make_programs_with_multiple_ids_per_case_sql() -> str:
-        if table_metadata['child_of'] is not None:
+        if table_metadata['child_of'] is not None and table_metadata['child_of'] != 'case':
             child_parent_map_table_id = create_dev_table_id(PARAMS, f"{table_metadata['mapping_table']}")
             parent_case_map_table_id = create_dev_table_id(PARAMS,
                                                            f"{table_metadata['child_of']}_of_case")
