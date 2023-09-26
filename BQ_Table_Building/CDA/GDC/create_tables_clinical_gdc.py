@@ -22,6 +22,7 @@ SOFTWARE.
 import logging
 import sys
 import time
+from typing import Dict, List, Any
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import create_dev_table_id, load_config, format_seconds
@@ -238,6 +239,8 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
     # this gets me this mapping and count columns
     mapping_count_columns = get_mapping_and_count_columns(tables)
 
+    print(mapping_count_columns)
+
     for table in tables:
         table_sql_dict[table] = {
             "with": list(),
@@ -382,7 +385,7 @@ def create_sql_alias_with_prefix(table_name: str, column_name: str, table_alias:
         return f"{table_alias}.{column_name} AS {prefix}__{column_name}"
 
 
-def get_mapping_and_count_columns(program_table_set: set[str]) -> dict[str, list[str]]:
+def get_mapping_and_count_columns(program_table_set: set[str]) -> dict[str, dict[str, list[Any]]]:
     column_dict = dict()
 
     for table_name in program_table_set:
