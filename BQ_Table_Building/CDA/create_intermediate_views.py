@@ -75,7 +75,7 @@ def make_pathology_detail_diagnosis_case_query() -> str:
 
 def make_annotation_diagnosis_case_query() -> str:
     return f"""
-        SELECT pathology_detail_id, diagnosis_id, case_id
+        SELECT annotation_id, diagnosis_id, case_id
         FROM `{create_dev_table_id(PARAMS, 'diagnosis_has_annotation')}`
         JOIN `{create_dev_table_id(PARAMS, 'diagnosis_of_case')}`
             USING(diagnosis_id)
