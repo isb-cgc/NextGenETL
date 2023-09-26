@@ -243,6 +243,7 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
     for table in tables:
         table_sql_dict[table] = {
             "with": list(),
+            "with_join": ""
             "select": list(),
             "from": "",
             "join": dict()
@@ -252,7 +253,7 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
         for column in PARAMS['TABLE_PARAMS'][table]['column_order']['first']:
             table_sql_dict[table]['select'].append(create_sql_alias_with_prefix(table_name=table, column_name=column))
 
-        table_sql_dict[table]['from'] += f"FROM {create_dev_table_id(PARAMS, table)} `{table}`"
+        table_sql_dict[table]['from'] += f"FROM `{create_dev_table_id(PARAMS, table)}` `{table}`"
 
         if mapping_count_columns[table]['mapping_columns'] is not None:
             # add mapping id columns to 'select'
@@ -292,7 +293,10 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
                     )
                 """
 
+                with_join_sql = f"LEFT JOIN {child_table}_counts USING({table_id_key})\n"
+
                 table_sql_dict[table]['with'].append(with_sql)
+                table_sql_dict[table]['with_join'] += with_join_sql
                 table_sql_dict[table]['select'].append(f"{child_table}_counts.{count_prefix}__count")
 
         # stitch together query
@@ -327,6 +331,9 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
 
                 join_str = f"{join_type} JOIN {table_id} {table_alias} ON {left_key} = {right_key}\n"
                 sql_query += join_str
+
+        if table_sql_dict[table]['with_join']:
+            sql_query += table_sql_dict[table]['with_join']
 
         print(sql_query)
         exit()
