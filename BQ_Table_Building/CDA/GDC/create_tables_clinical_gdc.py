@@ -252,7 +252,7 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
         for column in PARAMS['TABLE_PARAMS'][table]['column_order']['first']:
             table_sql_dict[table]['select'].append(create_sql_alias_with_prefix(table_name=table, column_name=column))
 
-        table_sql_dict[table]['from'] += f"FROM {create_dev_table_id(PARAMS, table)} {table}"
+        table_sql_dict[table]['from'] += f"FROM {create_dev_table_id(PARAMS, table)} `{table}`"
 
         if mapping_count_columns[table]['mapping_columns'] is not None:
             # add mapping id columns to 'select'
@@ -410,9 +410,9 @@ def create_sql_alias_with_prefix(table_name: str, column_name: str, table_alias:
     prefix = PARAMS['TABLE_PARAMS'][table_name]['prefix']
 
     if prefix is None:
-        return f"{table_alias}.{column_name}"
+        return f"`{table_alias}`.{column_name}"
     else:
-        return f"{table_alias}.{column_name} AS {prefix}__{column_name}"
+        return f"`{table_alias}`.{column_name} AS {prefix}__{column_name}"
 
 
 def get_mapping_and_count_columns(program_table_set: set[str]) -> dict[str, dict[str, list[Any]]]:
