@@ -442,10 +442,7 @@ def main(args):
             logger.info("")
             logger.info(f"{program}: {tables}")
 
-            column_dict = get_mapping_and_count_columns(tables)
-
-            for table in column_dict.keys():
-                logger.info(f"{table}: {column_dict[table]}")
+            create_sql_for_program_tables(program, tables)
 
     """
 
