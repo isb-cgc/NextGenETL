@@ -83,21 +83,24 @@ def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[
     # Create set of programs for each mapping table type,
     # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
     for table_name, table_metadata in table_dict.items():
+        logger.info(table_name)
         if table_name == 'case' or table_name == 'project':
             continue
 
         # create the query and retrieve results
         result = query_and_retrieve_result(sql=make_programs_with_multiple_ids_per_case_sql())
 
-        if programs is not None:
-            for program_row in result:
-                # change certain program names (currently EXCEPTIONAL_RESPONDERS and BEATAML1.0)
-                if program_row[0] in PARAMS['ALTER_PROGRAM_NAMES'].keys():
-                    program_name = PARAMS['ALTER_PROGRAM_NAMES'][program_row[0]]
-                else:
-                    program_name = program_row[0]
+        if result is None:
+            logger.error("result is none")
 
-                tables_per_program_dict[program_name].add(table_name)
+        for program_row in result:
+            # change certain program names (currently EXCEPTIONAL_RESPONDERS and BEATAML1.0)
+            if program_row[0] in PARAMS['ALTER_PROGRAM_NAMES'].keys():
+                program_name = PARAMS['ALTER_PROGRAM_NAMES'][program_row[0]]
+            else:
+                program_name = program_row[0]
+
+            tables_per_program_dict[program_name].add(table_name)
 
     return tables_per_program_dict
 
