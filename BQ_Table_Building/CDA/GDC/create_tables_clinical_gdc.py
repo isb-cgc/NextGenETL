@@ -243,7 +243,7 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
     for table in tables:
         table_sql_dict[table] = {
             "with": list(),
-            "with_join": ""
+            "with_join": "",
             "select": list(),
             "from": "",
             "join": dict()
