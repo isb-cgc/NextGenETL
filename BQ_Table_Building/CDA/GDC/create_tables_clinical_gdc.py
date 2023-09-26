@@ -246,7 +246,8 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
             "with_join": "",
             "select": list(),
             "from": "",
-            "join": dict()
+            "join": dict(),
+            "where": ""
         }
 
         # add first columns to the 'select' sql string
@@ -333,6 +334,13 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
 
         if table_sql_dict[table]['with_join']:
             sql_query += table_sql_dict[table]['with_join']
+
+        # filter by program
+        sql_query += f"WHERE case_id in (" \
+                     f"SELECT case_gdc_id" \
+                     f"FROM {create_dev_table_id(PARAMS, 'case_project_program')}" \
+                     f"WHERE program_name = {program}" \
+                     f") "
 
         print(sql_query)
 
