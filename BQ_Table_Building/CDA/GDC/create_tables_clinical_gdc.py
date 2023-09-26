@@ -285,13 +285,11 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
                 count_prefix = PARAMS['TABLE_PARAMS'][child_table]['prefix']
                 count_mapping_table = PARAMS['TABLE_PARAMS'][child_table]['mapping_table']
 
-                with_sql = f"""
-                    {child_table}_counts AS (
-                        SELECT {table_id_key}, COUNT({count_id_key}) AS {count_prefix}__count
-                        FROM `{create_dev_table_id(PARAMS, count_mapping_table)}`
-                        GROUP BY {table_id_key} 
-                    )
-                """
+                with_sql = f"{child_table}_counts AS (" \
+                           f"SELECT {table_id_key}, COUNT({count_id_key}) AS {count_prefix}__count " \
+                           f"FROM `{create_dev_table_id(PARAMS, count_mapping_table)}` " \
+                           f"GROUP BY {table_id_key} " \
+                           f") "
 
                 with_join_sql = f"LEFT JOIN {child_table}_counts USING({table_id_key})\n"
 
@@ -329,15 +327,14 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
                 right_key = table_sql_dict[table]['join'][table_id]['right_key']
                 table_alias = table_sql_dict[table]['join'][table_id]['table_alias']
 
-                join_str = f"{join_type} JOIN {table_id} {table_alias} ON {left_key} = {right_key}\n"
+                join_str = f"{join_type} JOIN `{table_id}` `{table_alias}` " \
+                           f"ON `{table_alias}`.{left_key} = `{table}`.{right_key}\n"
                 sql_query += join_str
 
         if table_sql_dict[table]['with_join']:
             sql_query += table_sql_dict[table]['with_join']
 
-        print(sql_query)
-        exit()
-
+    exit()
 
         # then add filtered middle columns.
         # then we add filtered columns from other tables.
