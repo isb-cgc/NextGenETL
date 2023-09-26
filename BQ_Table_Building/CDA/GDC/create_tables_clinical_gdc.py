@@ -142,7 +142,6 @@ def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[
     # Create set of programs for each mapping table type,
     # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
     for table_name, table_metadata in table_dict.items():
-        logger.info(table_name)
         if table_name == 'case' or table_name == 'project':
             continue
 
@@ -440,7 +439,7 @@ def main(args):
         tables_per_program_dict = find_program_tables(PARAMS['TABLE_PARAMS'])
 
         for program, tables in tables_per_program_dict.items():
-            logger.info()
+            logger.info("")
             logger.info(f"{program}: {tables}")
 
             column_dict = get_mapping_and_count_columns(tables)
