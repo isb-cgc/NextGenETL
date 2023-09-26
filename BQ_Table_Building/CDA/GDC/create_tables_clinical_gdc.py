@@ -246,6 +246,8 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
             "join": dict()
         }
 
+        print(PARAMS['TABLE_PARAMS'][table])
+
         # add first columns to the 'select' sql string
         for column in PARAMS['TABLE_PARAMS'][table]['column_order']['first']:
             table_sql_dict[table]['select'].append(create_sql_alias_with_prefix(table_name=table, column_name=column))
