@@ -33,6 +33,60 @@ YAML_HEADERS = ('params', 'steps')
 
 def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[str]]:
     def make_programs_with_multiple_ids_per_case_sql() -> str:
+        return f"""
+            WITH programs AS (
+                SELECT DISTINCT case_proj.project_id
+                FROM `{create_dev_table_id(PARAMS, table_metadata['mapping_table'])}` base_table
+                JOIN `{create_dev_table_id(PARAMS, 'case_in_project')}` case_proj
+                    ON base_table.case_id = case_proj.case_id
+                GROUP BY base_table.case_id, case_proj.project_id
+                HAVING COUNT(base_table.case_id) > 1
+            )
+
+            SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
+            FROM programs
+            """
+
+    logger = logging.getLogger('base_script')
+    # Create program set for base clinical tables -- will include every program with clinical cases
+    programs = get_project_or_program_list(PARAMS)
+    tables_per_program_dict = dict()
+
+    if programs is None:
+        logger.critical("No programs found, exiting.")
+        sys.exit(-1)
+
+    for base_program in programs:
+        tables_per_program_dict[base_program] = {'case'}
+
+    # Create set of programs for each mapping table type,
+    # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
+    for table_name, table_metadata in table_dict.items():
+        logger.info(table_name)
+        if table_name == 'case' or table_name == 'project':
+            continue
+
+        # create the query and retrieve results
+        result = query_and_retrieve_result(sql=make_programs_with_multiple_ids_per_case_sql())
+
+        if result is None:
+            logger.error("result is none")
+
+        for program_row in result:
+            # change certain program names (currently EXCEPTIONAL_RESPONDERS and BEATAML1.0)
+            if program_row[0] in PARAMS['ALTER_PROGRAM_NAMES'].keys():
+                program_name = PARAMS['ALTER_PROGRAM_NAMES'][program_row[0]]
+            else:
+                program_name = program_row[0]
+
+            tables_per_program_dict[program_name].add(table_name)
+
+    return tables_per_program_dict
+
+
+'''
+def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[str]]:
+    def make_programs_with_multiple_ids_per_case_sql() -> str:
         if table_metadata['child_of'] is not None and table_metadata['child_of'] != 'case':
             child_parent_map_table_id = create_dev_table_id(PARAMS, f"{table_metadata['mapping_table']}")
             parent_case_map_table_id = create_dev_table_id(PARAMS,
@@ -103,7 +157,7 @@ def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[
             tables_per_program_dict[program_name].add(table_name)
 
     return tables_per_program_dict
-
+'''
 
 def find_non_null_columns_by_program(program, field_group):
     def make_count_column_sql() -> str:
