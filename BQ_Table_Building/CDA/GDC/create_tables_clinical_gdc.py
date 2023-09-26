@@ -337,9 +337,9 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
 
         # filter by program
         sql_query += f"WHERE case_id in (" \
-                     f"SELECT case_gdc_id" \
-                     f"FROM {create_dev_table_id(PARAMS, 'case_project_program')}" \
-                     f"WHERE program_name = {program}" \
+                     f"SELECT case_gdc_id " \
+                     f"FROM `{create_dev_table_id(PARAMS, 'case_project_program')}` " \
+                     f"WHERE program_name = '{program}'" \
                      f") "
 
         print(sql_query)
