@@ -298,32 +298,32 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
         # stitch together query
         sql_query = ""
 
-        if table_sql_dict['with']:
+        if table_sql_dict[table]['with']:
             sql_query += "WITH "
-            sql_query += ", ".join(table_sql_dict['with'])
+            sql_query += ", ".join(table_sql_dict[table]['with'])
             sql_query += '\n'
 
-        if not table_sql_dict['select']:
+        if not table_sql_dict[table]['select']:
             logger.critical("No columns found for 'SELECT' clause.")
             sys.exit(-1)
 
         sql_query += "SELECT "
-        sql_query += ", ".join(table_sql_dict['select'])
+        sql_query += ", ".join(table_sql_dict[table]['select'])
         sql_query += "\n"
 
-        if not table_sql_dict['from']:
+        if not table_sql_dict[table]['from']:
             logger.critical("No columns found for 'FROM' clause.")
             sys.exit(-1)
 
-        sql_query += table_sql_dict['from']
+        sql_query += table_sql_dict[table]['from']
         sql_query += "\n"
 
-        if table_sql_dict['join']:
-            for table_id in table_sql_dict['join'].keys():
-                join_type = table_sql_dict['join'][table_id]['join_type']
-                left_key = table_sql_dict['join'][table_id]['left_key']
-                right_key = table_sql_dict['join'][table_id]['right_key']
-                table_alias = table_sql_dict['join'][table_id]['table_alias']
+        if table_sql_dict[table]['join']:
+            for table_id in table_sql_dict[table]['join'].keys():
+                join_type = table_sql_dict[table]['join'][table_id]['join_type']
+                left_key = table_sql_dict[table]['join'][table_id]['left_key']
+                right_key = table_sql_dict[table]['join'][table_id]['right_key']
+                table_alias = table_sql_dict[table]['join'][table_id]['table_alias']
 
                 join_str = f"{join_type} JOIN {table_id} {table_alias} ON {left_key} = {right_key}\n"
                 sql_query += join_str
