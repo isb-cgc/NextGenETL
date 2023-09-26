@@ -432,8 +432,8 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    # todo add some logging text for this in cases where it doesn't find any issues
-    find_missing_fields()
+    # todo uncomment
+    # find_missing_fields()
 
     if 'find_program_tables' in steps:
         # creates dict of programs and base, supplemental tables to be created
