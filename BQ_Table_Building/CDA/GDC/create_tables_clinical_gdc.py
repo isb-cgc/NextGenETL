@@ -257,9 +257,9 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
 
         table_sql_dict[table]['from'] += f"FROM {create_dev_table_id(PARAMS, table)} {table}"
 
-        if mapping_count_columns['mapping_columns'] is not None:
+        if mapping_count_columns[table]['mapping_columns'] is not None:
             # add mapping id columns to 'select'
-            for parent_table in mapping_count_columns['mapping_columns']:
+            for parent_table in mapping_count_columns[table]['mapping_columns']:
                 mapping_table_alias = PARAMS['TABLE_PARAMS'][table]['mapping_table']
                 column_select = create_sql_alias_with_prefix(table_name=parent_table,
                                                              column_name=f"{parent_table}_id",
@@ -277,8 +277,8 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
                         'table_alias': mapping_table_alias
                     }
 
-        if mapping_count_columns['count_columns'] is not None:
-            for child_table in mapping_count_columns['count_columns']:
+        if mapping_count_columns[table]['count_columns'] is not None:
+            for child_table in mapping_count_columns[table]['count_columns']:
                 # current table: diagnosis
                 # count table: treatment
 
