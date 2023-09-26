@@ -334,70 +334,11 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
         if table_sql_dict[table]['with_join']:
             sql_query += table_sql_dict[table]['with_join']
 
-    exit()
+        print(sql_query)
 
         # then add filtered middle columns.
         # then we add filtered columns from other tables.
         # then add last columns.
-
-
-
-    """
-    store sql strings in dictionary?
-    yes, in two parts.
-    table_sql_dict = {
-        "clinical": {
-            "select": "SELECT ...",
-            "from": "FROM ..."
-            # here we have to add counts for any child associated tables (not grandchildren)
-        },
-        "diagnosis": {
-            # here we have to add the associated case_id and counts for any child associated tables
-        },
-        "treatment": {
-            # here we have to add the associated diagnosis id and case id
-        },
-        ...
-    }
-
-
-    We can get the key counts from the child join tables. Create WITH statements that we can then use as lookup tables.
-    Sometimes these won't be children, they can be grandchildren. clinical can have diag__treat__count, for instance.
-
-    e.g.
-    '''
-    WITH treatment_counts AS (
-        SELECT diagnosis_id, COUNT(treatment_id) AS diag__treat__count
-        FROM `isb-project-zero.cda_gdc_raw.2023_09_treatment_diagnosis_case_id_map`
-        GROUP BY diagnosis_id
-    )
-    '''
-
-    First we add the primary key to the select statement.
-  
-    select = "SELECT treatment_id AS diag__treat__treatment_id"
-
-    create_sql_alias_with_prefix() will create the string for the column. It adds the table alias and modifies the
-    column name to include a prefix if needed.
-
-    select = f"SELECT {create_sql_alias_with_prefix("treatment", "treatment_id")}"
-    from = f"FROM {create_dev_table_id(PARAMS, "treatment")}\n"
-
-    parent_table = TABLE_PARAMS['treatment']['child_of']
-    parent_column_alias = create_sql_alias_with_prefix(parent_table, f"{parent_table}_id")}
-
-    select += f", {parent_column_alias}"
-
-    mapping_table = TABLE_PARAMS['treatment']['mapping_table']
-    from += f"{create_dev_table_id(PARAMS, mapping_table)} mapping_table"
-
-    Then, if there are any mapping keys, we add them in order of ancestry.
-    We also add join to allow for those associations.
-
-
-
-
-    """
 
 
 def create_sql_alias_with_prefix(table_name: str, column_name: str, table_alias: str = None) -> str:
