@@ -194,6 +194,7 @@ def find_missing_fields(include_trivial_columns: bool = False):
         """
 
     logger = logging.getLogger('base_script')
+    logger.info("Scanning for missing fields in config yaml!")
 
     has_missing_columns = False
 
@@ -248,6 +249,8 @@ def find_missing_fields(include_trivial_columns: bool = False):
         logger.critical(" - add columns to TABLE_PARAMS in yaml config")
         logger.critical(" - confirm column description is provided in BQEcosystem/TableFieldUpdates.")
         sys.exit(-1)
+    else:
+        logger.info("No missing fields!")
 
 
 def create_sql_for_program_tables():
