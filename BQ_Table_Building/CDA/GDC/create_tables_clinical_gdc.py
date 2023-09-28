@@ -221,8 +221,6 @@ def find_program_non_null_columns_by_table(program):
                 ON parent_mapping_table.case_id = cpp.case_gdc_id
             WHERE cpp.program_name = '{program}'
             """
-        else:
-            pass
 
     non_null_columns_dict = dict()
 
@@ -258,6 +256,53 @@ def find_program_non_null_columns_by_table(program):
 
 
 def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
+    def make_sql_statement_from_dict() -> str:
+        # stitch together query
+        sql_query = ""
+
+        if table_sql_dict[table]['with']:
+            sql_query += "WITH "
+            sql_query += ", ".join(table_sql_dict[table]['with'])
+            sql_query += '\n'
+
+        if not table_sql_dict[table]['select']:
+            logger.critical("No columns found for 'SELECT' clause.")
+            sys.exit(-1)
+
+        sql_query += "SELECT "
+        sql_query += ", ".join(table_sql_dict[table]['select'])
+        sql_query += "\n"
+
+        if not table_sql_dict[table]['from']:
+            logger.critical("No columns found for 'FROM' clause.")
+            sys.exit(-1)
+
+        sql_query += table_sql_dict[table]['from']
+        sql_query += "\n"
+
+        if table_sql_dict[table]['join']:
+            for table_id in table_sql_dict[table]['join'].keys():
+                join_type = table_sql_dict[table]['join'][table_id]['join_type']
+                left_key = table_sql_dict[table]['join'][table_id]['left_key']
+                right_key = table_sql_dict[table]['join'][table_id]['right_key']
+                table_alias = table_sql_dict[table]['join'][table_id]['table_alias']
+
+                join_str = f"{join_type} JOIN `{table_id}` `{table_alias}` " \
+                           f"ON `{table_alias}`.{left_key} = `{table}`.{right_key}\n"
+                sql_query += join_str
+
+        if table_sql_dict[table]['with_join']:
+            sql_query += table_sql_dict[table]['with_join']
+
+        # filter by program
+        sql_query += f"WHERE case_id in (" \
+                     f"SELECT case_gdc_id " \
+                     f"FROM `{create_dev_table_id(PARAMS, 'case_project_program')}` " \
+                     f"WHERE program_name = '{program}'" \
+                     f") "
+
+        return sql_query
+
     logger = logging.getLogger('base_script')
     table_sql_dict = dict()
     # this gets me this mapping and count columns
@@ -265,8 +310,27 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
 
     non_null_column_dict = find_program_non_null_columns_by_table(program)
 
-    print(non_null_column_dict)
-    exit(0)
+    table_column_locations = dict()
+
+    for stand_alone_table in stand_alone_tables:
+        table_column_locations[stand_alone_table] = list()
+
+        child_tables = PARAMS['TABLE_PARAMS'][stand_alone_table]['parent_of']
+
+        for child_table in child_tables:
+            # if child table does not require a stand-alone table and has non-null columns,
+            # add to table_column_locations, then check its children as well
+            if child_table not in stand_alone_table and non_null_column_dict[child_table]:
+                table_column_locations[stand_alone_table].append(child_table)
+
+                grandchild_tables = PARAMS['TABLE_PARAMS'][child_table]['parent_of']
+
+                if grandchild_tables:
+                    for grandchild_table in grandchild_tables:
+                        if grandchild_table not in stand_alone_table and non_null_column_dict[grandchild_table]:
+                            table_column_locations[stand_alone_table].append(grandchild_table)
+
+    print(table_column_locations)
 
     for table in stand_alone_tables:
         table_sql_dict[table] = {
@@ -326,53 +390,13 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                 table_sql_dict[table]['with_join'] += with_join_sql
                 table_sql_dict[table]['select'].append(f"{child_table}_counts.{count_prefix}__count")
 
-        # stitch together query
-        sql_query = ""
-
-        if table_sql_dict[table]['with']:
-            sql_query += "WITH "
-            sql_query += ", ".join(table_sql_dict[table]['with'])
-            sql_query += '\n'
-
-        if not table_sql_dict[table]['select']:
-            logger.critical("No columns found for 'SELECT' clause.")
-            sys.exit(-1)
-
-        sql_query += "SELECT "
-        sql_query += ", ".join(table_sql_dict[table]['select'])
-        sql_query += "\n"
-
-        if not table_sql_dict[table]['from']:
-            logger.critical("No columns found for 'FROM' clause.")
-            sys.exit(-1)
-
-        sql_query += table_sql_dict[table]['from']
-        sql_query += "\n"
-
-        if table_sql_dict[table]['join']:
-            for table_id in table_sql_dict[table]['join'].keys():
-                join_type = table_sql_dict[table]['join'][table_id]['join_type']
-                left_key = table_sql_dict[table]['join'][table_id]['left_key']
-                right_key = table_sql_dict[table]['join'][table_id]['right_key']
-                table_alias = table_sql_dict[table]['join'][table_id]['table_alias']
-
-                join_str = f"{join_type} JOIN `{table_id}` `{table_alias}` " \
-                           f"ON `{table_alias}`.{left_key} = `{table}`.{right_key}\n"
-                sql_query += join_str
-
-        if table_sql_dict[table]['with_join']:
-            sql_query += table_sql_dict[table]['with_join']
-
-        # filter by program
-        sql_query += f"WHERE case_id in (" \
-                     f"SELECT case_gdc_id " \
-                     f"FROM `{create_dev_table_id(PARAMS, 'case_project_program')}` " \
-                     f"WHERE program_name = '{program}'" \
-                     f") "
-
-        # then add filtered middle columns.
+        # then add filtered middle columns to 'select'.
+        # then we
         # then we add filtered columns from other tables.
         # then add last columns.
+
+        # then generate sql query
+        sql_query = make_sql_statement_from_dict()
 
 
 def create_sql_alias_with_prefix(table_name: str, column_name: str, table_alias: str = None) -> str:
