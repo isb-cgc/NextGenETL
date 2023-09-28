@@ -22,7 +22,7 @@ SOFTWARE.
 import logging
 import sys
 import time
-from typing import Dict, List, Any
+from typing import Any
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import create_dev_table_id, load_config, format_seconds
@@ -164,27 +164,34 @@ def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[
     return tables_per_program_dict
 
 
-# todo probably needs to be re-written due to changing mapping tables
-def find_non_null_columns_by_program(program, field_group):
+def find_program_non_null_columns_by_table(program):
     def make_count_column_sql() -> str:
-        mapping_table = PARAMS['TABLE_PARAMS'][field_group]['mapping_table']
-        id_key = f"{field_group}_id"
-        parent_table = PARAMS['TABLE_PARAMS'][field_group]['child_of']
+        mapping_table = PARAMS['TABLE_PARAMS'][table]['mapping_table']
+        id_key = f"{table}_id"
+        parent_table = PARAMS['TABLE_PARAMS'][table]['child_of']
 
         count_sql_str = ''
 
         for col in columns:
-            count_sql_str += f'\nSUM(CASE WHEN child_table.{col} is null THEN 0 ELSE 1 END) AS {col}_count, '
+            count_sql_str += f'\nSUM(CASE WHEN this_table.{col} is null THEN 0 ELSE 1 END) AS {col}_count, '
 
         # remove extra comma (due to looping) from end of string
         count_sql_str = count_sql_str[:-2]
 
-        if parent_table == 'case':
+        if table == 'case':
+            return f"""
+                SELECT {count_sql_str}
+                FROM `{create_dev_table_id(PARAMS, table)}` this_table
+                JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
+                    ON mapping_table.case_id = cpp.case_gdc_id
+                WHERE cpp.program_name = '{program}'
+            """
+        elif parent_table == 'case':
             return f"""
             SELECT {count_sql_str}
-            FROM `{create_dev_table_id(PARAMS, field_group)}` child_table
+            FROM `{create_dev_table_id(PARAMS, table)}` this_table
             JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
-                ON mapping_table.{id_key} = child_table.{id_key}
+                ON mapping_table.{id_key} = this_table.{id_key}
             JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
                 ON mapping_table.case_id = cpp.case_gdc_id
             WHERE cpp.program_name = '{program}'
@@ -195,9 +202,9 @@ def find_non_null_columns_by_program(program, field_group):
 
             return f"""
             SELECT {count_sql_str}
-            FROM `{create_dev_table_id(PARAMS, field_group)}` child_table
+            FROM `{create_dev_table_id(PARAMS, table)}` this_table
             JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
-                ON mapping_table.{id_key} = child_table.{id_key}
+                ON mapping_table.{id_key} = this_table.{id_key}
             JOIN `{create_dev_table_id(PARAMS, parent_table)}` parent_table
                 ON parent_table.{parent_id_key} = mapping_table.{parent_id_key}
             JOIN `{create_dev_table_id(PARAMS, parent_mapping_table)}` parent_mapping_table
@@ -208,39 +215,48 @@ def find_non_null_columns_by_program(program, field_group):
             """
         else:
             pass
-            # handle project and case field groups
 
-    first_columns = PARAMS['TABLE_PARAMS'][field_group]['column_order']['first']
-    middle_columns = PARAMS['TABLE_PARAMS'][field_group]['column_order']['middle']
-    last_columns = PARAMS['TABLE_PARAMS'][field_group]['column_order']['last']
+    non_null_columns_dict = dict()
 
-    columns = first_columns + middle_columns
+    for table in PARAMS['TABLE_PARAMS'].keys():
+        first_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['first']
+        middle_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['middle']
+        last_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['last']
 
-    if last_columns is not None:
-        columns += last_columns
+        columns = first_columns + middle_columns
 
-    column_count_result = query_and_retrieve_result(sql=make_count_column_sql())
+        if last_columns is not None:
+            columns += last_columns
 
-    non_null_columns = list()
+        column_count_result = query_and_retrieve_result(sql=make_count_column_sql())
 
-    for row in column_count_result:
-        # get columns for field group
-        for column in columns:
-            count = row.get(f"{column}_count")
+        non_null_columns = list()
 
-            if count is not None and count > 0:
-                non_null_columns.append(column)
+        for row in column_count_result:
+            # get columns for field group
+            for column in columns:
+                count = row.get(f"{column}_count")
 
-    return non_null_columns
+                if count is not None and count > 0:
+                    non_null_columns.append(column)
+
+        non_null_columns_dict[table] = non_null_columns
+
+    return non_null_columns_dict
 
 
-def create_sql_for_program_tables(program: str, tables: set[str]):
+def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
     logger = logging.getLogger('base_script')
     table_sql_dict = dict()
     # this gets me this mapping and count columns
-    mapping_count_columns = get_mapping_and_count_columns(tables)
+    mapping_count_columns = get_mapping_and_count_columns(stand_alone_tables)
 
-    for table in tables:
+    non_null_column_dict = find_program_non_null_columns_by_table(program)
+
+    print(non_null_column_dict)
+    exit(0)
+
+    for table in stand_alone_tables:
         table_sql_dict[table] = {
             "with": list(),
             "with_join": "",
@@ -342,8 +358,6 @@ def create_sql_for_program_tables(program: str, tables: set[str]):
                      f"WHERE program_name = '{program}'" \
                      f") "
 
-        print(sql_query)
-
         # then add filtered middle columns.
         # then we add filtered columns from other tables.
         # then add last columns.
@@ -426,11 +440,11 @@ def main(args):
         # creates dict of programs and base, supplemental tables to be created
         tables_per_program_dict = find_program_tables(PARAMS['TABLE_PARAMS'])
 
-        for program, tables in tables_per_program_dict.items():
+        for program, stand_alone_tables in tables_per_program_dict.items():
             logger.info("")
-            logger.info(f"{program}: {tables}")
+            logger.info(f"{program}: {stand_alone_tables}")
 
-            create_sql_for_program_tables(program, tables)
+            create_sql_for_program_tables(program, stand_alone_tables)
 
     """
 
