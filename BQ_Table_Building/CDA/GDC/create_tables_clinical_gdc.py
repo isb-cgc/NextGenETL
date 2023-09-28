@@ -223,14 +223,14 @@ def find_program_non_null_columns_by_table(program):
         middle_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['middle']
         last_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['last']
 
-        columns = ""
+        columns = list()
 
         if first_columns:
-            columns += first_columns
+            columns.extend(first_columns)
         if middle_columns:
-            columns += middle_columns
+            columns.extend(middle_columns)
         if last_columns:
-            columns += last_columns
+            columns.extend(last_columns)
 
         column_count_result = query_and_retrieve_result(sql=make_count_column_sql())
 
