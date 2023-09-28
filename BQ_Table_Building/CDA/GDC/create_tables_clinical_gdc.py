@@ -228,7 +228,11 @@ def find_program_non_null_columns_by_table(program):
         if last_columns is not None:
             columns += last_columns
 
-        column_count_result = query_and_retrieve_result(sql=make_count_column_sql())
+        sql = make_count_column_sql()
+
+        print(sql)
+
+        column_count_result = query_and_retrieve_result(sql=sql)
 
         non_null_columns = list()
 
