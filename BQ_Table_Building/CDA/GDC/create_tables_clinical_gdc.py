@@ -331,6 +331,7 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                             if grandchild_table not in stand_alone_table and non_null_column_dict[grandchild_table]:
                                 table_column_locations[stand_alone_table].append(grandchild_table)
 
+    print(non_null_column_dict)
     print(table_column_locations)
 
     for table in stand_alone_tables:
