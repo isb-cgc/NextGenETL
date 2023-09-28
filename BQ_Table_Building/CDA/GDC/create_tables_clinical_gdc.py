@@ -317,18 +317,19 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
 
         child_tables = PARAMS['TABLE_PARAMS'][stand_alone_table]['parent_of']
 
-        for child_table in child_tables:
-            # if child table does not require a stand-alone table and has non-null columns,
-            # add to table_column_locations, then check its children as well
-            if child_table not in stand_alone_table and non_null_column_dict[child_table]:
-                table_column_locations[stand_alone_table].append(child_table)
+        if child_tables:
+            for child_table in child_tables:
+                # if child table does not require a stand-alone table and has non-null columns,
+                # add to table_column_locations, then check its children as well
+                if child_table not in stand_alone_table and non_null_column_dict[child_table]:
+                    table_column_locations[stand_alone_table].append(child_table)
 
-                grandchild_tables = PARAMS['TABLE_PARAMS'][child_table]['parent_of']
+                    grandchild_tables = PARAMS['TABLE_PARAMS'][child_table]['parent_of']
 
-                if grandchild_tables:
-                    for grandchild_table in grandchild_tables:
-                        if grandchild_table not in stand_alone_table and non_null_column_dict[grandchild_table]:
-                            table_column_locations[stand_alone_table].append(grandchild_table)
+                    if grandchild_tables:
+                        for grandchild_table in grandchild_tables:
+                            if grandchild_table not in stand_alone_table and non_null_column_dict[grandchild_table]:
+                                table_column_locations[stand_alone_table].append(grandchild_table)
 
     print(table_column_locations)
 
