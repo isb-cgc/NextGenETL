@@ -183,7 +183,7 @@ def find_program_non_null_columns_by_table(program):
                 SELECT {count_sql_str}
                 FROM `{create_dev_table_id(PARAMS, table)}` this_table
                 JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-                    ON mapping_table.case_id = cpp.case_gdc_id
+                    ON this_table.case_id = cpp.case_gdc_id
                 WHERE cpp.program_name = '{program}'
             """
         elif parent_table == 'case':
