@@ -130,7 +130,7 @@ def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[
 
     logger = logging.getLogger('base_script')
     # Create program set for base clinical tables -- will include every program with clinical cases
-    programs = get_project_or_program_list(PARAMS)
+    programs = get_project_or_program_list(PARAMS, rename_programs=False)
     tables_per_program_dict = dict()
 
     if programs is None:
@@ -154,7 +154,6 @@ def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[
 
         for program_row in result:
             # change certain program names (currently EXCEPTIONAL_RESPONDERS and BEATAML1.0)
-            # todo where are we doing this renaming? used for table naming but not joins
             if program_row[0] in PARAMS['ALTER_PROGRAM_NAMES'].keys():
                 program_name = PARAMS['ALTER_PROGRAM_NAMES'][program_row[0]]
             else:

@@ -969,10 +969,11 @@ def get_program_schema_tags_gdc(params: Params, program_name: str) -> dict[str, 
         return schema_tags
 
 
-def get_project_or_program_list(params: Params) -> list[str]:
+def get_project_or_program_list(params: Params, rename_programs: bool = True) -> list[str]:
     """
     Get whichever list is used to divide the data into grouped tables; GDC uses program, PDC uses project.
     :param params: params defined in yaml config
+    :param rename_programs:
     :return: set of programs or projects
     """
     logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
@@ -991,10 +992,9 @@ def get_project_or_program_list(params: Params) -> list[str]:
         for row in result:
             program_name = row[0]
 
-            if program_name == "BEATAML1.0":
-                program_name = "BEATAML1_0"
-            elif program_name == "EXCEPTIONAL_RESPONDERS":
-                program_name = "EXC_RESPONDERS"
+            if rename_programs:
+                if program_name in params['ALTER_PROGRAM_NAMES']:
+                    program_name = params['ALTER_PROGRAM_NAMES'][program_name]
 
             program_name_set.add(program_name)
 
