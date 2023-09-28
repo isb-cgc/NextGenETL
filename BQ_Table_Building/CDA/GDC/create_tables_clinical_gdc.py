@@ -154,12 +154,13 @@ def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[
 
         for program_row in result:
             # change certain program names (currently EXCEPTIONAL_RESPONDERS and BEATAML1.0)
+            # todo where are we doing this renaming? used for table naming but not joins
             if program_row[0] in PARAMS['ALTER_PROGRAM_NAMES'].keys():
                 program_name = PARAMS['ALTER_PROGRAM_NAMES'][program_row[0]]
             else:
                 program_name = program_row[0]
 
-            tables_per_program_dict[program_name].add(table_name)
+            tables_per_program_dict[program_row[0]].add(table_name)
 
     return tables_per_program_dict
 
