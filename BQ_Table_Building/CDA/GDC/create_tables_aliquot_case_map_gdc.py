@@ -23,7 +23,7 @@ import sys
 import time
 
 from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds
-from cda_bq_etl.bq_helpers import load_table_from_query, update_table_schema_from_generic
+from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic
 from cda_bq_etl.data_helpers import initialize_logging
 
 PARAMS = dict()
@@ -98,7 +98,7 @@ def main(args):
 
         legacy_table_id = PARAMS['LEGACY_TABLE_ID']
 
-        load_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_aliquot_case_table_sql(legacy_table_id))
+        create_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_aliquot_case_table_sql(legacy_table_id))
 
         update_table_schema_from_generic(params=PARAMS, table_id=dev_table_id)
 

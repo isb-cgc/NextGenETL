@@ -26,7 +26,7 @@ from typing import Any
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import create_dev_table_id, load_config, format_seconds
-from cda_bq_etl.bq_helpers import query_and_retrieve_result, get_project_or_program_list
+from cda_bq_etl.bq_helpers import query_and_retrieve_result, get_project_or_program_list, create_table_from_query
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -472,6 +472,10 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
 
         print(sql_query)
         print()
+        clinical_table_name = f"{PARAMS['TABLE_PARAMS'][table]['table_name']}_{program}_{PARAMS['RELEASE']}"
+        clinical_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_CLINICAL_DATASET']}.{clinical_table_name}"
+        logger.info(f"dev table location: {clinical_table_id}\n")
+        # create_table_from_query(PARAMS, table_id=clinical_table_id, query=sql_query)
 
 
 def create_sql_alias_with_prefix(table_name: str, column_name: str, table_alias: str = None) -> str:

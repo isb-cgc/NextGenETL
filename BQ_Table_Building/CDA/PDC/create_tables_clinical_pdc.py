@@ -24,7 +24,7 @@ import time
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds
-from cda_bq_etl.bq_helpers import load_table_from_query
+from cda_bq_etl.bq_helpers import create_table_from_query
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')

@@ -24,7 +24,7 @@ import time
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds
-from cda_bq_etl.bq_helpers import delete_bq_table, load_table_from_query, get_project_or_program_list, \
+from cda_bq_etl.bq_helpers import delete_bq_table, create_table_from_query, get_project_or_program_list, \
     update_table_schema_from_generic, get_program_schema_tags_gdc
 
 PARAMS = dict()
@@ -366,16 +366,16 @@ def main(args):
             logger.info(f"Creating base table for {program_name_original}!\n")
 
             # create table with everything but file uris from manifest
-            load_table_from_query(params=PARAMS,
-                                  table_id=no_url_table_id,
-                                  query=make_merged_sql_query(program_name_original))
+            create_table_from_query(params=PARAMS,
+                                    table_id=no_url_table_id,
+                                    query=make_merged_sql_query(program_name_original))
 
             logger.info(f"Creating table with added uris for {program_name_original}!\n")
 
             # add index file size and file/index file keys to finish populating the table
-            load_table_from_query(params=PARAMS,
-                                  table_id=table_id,
-                                  query=make_add_uris_and_index_file_sql_query(no_url_table_id, drs_uri_table_id))
+            create_table_from_query(params=PARAMS,
+                                    table_id=table_id,
+                                    query=make_add_uris_and_index_file_sql_query(no_url_table_id, drs_uri_table_id))
 
             schema_tags = get_program_schema_tags_gdc(params=PARAMS, program_name=program_name_original)
 

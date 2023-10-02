@@ -24,7 +24,7 @@ import time
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, format_seconds
-from cda_bq_etl.bq_helpers import load_table_from_query, update_table_schema_from_generic
+from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -67,7 +67,7 @@ def main(args):
     if 'create_table_from_query' in steps:
         logger.info("Entering create_table_from_query")
 
-        load_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_associated_entity_query())
+        create_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_associated_entity_query())
 
         update_table_schema_from_generic(params=PARAMS, table_id=dev_table_id)
 

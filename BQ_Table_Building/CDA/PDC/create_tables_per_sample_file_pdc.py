@@ -22,7 +22,7 @@ SOFTWARE.
 import sys
 import time
 
-from cda_bq_etl.bq_helpers import load_table_from_query, update_table_schema_from_generic, query_and_retrieve_result
+from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic, query_and_retrieve_result
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds
 
@@ -127,9 +127,9 @@ def main(args):
             project_table_name = f"{PARAMS['TABLE_NAME']}_{project['project_short_name']}_{PARAMS['RELEASE']}"
             project_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{project_table_name}"
 
-            load_table_from_query(params=PARAMS,
-                                  table_id=project_table_id,
-                                  query=make_project_per_sample_file_query(project['project_submitter_id']))
+            create_table_from_query(params=PARAMS,
+                                    table_id=project_table_id,
+                                    query=make_project_per_sample_file_query(project['project_submitter_id']))
 
             schema_tags = dict()
 

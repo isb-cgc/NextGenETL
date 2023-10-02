@@ -288,7 +288,7 @@ def create_and_load_table_from_jsonl(params: Params,
     load_create_table_job(params, jsonl_file, client, table_id, job_config)
 
 
-def load_table_from_query(params: Params, table_id: str, query: str):
+def create_table_from_query(params: Params, table_id: str, query: str):
     """
     Create new BigQuery table using result output of BigQuery SQL query.
     :param params: params supplied in yaml config
