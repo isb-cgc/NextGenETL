@@ -554,6 +554,7 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     if 'find_missing_fields' in steps:
+        pass
         # todo needs to be refactored to work with change to column order lists
         # find_missing_fields()
     if 'find_program_tables' in steps:
