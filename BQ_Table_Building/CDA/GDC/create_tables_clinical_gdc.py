@@ -289,12 +289,14 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         if table_sql_dict[table]['with_join']:
             sql_query_str += table_sql_dict[table]['with_join']
 
+        map_table_alias = PARAMS['TABLE_PARAMS'][table]['mapping_table']
+
         # filter by program
-        sql_query_str += f"WHERE case_id in (" \
-                     f"SELECT case_gdc_id " \
-                     f"FROM `{create_dev_table_id(PARAMS, 'case_project_program')}` " \
-                     f"WHERE program_name = '{program}'" \
-                     f") "
+        sql_query_str += f"WHERE `{map_table_alias}`.case_id in (" \
+                         f"SELECT case_gdc_id " \
+                         f"FROM `{create_dev_table_id(PARAMS, 'case_project_program')}` " \
+                         f"WHERE program_name = '{program}'" \
+                         f") "
 
         return sql_query_str
 
