@@ -405,7 +405,7 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                            f") "
 
                 with_join_sql = f"LEFT JOIN {child_table}_counts " \
-                                f"ON {count_mapping_table}.{table_id_key} = {child_table}_counts.{table_id_key}\n"
+                                f"ON `{table}`.{table_id_key} = `{child_table}_counts`.{table_id_key}\n"
 
                 table_sql_dict[table]['with'].append(with_sql)
                 table_sql_dict[table]['with_join'] += with_join_sql
