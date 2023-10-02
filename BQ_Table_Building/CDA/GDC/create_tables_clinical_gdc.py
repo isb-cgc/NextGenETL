@@ -252,27 +252,27 @@ def find_program_non_null_columns_by_table(program):
 def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
     def make_sql_statement_from_dict() -> str:
         # stitch together query
-        sql_query = ""
+        sql_query_str = ""
 
         if table_sql_dict[table]['with']:
-            sql_query += "WITH "
-            sql_query += ", ".join(table_sql_dict[table]['with'])
-            sql_query += '\n'
+            sql_query_str += "WITH "
+            sql_query_str += ", ".join(table_sql_dict[table]['with'])
+            sql_query_str += '\n'
 
         if not table_sql_dict[table]['select']:
             logger.critical("No columns found for 'SELECT' clause.")
             sys.exit(-1)
 
-        sql_query += "SELECT "
-        sql_query += ", ".join(table_sql_dict[table]['select'])
-        sql_query += "\n"
+        sql_query_str += "SELECT "
+        sql_query_str += ", ".join(table_sql_dict[table]['select'])
+        sql_query_str += "\n"
 
         if not table_sql_dict[table]['from']:
             logger.critical("No columns found for 'FROM' clause.")
             sys.exit(-1)
 
-        sql_query += table_sql_dict[table]['from']
-        sql_query += "\n"
+        sql_query_str += table_sql_dict[table]['from']
+        sql_query_str += "\n"
 
         if table_sql_dict[table]['join']:
             for table_id in table_sql_dict[table]['join'].keys():
@@ -280,22 +280,23 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                 left_key = table_sql_dict[table]['join'][table_id]['left_key']
                 right_key = table_sql_dict[table]['join'][table_id]['right_key']
                 table_alias = table_sql_dict[table]['join'][table_id]['table_alias']
+                map_table_alias = table_sql_dict[table]['join'][table_id]['map_table_alias']
 
                 join_str = f"{join_type} JOIN `{table_id}` `{table_alias}` " \
-                           f"ON `{table_alias}`.{left_key} = `{table}`.{right_key}\n"
-                sql_query += join_str
+                           f"ON `{table_alias}`.{left_key} = `{map_table_alias}`.{right_key}\n"
+                sql_query_str += join_str
 
         if table_sql_dict[table]['with_join']:
-            sql_query += table_sql_dict[table]['with_join']
+            sql_query_str += table_sql_dict[table]['with_join']
 
         # filter by program
-        sql_query += f"WHERE case_id in (" \
+        sql_query_str += f"WHERE case_id in (" \
                      f"SELECT case_gdc_id " \
                      f"FROM `{create_dev_table_id(PARAMS, 'case_project_program')}` " \
                      f"WHERE program_name = '{program}'" \
                      f") "
 
-        return sql_query
+        return sql_query_str
 
     def get_table_column_insert_locations() -> dict[str, list[str]]:
         table_column_locations = dict()
@@ -308,13 +309,13 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
             if not child_tables:
                 continue
 
-            for child_table in child_tables:
+            for _child_table in child_tables:
                 # if child table does not require a stand-alone table and has non-null columns,
                 # add to table_column_locations, then check its children as well
-                if child_table not in stand_alone_tables and non_null_column_dict[child_table]:
-                    table_column_locations[stand_alone_table].append(child_table)
+                if _child_table not in stand_alone_tables and non_null_column_dict[_child_table]:
+                    table_column_locations[stand_alone_table].append(_child_table)
 
-                    grandchild_tables = PARAMS['TABLE_PARAMS'][child_table]['parent_of']
+                    grandchild_tables = PARAMS['TABLE_PARAMS'][_child_table]['parent_of']
 
                     if not grandchild_tables:
                         continue
@@ -382,7 +383,8 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                         'join_type': 'LEFT',
                         'left_key': f'{table}_id',
                         'right_key': f'{table}_id',
-                        'table_alias': mapping_table_alias
+                        'table_alias': mapping_table_alias,
+                        'map_table_alias': table
                     }
 
         # insert count columns, if any
@@ -439,7 +441,8 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                         'join_type': 'LEFT',
                         'left_key': f'{table}_id',
                         'right_key': f'{table}_id',
-                        'table_alias': add_on_mapping_table_base_name
+                        'table_alias': add_on_mapping_table_base_name,
+                        'map_table_alias': table
                     }
 
                 # add data table to join dict
@@ -448,7 +451,8 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                         'join_type': 'LEFT',
                         'left_key': f'{add_on_table}_id',
                         'right_key': f'{add_on_table}_id',
-                        'table_alias': add_on_table
+                        'table_alias': add_on_table,
+                        'map_table_alias': add_on_mapping_table_base_name
                     }
 
         last_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['last']
