@@ -351,6 +351,8 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
     # where are field groups inserted into the tables?
     table_insert_locations = get_table_column_insert_locations()
 
+    logger.info(f"Creating clinical tables for {program}:")
+
     for table in stand_alone_tables:
         table_sql_dict[table] = {
             "with": list(),
@@ -475,8 +477,6 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         else:
             program_name = program
 
-        logger.info(f"Creating clinical tables for {program}: \n")
-
         clinical_table_name = f"{PARAMS['TABLE_PARAMS'][table]['table_name']}_{program_name}_{PARAMS['RELEASE']}"
         clinical_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_CLINICAL_DATASET']}.{clinical_table_name}"
 
@@ -554,13 +554,14 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     if 'find_missing_fields' in steps:
-        find_missing_fields()
+        # todo needs to be refactored to work with change to column order lists
+        # find_missing_fields()
     if 'find_program_tables' in steps:
         # creates dict of programs and base, supplemental tables to be created
         tables_per_program_dict = find_program_tables(PARAMS['TABLE_PARAMS'])
 
         for program, stand_alone_tables in tables_per_program_dict.items():
-            logger.info(f"\n{program}: {stand_alone_tables}")
+            logger.info(f"{program}: {stand_alone_tables}")
 
             create_sql_for_program_tables(program, stand_alone_tables)
 
