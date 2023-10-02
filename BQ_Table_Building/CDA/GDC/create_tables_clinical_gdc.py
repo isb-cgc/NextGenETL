@@ -468,6 +468,7 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         sql_query = make_sql_statement_from_dict()
 
         print(sql_query)
+        print()
 
 
 def create_sql_alias_with_prefix(table_name: str, column_name: str, table_alias: str = None) -> str:
@@ -551,6 +552,7 @@ def main(args):
             logger.info(f"\n{program}: {stand_alone_tables}")
 
             create_sql_for_program_tables(program, stand_alone_tables)
+            exit()
 
     """
     # counts returned may be null if program has no values within a table, e.g. TCGA has no annotation records
