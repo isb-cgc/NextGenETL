@@ -454,10 +454,11 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         last_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['last']
 
         # add filtered last columns from base table to 'select'
-        for column in last_columns:
-            if column in non_null_column_dict[table]:
-                column_alias = create_sql_alias_with_prefix(table_name=table, column_name=column)
-                table_sql_dict[table]['select'].append(column_alias)
+        if last_columns:
+            for column in last_columns:
+                if column in non_null_column_dict[table]:
+                    column_alias = create_sql_alias_with_prefix(table_name=table, column_name=column)
+                    table_sql_dict[table]['select'].append(column_alias)
 
         # generate sql query
         sql_query = make_sql_statement_from_dict()
