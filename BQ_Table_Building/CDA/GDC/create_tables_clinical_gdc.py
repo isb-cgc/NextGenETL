@@ -153,12 +153,6 @@ def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[
             logger.error("result is none")
 
         for program_row in result:
-            # change certain program names (currently EXCEPTIONAL_RESPONDERS and BEATAML1.0)
-            if program_row[0] in PARAMS['ALTER_PROGRAM_NAMES'].keys():
-                program_name = PARAMS['ALTER_PROGRAM_NAMES'][program_row[0]]
-            else:
-                program_name = program_row[0]
-
             tables_per_program_dict[program_row[0]].add(table_name)
 
     return tables_per_program_dict
@@ -303,40 +297,56 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
 
         return sql_query
 
+    def get_table_column_insert_locations() -> dict[str, list[str]]:
+        table_column_locations = dict()
+
+        for stand_alone_table in stand_alone_tables:
+            table_column_locations[stand_alone_table] = list()
+
+            child_tables = PARAMS['TABLE_PARAMS'][stand_alone_table]['parent_of']
+
+            if not child_tables:
+                continue
+
+            for child_table in child_tables:
+                # if child table does not require a stand-alone table and has non-null columns,
+                # add to table_column_locations, then check its children as well
+                if child_table not in stand_alone_tables and non_null_column_dict[child_table]:
+                    table_column_locations[stand_alone_table].append(child_table)
+
+                    grandchild_tables = PARAMS['TABLE_PARAMS'][child_table]['parent_of']
+
+                    if not grandchild_tables:
+                        continue
+
+                    for grandchild_table in grandchild_tables:
+                        if grandchild_table not in stand_alone_tables and non_null_column_dict[grandchild_table]:
+                            table_column_locations[stand_alone_table].append(grandchild_table)
+
+        return table_column_locations
+
+    def append_columns_to_select_list(alias_table_name: str,
+                                      select_column_list: list[str],
+                                      table_alias: str = None):
+        for select_column in select_column_list:
+            select_column_alias = create_sql_alias_with_prefix(table_name=alias_table_name,
+                                                               column_name=select_column,
+                                                               table_alias=table_alias)
+            table_sql_dict[table]['select'].append(select_column_alias)
+
     logger = logging.getLogger('base_script')
+
+    # this is used to store information for sql query
     table_sql_dict = dict()
-    # this gets me this mapping and count columns
+
+    # this mapping and count columns for inserting into table
     mapping_count_columns = get_mapping_and_count_columns(stand_alone_tables)
 
+    # the list of non-null columns by table for this program
     non_null_column_dict = find_program_non_null_columns_by_table(program)
 
-    table_column_locations = dict()
-
-    for stand_alone_table in stand_alone_tables:
-        table_column_locations[stand_alone_table] = list()
-
-        child_tables = PARAMS['TABLE_PARAMS'][stand_alone_table]['parent_of']
-
-        if not child_tables:
-            continue
-
-        for child_table in child_tables:
-            # if child table does not require a stand-alone table and has non-null columns,
-            # add to table_column_locations, then check its children as well
-            if child_table not in stand_alone_tables and non_null_column_dict[child_table]:
-                table_column_locations[stand_alone_table].append(child_table)
-
-                grandchild_tables = PARAMS['TABLE_PARAMS'][child_table]['parent_of']
-
-                if not grandchild_tables:
-                    continue
-
-                for grandchild_table in grandchild_tables:
-                    if grandchild_table not in stand_alone_tables and non_null_column_dict[grandchild_table]:
-                        table_column_locations[stand_alone_table].append(grandchild_table)
-
-    print(non_null_column_dict)
-    print(table_column_locations)
+    # where are field groups inserted into the tables?
+    table_insert_locations = get_table_column_insert_locations()
 
     for table in stand_alone_tables:
         table_sql_dict[table] = {
@@ -354,6 +364,7 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
 
         table_sql_dict[table]['from'] += f"FROM `{create_dev_table_id(PARAMS, table)}` `{table}`"
 
+        # insert mapping columns, if any
         if mapping_count_columns[table]['mapping_columns'] is not None:
             # add mapping id columns to 'select'
             for parent_table in mapping_count_columns[table]['mapping_columns']:
@@ -374,6 +385,7 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                         'table_alias': mapping_table_alias
                     }
 
+        # insert count columns, if any
         if mapping_count_columns[table]['count_columns'] is not None:
             for child_table in mapping_count_columns[table]['count_columns']:
                 # current table: diagnosis
@@ -396,13 +408,61 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                 table_sql_dict[table]['with_join'] += with_join_sql
                 table_sql_dict[table]['select'].append(f"{child_table}_counts.{count_prefix}__count")
 
-        # then add filtered middle columns to 'select'.
-        # then we
-        # then we add filtered columns from other tables.
-        # then add last columns.
+        middle_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['middle']
 
-        # then generate sql query
+        # add filtered middle columns from base table to 'select'
+        for column in middle_columns:
+            if column in non_null_column_dict[table]:
+                column_alias = create_sql_alias_with_prefix(table_name=table, column_name=column)
+                table_sql_dict[table]['select'].append(column_alias)
+
+        # add filtered columns from other field groups, using non_null_column_dict and table_insert_locations
+        # get list of tables with columns to insert into this table
+        additional_tables_to_include = table_insert_locations[table]
+
+        if additional_tables_to_include:
+            for add_on_table in additional_tables_to_include:
+                add_on_mapping_table_base_name = PARAMS['TABLE_PARAMS'][add_on_table]['mapping_table']
+                add_on_mapping_table_id = create_dev_table_id(PARAMS, table_name=add_on_mapping_table_base_name)
+                add_on_table_id = create_dev_table_id(PARAMS, table_name=add_on_table)
+
+                # add aliased columns to 'select' list
+                filtered_column_list = non_null_column_dict[add_on_table]
+
+                for column in filtered_column_list:
+                    column_alias = create_sql_alias_with_prefix(table_name=add_on_table, column_name=column)
+                    table_sql_dict[table]['select'].append(column_alias)
+
+                # add mapping table to join dict
+                if add_on_mapping_table_id not in table_sql_dict[table]['join']:
+                    table_sql_dict[table]['join'][add_on_mapping_table_id] = {
+                        'join_type': 'LEFT',
+                        'left_key': f'{table}_id',
+                        'right_key': f'{table}_id',
+                        'table_alias': add_on_mapping_table_base_name
+                    }
+
+                # add data table to join dict
+                if add_on_table_id not in table_sql_dict[table]['join']:
+                    table_sql_dict[table]['join'][add_on_table_id] = {
+                        'join_type': 'LEFT',
+                        'left_key': f'{add_on_table}_id',
+                        'right_key': f'{add_on_table}_id',
+                        'table_alias': add_on_table
+                    }
+
+        last_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['last']
+
+        # add filtered last columns from base table to 'select'
+        for column in last_columns:
+            if column in non_null_column_dict[table]:
+                column_alias = create_sql_alias_with_prefix(table_name=table, column_name=column)
+                table_sql_dict[table]['select'].append(column_alias)
+
+        # generate sql query
         sql_query = make_sql_statement_from_dict()
+
+        print(sql_query)
 
 
 def create_sql_alias_with_prefix(table_name: str, column_name: str, table_alias: str = None) -> str:
@@ -483,13 +543,11 @@ def main(args):
         tables_per_program_dict = find_program_tables(PARAMS['TABLE_PARAMS'])
 
         for program, stand_alone_tables in tables_per_program_dict.items():
-            logger.info("")
-            logger.info(f"{program}: {stand_alone_tables}")
+            logger.info(f"\n{program}: {stand_alone_tables}")
 
             create_sql_for_program_tables(program, stand_alone_tables)
 
     """
-
     # counts returned may be null if program has no values within a table, e.g. TCGA has no annotation records
 
     all_program_columns = dict()
