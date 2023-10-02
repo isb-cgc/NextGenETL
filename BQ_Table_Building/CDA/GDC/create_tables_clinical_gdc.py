@@ -470,8 +470,6 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         # generate sql query
         sql_query = make_sql_statement_from_dict()
 
-        print(sql_query)
-        print()
         clinical_table_name = f"{PARAMS['TABLE_PARAMS'][table]['table_name']}_{program}_{PARAMS['RELEASE']}"
         clinical_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_CLINICAL_DATASET']}.{clinical_table_name}"
         logger.info(f"dev table location: {clinical_table_id}\n")
@@ -559,39 +557,6 @@ def main(args):
             logger.info(f"\n{program}: {stand_alone_tables}")
 
             create_sql_for_program_tables(program, stand_alone_tables)
-            exit()
-
-    """
-    # counts returned may be null if program has no values within a table, e.g. TCGA has no annotation records
-
-    all_program_columns = dict()
-
-    programs = get_project_or_program_list(PARAMS)
-    field_groups = get_field_groups()
-
-    for program in programs:
-        logger.info(f"Finding columns for {program}")
-        program_columns = dict()
-
-        for field_group in field_groups:
-            non_null_columns = find_non_null_columns_by_program(program=program, field_group=field_group)
-            if len(non_null_columns) > 0:
-                program_columns[field_group] = non_null_columns
-
-        all_program_columns[program] = program_columns
-
-    logger.info("*** Non-null columns, by program and field group")
-    for program, column_groups in all_program_columns.items():
-        logger.info(f"{program}")
-        for field_group, columns in column_groups.items():
-            logger.info(f"{field_group}: {columns}")
-    """
-
-    # steps:
-    # use all_program_columns and tables_per_program_dict to stitch together queries to build each program's tables
-    # note: case and project fields are still not completed
-    # use the TABLE_INSERT_ORDER to order fields by FG and to account for last_keys_in_table
-    # use these queries to build the clinical tables
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
