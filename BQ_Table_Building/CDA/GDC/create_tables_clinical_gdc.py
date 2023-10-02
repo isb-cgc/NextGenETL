@@ -475,10 +475,12 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         else:
             program_name = program
 
+        logger.info(f"Creating clinical tables for {program}: \n")
+
         clinical_table_name = f"{PARAMS['TABLE_PARAMS'][table]['table_name']}_{program_name}_{PARAMS['RELEASE']}"
         clinical_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_CLINICAL_DATASET']}.{clinical_table_name}"
-        logger.info(f"dev table location: {clinical_table_id}\n")
-        # create_table_from_query(PARAMS, table_id=clinical_table_id, query=sql_query)
+
+        create_table_from_query(PARAMS, table_id=clinical_table_id, query=sql_query)
 
 
 def create_sql_alias_with_prefix(table_name: str, column_name: str, table_alias: str = None) -> str:
