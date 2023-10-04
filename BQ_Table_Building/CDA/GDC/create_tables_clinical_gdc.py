@@ -600,7 +600,8 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     if 'find_missing_fields' in steps:
-        find_missing_fields()
+        # todo uncomment
+        # find_missing_fields()
     if 'find_program_tables' in steps:
         # creates dict of programs and base, supplemental tables to be created
         tables_per_program_dict = find_program_tables(PARAMS['TABLE_PARAMS'])
