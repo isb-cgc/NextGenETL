@@ -479,7 +479,6 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
     # dict specifying into which table to insert every non-null field group that doesn't get its own supplemental table
     table_insert_locations = get_table_column_insert_locations()
     logger.info(f"Creating clinical tables for {program}:")
-    logger.debug()
     logger.debug(table_insert_locations)
 
     for table in stand_alone_tables:
