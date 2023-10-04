@@ -150,9 +150,7 @@ def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[
     # Create set of programs for each mapping table type,
     # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
     for table_name, table_metadata in table_dict.items():
-        # this shouldn't be necessary, as project should always be 1-1 relationship with case_id?
-        # if table_name == 'case' or table_name == 'project':
-        if table_name == 'case':
+        if table_name == 'case' or table_name == 'project':
             continue
 
         # create the query and retrieve results
