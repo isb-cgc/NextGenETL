@@ -187,39 +187,6 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
     :param stand_alone_tables: list of supplemental tables to create (those which can't be flattened
                                into clinical or parent table)
     """
-
-    def append_columns_to_select_list(column_list: list[str],
-                                      src_table: str,
-                                      table_alias: str = None,
-                                      check_filtered: bool = True):
-        """
-        Create column alias (using source prefix) and append to 'select' list for table_sql_dict[src_table].
-        :param column_list: list of columns to append to 'select' list
-        :param src_table: table from which the columns originated
-        :param table_alias: Optional; alternate column source (used for count columns created by sql 'with' clause)
-        :param check_filtered: Optional; if true, only appends columns with non-null values
-                               (stored in non_null_column_dict)
-        """
-        if not column_list:
-            return
-
-        for col in column_list:
-            # don't add column to select list if it has null values for every row
-            if check_filtered and col not in non_null_column_dict[src_table]:
-                continue
-
-            if table_alias is None:
-                table_alias = src_table
-
-            col_alias = f"`{table_alias}`.{col}"
-
-            prefix = PARAMS['TABLE_PARAMS'][src_table]['prefix']
-
-            if prefix:
-                col_alias += f" AS {prefix}__{col}"
-
-            table_sql_dict[table]['select'].append(col_alias)
-
     def get_mapping_and_count_columns() -> dict[str, dict[str, list[Any]]]:
         column_dict = dict()
 
@@ -375,6 +342,38 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
 
         return table_column_locations
 
+    def append_columns_to_select_list(column_list: list[str],
+                                      src_table: str,
+                                      table_alias: str = None,
+                                      check_filtered: bool = True):
+        """
+        Create column alias (using source prefix) and append to 'select' list for table_sql_dict[src_table].
+        :param column_list: list of columns to append to 'select' list
+        :param src_table: table from which the columns originated
+        :param table_alias: Optional; alternate column source (used for count columns created by sql 'with' clause)
+        :param check_filtered: Optional; if true, only appends columns with non-null values
+                               (stored in non_null_column_dict)
+        """
+        if not column_list:
+            return
+
+        for col in column_list:
+            # don't add column to select list if it has null values for every row
+            if check_filtered and col not in non_null_column_dict[src_table]:
+                continue
+
+            if table_alias is None:
+                table_alias = src_table
+
+            col_alias = f"`{table_alias}`.{col}"
+
+            prefix = PARAMS['TABLE_PARAMS'][src_table]['prefix']
+
+            if prefix:
+                col_alias += f" AS {prefix}__{col}"
+
+            table_sql_dict[table]['select'].append(col_alias)
+
     def make_sql_statement_from_dict() -> str:
         """
         Create SQL query string using dict of clauses.
@@ -502,7 +501,7 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         if mapping_count_columns[table]['mapping_columns'] is not None:
             # add mapping id columns to 'select'
             for parent_table in mapping_count_columns[table]['mapping_columns']:
-                append_columns_to_select_list(column_list=list(f"{parent_table}_id"),
+                append_columns_to_select_list(column_list=[f"{parent_table}_id"],
                                               src_table=parent_table,
                                               table_alias=PARAMS['TABLE_PARAMS'][table]['mapping_table'],
                                               check_filtered=False)
