@@ -339,7 +339,9 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                     descendent_tables = PARAMS['TABLE_PARAMS'][child_tables[i]]['parent_of']
 
                     if descendent_tables:
-                        child_tables.extend(descendent_tables)
+                        for descendent_table in descendent_tables:
+                            if descendent_table not in child_tables:
+                                child_tables.append(descendent_table)
 
                 i += 1
 
@@ -466,7 +468,7 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
     logger = logging.getLogger('base_script')
 
     logger.info(f"Processing {program} data...")
-    logger.info(f" - standalone tables to be created for: {', '.join(stand_alone_tables)}")
+    logger.info(f" - tables to be created for: {', '.join(stand_alone_tables)}")
 
     # used to store information for sql query
     table_sql_dict: Any = dict()
@@ -482,10 +484,10 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
     # dict specifying into which table to insert every non-null field group that doesn't get its own supplemental table
     logger.info(f" - getting insert locations")
     table_insert_locations = get_table_column_insert_locations()
-    logger.debug(table_insert_locations)
+
+    logger_str = f" - creating tables"
 
     for table in stand_alone_tables:
-        logger.info(f"- creating table sql for {table}")
         # used to construct a sql query that creates one of the program tables
         table_sql_dict[table] = {
             "with": list(),
