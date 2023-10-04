@@ -150,7 +150,7 @@ def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[
     # Create set of programs for each mapping table type,
     # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
     for table_name, table_metadata in table_dict.items():
-        if table_name == 'case' or table_name == 'project':
+        if table_name == 'case': # or table_name == 'project':
             continue
 
         # create the query and retrieve results
@@ -415,10 +415,6 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         select_clause_str = "SELECT "
         select_clause_str += ", ".join(table_sql_dict[table]['select'])
         select_clause_str += "\n"
-
-        if not table_sql_dict[table]['from_table']:
-            logger.critical("No columns found for 'FROM' clause.")
-            sys.exit(-1)
 
         from_table_alias = table
         from_table_id = create_dev_table_id(PARAMS, from_table_alias)
