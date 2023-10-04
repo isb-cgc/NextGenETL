@@ -389,6 +389,7 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
 
         # create 'with' clause string
         with_clause_str = ''
+
         if table_sql_dict[table]['with']:
             with_sql_list = list()
 
