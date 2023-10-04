@@ -35,7 +35,7 @@ YAML_HEADERS = ('params', 'steps')
 def find_missing_fields(include_trivial_columns: bool = False):
     # get list of columns from CDA table
     # compare to table order and excluded column lists in TABLE_PARAMS[table]
-    # any missing columns? print
+    # output any missing columns
     def make_column_query():
         full_table_name = create_dev_table_id(PARAMS, table_name).split('.')[2]
 
@@ -497,8 +497,6 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         first_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['first']
         append_columns_to_select_list(column_list=first_columns, src_table=table)
 
-        print(mapping_count_columns)
-
         # insert mapping columns, if any
         if mapping_count_columns[table]['mapping_columns'] is not None:
             # add mapping id columns to 'select'
@@ -617,10 +615,7 @@ def main(args):
         tables_per_program_dict = find_program_tables(PARAMS['TABLE_PARAMS'])
 
         for program, stand_alone_tables in tables_per_program_dict.items():
-            print(f"{program}: {stand_alone_tables}")
-
-            if program != 'CDDP_EAGLE':
-                continue
+            logger.debug(f"{program}: {stand_alone_tables}")
 
             create_sql_for_program_tables(program, stand_alone_tables)
 
