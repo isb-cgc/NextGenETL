@@ -625,6 +625,11 @@ def main(args):
         tables_per_program_dict = find_program_tables(PARAMS['TABLE_PARAMS'])
 
         for program, stand_alone_tables in tables_per_program_dict.items():
+            print(f"{program}: {stand_alone_tables}")
+
+            if program != 'CDDP_EAGLE':
+                continue
+
             create_sql_for_program_tables(program, stand_alone_tables)
 
     end_time = time.time()
