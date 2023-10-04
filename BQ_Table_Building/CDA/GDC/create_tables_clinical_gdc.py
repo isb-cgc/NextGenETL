@@ -240,49 +240,44 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
             # remove extra comma (due to looping) from end of string
             count_sql_str = count_sql_str[:-2]
 
+            sql_str = f"""
+                SELECT {count_sql_str}
+                FROM `{create_dev_table_id(PARAMS, _table)}` this_table 
+            """
+
             if _table == 'case':
-                return f"""
-                    SELECT {count_sql_str}
-                    FROM `{create_dev_table_id(PARAMS, _table)}` this_table
+                sql_str += f"""
                     JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
                         ON this_table.case_id = cpp.case_gdc_id
-                    WHERE cpp.program_name = '{program}'
                 """
             elif _table == 'project':
-                return f"""
-                    SELECT {count_sql_str}
-                    FROM `{create_dev_table_id(PARAMS, _table)}` this_table
+                sql_str += f"""
                     JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-                        ON this_table.project_id = cpp.project_id
-                    WHERE cpp.program_name = '{program}'
+                        ON this_table.{id_key} = cpp.{id_key}
                 """
             elif _parent_table == 'case':
-                return f"""
-                SELECT {count_sql_str}
-                FROM `{create_dev_table_id(PARAMS, _table)}` this_table
-                JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
-                    ON mapping_table.{id_key} = this_table.{id_key}
-                JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-                    ON mapping_table.case_id = cpp.case_gdc_id
-                WHERE cpp.program_name = '{program}'
+                sql_str += f"""
+                    JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
+                        ON mapping_table.{id_key} = this_table.{id_key}
+                    JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
+                        ON mapping_table.case_id = cpp.case_gdc_id
                 """
             elif _parent_table:
                 parent_mapping_table = PARAMS['TABLE_PARAMS'][_parent_table]['mapping_table']
                 parent_id_key = f"{_parent_table}_id"
 
-                return f"""
-                SELECT {count_sql_str}
-                FROM `{create_dev_table_id(PARAMS, _table)}` this_table
-                JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
-                    ON mapping_table.{id_key} = this_table.{id_key}
-                JOIN `{create_dev_table_id(PARAMS, _parent_table)}` parent_table
-                    ON parent_table.{parent_id_key} = mapping_table.{parent_id_key}
-                JOIN `{create_dev_table_id(PARAMS, parent_mapping_table)}` parent_mapping_table
-                    ON parent_mapping_table.{parent_id_key} = parent_table.{parent_id_key}
-                JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-                    ON parent_mapping_table.case_id = cpp.case_gdc_id
-                WHERE cpp.program_name = '{program}'
+                sql_str += f"""
+                    JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
+                        ON mapping_table.{id_key} = this_table.{id_key}
+                    JOIN `{create_dev_table_id(PARAMS, _parent_table)}` parent_table
+                        ON parent_table.{parent_id_key} = mapping_table.{parent_id_key}
+                    JOIN `{create_dev_table_id(PARAMS, parent_mapping_table)}` parent_mapping_table
+                        ON parent_mapping_table.{parent_id_key} = parent_table.{parent_id_key}
+                    JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
+                        ON parent_mapping_table.case_id = cpp.case_gdc_id
                 """
+
+            sql_str += f"WHERE cpp.program_name = '{program}'"
 
         non_null_columns_dict = dict()
 
