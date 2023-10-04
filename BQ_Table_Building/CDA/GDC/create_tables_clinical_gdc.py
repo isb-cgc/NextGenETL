@@ -396,8 +396,6 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         Create SQL query string using dict of clauses.
         :return: SQL string used to create clinical or clinical supplemental table
         """
-        logger.debug(table_sql_dict)
-
         # create 'with' clause string
         with_clause_str = ''
 
@@ -593,6 +591,8 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
 
         # generate sql query
         sql_query = make_sql_statement_from_dict()
+
+        logger.debug(sql_query)
 
         # get altered program name, in case where program name differs in table id due to length or punctuation
         # e.g. BEATAML1.0 -> BEATAML1_0, EXCEPTIONAL_RESPONDERS -> EXC_RESPONDERS
