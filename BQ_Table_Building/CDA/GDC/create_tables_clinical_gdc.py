@@ -338,6 +338,8 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                     if descendent_tables:
                         child_tables.extend(descendent_tables)
 
+                    i += 1
+
         return table_column_locations
 
     def append_columns_to_select_list(column_list: list[str],
