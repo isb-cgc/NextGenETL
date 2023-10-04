@@ -507,6 +507,8 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         first_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['first']
         append_columns_to_select_list(column_list=first_columns, src_table=table)
 
+        print(mapping_count_columns)
+
         # insert mapping columns, if any
         if mapping_count_columns[table]['mapping_columns'] is not None:
             # add mapping id columns to 'select'
