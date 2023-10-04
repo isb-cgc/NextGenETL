@@ -33,9 +33,12 @@ YAML_HEADERS = ('params', 'steps')
 
 
 def find_missing_fields(include_trivial_columns: bool = False):
-    # get list of columns from CDA table
-    # compare to table order and excluded column lists in TABLE_PARAMS[table]
-    # output any missing columns
+    """
+    Get list of columns from CDA table, compare to column order and excluded column lists in yaml config (TABLE_PARAMS),
+    output any missing columns in either location.
+    :param include_trivial_columns: Optional; if True, will list columns that are not found in yaml config even if they
+                                    have only null values in the dataset
+    """
     def make_column_query():
         full_table_name = create_dev_table_id(PARAMS, table_name).split('.')[2]
 
@@ -119,7 +122,11 @@ def find_missing_fields(include_trivial_columns: bool = False):
         logger.info("No missing fields!")
 
 
-def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[str]]:
+def find_program_tables() -> dict[str, set[str]]:
+    """
+    Creates per-program dict of tables to be created.
+    :return: dict in the form { <program-name>: {set of standalone tables} }
+    """
     def make_programs_with_multiple_ids_per_case_sql() -> str:
         return f"""
             WITH programs AS (
@@ -134,6 +141,8 @@ def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[
             SELECT DISTINCT SPLIT(project_id, "-")[0] AS project_short_name
             FROM programs
             """
+
+    table_dict = PARAMS['TABLE_PARAMS']
 
     logger = logging.getLogger('base_script')
     # Create program set for base clinical tables -- will include every program with clinical cases
@@ -475,13 +484,13 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
     table_sql_dict: Any = dict()
 
     # dict of mapping and count columns for all of this program's tables
-    logger.info(f" - getting table columns")
+    logger.info(f" - Getting table columns")
     mapping_count_columns = get_mapping_and_count_columns()
     # dict of this program's non-null columns, by table
     non_null_column_dict = find_program_non_null_columns_by_table()
 
     # dict specifying into which table to insert every non-null field group that doesn't get its own supplemental table
-    logger.info(f" - getting insert locations")
+    logger.info(f" - Getting insert locations")
     table_insert_locations = get_table_column_insert_locations()
 
     for table in stand_alone_tables:
@@ -595,7 +604,6 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
 def main(args):
     try:
         start_time = time.time()
-
         global PARAMS
         PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
@@ -606,15 +614,13 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     if 'find_missing_fields' in steps:
-        logger.debug("Passing find_missing_fields")
-        # find_missing_fields()
+        # logger.debug("Passing find_missing_fields")
+        find_missing_fields()
     if 'find_program_tables' in steps:
         # creates dict of programs and base, supplemental tables to be created
-        tables_per_program_dict = find_program_tables(PARAMS['TABLE_PARAMS'])
+        tables_per_program_dict = find_program_tables()
 
         for program, stand_alone_tables in tables_per_program_dict.items():
-            logger.debug(f"{program}: {stand_alone_tables}")
-
             create_sql_for_program_tables(program, stand_alone_tables)
 
     end_time = time.time()
