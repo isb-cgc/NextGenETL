@@ -221,19 +221,14 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                                 child_tables.append(descendent_table)
                 i += 1
 
+            # fetch parent table
             parent = PARAMS['TABLE_PARAMS'][table_name]['child_of']
 
-            if not parent:
-                continue
-
-            column_dict[table_name]['mapping_columns'].append(parent)
-
-            grandparent = PARAMS['TABLE_PARAMS'][parent]['child_of']
-
-            if not grandparent:
-                continue
-
-            column_dict[table_name]['mapping_columns'].append(grandparent)
+            if parent:
+                column_dict[table_name]['mapping_columns'].append(parent)
+                grandparent = PARAMS['TABLE_PARAMS'][parent]['child_of']
+                if grandparent:
+                    column_dict[table_name]['mapping_columns'].append(grandparent)
 
         return column_dict
 
