@@ -325,6 +325,9 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
 
             child_tables = PARAMS['TABLE_PARAMS'][stand_alone_table]['parent_of']
 
+            if not child_tables or len(child_tables) == 0:
+                continue
+
             i = 0
 
             while i < len(child_tables):
@@ -462,21 +465,26 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
 
     logger = logging.getLogger('base_script')
 
+    logger.info(f"Processing {program} data...")
+
     # used to store information for sql query
     table_sql_dict: Any = dict()
 
     # dict of mapping and count columns for all of this program's tables
+    logger.info(f" - getting mapping and count columns")
     mapping_count_columns = get_mapping_and_count_columns()
 
     # dict of this program's non-null columns, by table
+    logger.info(f" - getting non-null columns per table")
     non_null_column_dict = find_program_non_null_columns_by_table()
 
     # dict specifying into which table to insert every non-null field group that doesn't get its own supplemental table
+    logger.info(f" - getting insert locations")
     table_insert_locations = get_table_column_insert_locations()
-    logger.info(f"Creating clinical tables for {program}:")
     logger.debug(table_insert_locations)
 
     for table in stand_alone_tables:
+        logger.info(f"- creating table sql for {table}")
         # used to construct a sql query that creates one of the program tables
         table_sql_dict[table] = {
             "with": list(),
