@@ -150,7 +150,7 @@ def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[
     # Create set of programs for each mapping table type,
     # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
     for table_name, table_metadata in table_dict.items():
-        if table_name == 'case': # or table_name == 'project':
+        if table_name == 'case':
             continue
 
         # create the query and retrieve results
@@ -538,11 +538,6 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         # add filtered middle columns from base table to 'select'
         middle_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['middle']
         append_columns_to_select_list(column_list=middle_columns, src_table=table)
-
-        # if clinical base table, append project name and id here, just before
-        if table == 'case':
-            project_columns = PARAMS['TABLE_PARAMS']['project']['column_order']['first']
-            append_columns_to_select_list(column_list=project_columns, src_table='project')
 
         # add filtered columns from other field groups, using non_null_column_dict and table_insert_locations
         # get list of tables with columns to insert into this table
