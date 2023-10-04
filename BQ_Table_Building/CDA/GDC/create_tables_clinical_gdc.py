@@ -222,13 +222,12 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                 i += 1
 
             # fetch parent table
+            print(PARAMS['TABLE_PARAMS'][table_name])
             parent = PARAMS['TABLE_PARAMS'][table_name]['child_of']
 
-            if parent:
+            while parent:
                 column_dict[table_name]['mapping_columns'].append(parent)
-                grandparent = PARAMS['TABLE_PARAMS'][parent]['child_of']
-                if grandparent:
-                    column_dict[table_name]['mapping_columns'].append(grandparent)
+                parent = PARAMS['TABLE_PARAMS'][parent]['child_of']
 
         return column_dict
 
