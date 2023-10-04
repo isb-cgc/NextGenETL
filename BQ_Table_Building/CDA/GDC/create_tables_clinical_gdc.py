@@ -199,30 +199,41 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
             }
 
             # fetch children for table
-            children = PARAMS['TABLE_PARAMS'][table_name]['parent_of']
+            child_tables = PARAMS['TABLE_PARAMS'][table_name]['parent_of']
 
-            if children is not None:
-                # scan through children--do any make supplemental tables?
-                # will need to add a count column to show how many records are available for given row.
-                for child in children:
-                    if child in stand_alone_tables:
-                        column_dict[table_name]['count_columns'].append(child)
-                    else:
-                        grandchildren = PARAMS['TABLE_PARAMS'][child]['parent_of']
+            if not child_tables:
+                continue
 
-                        if grandchildren is not None:
-                            for grandchild in grandchildren:
-                                if grandchild in stand_alone_tables:
-                                    column_dict[table_name]['count_columns'].append(grandchild)
+            i = 0
+
+            # scan through children--do any make supplemental tables?
+            # will need to add a count column to show how many records are available for given row.
+
+            while i < len(child_tables):
+                if child_tables[i] in stand_alone_tables:
+                    column_dict[table_name]['count_columns'].append(child_tables[i])
+                else:
+                    descendent_tables = PARAMS['TABLE_PARAMS'][child_tables[i]]['parent_of']
+
+                    if descendent_tables:
+                        for descendent_table in descendent_tables:
+                            if descendent_table not in child_tables:
+                                child_tables.append(descendent_table)
+                i += 1
 
             parent = PARAMS['TABLE_PARAMS'][table_name]['child_of']
 
-            if parent is not None:
-                column_dict[table_name]['mapping_columns'].append(parent)
+            if not parent:
+                continue
 
-                grandparent = PARAMS['TABLE_PARAMS'][parent]['child_of']
-                if grandparent is not None:
-                    column_dict[table_name]['mapping_columns'].append(grandparent)
+            column_dict[table_name]['mapping_columns'].append(parent)
+
+            grandparent = PARAMS['TABLE_PARAMS'][parent]['child_of']
+
+            if not grandparent:
+                continue
+
+            column_dict[table_name]['mapping_columns'].append(grandparent)
 
         return column_dict
 
