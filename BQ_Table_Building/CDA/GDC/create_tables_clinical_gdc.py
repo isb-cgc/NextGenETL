@@ -341,7 +341,7 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                     if descendent_tables:
                         child_tables.extend(descendent_tables)
 
-                    i += 1
+                i += 1
 
         return table_column_locations
 
@@ -466,6 +466,7 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
     logger = logging.getLogger('base_script')
 
     logger.info(f"Processing {program} data...")
+    logger.info(f" - standalone tables to be created for: {', '.join(stand_alone_tables)}")
 
     # used to store information for sql query
     table_sql_dict: Any = dict()
@@ -613,8 +614,6 @@ def main(args):
         tables_per_program_dict = find_program_tables(PARAMS['TABLE_PARAMS'])
 
         for program, stand_alone_tables in tables_per_program_dict.items():
-            logger.debug(f"{program}: {stand_alone_tables}")
-
             create_sql_for_program_tables(program, stand_alone_tables)
 
     end_time = time.time()
