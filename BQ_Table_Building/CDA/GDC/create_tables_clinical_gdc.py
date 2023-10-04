@@ -201,28 +201,24 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
             # fetch children for table
             child_tables = PARAMS['TABLE_PARAMS'][table_name]['parent_of']
 
-            if not child_tables:
-                continue
+            if child_tables:
+                i = 0
 
-            i = 0
+                # scan through children--do any make supplemental tables?
+                # will need to add a count column to show how many records are available for given row.
 
-            # scan through children--do any make supplemental tables?
-            # will need to add a count column to show how many records are available for given row.
+                while i < len(child_tables):
+                    if child_tables[i] in stand_alone_tables:
+                        column_dict[table_name]['count_columns'].append(child_tables[i])
+                    else:
+                        descendent_tables = PARAMS['TABLE_PARAMS'][child_tables[i]]['parent_of']
 
-            while i < len(child_tables):
-                if child_tables[i] in stand_alone_tables:
-                    column_dict[table_name]['count_columns'].append(child_tables[i])
-                else:
-                    descendent_tables = PARAMS['TABLE_PARAMS'][child_tables[i]]['parent_of']
+                        if descendent_tables:
+                            for descendent_table in descendent_tables:
+                                if descendent_table not in child_tables:
+                                    child_tables.append(descendent_table)
+                    i += 1
 
-                    if descendent_tables:
-                        for descendent_table in descendent_tables:
-                            if descendent_table not in child_tables:
-                                child_tables.append(descendent_table)
-                i += 1
-
-            # fetch parent table
-            print(PARAMS['TABLE_PARAMS'][table_name])
             parent = PARAMS['TABLE_PARAMS'][table_name]['child_of']
 
             while parent:
