@@ -600,6 +600,7 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     if 'find_missing_fields' in steps:
+        pass
         # todo uncomment
         # find_missing_fields()
     if 'find_program_tables' in steps:
