@@ -405,6 +405,7 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
             with_clause_str = "WITH "
             with_clause_str += ", ".join(with_sql_list)
             with_clause_str += '\n'
+            logger.debug(f"WITH clause: \n{with_clause_str}")
 
         if not table_sql_dict[table]['select']:
             logger.critical("No columns found for 'SELECT' clause.")
@@ -413,6 +414,7 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         select_clause_str = "SELECT "
         select_clause_str += ", ".join(table_sql_dict[table]['select'])
         select_clause_str += "\n"
+        logger.debug(f"SELECT clause: \n{select_clause_str}")
 
         if not table_sql_dict[table]['from']:
             logger.critical("No columns found for 'FROM' clause.")
@@ -420,6 +422,7 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
 
         from_clause_str = table_sql_dict[table]['from']
         from_clause_str += "\n"
+        logger.debug(f"FROM clause: \n{from_clause_str}")
 
         join_clause_str = ""
         if table_sql_dict[table]['join']:
@@ -432,6 +435,8 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                 join_clause_str += f"{join_type} JOIN `{table_id}` `{right_table_alias}`\n" \
                                    f"   ON `{right_table_alias}`.{join_key} = `{left_table_alias}`.{join_key}\n"
 
+        logger.debug(f"JOIN clause: \n{join_clause_str}")
+
         map_table_alias = PARAMS['TABLE_PARAMS'][table]['mapping_table']
 
         # filter by program
@@ -440,6 +445,8 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                            f"   FROM `{create_dev_table_id(PARAMS, 'case_project_program')}` " \
                            f"   WHERE program_name = '{program}'" \
                            f")\n"
+
+        logger.debug(f"WHERE clause: \n{where_clause_str}")
 
         return with_clause_str + select_clause_str + from_clause_str + join_clause_str + where_clause_str
 
