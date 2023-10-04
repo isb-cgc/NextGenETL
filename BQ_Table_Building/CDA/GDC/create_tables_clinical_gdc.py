@@ -385,6 +385,8 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         Create SQL query string using dict of clauses.
         :return: SQL string used to create clinical or clinical supplemental table
         """
+        logger.debug(table_sql_dict)
+
         # create 'with' clause string
         with_clause_str = ''
         if table_sql_dict[table]['with']:
@@ -468,24 +470,19 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
     logger = logging.getLogger('base_script')
 
     logger.info(f"Processing {program} data...")
-    logger.info(f" - tables to be created for: {', '.join(stand_alone_tables)}")
 
     # used to store information for sql query
     table_sql_dict: Any = dict()
 
     # dict of mapping and count columns for all of this program's tables
-    logger.info(f" - getting mapping and count columns")
+    logger.info(f" - getting table columns")
     mapping_count_columns = get_mapping_and_count_columns()
-
     # dict of this program's non-null columns, by table
-    logger.info(f" - getting non-null columns per table")
     non_null_column_dict = find_program_non_null_columns_by_table()
 
     # dict specifying into which table to insert every non-null field group that doesn't get its own supplemental table
     logger.info(f" - getting insert locations")
     table_insert_locations = get_table_column_insert_locations()
-
-    logger_str = f" - creating tables"
 
     for table in stand_alone_tables:
         # used to construct a sql query that creates one of the program tables
