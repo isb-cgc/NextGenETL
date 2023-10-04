@@ -65,16 +65,23 @@ def find_missing_fields(include_trivial_columns: bool = False):
         for row in result:
             cda_columns_set.add(row[0])
 
-        # columns should either be listed in column order or excluded columns in TABLE_PARAMS
-        included_columns_set = set(PARAMS['TABLE_PARAMS'][table_name]['column_order'])
+        first_columns_set = set()
+        middle_columns_set = set()
+        last_columns_set = set()
+        excluded_columns_set = set()
 
+        # columns should either be listed in column order lists or excluded column list in TABLE_PARAMS
+        if PARAMS['TABLE_PARAMS'][table_name]['column_order']['first'] is not None:
+            first_columns_set = set(PARAMS['TABLE_PARAMS'][table_name]['column_order']['first'])
+        if PARAMS['TABLE_PARAMS'][table_name]['column_order']['middle'] is not None:
+            middle_columns_set = set(PARAMS['TABLE_PARAMS'][table_name]['column_order']['middle'])
+        if PARAMS['TABLE_PARAMS'][table_name]['column_order']['last'] is not None:
+            last_columns_set = set(PARAMS['TABLE_PARAMS'][table_name]['column_order']['last'])
         if PARAMS['TABLE_PARAMS'][table_name]['excluded_columns'] is not None:
             excluded_columns_set = set(PARAMS['TABLE_PARAMS'][table_name]['excluded_columns'])
-        else:
-            excluded_columns_set = set()
 
         # join into one set
-        all_columns_set = included_columns_set | excluded_columns_set
+        all_columns_set = first_columns_set | middle_columns_set | last_columns_set | excluded_columns_set
 
         deprecated_columns = all_columns_set - cda_columns_set
         missing_columns = cda_columns_set - all_columns_set
@@ -158,147 +165,187 @@ def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[
     return tables_per_program_dict
 
 
-def find_program_non_null_columns_by_table(program):
-    def make_count_column_sql() -> str:
-        mapping_table = PARAMS['TABLE_PARAMS'][table]['mapping_table']
-        id_key = f"{table}_id"
-        parent_table = PARAMS['TABLE_PARAMS'][table]['child_of']
-
-        count_sql_str = ''
-
-        for col in columns:
-            count_sql_str += f'\nSUM(CASE WHEN this_table.{col} is null THEN 0 ELSE 1 END) AS {col}_count, '
-
-        # remove extra comma (due to looping) from end of string
-        count_sql_str = count_sql_str[:-2]
-
-        if table == 'case':
-            return f"""
-                SELECT {count_sql_str}
-                FROM `{create_dev_table_id(PARAMS, table)}` this_table
-                JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-                    ON this_table.case_id = cpp.case_gdc_id
-                WHERE cpp.program_name = '{program}'
-            """
-        elif table == 'project':
-            return f"""
-                SELECT {count_sql_str}
-                FROM `{create_dev_table_id(PARAMS, table)}` this_table
-                JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-                    ON this_table.project_id = cpp.project_id
-                WHERE cpp.program_name = '{program}'
-            """
-        elif parent_table == 'case':
-            return f"""
-            SELECT {count_sql_str}
-            FROM `{create_dev_table_id(PARAMS, table)}` this_table
-            JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
-                ON mapping_table.{id_key} = this_table.{id_key}
-            JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-                ON mapping_table.case_id = cpp.case_gdc_id
-            WHERE cpp.program_name = '{program}'
-            """
-        elif parent_table:
-            parent_mapping_table = PARAMS['TABLE_PARAMS'][parent_table]['mapping_table']
-            parent_id_key = f"{parent_table}_id"
-
-            return f"""
-            SELECT {count_sql_str}
-            FROM `{create_dev_table_id(PARAMS, table)}` this_table
-            JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
-                ON mapping_table.{id_key} = this_table.{id_key}
-            JOIN `{create_dev_table_id(PARAMS, parent_table)}` parent_table
-                ON parent_table.{parent_id_key} = mapping_table.{parent_id_key}
-            JOIN `{create_dev_table_id(PARAMS, parent_mapping_table)}` parent_mapping_table
-                ON parent_mapping_table.{parent_id_key} = parent_table.{parent_id_key}
-            JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-                ON parent_mapping_table.case_id = cpp.case_gdc_id
-            WHERE cpp.program_name = '{program}'
-            """
-
-    non_null_columns_dict = dict()
-
-    for table in PARAMS['TABLE_PARAMS'].keys():
-        first_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['first']
-        middle_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['middle']
-        last_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['last']
-
-        columns = list()
-
-        if first_columns:
-            columns.extend(first_columns)
-        if middle_columns:
-            columns.extend(middle_columns)
-        if last_columns:
-            columns.extend(last_columns)
-
-        column_count_result = query_and_retrieve_result(sql=make_count_column_sql())
-
-        non_null_columns = list()
-
-        for row in column_count_result:
-            # get columns for field group
-            for column in columns:
-                count = row.get(f"{column}_count")
-
-                if count is not None and count > 0:
-                    non_null_columns.append(column)
-
-        non_null_columns_dict[table] = non_null_columns
-
-    return non_null_columns_dict
-
-
 def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
-    def make_sql_statement_from_dict() -> str:
-        # stitch together query
-        sql_query_str = ""
+    """
+    Create sql query which is used to create GDC clinical tables by analyzing available data as follows:
+        - Find non-null columns for each field group, using column lists in TABLE_PARAMS
+        - For base clinical and supplemental tables, determine whether mapping or count columns need to be appended.
+            - Mapping columns provide id linkages to ancestor tables, if any (e.g. case_id for diagnosis table)
+            - Count columns provide number of rows users can expect to find in child supplemental tables
+              (e.g. how many diagnosis rows are available for given case_id?)
+              These counts are only provided for direct descendants. For instance, if clinical, diagnosis, and
+              treatment tables all exist, then clinical displays count for diagnosis rows, and diagnosis displays count
+              for treatment rows.
+        - Determine where field groups should be appended (if field group is not in its own supplemental table).
+          If program only has "clinical" base table, all columns are appended there. However, if supplemental tables
+          exist, columns within each field group are appended to their closest ancestor table. For instance, if clinical
+          and diagnosis tables exist, treatment columns are appended to diagnosis. If only clinical exists,
+          treatment columns are appended to that table.
+    Then, construct a dict to store components of SQL query.
+    Parse the contents of dict into a SQL query string, and use to create new BQ table.
+    :param program: Program for which create tables
+    :param stand_alone_tables: list of supplemental tables to create (those which can't be flattened
+                               into clinical or parent table)
+    """
 
-        if table_sql_dict[table]['with']:
-            sql_query_str += "WITH "
-            sql_query_str += ", ".join(table_sql_dict[table]['with'])
-            sql_query_str += '\n'
+    def append_columns_to_select_list(column_list: list[str],
+                                      src_table: str,
+                                      table_alias: str = None,
+                                      check_filtered: bool = True):
+        """
+        Create column alias (using source prefix) and append to 'select' list for table_sql_dict[src_table].
+        :param column_list: list of columns to append to 'select' list
+        :param src_table: table from which the columns originated
+        :param table_alias: Optional; alternate column source (used for count columns created by sql 'with' clause)
+        :param check_filtered: Optional; if true, only appends columns with non-null values
+                               (stored in non_null_column_dict)
+        """
+        if not column_list:
+            return
 
-        if not table_sql_dict[table]['select']:
-            logger.critical("No columns found for 'SELECT' clause.")
-            sys.exit(-1)
+        for col in column_list:
+            # don't add column to select list if it has null values for every row
+            if check_filtered and col not in non_null_column_dict[src_table]:
+                continue
 
-        sql_query_str += "SELECT "
-        sql_query_str += ", ".join(table_sql_dict[table]['select'])
-        sql_query_str += "\n"
+            if table_alias is None:
+                table_alias = src_table
 
-        if not table_sql_dict[table]['from']:
-            logger.critical("No columns found for 'FROM' clause.")
-            sys.exit(-1)
+            col_alias = f"`{table_alias}`.{col}"
 
-        sql_query_str += table_sql_dict[table]['from']
-        sql_query_str += "\n"
+            prefix = PARAMS['TABLE_PARAMS'][src_table]['prefix']
 
-        if table_sql_dict[table]['join']:
-            for table_id in table_sql_dict[table]['join'].keys():
-                join_type = table_sql_dict[table]['join'][table_id]['join_type']
-                left_key = table_sql_dict[table]['join'][table_id]['left_key']
-                right_key = table_sql_dict[table]['join'][table_id]['right_key']
-                table_alias = table_sql_dict[table]['join'][table_id]['table_alias']
-                map_table_alias = table_sql_dict[table]['join'][table_id]['map_table_alias']
+            if prefix:
+                col_alias += f" AS {prefix}__{col}"
 
-                join_str = f"{join_type} JOIN `{table_id}` `{table_alias}` " \
-                           f"ON `{table_alias}`.{left_key} = `{map_table_alias}`.{right_key}\n"
-                sql_query_str += join_str
+            table_sql_dict[table]['select'].append(col_alias)
 
-        if table_sql_dict[table]['with_join']:
-            sql_query_str += table_sql_dict[table]['with_join']
+    def get_mapping_and_count_columns() -> dict[str, dict[str, list[Any]]]:
+        column_dict = dict()
 
-        map_table_alias = PARAMS['TABLE_PARAMS'][table]['mapping_table']
+        for table_name in stand_alone_tables:
+            column_dict[table_name] = {
+                'mapping_columns': [],
+                'count_columns': []
+            }
 
-        # filter by program
-        sql_query_str += f"WHERE `{map_table_alias}`.case_id in (" \
-                         f"SELECT case_gdc_id " \
-                         f"FROM `{create_dev_table_id(PARAMS, 'case_project_program')}` " \
-                         f"WHERE program_name = '{program}'" \
-                         f") "
+            # fetch children for table
+            children = PARAMS['TABLE_PARAMS'][table_name]['parent_of']
 
-        return sql_query_str
+            if children is not None:
+                # scan through children--do any make supplemental tables?
+                # will need to add a count column to show how many records are available for given row.
+                for child in children:
+                    if child in stand_alone_tables:
+                        column_dict[table_name]['count_columns'].append(child)
+                    else:
+                        grandchildren = PARAMS['TABLE_PARAMS'][child]['parent_of']
+
+                        if grandchildren is not None:
+                            for grandchild in grandchildren:
+                                if grandchild in stand_alone_tables:
+                                    column_dict[table_name]['count_columns'].append(grandchild)
+
+            parent = PARAMS['TABLE_PARAMS'][table_name]['child_of']
+
+            if parent is not None:
+                column_dict[table_name]['mapping_columns'].append(parent)
+
+                grandparent = PARAMS['TABLE_PARAMS'][parent]['child_of']
+                if grandparent is not None:
+                    column_dict[table_name]['mapping_columns'].append(grandparent)
+
+        return column_dict
+
+    def find_program_non_null_columns_by_table():
+        def make_count_column_sql() -> str:
+            mapping_table = PARAMS['TABLE_PARAMS'][_table]['mapping_table']
+            id_key = f"{_table}_id"
+            _parent_table = PARAMS['TABLE_PARAMS'][_table]['child_of']
+
+            count_sql_str = ''
+
+            for col in columns:
+                count_sql_str += f'\nSUM(CASE WHEN this_table.{col} is null THEN 0 ELSE 1 END) AS {col}_count, '
+
+            # remove extra comma (due to looping) from end of string
+            count_sql_str = count_sql_str[:-2]
+
+            if _table == 'case':
+                return f"""
+                    SELECT {count_sql_str}
+                    FROM `{create_dev_table_id(PARAMS, _table)}` this_table
+                    JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
+                        ON this_table.case_id = cpp.case_gdc_id
+                    WHERE cpp.program_name = '{program}'
+                """
+            elif _table == 'project':
+                return f"""
+                    SELECT {count_sql_str}
+                    FROM `{create_dev_table_id(PARAMS, _table)}` this_table
+                    JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
+                        ON this_table.project_id = cpp.project_id
+                    WHERE cpp.program_name = '{program}'
+                """
+            elif _parent_table == 'case':
+                return f"""
+                SELECT {count_sql_str}
+                FROM `{create_dev_table_id(PARAMS, _table)}` this_table
+                JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
+                    ON mapping_table.{id_key} = this_table.{id_key}
+                JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
+                    ON mapping_table.case_id = cpp.case_gdc_id
+                WHERE cpp.program_name = '{program}'
+                """
+            elif _parent_table:
+                parent_mapping_table = PARAMS['TABLE_PARAMS'][_parent_table]['mapping_table']
+                parent_id_key = f"{_parent_table}_id"
+
+                return f"""
+                SELECT {count_sql_str}
+                FROM `{create_dev_table_id(PARAMS, _table)}` this_table
+                JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
+                    ON mapping_table.{id_key} = this_table.{id_key}
+                JOIN `{create_dev_table_id(PARAMS, _parent_table)}` parent_table
+                    ON parent_table.{parent_id_key} = mapping_table.{parent_id_key}
+                JOIN `{create_dev_table_id(PARAMS, parent_mapping_table)}` parent_mapping_table
+                    ON parent_mapping_table.{parent_id_key} = parent_table.{parent_id_key}
+                JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
+                    ON parent_mapping_table.case_id = cpp.case_gdc_id
+                WHERE cpp.program_name = '{program}'
+                """
+
+        non_null_columns_dict = dict()
+
+        for _table in PARAMS['TABLE_PARAMS'].keys():
+            _first_columns = PARAMS['TABLE_PARAMS'][_table]['column_order']['first']
+            _middle_columns = PARAMS['TABLE_PARAMS'][_table]['column_order']['middle']
+            _last_columns = PARAMS['TABLE_PARAMS'][_table]['column_order']['last']
+
+            columns = list()
+
+            if _first_columns:
+                columns.extend(_first_columns)
+            if _middle_columns:
+                columns.extend(_middle_columns)
+            if _last_columns:
+                columns.extend(_last_columns)
+
+            column_count_result = query_and_retrieve_result(sql=make_count_column_sql())
+
+            non_null_columns = list()
+
+            for row in column_count_result:
+                # get columns for field group
+                for _column in columns:
+                    count = row.get(f"{_column}_count")
+
+                    if count is not None and count > 0:
+                        non_null_columns.append(_column)
+
+            non_null_columns_dict[_table] = non_null_columns
+
+        return non_null_columns_dict
 
     def get_table_column_insert_locations() -> dict[str, list[str]]:
         table_column_locations = dict()
@@ -328,35 +375,109 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
 
         return table_column_locations
 
-    def append_columns_to_select_list(alias_table_name: str,
-                                      select_column_list: list[str],
-                                      table_alias: str = None):
-        for select_column in select_column_list:
-            select_column_alias = create_sql_alias_with_prefix(table_name=alias_table_name,
-                                                               column_name=select_column,
-                                                               table_alias=table_alias)
-            table_sql_dict[table]['select'].append(select_column_alias)
+    def make_sql_statement_from_dict() -> str:
+        """
+        Create SQL query string using dict of clauses.
+        :return: SQL string used to create clinical or clinical supplemental table
+        """
+        # create 'with' clause string
+        with_clause_str = ''
+        if table_sql_dict[table]['with']:
+            with_sql_list = list()
+
+            for with_statement_dict in table_sql_dict[table]['with']:
+                left_table_alias = with_statement_dict['left_table_alias']
+                right_table_alias = with_statement_dict['right_table_alias']
+                count_column_prefix = with_statement_dict['count_column_prefix']
+
+                count_mapping_table_name = PARAMS['TABLE_PARAMS'][right_table_alias]['mapping_table']
+                count_mapping_table_id = create_dev_table_id(params=PARAMS, table_name=count_mapping_table_name)
+
+                with_sql_str = f"{right_table_alias}_counts AS (" \
+                               f"SELECT {left_table_alias}_id, COUNT({right_table_alias}_id) " \
+                               f"   AS {count_column_prefix}__count " \
+                               f"FROM `{count_mapping_table_id}` " \
+                               f"GROUP BY {left_table_alias}_id " \
+                               f") "
+
+                with_sql_list.append(with_sql_str)
+
+            with_clause_str = "WITH "
+            with_clause_str += ", ".join(with_sql_list)
+            with_clause_str += '\n'
+
+        if not table_sql_dict[table]['select']:
+            logger.critical("No columns found for 'SELECT' clause.")
+            sys.exit(-1)
+
+        select_clause_str = "SELECT "
+        select_clause_str += ", ".join(table_sql_dict[table]['select'])
+        select_clause_str += "\n"
+
+        if not table_sql_dict[table]['from']:
+            logger.critical("No columns found for 'FROM' clause.")
+            sys.exit(-1)
+
+        from_clause_str = table_sql_dict[table]['from']
+        from_clause_str += "\n"
+
+        join_clause_str = ""
+        if table_sql_dict[table]['join']:
+            for table_id in table_sql_dict[table]['join'].keys():
+                join_type = table_sql_dict[table]['join'][table_id]['join_type']
+                join_key = table_sql_dict[table]['join'][table_id]['join_key']
+                left_table_alias = table_sql_dict[table]['join'][table_id]['left_table_alias']
+                right_table_alias = table_sql_dict[table]['join'][table_id]['right_table_alias']
+
+                join_clause_str += f"{join_type} JOIN `{table_id}` `{right_table_alias}`\n" \
+                                   f"   ON `{right_table_alias}`.{join_key} = `{left_table_alias}`.{join_key}\n"
+
+        map_table_alias = PARAMS['TABLE_PARAMS'][table]['mapping_table']
+
+        # filter by program
+        where_clause_str = f"WHERE `{map_table_alias}`.case_id in (" \
+                           f"   SELECT case_gdc_id " \
+                           f"   FROM `{create_dev_table_id(PARAMS, 'case_project_program')}` " \
+                           f"   WHERE program_name = '{program}'" \
+                           f")\n"
+
+        return with_clause_str + select_clause_str + from_clause_str + join_clause_str + where_clause_str
+
+    def make_join_clause_dict(key_name: str, left_table_alias: str, right_table_alias: str) -> dict[str, str]:
+        """
+        Create join clause statement dict.
+        :param key_name: has '_id' appended, and is then used as join key
+        :param left_table_alias: left table alias
+        :param right_table_alias: right table alias
+        :return: join clause dict object
+        """
+        return {
+            'join_type': 'LEFT',
+            'join_key': f'{key_name}_id',
+            'left_table_alias': left_table_alias,
+            'right_table_alias': right_table_alias
+        }
 
     logger = logging.getLogger('base_script')
 
-    # this is used to store information for sql query
+    # used to store information for sql query
     table_sql_dict = dict()
 
-    # this mapping and count columns for inserting into table
-    mapping_count_columns = get_mapping_and_count_columns(stand_alone_tables)
+    # dict of mapping and count columns for all of this program's tables
+    mapping_count_columns = get_mapping_and_count_columns()
 
-    # the list of non-null columns by table for this program
-    non_null_column_dict = find_program_non_null_columns_by_table(program)
+    # dict of this program's non-null columns, by table
+    non_null_column_dict = find_program_non_null_columns_by_table()
 
-    # where are field groups inserted into the tables?
+    # dict specifying into which table to insert every non-null field group that doesn't get its own supplemental table
     table_insert_locations = get_table_column_insert_locations()
 
     logger.info(f"Creating clinical tables for {program}:")
 
     for table in stand_alone_tables:
+        # used to construct a sql query that creates one of the program tables
         table_sql_dict[table] = {
             "with": list(),
-            "with_join": "",
             "select": list(),
             "from": "",
             "join": dict(),
@@ -364,64 +485,60 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         }
 
         # add first columns to the 'select' sql string
-        for column in PARAMS['TABLE_PARAMS'][table]['column_order']['first']:
-            table_sql_dict[table]['select'].append(create_sql_alias_with_prefix(table_name=table, column_name=column))
+        first_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['first']
+        append_columns_to_select_list(column_list=first_columns, src_table=table)
 
+        # todo should this be done in sql str builder function? yes, move
         table_sql_dict[table]['from'] += f"FROM `{create_dev_table_id(PARAMS, table)}` `{table}`"
 
         # insert mapping columns, if any
         if mapping_count_columns[table]['mapping_columns'] is not None:
             # add mapping id columns to 'select'
             for parent_table in mapping_count_columns[table]['mapping_columns']:
-                mapping_table_alias = PARAMS['TABLE_PARAMS'][table]['mapping_table']
-                column_select = create_sql_alias_with_prefix(table_name=parent_table,
-                                                             column_name=f"{parent_table}_id",
-                                                             table_alias=mapping_table_alias)
-                table_sql_dict[table]['select'].append(column_select)
+                append_columns_to_select_list(column_list=list(f"{parent_table}_id"),
+                                              src_table=parent_table,
+                                              table_alias=PARAMS['TABLE_PARAMS'][table]['mapping_table'],
+                                              check_filtered=False)
 
                 # add mapping table to 'join'
                 mapping_table_id = create_dev_table_id(PARAMS, PARAMS['TABLE_PARAMS'][table]['mapping_table'])
 
                 if mapping_table_id not in table_sql_dict[table]['join']:
-                    table_sql_dict[table]['join'][mapping_table_id] = {
-                        'join_type': 'LEFT',
-                        'left_key': f'{table}_id',
-                        'right_key': f'{table}_id',
-                        'table_alias': mapping_table_alias,
-                        'map_table_alias': table
-                    }
+                    table_sql_dict[table]['join'][mapping_table_id] = make_join_clause_dict(
+                        key_name=table,
+                        left_table_alias=table,
+                        right_table_alias=PARAMS['TABLE_PARAMS'][table]['mapping_table']
+                    )
 
         # insert count columns, if any
         if mapping_count_columns[table]['count_columns'] is not None:
             for child_table in mapping_count_columns[table]['count_columns']:
-                # current table: diagnosis
-                # count table: treatment
-
-                table_id_key = f"{table}_id"
-                count_id_key = f"{child_table}_id"
                 count_prefix = PARAMS['TABLE_PARAMS'][child_table]['prefix']
-                count_mapping_table = PARAMS['TABLE_PARAMS'][child_table]['mapping_table']
 
-                with_sql = f"{child_table}_counts AS (" \
-                           f"SELECT {table_id_key}, COUNT({count_id_key}) AS {count_prefix}__count " \
-                           f"FROM `{create_dev_table_id(PARAMS, count_mapping_table)}` " \
-                           f"GROUP BY {table_id_key} " \
-                           f") "
+                # used to create "with clause" in make_sql_statement_from_dict()
+                with_dict = {
+                    'left_table_alias': table,
+                    'right_table_alias': child_table,
+                    'count_column_prefix': PARAMS['TABLE_PARAMS'][child_table]['prefix']
+                }
 
-                with_join_sql = f"LEFT JOIN {child_table}_counts " \
-                                f"ON `{table}`.{table_id_key} = `{child_table}_counts`.{table_id_key}\n"
+                table_sql_dict[table]['with'].append(with_dict)
 
-                table_sql_dict[table]['with'].append(with_sql)
-                table_sql_dict[table]['with_join'] += with_join_sql
+                with_clause_alias = f"{child_table}_counts"
+
+                # join 'with' clause result in main query
+                table_sql_dict[table]['join'][with_clause_alias] = make_join_clause_dict(
+                    key_name=table,
+                    left_table_alias=table,
+                    right_table_alias=with_clause_alias
+                )
+
+                # add count column to select list
                 table_sql_dict[table]['select'].append(f"{child_table}_counts.{count_prefix}__count")
 
-        middle_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['middle']
-
         # add filtered middle columns from base table to 'select'
-        for column in middle_columns:
-            if column in non_null_column_dict[table]:
-                column_alias = create_sql_alias_with_prefix(table_name=table, column_name=column)
-                table_sql_dict[table]['select'].append(column_alias)
+        middle_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['middle']
+        append_columns_to_select_list(column_list=middle_columns, src_table=table)
 
         # add filtered columns from other field groups, using non_null_column_dict and table_insert_locations
         # get list of tables with columns to insert into this table
@@ -429,115 +546,44 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
 
         if additional_tables_to_include:
             for add_on_table in additional_tables_to_include:
+                # add aliased columns to 'select' list
+                append_columns_to_select_list(column_list=non_null_column_dict[add_on_table],
+                                              src_table=add_on_table,
+                                              check_filtered=False)  # already filtered, no need to check again
+
                 add_on_mapping_table_base_name = PARAMS['TABLE_PARAMS'][add_on_table]['mapping_table']
                 add_on_mapping_table_id = create_dev_table_id(PARAMS, table_name=add_on_mapping_table_base_name)
                 add_on_table_id = create_dev_table_id(PARAMS, table_name=add_on_table)
 
-                # add aliased columns to 'select' list
-                filtered_column_list = non_null_column_dict[add_on_table]
-
-                for column in filtered_column_list:
-                    column_alias = create_sql_alias_with_prefix(table_name=add_on_table, column_name=column)
-                    table_sql_dict[table]['select'].append(column_alias)
-
                 # add mapping table to join dict
                 if add_on_mapping_table_id not in table_sql_dict[table]['join']:
-                    table_sql_dict[table]['join'][add_on_mapping_table_id] = {
-                        'join_type': 'LEFT',
-                        'left_key': f'{table}_id',
-                        'right_key': f'{table}_id',
-                        'table_alias': add_on_mapping_table_base_name,
-                        'map_table_alias': table
-                    }
+                    join_clause_dict = make_join_clause_dict(key_name=table,
+                                                             left_table_alias=table,
+                                                             right_table_alias=add_on_mapping_table_base_name)
+                    table_sql_dict[table]['join'][add_on_mapping_table_id] = join_clause_dict
 
                 # add data table to join dict
                 if add_on_table_id not in table_sql_dict[table]['join']:
-                    table_sql_dict[table]['join'][add_on_table_id] = {
-                        'join_type': 'LEFT',
-                        'left_key': f'{add_on_table}_id',
-                        'right_key': f'{add_on_table}_id',
-                        'table_alias': add_on_table,
-                        'map_table_alias': add_on_mapping_table_base_name
-                    }
-
-        last_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['last']
+                    join_clause_dict = make_join_clause_dict(key_name=add_on_table,
+                                                             left_table_alias=add_on_mapping_table_base_name,
+                                                             right_table_alias=add_on_table)
+                    table_sql_dict[table]['join'][add_on_table_id] = join_clause_dict
 
         # add filtered last columns from base table to 'select'
-        if last_columns:
-            for column in last_columns:
-                if column in non_null_column_dict[table]:
-                    column_alias = create_sql_alias_with_prefix(table_name=table, column_name=column)
-                    table_sql_dict[table]['select'].append(column_alias)
+        last_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['last']
+        append_columns_to_select_list(column_list=last_columns, src_table=table)
 
         # generate sql query
         sql_query = make_sql_statement_from_dict()
 
-        if program in PARAMS['ALTER_PROGRAM_NAMES']:
-            program_name = PARAMS['ALTER_PROGRAM_NAMES'][program]
-        else:
-            program_name = program
+        # get altered program name, in case where program name differs in table id due to length or punctuation
+        # e.g. BEATAML1.0 -> BEATAML1_0, EXCEPTIONAL_RESPONDERS -> EXC_RESPONDERS
+        program_name = PARAMS['ALTER_PROGRAM_NAMES'][program] if program in PARAMS['ALTER_PROGRAM_NAMES'] else program
 
         clinical_table_name = f"{PARAMS['TABLE_PARAMS'][table]['table_name']}_{program_name}_{PARAMS['RELEASE']}"
         clinical_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_CLINICAL_DATASET']}.{clinical_table_name}"
 
         create_table_from_query(PARAMS, table_id=clinical_table_id, query=sql_query)
-
-
-def create_sql_alias_with_prefix(table_name: str, column_name: str, table_alias: str = None) -> str:
-    """
-    Create column alias string using table prefix and column name. Uses table_name as table alias.
-    :param table_name: table where column is originally located
-    :param column_name: column name
-    :param table_alias: Optional, override the joined table associated with this column (e.g. when using a view)
-    :return: "<column_name> AS <table_prefix>__<column_name>
-    """
-    if table_alias is None:
-        table_alias = table_name
-
-    prefix = PARAMS['TABLE_PARAMS'][table_name]['prefix']
-
-    if prefix is None:
-        return f"`{table_alias}`.{column_name}"
-    else:
-        return f"`{table_alias}`.{column_name} AS {prefix}__{column_name}"
-
-
-def get_mapping_and_count_columns(program_table_set: set[str]) -> dict[str, dict[str, list[Any]]]:
-    column_dict = dict()
-
-    for table_name in program_table_set:
-        column_dict[table_name] = {
-            'mapping_columns': [],
-            'count_columns': []
-        }
-
-        # fetch children for table
-        children = PARAMS['TABLE_PARAMS'][table_name]['parent_of']
-
-        if children is not None:
-            # scan through children--do any make supplemental tables?
-            # will need to add a count column to show how many records are available for given row.
-            for child in children:
-                if child in program_table_set:
-                    column_dict[table_name]['count_columns'].append(child)
-                else:
-                    grandchildren = PARAMS['TABLE_PARAMS'][child]['parent_of']
-
-                    if grandchildren is not None:
-                        for grandchild in grandchildren:
-                            if grandchild in program_table_set:
-                                column_dict[table_name]['count_columns'].append(grandchild)
-
-        parent = PARAMS['TABLE_PARAMS'][table_name]['child_of']
-
-        if parent is not None:
-            column_dict[table_name]['mapping_columns'].append(parent)
-
-            grandparent = PARAMS['TABLE_PARAMS'][parent]['child_of']
-            if grandparent is not None:
-                column_dict[table_name]['mapping_columns'].append(grandparent)
-
-    return column_dict
 
 
 def main(args):
@@ -554,15 +600,13 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     if 'find_missing_fields' in steps:
-        pass
-        # todo needs to be refactored to work with change to column order lists
-        # find_missing_fields()
+        find_missing_fields()
     if 'find_program_tables' in steps:
         # creates dict of programs and base, supplemental tables to be created
         tables_per_program_dict = find_program_tables(PARAMS['TABLE_PARAMS'])
 
         for program, stand_alone_tables in tables_per_program_dict.items():
-            logger.info(f"{program}: {stand_alone_tables}")
+            logger.debug(f"{program}: {stand_alone_tables}")
 
             create_sql_for_program_tables(program, stand_alone_tables)
 
