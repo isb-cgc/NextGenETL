@@ -150,7 +150,9 @@ def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[
     # Create set of programs for each mapping table type,
     # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
     for table_name, table_metadata in table_dict.items():
-        if table_name == 'case' or table_name == 'project':
+        # this shouldn't be necessary, as project should always be 1-1 relationship with case_id?
+        # if table_name == 'case' or table_name == 'project':
+        if table_name == 'case':
             continue
 
         # create the query and retrieve results
@@ -374,6 +376,7 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
 
             table_sql_dict[table]['select'].append(col_alias)
 
+    # noinspection PyTypeChecker
     def make_sql_statement_from_dict() -> str:
         """
         Create SQL query string using dict of clauses.
@@ -404,7 +407,6 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
             with_clause_str = "WITH "
             with_clause_str += ", ".join(with_sql_list)
             with_clause_str += '\n'
-            logger.debug(f"WITH clause: \n{with_clause_str}")
 
         if not table_sql_dict[table]['select']:
             logger.critical("No columns found for 'SELECT' clause.")
@@ -413,15 +415,15 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         select_clause_str = "SELECT "
         select_clause_str += ", ".join(table_sql_dict[table]['select'])
         select_clause_str += "\n"
-        logger.debug(f"SELECT clause: \n{select_clause_str}")
 
-        if not table_sql_dict[table]['from']:
+        if not table_sql_dict[table]['from_table']:
             logger.critical("No columns found for 'FROM' clause.")
             sys.exit(-1)
 
-        from_clause_str = table_sql_dict[table]['from']
-        from_clause_str += "\n"
-        logger.debug(f"FROM clause: \n{from_clause_str}")
+        from_table_alias = table
+        from_table_id = create_dev_table_id(PARAMS, from_table_alias)
+
+        from_clause_str = f"FROM `{from_table_id}` `{from_table_alias}`\n"
 
         join_clause_str = ""
         if table_sql_dict[table]['join']:
@@ -434,20 +436,19 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                 join_clause_str += f"{join_type} JOIN `{table_id}` `{right_table_alias}`\n" \
                                    f"   ON `{right_table_alias}`.{join_key} = `{left_table_alias}`.{join_key}\n"
 
-        logger.debug(f"JOIN clause: \n{join_clause_str}")
-
         map_table_alias = PARAMS['TABLE_PARAMS'][table]['mapping_table']
 
         # filter by program
-        where_clause_str = f"WHERE `{map_table_alias}`.case_id in (" \
-                           f"   SELECT case_gdc_id " \
-                           f"   FROM `{create_dev_table_id(PARAMS, 'case_project_program')}` " \
-                           f"   WHERE program_name = '{program}'" \
+        where_clause_str = f"WHERE `{map_table_alias}`.case_id in (\n" \
+                           f"   SELECT case_gdc_id\n" \
+                           f"   FROM `{create_dev_table_id(PARAMS, 'case_project_program')}`\n" \
+                           f"   WHERE program_name = '{program}'\n" \
                            f")\n"
 
-        logger.debug(f"WHERE clause: \n{where_clause_str}")
+        sql_str = with_clause_str + select_clause_str + from_clause_str + join_clause_str + where_clause_str
+        # logger.debug(f"SQL for {table}:\n{sql_str}")
 
-        return with_clause_str + select_clause_str + from_clause_str + join_clause_str + where_clause_str
+        return sql_str
 
     def make_join_clause_dict(key_name: str, left_table_alias: str, right_table_alias: str) -> dict[str, str]:
         """
@@ -485,7 +486,6 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         table_sql_dict[table] = {
             "with": list(),
             "select": list(),
-            "from": "",
             "join": dict(),
             "where": ""
         }
@@ -493,9 +493,6 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         # add first columns to the 'select' sql string
         first_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['first']
         append_columns_to_select_list(column_list=first_columns, src_table=table)
-
-        # todo should this be done in sql str builder function? yes, move
-        table_sql_dict[table]['from'] += f"FROM `{create_dev_table_id(PARAMS, table)}` `{table}`"
 
         # insert mapping columns, if any
         if mapping_count_columns[table]['mapping_columns'] is not None:
@@ -545,6 +542,11 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         # add filtered middle columns from base table to 'select'
         middle_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['middle']
         append_columns_to_select_list(column_list=middle_columns, src_table=table)
+
+        # if clinical base table, append project name and id here, just before
+        if table == 'case':
+            project_columns = PARAMS['TABLE_PARAMS']['project']['column_order']['first']
+            append_columns_to_select_list(column_list=project_columns, src_table='project')
 
         # add filtered columns from other field groups, using non_null_column_dict and table_insert_locations
         # get list of tables with columns to insert into this table
