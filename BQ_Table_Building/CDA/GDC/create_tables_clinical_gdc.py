@@ -159,7 +159,9 @@ def find_program_tables(table_dict: dict[str, dict[str, str]]) -> dict[str, set[
         result = query_and_retrieve_result(sql=make_programs_with_multiple_ids_per_case_sql())
 
         if result is None:
-            logger.error("result is none")
+            logger.error("SQL result is none for query: ")
+            logger.debug(make_programs_with_multiple_ids_per_case_sql())
+            sys.exit(-1)
 
         for program_row in result:
             tables_per_program_dict[program_row[0]].add(table_name)
