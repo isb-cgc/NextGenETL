@@ -248,7 +248,8 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
             if _table == 'case':
                 sql_str += f"""
                     JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-                        ON this_table.case_id = cpp.case_gdc_id
+                        ON this_table.case_id = cpp.case_id
+                    WHERE cpp.program_name = '{program}'
                 """
             elif _table == 'project':
                 sql_str += f"""
@@ -260,7 +261,8 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                     JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
                         ON mapping_table.{id_key} = this_table.{id_key}
                     JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-                        ON mapping_table.case_id = cpp.case_gdc_id
+                        ON mapping_table.case_id = cpp.case_id
+                    WHERE cpp.program_name = '{program}'
                 """
             elif _parent_table:
                 parent_mapping_table = PARAMS['TABLE_PARAMS'][_parent_table]['mapping_table']
@@ -274,10 +276,14 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
                     JOIN `{create_dev_table_id(PARAMS, parent_mapping_table)}` parent_mapping_table
                         ON parent_mapping_table.{parent_id_key} = parent_table.{parent_id_key}
                     JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-                        ON parent_mapping_table.case_id = cpp.case_gdc_id
+                        ON parent_mapping_table.case_id = cpp.case_id
+                    WHERE cpp.program_name = '{program}'
                 """
+            else:
+                logger.critical(f"No parent assigned for {_table} in yaml config, exiting.")
+                sys.exit(-1)
 
-            sql_str += f"WHERE cpp.program_name = '{program}'"
+            return sql_str
 
         non_null_columns_dict = dict()
 
@@ -319,23 +325,18 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
 
             child_tables = PARAMS['TABLE_PARAMS'][stand_alone_table]['parent_of']
 
-            if not child_tables:
-                continue
+            i = 0
 
-            for _child_table in child_tables:
+            while i < len(child_tables):
                 # if child table does not require a stand-alone table and has non-null columns,
                 # add to table_column_locations, then check its children as well
-                if _child_table not in stand_alone_tables and non_null_column_dict[_child_table]:
-                    table_column_locations[stand_alone_table].append(_child_table)
+                if child_tables[i] not in stand_alone_tables and non_null_column_dict[child_tables[i]]:
+                    table_column_locations[stand_alone_table].append(child_tables[i])
 
-                    grandchild_tables = PARAMS['TABLE_PARAMS'][_child_table]['parent_of']
+                    descendent_tables = PARAMS['TABLE_PARAMS'][child_tables[i]]['parent_of']
 
-                    if not grandchild_tables:
-                        continue
-
-                    for grandchild_table in grandchild_tables:
-                        if grandchild_table not in stand_alone_tables and non_null_column_dict[grandchild_table]:
-                            table_column_locations[stand_alone_table].append(grandchild_table)
+                    if descendent_tables:
+                        child_tables.extend(descendent_tables)
 
         return table_column_locations
 
@@ -364,6 +365,7 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
 
             col_alias = f"`{table_alias}`.{col}"
 
+            # prefixes are used to denote the source table in the column name, e.g. diag for diagnosis
             prefix = PARAMS['TABLE_PARAMS'][src_table]['prefix']
 
             if prefix:
@@ -371,7 +373,6 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
 
             table_sql_dict[table]['select'].append(col_alias)
 
-    # noinspection PyTypeChecker
     def make_sql_statement_from_dict() -> str:
         """
         Create SQL query string using dict of clauses.
@@ -407,38 +408,39 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
             logger.critical("No columns found for 'SELECT' clause.")
             sys.exit(-1)
 
+        # create 'select' clause string
         select_clause_str = "SELECT "
         select_clause_str += ", ".join(table_sql_dict[table]['select'])
         select_clause_str += "\n"
 
+        # create 'from' clause string
         from_table_alias = table
         from_table_id = create_dev_table_id(PARAMS, from_table_alias)
 
         from_clause_str = f"FROM `{from_table_id}` `{from_table_alias}`\n"
 
+        # create 'join' clause string
         join_clause_str = ""
         if table_sql_dict[table]['join']:
-            for table_id in table_sql_dict[table]['join'].keys():
-                join_type = table_sql_dict[table]['join'][table_id]['join_type']
-                join_key = table_sql_dict[table]['join'][table_id]['join_key']
-                left_table_alias = table_sql_dict[table]['join'][table_id]['left_table_alias']
-                right_table_alias = table_sql_dict[table]['join'][table_id]['right_table_alias']
+            for join_table_id, join_table_vars in table_sql_dict[table]['join'].items():
+                join_type = join_table_vars['join_type']
+                join_key = join_table_vars['join_key']
+                left_table_alias = join_table_vars['left_table_alias']
+                right_table_alias = join_table_vars['right_table_alias']
 
-                join_clause_str += f"{join_type} JOIN `{table_id}` `{right_table_alias}`\n" \
+                join_clause_str += f"{join_type} JOIN `{join_table_id}` `{right_table_alias}`\n" \
                                    f"   ON `{right_table_alias}`.{join_key} = `{left_table_alias}`.{join_key}\n"
 
         map_table_alias = PARAMS['TABLE_PARAMS'][table]['mapping_table']
 
         # filter by program
         where_clause_str = f"WHERE `{map_table_alias}`.case_id in (\n" \
-                           f"   SELECT case_gdc_id\n" \
+                           f"   SELECT case_id\n" \
                            f"   FROM `{create_dev_table_id(PARAMS, 'case_project_program')}`\n" \
                            f"   WHERE program_name = '{program}'\n" \
                            f")\n"
 
         sql_str = with_clause_str + select_clause_str + from_clause_str + join_clause_str + where_clause_str
-        # logger.debug(f"SQL for {table}:\n{sql_str}")
-
         return sql_str
 
     def make_join_clause_dict(key_name: str, left_table_alias: str, right_table_alias: str) -> dict[str, str]:
@@ -459,7 +461,7 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
     logger = logging.getLogger('base_script')
 
     # used to store information for sql query
-    table_sql_dict = dict()
+    table_sql_dict: Any = dict()
 
     # dict of mapping and count columns for all of this program's tables
     mapping_count_columns = get_mapping_and_count_columns()
@@ -594,9 +596,7 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     if 'find_missing_fields' in steps:
-        pass
-        # todo uncomment
-        # find_missing_fields()
+        find_missing_fields()
     if 'find_program_tables' in steps:
         # creates dict of programs and base, supplemental tables to be created
         tables_per_program_dict = find_program_tables(PARAMS['TABLE_PARAMS'])
