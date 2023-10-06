@@ -717,7 +717,7 @@ def find_table_column_frequency():
     for program in find_program_tables().keys():
         columns_by_program_dict[program] = find_program_non_null_columns_by_table()
 
-        print(table_column_counts_by_program)
+    print(table_column_counts_by_program)
 
 
 def main(args):
