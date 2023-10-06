@@ -631,6 +631,7 @@ def find_table_column_frequency():
                 sql_str += f"""
                     JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
                         ON this_table.{id_key} = cpp.{id_key}
+                    WHERE cpp.program_name = '{program}'
                 """
             elif _parent_table == 'case':
                 sql_str += f"""
@@ -685,11 +686,20 @@ def find_table_column_frequency():
 
             for row in column_count_result:
                 # get columns for field group
+                table_total = row.get(f"{_table}_id_count")
                 for _column in columns:
                     count = row.get(f"{_column}_count")
 
                     if count is not None and count > 0:
-                        print(f"{program}\t{_table}\t{_column}\t{count}")
+                        if _column not in table_column_counts_by_program[_table]:
+                            table_column_counts_by_program[_table][_column] = dict()
+
+                        table_column_counts_by_program[_table][_column][program] = {
+                            'count': count,
+                            'total_rows': table_total
+                        }
+
+                        print(f"{program}\t{_table}\t{_column}\t{count}\t{table_total}")
 
                     if count is not None and count > 0:
                         non_null_columns.append(_column)
@@ -699,9 +709,15 @@ def find_table_column_frequency():
         return non_null_columns_dict
 
     columns_by_program_dict = dict()
+    table_column_counts_by_program = dict()
+
+    for table in PARAMS['TABLE_PARAMS'].keys():
+        table_column_counts_by_program[table] = dict()
 
     for program in find_program_tables().keys():
         columns_by_program_dict[program] = find_program_non_null_columns_by_table()
+
+        print(table_column_counts_by_program)
 
 
 def main(args):
