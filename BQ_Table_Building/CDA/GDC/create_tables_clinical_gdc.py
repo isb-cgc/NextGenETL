@@ -601,6 +601,107 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         create_table_from_query(PARAMS, table_id=clinical_table_id, query=sql_query)
 
 
+def find_table_column_frequency():
+    def find_program_non_null_columns_by_table():
+        def make_count_column_sql() -> str:
+            mapping_table = PARAMS['TABLE_PARAMS'][_table]['mapping_table']
+            id_key = f"{_table}_id"
+            _parent_table = PARAMS['TABLE_PARAMS'][_table]['child_of']
+
+            count_sql_str = ''
+
+            for col in columns:
+                count_sql_str += f'\nSUM(CASE WHEN this_table.{col} is null THEN 0 ELSE 1 END) AS {col}_count, '
+
+            # remove extra comma (due to looping) from end of string
+            count_sql_str = count_sql_str[:-2]
+
+            sql_str = f"""
+                SELECT {count_sql_str}
+                FROM `{create_dev_table_id(PARAMS, _table)}` this_table 
+            """
+
+            if _table == 'case':
+                sql_str += f"""
+                    JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
+                        ON this_table.case_id = cpp.case_id
+                    WHERE cpp.program_name = '{program}'
+                """
+            elif _table == 'project':
+                sql_str += f"""
+                    JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
+                        ON this_table.{id_key} = cpp.{id_key}
+                """
+            elif _parent_table == 'case':
+                sql_str += f"""
+                    JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
+                        ON mapping_table.{id_key} = this_table.{id_key}
+                    JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
+                        ON mapping_table.case_id = cpp.case_id
+                    WHERE cpp.program_name = '{program}'
+                """
+            elif _parent_table:
+                parent_mapping_table = PARAMS['TABLE_PARAMS'][_parent_table]['mapping_table']
+                parent_id_key = f"{_parent_table}_id"
+
+                sql_str += f"""
+                    JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
+                        ON mapping_table.{id_key} = this_table.{id_key}
+                    JOIN `{create_dev_table_id(PARAMS, _parent_table)}` parent_table
+                        ON parent_table.{parent_id_key} = mapping_table.{parent_id_key}
+                    JOIN `{create_dev_table_id(PARAMS, parent_mapping_table)}` parent_mapping_table
+                        ON parent_mapping_table.{parent_id_key} = parent_table.{parent_id_key}
+                    JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
+                        ON parent_mapping_table.case_id = cpp.case_id
+                    WHERE cpp.program_name = '{program}'
+                """
+            else:
+                logger.critical(f"No parent assigned for {_table} in yaml config, exiting.")
+                sys.exit(-1)
+
+            return sql_str
+
+        logger = logging.getLogger('base_script')
+
+        non_null_columns_dict = dict()
+
+        for _table in PARAMS['TABLE_PARAMS'].keys():
+            _first_columns = PARAMS['TABLE_PARAMS'][_table]['column_order']['first']
+            _middle_columns = PARAMS['TABLE_PARAMS'][_table]['column_order']['middle']
+            _last_columns = PARAMS['TABLE_PARAMS'][_table]['column_order']['last']
+
+            columns = list()
+
+            if _first_columns:
+                columns.extend(_first_columns)
+            if _middle_columns:
+                columns.extend(_middle_columns)
+            if _last_columns:
+                columns.extend(_last_columns)
+
+            column_count_result = query_and_retrieve_result(sql=make_count_column_sql())
+
+            non_null_columns = list()
+
+            for row in column_count_result:
+                # get columns for field group
+                for _column in columns:
+                    count = row.get(f"{_column}_count")
+                    print(f"{program}\t{_table}\t{_column}\t{count}")
+
+                    if count is not None and count > 0:
+                        non_null_columns.append(_column)
+
+            non_null_columns_dict[_table] = non_null_columns
+
+        return non_null_columns_dict
+
+    columns_by_program_dict = dict()
+
+    for program in find_program_tables().keys():
+        columns_by_program_dict[program] = find_program_non_null_columns_by_table()
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -612,16 +713,19 @@ def main(args):
     log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
-
+    """
     if 'find_missing_fields' in steps:
         # logger.debug("Passing find_missing_fields")
+        # Find discrepancies in field lists in yaml config and CDA data
         find_missing_fields()
     if 'find_program_tables' in steps:
-        # creates dict of programs and base, supplemental tables to be created
+        # create dict of programs : base/supplemental tables to be created
         tables_per_program_dict = find_program_tables()
 
         for program, stand_alone_tables in tables_per_program_dict.items():
             create_sql_for_program_tables(program, stand_alone_tables)
+    """
+    find_table_column_frequency()
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
