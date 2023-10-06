@@ -687,7 +687,9 @@ def find_table_column_frequency():
                 # get columns for field group
                 for _column in columns:
                     count = row.get(f"{_column}_count")
-                    print(f"{program}\t{_table}\t{_column}\t{count}")
+
+                    if count is not None and count > 0:
+                        print(f"{program}\t{_table}\t{_column}\t{count}")
 
                     if count is not None and count > 0:
                         non_null_columns.append(_column)
