@@ -212,7 +212,6 @@ def make_aliquot_entity_query(program_name: str) -> str:
             fm2.`access`,
             fm2.acl
         FROM fm2
-        # should this be 
         JOIN `{case_metadata_table_id}` cm
             ON cm.case_gdc_id = fm2.case_gdc_id
     """

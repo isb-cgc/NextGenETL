@@ -79,31 +79,31 @@ def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
         return True if row else False
 
 
-def compare_tables(source_table_id: str, current_table_id: str, versioned_table_id: str):
+def compare_tables(table_ids: dict[str, str]):
     logger = logging.getLogger('base_script')
 
-    previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, versioned_table_id)
+    previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
 
     if previous_versioned_table_id is None:
-        logger.warning(f"No previous version found for {source_table_id}. Will publish. Investigate if unexpected.")
+        logger.warning(f"No previous version found for {table_ids['source']}. Will publish. Investigate if unexpected.")
         return
 
-    logger.info(f"Comparing tables {source_table_id} and {previous_versioned_table_id}.")
+    logger.info(f"Comparing tables {table_ids['source']} and {previous_versioned_table_id}.")
 
     # does source table exist?
-    if not exists_bq_table(source_table_id):
+    if not exists_bq_table(table_ids['source']):
         logger.critical("Source table id doesn't exist, cannot publish.")
         sys.exit(-1)
 
     # does current dataset exist?
-    current_dataset = ".".join(current_table_id.split('.')[:-1])
+    current_dataset = ".".join(table_ids['current'].split('.')[:-1])
 
     if not exists_bq_dataset(current_dataset):
         logger.critical(f"Dataset {current_dataset} doesn't exist, cannot publish.")
         sys.exit(-1)
 
     # does versioned dataset exist?
-    versioned_dataset = ".".join(versioned_table_id.split('.')[:-1])
+    versioned_dataset = ".".join(table_ids['versioned'].split('.')[:-1])
 
     if not exists_bq_dataset(versioned_dataset):
         logger.critical(f"Dataset {versioned_dataset} doesn't exist, cannot publish.")
@@ -113,10 +113,10 @@ def compare_tables(source_table_id: str, current_table_id: str, versioned_table_
 
     # display published table_ids
     logger.info("To-be-published table_ids:")
-    logger.info(f"current: {current_table_id}")
-    logger.info(f"versioned: {versioned_table_id}")
+    logger.info(f"current: {table_ids['current']}")
+    logger.info(f"versioned: {table_ids['versioned']}")
 
-    has_new_data = table_has_new_data(previous_versioned_table_id, source_table_id)
+    has_new_data = table_has_new_data(previous_versioned_table_id, table_ids['source'])
 
     # is there a previous version to compare with new table?
     # use previous_versioned_table_id
@@ -127,8 +127,7 @@ def compare_tables(source_table_id: str, current_table_id: str, versioned_table_
 
 
 def find_record_difference_counts(table_type: str,
-                                  source_table_id: str,
-                                  versioned_table_id: str,
+                                  table_ids: dict[str, str],
                                   table_metadata: dict[str, Union[str, list[str]]]):
     def make_record_count_query(table_id):
         return f"""
@@ -140,7 +139,7 @@ def find_record_difference_counts(table_type: str,
         return f"""
             WITH new_rows AS (
                 SELECT * 
-                FROM `{source_table_id}`
+                FROM `{table_ids['source']}`
                 EXCEPT DISTINCT
                 SELECT *
                 FROM `{previous_versioned_table_id}`
@@ -150,7 +149,7 @@ def find_record_difference_counts(table_type: str,
                 FROM `{previous_versioned_table_id}`
                 EXCEPT DISTINCT
                 SELECT *
-                FROM `{source_table_id}`
+                FROM `{table_ids['source']}`
             )
 
             # added aliquots
@@ -168,7 +167,7 @@ def find_record_difference_counts(table_type: str,
         return f"""
             WITH new_rows AS (
                 SELECT * 
-                FROM `{source_table_id}`
+                FROM `{table_ids['source']}`
                 EXCEPT DISTINCT
                 SELECT *
                 FROM `{previous_versioned_table_id}`
@@ -178,7 +177,7 @@ def find_record_difference_counts(table_type: str,
                 FROM `{previous_versioned_table_id}`
                 EXCEPT DISTINCT
                 SELECT *
-                FROM `{source_table_id}`
+                FROM `{table_ids['source']}`
             )
 
             # added aliquots
@@ -196,7 +195,7 @@ def find_record_difference_counts(table_type: str,
         return f"""
             WITH new_rows AS (
                 SELECT * 
-                FROM `{source_table_id}`
+                FROM `{table_ids['source']}`
                 EXCEPT DISTINCT
                 SELECT *
                 FROM `{previous_versioned_table_id}`
@@ -206,7 +205,7 @@ def find_record_difference_counts(table_type: str,
                 FROM `{previous_versioned_table_id}`
                 EXCEPT DISTINCT
                 SELECT *
-                FROM `{source_table_id}`
+                FROM `{table_ids['source']}`
             ), intersects AS (
                 SELECT {primary_key}, {secondary_key} {output_key_string} 
                 FROM old_rows
@@ -246,10 +245,10 @@ def find_record_difference_counts(table_type: str,
 
     logger = logging.getLogger('base_script')
 
-    previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, versioned_table_id)
+    previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
 
     if previous_versioned_table_id is None:
-        logger.warning(f"No previous table found for {versioned_table_id}; therefore, no changes to report.")
+        logger.warning(f"No previous table found for {table_ids['versioned']}; therefore, no changes to report.")
         return
 
     output_key_string = ",".join(table_metadata['output_keys'])
@@ -277,7 +276,7 @@ def find_record_difference_counts(table_type: str,
         logger.critical("Probably an error in the table id or SQL query.")
         sys.exit(-1)
 
-    new_version_count_result = query_and_retrieve_result(make_record_count_query(source_table_id))
+    new_version_count_result = query_and_retrieve_result(make_record_count_query(table_ids['source']))
 
     try:
         new_version_count = None
@@ -289,7 +288,7 @@ def find_record_difference_counts(table_type: str,
         if new_version_count is None:
             raise TypeError
     except TypeError:
-        logger.critical(f"No value returned for new version row count in {source_table_id}.")
+        logger.critical(f"No value returned for new version row count in {table_ids['source']}.")
         logger.critical("Probably an error in the table id or SQL query.")
         sys.exit(-1)
 
@@ -322,80 +321,173 @@ def find_record_difference_counts(table_type: str,
         logger.info(changed_str)
 
 
-def compare_table_columns(left_table_id: str,
-                          right_table_id: str,
-                          column_list: list[str],
-                          primary_key: str,
-                          secondary_key: str = None,
+def generate_column_list(table_id_list: list[str], excluded_columns: set[str]) -> list[str]:
+    """
+    Create a list of column names found in tables, minus any excluded columns.
+    :param table_id_list: list of tables from which to retrieve columns
+    :param excluded_columns: set of columns to exclude from the list
+    :return: a list representing the union of columns from every table in table_id_list, less any excluded_columns
+    """
+    def make_column_list_query() -> str:
+        project_dataset_name = ".".join(table_id.split('.')[0:2])
+        table_name = table_id.split('.')[-1]
+
+        return f"""
+            SELECT column_name
+            FROM `{project_dataset_name}`.INFORMATION_SCHEMA.COLUMNS
+            WHERE table_name = {table_name}        
+            """
+
+    column_union_set = set()
+
+    for table_id in table_id_list:
+        # retrieve table's column names and create a set
+        column_result = query_and_retrieve_result(make_column_list_query())
+        column_set = set(column_result)
+
+        if not column_union_set:
+            column_union_set = column_set
+        else:
+            column_union_set = column_union_set | column_set
+
+    # remove any concatenated columns supplied in yaml config from column_list
+    column_union_set = column_union_set - excluded_columns
+
+    return sorted(list(column_union_set))
+
+
+def compare_table_columns(table_ids: dict[str, str],
+                          table_params: dict,
                           max_display_rows: int = 5):
     """
-    Compare left table to right table on a per-column basis.
-    Results returned represent data missing from the right table but found in the left.
-    :param left_table_id: left table id
-    :param right_table_id: right table id
-    :param primary_key: primary key, used to match rows across tables
-    :param column_list: list of columns to compare across tables (non-concatenated only, as order is not guaranteed)
-    :param secondary_key: optional; secondary key used to map data
-    :param max_display_rows: maximum result rows to display in output
+    Compare column in new table and most recently published table, matching values based on primary key
+    (and, optionally, secondary key).
+    :param table_ids: todo
+    :param table_params: todo
+    :param max_display_rows: maximum result rows to display in output; default is 5
     """
-    def make_compare_table_column_sql(column_name, table_id_1, table_id_2) -> str:
-        secondary_key_sql_string = ''
 
-        if secondary_key is not None:
-            secondary_key_sql_string = f"{secondary_key},"
+    # warning suppressed because PyCharm gets confused by the secondary key clause variables
+    # noinspection SqlAmbiguousColumn
+    def make_compare_table_column_sql(column_name) -> str:
+        """
+        Make SQL query that compares ompare individual column values
+        :param column_name:
+        """
+        if secondary_key is None:
+            secondary_key_with_str = ''
+            secondary_key_select_str = ''
+            secondary_key_join_str = ''
+        else:
+            secondary_key_with_str = f"{secondary_key},"
+            secondary_key_select_str = f"""
+                n.{secondary_key} AS new_{secondary_key},
+                o.{secondary_key} AS old_{secondary_key},
+            """
+            secondary_key_join_str = f"AND n.{secondary_key} = o.{secondary_key}"
 
-        # outputs values from left table that are not found in right table
         return f"""
-            SELECT {secondary_key_sql_string} {primary_key}, {column_name}
-            FROM `{table_id_1}`
-            EXCEPT DISTINCT 
-            SELECT {secondary_key_sql_string} {primary_key}, {column_name}
-            FROM `{table_id_2}`
-            ORDER BY {primary_key}
+            WITH different_in_new AS (
+                SELECT {secondary_key_with_str} {primary_key}, {column_name}
+                FROM `{table_ids['source']}`
+                EXCEPT DISTINCT 
+                SELECT {secondary_key_with_str} {primary_key}, {column_name}
+                FROM `{table_ids['versioned']}`
+                ORDER BY {primary_key}
+            ), different_in_old AS (
+                SELECT {secondary_key_with_str} {primary_key}, {column_name}
+                FROM `{table_ids['versioned']}`
+                EXCEPT DISTINCT 
+                SELECT {secondary_key_with_str} {primary_key}, {column_name}
+                FROM `{table_ids['source']}`
+                ORDER BY {primary_key}
+            )
+
+            SELECT n.{primary_key} AS new_{primary_key}, 
+                o.{primary_key} AS old_{primary_key},
+                {secondary_key_select_str}
+                n.{column_name} AS new_{column_name},
+                o.{column_name} AS old_{column_name}
+            FROM different_in_new n 
+            FULL JOIN different_in_old o
+                ON n.{primary_key} = o.{primary_key}
+                    {secondary_key_join_str}
         """
 
-    def compare_table_column_left_table(table_id_1, table_id_2):
-        column_comparison_query = make_compare_table_column_sql(column, table_id_1, table_id_2)
+    logger = logging.getLogger('base_script')
 
-        result = query_and_retrieve_result(sql=column_comparison_query)
+    primary_key = table_params['primary_key']
+    secondary_key = table_params['secondary_key'] if 'secondary_key' in table_params else None
 
-        if not result:
-            print(f"\nNo results returned. This can mean that there's a column data type mismatch, "
-                  f"or that the column name differs.\n")
-        elif result.total_rows > 0:
-            print(f"\n{result.total_rows} values in {table_id_1} didn't match value found in {table_id_2}.\n")
-            print(f"Example values:\n")
+    if 'concat_columns' in table_params:
+        concat_column_set = set(table_params['concat_columns'])
+    else:
+        concat_column_set = set()
 
-            if secondary_key is not None:
-                print(f"{primary_key:40} {secondary_key:40} {column}")
+    if 'columns_excluded_from_compare' in table_params:
+        not_compared_column_set = set(table_params['columns_excluded_from_compare'])
+    else:
+        not_compared_column_set = set()
+
+    excluded_columns = concat_column_set | not_compared_column_set
+    excluded_columns.add(primary_key)
+
+    old_version_table_id = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
+
+    if not old_version_table_id:
+        logger.info(f"Previous version of table (future versioned table id: {table_ids['versioned']}) not found.")
+        return
+
+    column_list = table_params['column_list'] if 'column_list' in table_params else None
+
+    if column_list is None:
+        table_id_list = [table_ids['source'], table_ids['versioned']]
+        column_list = generate_column_list(table_id_list=table_id_list, excluded_columns=excluded_columns)
+
+    for column in sorted(column_list):
+        column_comparison_result = query_and_retrieve_result(sql=make_compare_table_column_sql(column))
+
+        if not column_comparison_result:
+            logger.info(f"{column}: Column doesn't exist in one or both tables, or data types don't match.")
+            logger.info("")
+        elif column_comparison_result.total_rows == 0:
+            pass  # no changes found, skipping output here to minimize verbosity
+        else:
+            logger.info(f"{column}: {column_comparison_result.total_rows} differences found. Examples:")
+
+            new_column_header = f"new {column}"
+            old_column_header = f"old {column}"
+
+            # output header row
+            if secondary_key is None:
+                logger.info(f"{primary_key:40} {old_column_header: 40} {new_column_header}")
             else:
-                print(f"{primary_key:40} {column}")
+                logger.info(f"{primary_key:40} {secondary_key:40} {old_column_header: 40} {new_column_header}")
 
             count = 0
 
-            for row in result:
-                primary_key_value = row.get(primary_key)
-                column_value = row.get(column)
+            for row in column_comparison_result:
+                new_primary_key_val = row.get(f"new_{primary_key}")
+                old_primary_key_val = row.get(f"old_{primary_key}")
+                primary_key_val = new_primary_key_val if new_primary_key_val is not None else old_primary_key_val
+
+                new_column_val = row.get(f"new_{column}")
+                old_column_val = row.get(f"old_{column}")
 
                 if secondary_key is not None:
-                    secondary_key_value = row.get(secondary_key)
+                    new_second_key_val = row.get(f"new_{secondary_key}")
+                    old_second_key_val = row.get(f"old_{secondary_key}")
+                    secondary_key_val = new_second_key_val if new_second_key_val is not None else old_second_key_val
 
-                    print(f"{primary_key_value:40} {secondary_key_value:40} {column_value}")
+                    logger.info(f"{primary_key_val:40} {secondary_key_val:40} {old_column_val:40} {new_column_val}")
                 else:
-                    print(f"{primary_key_value:40} {column_value}")
+                    logger.info(f"{primary_key_val:40} {old_column_val:40} {new_column_val}")
 
                 count += 1
-                if count == max_display_rows:
-                    print()
-                    break
-        else:
-            print(f"\nNo missing values found in {table_id_2}!")
 
-    for column in column_list:
-        print(f"\n* For {column}: *")
-        compare_table_column_left_table(left_table_id, right_table_id)
-        compare_table_column_left_table(right_table_id, left_table_id)
-        print()
+                if count == max_display_rows:
+                    logger.info("")
+                    break
 
 
 def compare_concat_columns(left_table_id: str,
@@ -541,11 +633,6 @@ def compare_concat_columns(left_table_id: str,
                     break
 
 
-def get_change_details(new_dev_table_id: str, prev_version_table_id: str):
-    # compare table columns, both concatenated and non-concatenated
-    pass
-
-
 def get_new_table_names(dataset: str) -> list[str]:
     def make_new_table_names_query():
         return f"""
@@ -618,32 +705,30 @@ def find_missing_tables(dataset, table_type):
             logger.warning(f"Cannot find new dev table for published table {current_table_name}.")
 
 
-def publish_table(source_table_id: str, current_table_id: str, versioned_table_id: str):
+def publish_table(table_ids: dict[str, str]):
     """
     Publish production BigQuery tables using source_table_id:
         - create current/versioned table ids
         - publish tables
         - update friendly name for versioned table
         - change last version tables' status labels to archived
-    :param source_table_id: source (dev) table id
-    :param current_table_id: published table id for current
-    :param versioned_table_id: published table id for versioned
+    :param table_ids: dict containing source, current and versioned table ids
     """
     logger = logging.getLogger('base_script')
 
-    previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, versioned_table_id)
+    previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
     logger.info(f"previous_versioned_table_id: {previous_versioned_table_id}")
 
     if PARAMS['TEST_PUBLISH']:
         logger.error("Cannot run publish table step with TEST_PUBLISH set to true.")
         sys.exit(-1)
 
-    if exists_bq_table(source_table_id):
-        if table_has_new_data(previous_versioned_table_id, source_table_id):
+    if exists_bq_table(table_ids['source']):
+        if table_has_new_data(previous_versioned_table_id, table_ids['source']):
             delay = 5
 
             logger.info(f"""\n\nPublishing the following tables:""")
-            logger.info(f"\t - {versioned_table_id}\n\t - {current_table_id}")
+            logger.info(f"\t - {table_ids['versioned']}\n\t - {table_ids['current']}")
             logger.info(f"Proceed? Y/n (continues automatically in {delay} seconds)")
 
             response = str(input_with_timeout(seconds=delay)).lower()
@@ -651,21 +736,27 @@ def publish_table(source_table_id: str, current_table_id: str, versioned_table_i
             if response == 'n':
                 exit("\nPublish aborted; exiting.")
 
-            logger.info(f"\nPublishing {versioned_table_id}")
-            copy_bq_table(PARAMS, source_table_id, versioned_table_id, replace_table=PARAMS['OVERWRITE_PROD_TABLE'])
+            logger.info(f"\nPublishing {table_ids['versioned']}")
+            copy_bq_table(params=PARAMS,
+                          src_table=table_ids['source'],
+                          dest_table=table_ids['versioned'],
+                          replace_table=PARAMS['OVERWRITE_PROD_TABLE'])
 
-            logger.info(f"Publishing {current_table_id}")
-            copy_bq_table(PARAMS, source_table_id, current_table_id, replace_table=PARAMS['OVERWRITE_PROD_TABLE'])
+            logger.info(f"Publishing {table_ids['current']}")
+            copy_bq_table(params=PARAMS,
+                          src_table=table_ids['source'],
+                          dest_table=table_ids['current'],
+                          replace_table=PARAMS['OVERWRITE_PROD_TABLE'])
 
-            logger.info(f"Updating friendly name for {versioned_table_id}")
-            update_friendly_name(PARAMS, table_id=versioned_table_id)
+            logger.info(f"Updating friendly name for {table_ids['versioned']}")
+            update_friendly_name(PARAMS, table_id=table_ids['versioned'])
 
             if previous_versioned_table_id:
                 logger.info(f"Archiving {previous_versioned_table_id}")
                 change_status_to_archived(previous_versioned_table_id)
 
         else:
-            logger.info(f"{source_table_id} not published, no changes detected")
+            logger.info(f"{table_ids['source']} not published, no changes detected")
 
 
 def main(args):
@@ -681,73 +772,88 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    for table_type in PARAMS['TABLE_TYPES'].keys():
-        table_metadata = PARAMS['TABLE_TYPES'][table_type]
+    prod_project = PARAMS['PROD_PROJECT']
+    dev_project = PARAMS['DEV_PROJECT']
 
-        prod_project = PARAMS['PROD_PROJECT']
-        prod_dataset = table_metadata['prod_dataset']
-        dev_project = PARAMS['DEV_PROJECT']
-        dev_dataset = PARAMS['DEV_METADATA_DATASET']
-        prod_table_name = table_metadata['table_base_name']
+    # COMPARE AND PUBLISH METADATA TABLES
+    for table_type, table_params in PARAMS['METADATA_TABLE_TYPES'].items():
+        prod_dataset = table_params['prod_dataset']
+        prod_table_name = table_params['table_base_name']
 
-        current_table_id = f"{prod_project}.{prod_dataset}.{prod_table_name}_current"
-        versioned_table_id = f"{prod_project}.{prod_dataset}_versioned.{prod_table_name}_{PARAMS['RELEASE']}"
-        source_table_id = f"{dev_project}.{dev_dataset}.{prod_table_name}_{PARAMS['RELEASE']}"
+        table_ids = {
+            'current': f"{prod_project}.{prod_dataset}.{prod_table_name}_current",
+            'versioned': f"{prod_project}.{prod_dataset}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
+            'source': f"{dev_project}.{PARAMS['DEV_METADATA_DATASET']}.{prod_table_name}_{PARAMS['RELEASE']}"
+        }
 
         if 'compare_tables' in steps:
             # confirm that datasets and table ids exist, and preview whether table will be published
-            compare_tables(source_table_id, current_table_id, versioned_table_id)
+            compare_tables(table_ids)
 
             # display compare_to_last.sh style output
-            find_record_difference_counts(table_type, source_table_id, versioned_table_id, table_metadata)
+            find_record_difference_counts(table_type, table_ids, table_params)
 
-            get_change_details()
+            compare_table_columns(table_ids=table_ids, table_params=table_params)
 
         if 'publish_tables' in steps:
-            publish_table(source_table_id, current_table_id, versioned_table_id)
+            publish_table(table_ids)
 
-    for table_type, table_type_data in PARAMS['PER_PROGRAM_PROJECT_TABLE_TYPES'].items():
-        prod_project = PARAMS['PROD_PROJECT']
-        dev_project = PARAMS['DEV_PROJECT']
-        dev_dataset = table_type_data['dev_dataset']
-
+    # COMPARE AND PUBLISH CLINICAL AND PER SAMPLE FILE TABLES
+    for table_type, table_params in PARAMS['PER_PROJECT_TABLE_TYPES'].items():
         # look for list of last release's published tables to ensure none have disappeared before comparing
-        find_missing_tables(dataset=dev_dataset, table_type=table_type)
+        find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
 
         # for clinical:
         # get list of tables from clinical dataset for current release
-        new_table_names = get_new_table_names(dataset=dev_dataset)
+        new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
         # find matching previous version table. If none, no comparison
         for table_name in new_table_names:
             # remove release from table name
             table_name_no_rel = table_name.replace(f"_{PARAMS['RELEASE']}", "")
 
             if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
-                # remove type from table name, leaving the program name (which is also the prod dataset)
-                for clinical_fg in PARAMS['CLINICAL_TABLE_KEY'].keys():
-                    prod_dataset = table_name_no_rel.replace(f'{clinical_fg}_', "")
+                prod_dataset = table_name_no_rel
 
-                prod_table_name = table_name_no_rel.replace(f"_{prod_dataset}", "")
-                prod_table_name = f"{prod_table_name}_{PARAMS['NODE']}"
+                # remove field groups from table name, leaving the program name (which is also the prod dataset)
+                for clinical_fg in table_params['field_groups'].keys():
+                    prod_dataset = prod_dataset.replace(f'{clinical_fg}_', "")
+
+                program = table_name_no_rel.replace(f"_{prod_dataset}", "")
+                field_group = table_name_no_rel.replace(f"_{program}", "").split("_")[-1]
+
+                prod_table_name = f"{program}_{PARAMS['NODE']}"
+
+                table_ids = {
+                    'current': f"{prod_project}.{prod_dataset}.{prod_table_name}_current",
+                    'versioned': f"{prod_project}.{prod_dataset}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
+                    'source': f"{dev_project}.{table_params['dev_dataset']}.{table_name}"
+                }
+
+                if 'compare_tables' in steps:
+                    # confirm that datasets and table ids exist, and preview whether table will be published
+                    compare_tables(table_ids)
+
+                    # display compare_to_last.sh style output
+                    find_record_difference_counts(table_type, table_ids, table_params)
+
+                    if field_group == 'clinical':
+                        primary_key = 'case_id'
+                    else:
+                        primary_key = f"{field_group}_id"
+
+                    modified_table_params = {
+                        'primary_key': primary_key,
+                        'concat_columns': table_params['concat_columns'],
+                        'columns_excluded_from_compare': table_params['columns_excluded_from_compare'],
+                    }
+
+                    compare_table_columns(table_ids=table_ids, table_params=modified_table_params)
+
+                if 'publish_tables' in steps:
+                    publish_table(table_ids)
             else:
                 pass
                 # todo create prod table names and datasets for per_sample_file in gdc and pdc, clinical in pdc
-
-            current_table_id = f"{prod_project}.{prod_dataset}.{prod_table_name}_current"
-            versioned_table_id = f"{prod_project}.{prod_dataset}_versioned.{prod_table_name}_{PARAMS['RELEASE']}"
-            source_table_id = f"{dev_project}.{dev_dataset}.{table_name}"
-
-            if 'compare_tables' in steps:
-                # confirm that datasets and table ids exist, and preview whether table will be published
-                compare_tables(source_table_id, current_table_id, versioned_table_id)
-
-                # display compare_to_last.sh style output
-                find_record_difference_counts(table_type, source_table_id, versioned_table_id, table_metadata)
-
-                get_change_details()
-
-            if 'publish_tables' in steps:
-                publish_table(source_table_id, current_table_id, versioned_table_id)
 
             # get column lists for new table and previous table
             # - any new or removed columns? note in output
