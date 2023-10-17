@@ -25,7 +25,7 @@ from google.cloud import bigquery
 
 from BQ_Table_Building.CDA.tests.shared_test_functions import compare_row_counts, compare_id_keys, compare_table_columns
 from cda_bq_etl.utils import load_config, has_fatal_error
-from cda_bq_etl.bq_helpers import get_project_or_program_list
+from cda_bq_etl.bq_helpers import get_program_list
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -42,10 +42,10 @@ def main(args):
 
     table_id_tuple_set = set()
 
-    program_set = get_project_or_program_list(PARAMS)
+    program_set = get_program_list(PARAMS)
 
     for program_name in sorted(program_set):
-        old_table_name = f"{PARAMS['TABLE_BASE_NAME']}_{program_name}_{PARAMS['DC_SOURCE']}_{PARAMS['DC_RELEASE']}"
+        old_table_name = f"{PARAMS['TABLE_BASE_NAME']}_{program_name}_{PARAMS['NODE']}_{PARAMS['RELEASE']}"
         old_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['OLD_DEV_DATASET']}.{old_table_name}"
 
         new_table_name = f"{PARAMS['TABLE_BASE_NAME']}_{program_name}_{PARAMS['RELEASE']}"

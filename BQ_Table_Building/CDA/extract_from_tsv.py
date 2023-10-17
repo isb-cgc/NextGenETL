@@ -328,7 +328,7 @@ def main(args):
 
         normalized_file_names = list()
 
-        if PARAMS['DC_SOURCE'] == "pdc":
+        if PARAMS['NODE'] == "pdc":
             dir_file_dict, dest_path = scan_directories_and_create_file_dict(dest_path)
 
             for directory, file_list in dir_file_dict.items():
@@ -337,7 +337,7 @@ def main(args):
                 directory_normalized_file_names = normalize_files(file_list=file_list, dest_path=local_directory)
 
                 normalized_file_names.extend(directory_normalized_file_names)
-        elif PARAMS['DC_SOURCE'] == "gdc":
+        elif PARAMS['NODE'] == "gdc":
             directory = os.listdir(dest_path)
 
             dest_path += f"/{directory[0]}"
@@ -352,7 +352,7 @@ def main(args):
 
             normalized_file_names = normalize_files(file_list=file_list, dest_path=dest_path)
 
-        index_txt_file_name = f"{PARAMS['RELEASE']}_{PARAMS['DC_SOURCE']}_file_index.txt"
+        index_txt_file_name = f"{PARAMS['RELEASE']}_{PARAMS['NODE']}_file_index.txt"
 
         with open(index_txt_file_name, mode="w", newline="") as txt_file:
             txt_file.writelines(normalized_file_names)
@@ -362,7 +362,7 @@ def main(args):
     if "create_schemas" in steps:
         logger.info("*** Creating schemas!")
         # download index file
-        index_txt_file_name = f"{PARAMS['RELEASE']}_{PARAMS['DC_SOURCE']}_file_index.txt"
+        index_txt_file_name = f"{PARAMS['RELEASE']}_{PARAMS['NODE']}_file_index.txt"
         download_from_bucket(PARAMS, index_txt_file_name)
 
         with open(get_scratch_fp(PARAMS, index_txt_file_name), mode="r") as index_file:
@@ -388,7 +388,7 @@ def main(args):
 
     if "create_tables" in steps:
         logger.info("*** Creating tables!")
-        index_txt_file_name = f"{PARAMS['RELEASE']}_{PARAMS['DC_SOURCE']}_file_index.txt"
+        index_txt_file_name = f"{PARAMS['RELEASE']}_{PARAMS['NODE']}_file_index.txt"
         download_from_bucket(PARAMS, index_txt_file_name)
 
         with open(get_scratch_fp(PARAMS, index_txt_file_name), mode="r") as index_file:

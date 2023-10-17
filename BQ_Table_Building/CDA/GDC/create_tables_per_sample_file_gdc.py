@@ -24,7 +24,7 @@ import time
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds
-from cda_bq_etl.bq_helpers import delete_bq_table, create_table_from_query, get_project_or_program_list, \
+from cda_bq_etl.bq_helpers import delete_bq_table, create_table_from_query, get_program_list, \
     update_table_schema_from_generic, get_program_schema_tags_gdc
 
 PARAMS = dict()
@@ -342,7 +342,7 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    program_list = get_project_or_program_list(PARAMS)
+    program_list = get_program_list(PARAMS)
 
     if 'create_program_tables' in steps:
         logger.info("Entering create_program_tables")

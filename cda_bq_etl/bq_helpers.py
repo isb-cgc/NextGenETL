@@ -969,7 +969,7 @@ def get_program_schema_tags_gdc(params: Params, program_name: str) -> dict[str, 
         return schema_tags
 
 
-def get_project_or_program_list(params: Params, rename_programs: bool = True) -> list[str]:
+def get_program_list(params: Params, rename_programs: bool = True) -> list[str]:
     """
     Get whichever list is used to divide the data into grouped tables; GDC uses program, PDC uses project.
     :param params: params defined in yaml config
@@ -1001,6 +1001,7 @@ def get_project_or_program_list(params: Params, rename_programs: bool = True) ->
         return list(sorted(program_name_set))
 
     elif params['DC_SOURCE'] == 'pdc':
+        '''
         def make_all_studies_query() -> str:
             return f"""
                 SELECT DISTINCT project_short_name
@@ -1015,7 +1016,7 @@ def get_project_or_program_list(params: Params, rename_programs: bool = True) ->
             project_set.add(row[0])
 
         return list(sorted(project_set))
-
+        '''
     elif params['DC_SOURCE'] == 'idc':
         logger.critical("get_project_list() is not yet defined for IDC.")
         sys.exit(-1)

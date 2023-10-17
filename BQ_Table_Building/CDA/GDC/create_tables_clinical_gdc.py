@@ -26,7 +26,7 @@ from typing import Any
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import create_dev_table_id, load_config, format_seconds
-from cda_bq_etl.bq_helpers import query_and_retrieve_result, get_project_or_program_list, create_table_from_query
+from cda_bq_etl.bq_helpers import query_and_retrieve_result, get_program_list, create_table_from_query
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -146,7 +146,7 @@ def find_program_tables() -> dict[str, set[str]]:
 
     logger = logging.getLogger('base_script')
     # Create program set for base clinical tables -- will include every program with clinical cases
-    programs = get_project_or_program_list(PARAMS, rename_programs=False)
+    programs = get_program_list(PARAMS, rename_programs=False)
     tables_per_program_dict = dict()
 
     if programs is None:

@@ -171,10 +171,10 @@ def main(args):
             project_table_name = f"{PARAMS['TABLE_NAME']}_{project_name}_{PARAMS['RELEASE']}"
             project_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{project_table_name}"
 
-            current_table_name = f"{PARAMS['TABLE_NAME']}_{project_name}_{PARAMS['DC_SOURCE']}_current"
+            current_table_name = f"{PARAMS['TABLE_NAME']}_{project_name}_{PARAMS['NODE']}_current"
             current_table_id = f"{PARAMS['PROD_PROJECT']}.{program_name}.{current_table_name}"
 
-            versioned_table_name = f"{PARAMS['TABLE_NAME']}_{project_name}_{PARAMS['DC_SOURCE']}_{PARAMS['DC_RELEASE']}"
+            versioned_table_name = f"{PARAMS['TABLE_NAME']}_{project_name}_{PARAMS['NODE']}_{PARAMS['RELEASE']}"
             versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{program_name}_versioned.{versioned_table_name}"
 
             publish_table(params=PARAMS,
