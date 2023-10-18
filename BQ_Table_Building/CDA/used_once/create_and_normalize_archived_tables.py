@@ -192,9 +192,9 @@ def create_jsonl_and_schema(sql: str, column_list: list[str], table_name: str):
 def create_table(table_name: str):
     gdc_archive_release = API_PARAMS['GDC_ARCHIVE_RELEASE']
     working_project = BQ_PARAMS['WORKING_PROJECT']
-    working_dataset = BQ_PARAMS['WORKING_DATASET']
+    imported_dataset = BQ_PARAMS['IMPORTED_DATASET']
 
-    table_id = f"{working_project}.{working_dataset}.{gdc_archive_release}_{table_name}"
+    table_id = f"{working_project}.{imported_dataset}.{gdc_archive_release}_{table_name}"
     jsonl_file = f"{table_name}_{API_PARAMS['RELEASE']}.jsonl"
 
     table_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS, table_name=table_name, include_release=True)
