@@ -629,7 +629,7 @@ def update_friendly_name(params: Params, table_id: str, custom_name: Optional[st
         friendly_name = custom_name
     else:
         # todo how are we going to handle friendly names with CDA workflow?
-        if params['DC_SOURCE'].lower() == 'gdc':
+        if params['NODE'].lower() == 'gdc':
             friendly_name = f"{table.friendly_name} REL{params['RELEASE']} versioned"
         else:
             friendly_name = f"{table.friendly_name} {params['RELEASE']} versioned"
@@ -663,21 +663,21 @@ def find_most_recent_published_table_id(params, versioned_table_id):
     :param versioned_table_id: public versioned table id for current release
     :return: last published table id, if any; otherwise None
     """
-    if params['DC_SOURCE'].lower() == 'gdc':
+    if params['NODE'].lower() == 'gdc':
         oldest_etl_release = 260  # the oldest table release we published
-        current_gdc_release_number = params['DC_RELEASE'][1:]
+        current_gdc_release_number = params['RELEASE'][1:]
 
         # this shift allows for non-int release versions, e.g. r33.1
         last_gdc_release = float(current_gdc_release_number.replace('p', '.')) * 10 - 1
 
         # remove release version from versioned_table_id
-        table_id_without_release = versioned_table_id.replace(params['DC_RELEASE'], '')
+        table_id_without_release = versioned_table_id.replace(params['RELEASE'], '')
 
         # iterate through all possible previous releases to find a matching release
         for release in range(int(last_gdc_release), oldest_etl_release - 1, -1):
             # if release is 270, shifts to 27.0--replace p0 gives whole number, e.g. r27
             # if release is 271, shifts to 27.1, giving r27p1, which is legal for BQ table naming
-            previous_release = params['DC_RELEASE'][0] + str(float(release) / 10).replace('.', 'p').replace('p0', '')
+            previous_release = params['RELEASE'][0] + str(float(release) / 10).replace('.', 'p').replace('p0', '')
             prev_release_table_id = f"{table_id_without_release}{previous_release}"
             if exists_bq_table(prev_release_table_id):
                 # found last release table, stop iterating
@@ -685,11 +685,11 @@ def find_most_recent_published_table_id(params, versioned_table_id):
 
         # if there is no previously-published table, return None
         return None
-    elif params['DC_SOURCE'].lower() == 'pdc':
+    elif params['NODE'].lower() == 'pdc':
         # Assuming PDC will use 2-digit minor releases--they said they didn't expect this to ever become 3 digits, and
         # making 900 extraneous calls to google seems wasteful.
         max_minor_release_num = 99
-        dc_release = params['DC_RELEASE'].replace("V", "")
+        dc_release = params['RELEASE'].replace("V", "")
         split_current_etl_release = dc_release.split("_")
         # set to current release initially, decremented in loop
         last_major_rel_num = int(split_current_etl_release[0])
@@ -705,7 +705,7 @@ def find_most_recent_published_table_id(params, versioned_table_id):
             else:
                 return None
 
-            table_id_no_release = versioned_table_id.replace(f"_{params['DC_RELEASE']}", '')
+            table_id_no_release = versioned_table_id.replace(f"_{params['RELEASE']}", '')
             prev_release_table_id = f"{table_id_no_release}_V{last_major_rel_num}_{last_minor_rel_num}"
 
             if exists_bq_table(prev_release_table_id):
@@ -713,7 +713,7 @@ def find_most_recent_published_table_id(params, versioned_table_id):
                 return prev_release_table_id
     else:
         logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
-        logger.critical(f"Need to create find_most_recent_published_table_id function for {params['DC_SOURCE']}.")
+        logger.critical(f"Need to create find_most_recent_published_table_id function for {params['NODE']}.")
         sys.exit(-1)
 
 
@@ -728,9 +728,9 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, metadat
     if schema_tags is None:
         schema_tags = dict()
 
-    release = params['DC_RELEASE']
+    release = params['RELEASE']
 
-    if params['DC_SOURCE'].lower() == 'gdc':
+    if params['NODE'].lower() == 'gdc':
         release = release.replace('r', '')
 
     # remove underscore, add decimal to version number
@@ -964,7 +964,7 @@ def get_program_list(params: Params, rename_programs: bool = True) -> list[str]:
     """
     logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
 
-    if params['DC_SOURCE'] == 'gdc':
+    if params['NODE'] == 'gdc':
         def make_program_name_set_query():
             return f"""
                 SELECT DISTINCT program_name
@@ -986,7 +986,7 @@ def get_program_list(params: Params, rename_programs: bool = True) -> list[str]:
 
         return list(sorted(program_name_set))
 
-    elif params['DC_SOURCE'] == 'pdc':
+    elif params['NODE'] == 'pdc':
         '''
         def make_all_studies_query() -> str:
             return f"""
@@ -1003,9 +1003,9 @@ def get_program_list(params: Params, rename_programs: bool = True) -> list[str]:
 
         return list(sorted(project_set))
         '''
-    elif params['DC_SOURCE'] == 'idc':
+    elif params['NODE'] == 'idc':
         logger.critical("get_project_list() is not yet defined for IDC.")
         sys.exit(-1)
     else:
-        logger.critical(f"get_project_list() is not yet defined for {params['DC_SOURCE']}.")
+        logger.critical(f"get_project_list() is not yet defined for {params['NODE']}.")
         sys.exit(-1)
