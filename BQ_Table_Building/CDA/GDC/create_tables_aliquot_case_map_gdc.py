@@ -23,8 +23,7 @@ import sys
 import time
 
 from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds
-from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic, query_and_retrieve_result, \
-    delete_bq_table
+from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic
 from cda_bq_etl.data_helpers import initialize_logging
 
 PARAMS = dict()
@@ -73,7 +72,22 @@ def make_aliquot_case_table_sql(legacy_table_id: str) -> str:
             JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
                 ON sfc.case_id = cpp.case_gdc_id
         ) UNION ALL (
-            SELECT * 
+            SELECT program_name,
+                project_id,
+                case_gdc_id,
+                case_barcode,
+                sample_gdc_id,
+                sample_barcode,
+                sample_type,
+                sample_type_name,
+                CAST(sample_is_ffpe AS BOOL),
+                sample_preservation_method,
+                portion_gdc_id,
+                portion_barcode,
+                analyte_gdc_id,
+                analyte_barcode,
+                aliquot_gdc_id,
+                aliquot_barcode
             FROM `{legacy_table_id}`
         )
     """
