@@ -53,10 +53,11 @@ def create_merged_project_studies_disease_type_jsonl():
         project = row.get('project_id')
         disease_type = row.get('disease_type')
 
-        if project not in project_disease_type_dict:
-            project_disease_type_dict[project] = {disease_type}
-        else:
-            project_disease_type_dict[project].add(disease_type)
+        if disease_type:
+            if project not in project_disease_type_dict:
+                project_disease_type_dict[project] = {disease_type}
+            else:
+                project_disease_type_dict[project].add(disease_type)
 
     project_disease_type_jsonl_list = list()
 
