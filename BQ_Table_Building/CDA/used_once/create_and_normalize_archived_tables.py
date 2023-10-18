@@ -219,6 +219,7 @@ def main(args):
         create_table(table_name=BQ_PARAMS['ALIQUOT_TABLE_NAME'])
 
     if 'create_case_metadata_legacy_jsonl' in steps:
+        print(make_case_metadata_legacy_filtered_query())
         create_jsonl_and_schema(sql=make_case_metadata_legacy_filtered_query(),
                                 column_list=BQ_PARAMS['CASE_COLUMN_LIST'],
                                 table_name=BQ_PARAMS['CASE_TABLE_NAME'])
