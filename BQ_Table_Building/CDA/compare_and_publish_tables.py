@@ -628,16 +628,12 @@ def compare_concat_columns(table_ids: dict[str, str],
                         primary_key_val = mismatched_record['record_id']
                         secondary_key_val = None
 
-                    logger.info(f"{table_params['primary_key']}: {mismatched_record['record_id']}")
-                    if len(mismatched_record['new_table_value']) > 0:
-                        logger.info(f"new table value(s): {sorted(mismatched_record['new_table_value'].split(';'))}")
+                    if table_params['secondary_key'] is None:
+                        logger.info(f"{primary_key_val:40} {mismatched_record['old_table_value']:40} "
+                                    f"{mismatched_record['new_table_value']}")
                     else:
-                        logger.info("new table value: None")
-
-                    if len(mismatched_record['old_table_value']) > 0:
-                        logger.info(f"old table value(s): {sorted(mismatched_record['old_table_value'].split(';'))}")
-                    else:
-                        logger.info("old table value: None")
+                        logger.info(f"{primary_key_val:40} {secondary_key_val:40} "
+                                    f"{mismatched_record['old_table_value']:40} {mismatched_record['new_table_value']}")
 
                     i += 1
 
