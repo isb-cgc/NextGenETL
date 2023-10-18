@@ -25,7 +25,7 @@ import time
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, input_with_timeout
-from cda_bq_etl.bq_helpers import query_and_retrieve_result, delete_bq_table
+from cda_bq_etl.bq_helpers import query_and_retrieve_result, delete_bq_table, copy_bq_table
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -65,6 +65,12 @@ def delete_old_tables(project_dataset_id_list: list[str], filter_string: str):
         logger.info(f"Tables deleted.")
 
 
+def restore_deleted_table(deleted_table_id, new_table_id, snapshot_epoch):
+    snapshot_table_id = f"{deleted_table_id}@{snapshot_epoch}"
+
+    copy_bq_table(PARAMS, src_table=snapshot_table_id, dest_table=new_table_id)
+
+
 def main(args):
     try:
         global PARAMS
@@ -81,6 +87,12 @@ def main(args):
         filter_string = PARAMS['DELETE_TABLES']['filter_string']
 
         delete_old_tables(project_dataset_id_list, filter_string)
+
+    if 'restore_deleted_table' in steps:
+        deleted_table_id = PARAMS['RESTORE_TABLE_ID']
+        new_table_id = 'isb-project-zero.cda_gdc_imported.r37_case_metadata_legacy'
+        snapshot_epoch = 1697655753782
+        restore_deleted_table(deleted_table_id, new_table_id, snapshot_epoch)
 
 
 if __name__ == "__main__":
