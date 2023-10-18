@@ -59,9 +59,7 @@ def delete_old_tables(project_dataset_id_list: list[str], filter_string: str):
         if response == 'n':
             exit("\nPublish aborted; exiting.")
 
-        for row in table_ids:
-            table_id = f"{project_dataset_id}.{row['table_name']}"
-
+        for table_id in table_ids:
             delete_bq_table(table_id)
 
         logger.info(f"Tables deleted.")
