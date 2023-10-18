@@ -31,5 +31,5 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3.9 ./BQ_Table_Building/CDA/create_and_normalize_archived_tables.py ~/config/CDACreateArchivedTables.yaml
+python3.9 ./BQ_Table_Building/CDA/used_once/create_and_normalize_archived_tables.py ~/config/CDACreateArchivedTables.yaml
 deactivate
