@@ -58,8 +58,8 @@ def make_aliquot_to_case_legacy_filtered_query():
             aliquot_barcode 
         FROM `{published_project}.{published_dataset}.aliquot2caseIDmap_{gdc_archive_release}`
         WHERE portion_gdc_id NOT IN (
-          SELECT portion_gdc_id
-          FROM `{working_project}.{working_dataset}.aliquot_to_case_{release}`
+          SELECT portion_id
+          FROM `{working_project}.{working_dataset}.{release}_portion`
         )
     """
 
@@ -89,7 +89,7 @@ def make_case_metadata_legacy_filtered_query():
     FROM `{published_project}.{published_dataset}.caseData_{gdc_archive_release}`
     WHERE case_gdc_id NOT IN (
       SELECT case_gdc_id 
-      FROM `{working_project}.{working_dataset}.case_metadata_{release}`
+      FROM `{working_project}.{working_dataset}.{release}_case_metadata`
     ) AND case_gdc_id IN (
       SELECT case_gdc_id
       FROM `{published_project}.{published_dataset}.fileData_legacy_{gdc_archive_release}`
@@ -157,8 +157,8 @@ def make_file_metadata_legacy_filtered_query():
         updated_datetime 
     FROM `{published_project}.{published_dataset}.fileData_legacy_{gdc_archive_release}`
     WHERE file_gdc_id NOT IN (
-      SELECT file_gdc_id 
-      FROM `{working_project}.{working_dataset}.file_metadata_{release}`
+      SELECT file_id 
+      FROM `{working_project}.{working_dataset}.{release}_file`
     ) AND file_gdc_id IN (
       SELECT file_gdc_id
       FROM `{published_project}.{published_dataset}.GDCfileID_to_GCSurl_r36`
