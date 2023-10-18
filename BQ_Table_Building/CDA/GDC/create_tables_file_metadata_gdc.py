@@ -170,7 +170,7 @@ def create_file_metadata_dict() -> JSONList:
             JOIN `{downstream_analysis_table_id}` da
                 ON da.analysis_id = a.analysis_id
             GROUP BY file_gdc_id
-            ORDER BY da.output_file_id
+            ORDER BY downstream_analyses__output_file_gdc_ids
         """
 
     def make_downstream_analyses_sql() -> str:
