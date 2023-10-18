@@ -134,24 +134,16 @@ def await_insert_job(params: Params, client: Client, table_id: str, bq_job: Quer
 
 def create_and_upload_schema_for_tsv(params: Params,
                                      tsv_fp: str,
-                                     table_name: Optional[str] = None,
-                                     header_list: Optional[list[str]] = None,
                                      header_row: Optional[int] = None,
                                      skip_rows: int = 0,
-                                     row_check_interval: int = 1,
-                                     release: Optional[str] = None,
                                      schema_fp: Optional[str] = None,
                                      delete_local: bool = True):
     """
     Create and upload schema for a file in tsv format.
     :param params: params supplied in yaml config
-    :param table_name: table for which the schema is being generated
     :param tsv_fp: path to tsv data file, parsed to create schema
-    :param header_list: optional, list of header strings
     :param header_row: optional, integer index of header row within the file
     :param skip_rows: integer representing number of non-data rows at the start of the file, defaults to 0
-    :param row_check_interval: how many rows to sample in order to determine type; defaults to 1 (check every row)
-    :param release: string value representing release, in cases where params['RELEASE'] should be overridden
     :param schema_fp: path to schema location on local vm
     :param delete_local: delete local file after uploading to cloud bucket
     """
@@ -159,26 +151,20 @@ def create_and_upload_schema_for_tsv(params: Params,
 
     logger.info(f"Creating schema for {tsv_fp}")
 
-    # third condition required to account for header row at 0 index
-    # if no header list supplied here, headers are generated from header_row.
-    column_headers = get_column_list_tsv(header_list, tsv_fp, header_row)
+    column_headers = get_column_list_tsv(tsv_fp=tsv_fp, header_row_index=header_row)
 
     if isinstance(header_row, int) and header_row >= skip_rows:
         logger.critical("Header row not excluded by skip_rows.")
         sys.exit(-1)
 
-    data_types_dict = aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, row_check_interval)
+    data_types_dict = aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows)
 
     data_type_dict = resolve_type_conflicts(data_types_dict)
 
     schema_obj = create_schema_object(column_headers, data_type_dict)
 
     if not schema_fp:
-        schema_filename = get_filename(params,
-                                       file_extension='json',
-                                       prefix="schema",
-                                       suffix=table_name,
-                                       release=release)
+        schema_filename = get_filename(params, file_extension='json', prefix="schema")
         schema_fp = get_scratch_fp(params, schema_filename)
 
     with open(schema_fp, 'w') as schema_json_file:

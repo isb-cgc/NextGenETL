@@ -202,17 +202,27 @@ def get_schema_filename(tsv_file_name: str) -> str:
     :return: Schema file name
     :rtype: str
     """
-    # remove "." from file name, as occurs in PDC
-    extension = tsv_file_name.split(".")[-1]
-    file_name = "_".join(tsv_file_name.split(".")[:-1])
-    tsv_file_name = f"{file_name}.{extension}"
+    logger = logging.getLogger('base_script')
 
-    schema_file_name = "_".join(tsv_file_name.split("_")[2:])
-    schema_file_name = schema_file_name.split(".")[0]
-    schema_file_name = f"{PARAMS['RELEASE']}_schema_{schema_file_name}.json"
+    if PARAMS['NODE'] == 'pdc':
+        # remove "." from file name, as occurs in PDC
+        extension = tsv_file_name.split(".")[-1]
+        file_name = "_".join(tsv_file_name.split(".")[:-1])
+        tsv_file_name = f"{file_name}.{extension}"
+
+        schema_file_name = "_".join(tsv_file_name.split("_")[2:])
+        schema_file_name = schema_file_name.split(".")[0]
+        schema_file_name = f"{PARAMS['RELEASE']}_schema_{schema_file_name}.json"
+    elif PARAMS['NODE'] == 'gdc':
+        # format like: r37_acl.tsv
+        base_file_name = tsv_file_name.split('.')[0]
+        base_file_name = base_file_name.replace(f"{PARAMS['RELEASE']}_", "")
+        schema_file_name = f"{PARAMS['RELEASE']}_schema_{base_file_name}.json"
+    else:
+        logger.critical(f"Set up schema filename processing for {PARAMS['NODE']}.")
+        sys.exit(-1)
 
     return schema_file_name
-
 
 
 def make_case_project_program_view_query():
