@@ -23,7 +23,8 @@ import sys
 import time
 
 from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds
-from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic
+from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic, query_and_retrieve_result, \
+    delete_bq_table
 from cda_bq_etl.data_helpers import initialize_logging
 
 PARAMS = dict()
@@ -78,6 +79,32 @@ def make_aliquot_case_table_sql(legacy_table_id: str) -> str:
     """
 
 
+def delete_old_tables():
+    def make_table_list_query():
+        return f"""
+            SELECT table_name
+            FROM `{project}.{dataset}`.INFORMATION_SCHEMA.TABLES
+            WHERE table_name like '2023%'
+        """
+
+    project = 'isb-project-zero'
+
+    datasets = [
+        'cda_gdc_raw',
+        'cda_gdc_per_sample_file',
+        'cda_gdc_clinical',
+        'cda_gdc_metadata'
+    ]
+
+    for dataset in datasets:
+        table_name_result = query_and_retrieve_result(make_table_list_query())
+
+        for table_name in list(table_name_result):
+            table_id = f"{project}.{dataset}.{table_name}"
+
+            delete_bq_table(table_id)
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -92,6 +119,8 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
+
+    delete_old_tables()
 
     if 'create_table_from_query' in steps:
         logger.info("Entering create_table_from_query")
