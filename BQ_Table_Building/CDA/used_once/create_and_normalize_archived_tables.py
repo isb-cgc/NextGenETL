@@ -211,6 +211,7 @@ def main(args):
         has_fatal_error(err, ValueError)
 
     if 'create_aliquot_to_case_legacy_jsonl' in steps:
+        print(make_aliquot_to_case_legacy_filtered_query())
         create_jsonl_and_schema(sql=make_aliquot_to_case_legacy_filtered_query(),
                                 column_list=BQ_PARAMS['ALIQUOT_COLUMN_LIST'],
                                 table_name=BQ_PARAMS['ALIQUOT_TABLE_NAME'])
