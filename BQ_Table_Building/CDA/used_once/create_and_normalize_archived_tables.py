@@ -88,8 +88,8 @@ def make_case_metadata_legacy_filtered_query():
         active_file_count 
     FROM `{published_project}.{published_dataset}.caseData_{gdc_archive_release}`
     WHERE case_gdc_id NOT IN (
-      SELECT case_gdc_id 
-      FROM `{working_project}.{working_dataset}.{release}_case_metadata`
+      SELECT case_id 
+      FROM `{working_project}.{working_dataset}.{release}_case`
     ) AND case_gdc_id IN (
       SELECT case_gdc_id
       FROM `{published_project}.{published_dataset}.fileData_legacy_{gdc_archive_release}`
