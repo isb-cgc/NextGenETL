@@ -24,6 +24,7 @@ import sys
 from common_etl.support import bq_harness_with_result
 from common_etl.utils import load_config, has_fatal_error, normalize_flat_json_values, write_list_to_jsonl_and_upload, \
     create_and_upload_schema_for_json, retrieve_bq_schema_object, create_and_load_table_from_jsonl
+from cda_bq_etl.bq_helpers import query_and_retrieve_result
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -167,6 +168,8 @@ def make_file_metadata_legacy_filtered_query():
 
 def create_jsonl_and_schema(sql: str, column_list: list[str], table_name: str):
     result = bq_harness_with_result(sql=sql, do_batch=False, verbose=False)
+
+    print(result)
 
     obj_list = list(result)
 
