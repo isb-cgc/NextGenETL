@@ -490,29 +490,23 @@ def compare_table_columns(table_ids: dict[str, str],
                     break
 
 
-def compare_concat_columns(left_table_id: str,
-                           right_table_id: str,
-                           concat_column_list: list[str],
-                           primary_key: str,
-                           secondary_key: str = None):
+def compare_concat_columns(table_ids: dict[str, str],
+                           table_params: dict[str, str]):
     """
     Compare concatenated column values to ensure matching data, as order is not guaranteed in these column strings.
-    :param left_table_id: left table id
-    :param right_table_id: right table id
-    :param concat_column_list: list of columns containing concatenated strings (associated entities, for example)
-    :param primary_key: primary key, used to match rows across tables
-    :param secondary_key: optional; secondary key used to map data
+    :param table_ids: todo
+    :param table_params:
     """
     def make_concat_column_query(table_id: str) -> str:
         secondary_key_string = ''
 
-        if secondary_key is not None:
-            secondary_key_string = f"{secondary_key},"
+        if table_params['secondary_key'] is not None:
+            secondary_key_string = f"{table_params['secondary_key']},"
 
-        concat_columns_str = ", ".join(concat_column_list)
+        concat_columns_str = ", ".join(table_params['concat_columns'])
 
         return f"""
-            SELECT {secondary_key_string} {primary_key}, {concat_columns_str}  
+            SELECT {secondary_key_string} {table_params['primary_key']}, {concat_columns_str}  
             FROM `{table_id}`
         """
 
@@ -522,15 +516,15 @@ def compare_concat_columns(left_table_id: str,
         records_dict = dict()
 
         for record_count, record in enumerate(result):
-            primary_key_id = record.get(primary_key)
+            primary_key_id = record.get(table_params['primary_key'])
             records_dict_key = primary_key_id
 
-            if secondary_key is not None:
-                records_dict_key += f";{record.get(secondary_key)}"
+            if table_params['secondary_key'] is not None:
+                records_dict_key += f";{record.get(table_params['secondary_key'])}"
 
             record_dict = dict()
 
-            for _column in concat_column_list:
+            for _column in table_params['concat_columns']:
                 record_dict[_column] = record.get(_column)
 
             records_dict[records_dict_key] = record_dict
@@ -540,97 +534,115 @@ def compare_concat_columns(left_table_id: str,
 
         return records_dict
 
-    left_table_records_dict = make_records_dict(query=make_concat_column_query(left_table_id))
-    print("Created dict for left table records!")
+    logger = logging.getLogger('base_script')
 
-    right_table_records_dict = make_records_dict(query=make_concat_column_query(right_table_id))
-    print("Created dict for right table records!")
+    new_table_records_dict = make_records_dict(query=make_concat_column_query(table_ids['source']))
 
-    record_key_set = set(left_table_records_dict.keys())
-    record_key_set.update(right_table_records_dict.keys())
+    old_version_table_id = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
+    old_table_records_dict = make_records_dict(query=make_concat_column_query(old_version_table_id))
 
-    for column in concat_column_list:
-        total_record_count = len(record_key_set)
+    logger.info("Comparing concatenated columns!")
+
+    record_key_set = set(new_table_records_dict.keys())
+    record_key_set.update(old_table_records_dict.keys())
+
+    for column in table_params['concat_columns']:
         correct_records_count = 0
-        left_table_missing_record_count = 0
-        right_table_missing_record_count = 0
+        new_table_missing_record_count = 0
+        old_table_missing_record_count = 0
         different_lengths_count = 0
         different_values_count = 0
         mismatched_records = list()
 
         for record_id in record_key_set:
-            if record_id not in left_table_records_dict:
-                left_table_missing_record_count += 1
+            if record_id not in new_table_records_dict:
+                new_table_missing_record_count += 1
                 break
-            elif record_id not in right_table_records_dict:
-                right_table_missing_record_count += 1
+            elif record_id not in old_table_records_dict:
+                old_table_missing_record_count += 1
                 break
 
-            left_column_value = left_table_records_dict[record_id][column]
-            right_column_value = right_table_records_dict[record_id][column]
+            new_column_value = new_table_records_dict[record_id][column]
+            old_column_value = old_table_records_dict[record_id][column]
 
-            if left_column_value is None and right_column_value is None:
+            if new_column_value is None and old_column_value is None:
                 correct_records_count += 1
             else:
-                if left_column_value is None:
-                    left_column_value_list = list()
+                if new_column_value is None:
+                    new_column_value_list = list()
                 else:
-                    left_column_value_list = left_column_value.split(';')
+                    new_column_value_list = new_column_value.split(';')
 
-                if right_column_value is None:
-                    right_column_value_list = list()
+                if old_column_value is None:
+                    old_column_value_list = list()
                 else:
-                    right_column_value_list = right_column_value.split(';')
+                    old_column_value_list = old_column_value.split(';')
 
-                left_column_value_set = set(left_column_value_list)
-                right_column_value_set = set(right_column_value_list)
+                new_column_value_set = set(new_column_value_list)
+                old_column_value_set = set(old_column_value_list)
 
-                if len(left_column_value_list) == len(right_column_value_list) \
-                        and len(left_column_value_set ^ right_column_value_set) == 0:
+                if len(new_column_value_list) == len(old_column_value_list) \
+                        and len(new_column_value_set ^ old_column_value_set) == 0:
                     correct_records_count += 1
                 else:
-                    if len(left_column_value_list) != len(right_column_value_list):
+                    if len(new_column_value_list) != len(old_column_value_list):
                         # if length mismatch, there may be duplicates, so definitely not identical;
                         # set eliminates duplicates, so this is necessary
                         different_lengths_count += 1
-                    elif len(left_column_value_set ^ right_column_value_set) > 0:
+                    elif len(new_column_value_set ^ old_column_value_set) > 0:
                         # exclusive or -- values only in exactly one set
                         different_values_count += 1
 
                     mismatched_records.append({
                         "record_id": record_id,
-                        "left_table_value": left_column_value,
-                        "right_table_value": right_column_value
+                        "new_table_value": new_column_value,
+                        "old_table_value": old_column_value
                     })
 
-        print(f"For column {column}:")
-        print(f"Correct records: {correct_records_count}/{total_record_count}")
-        print(f"Missing records from left table: {left_table_missing_record_count}")
-        print(f"Missing records from right table: {right_table_missing_record_count}")
-        print(f"\nDifferent number of values in record: {different_lengths_count}")
-        print(f"Different values in record: {different_values_count}")
+        if new_table_missing_record_count > 0 or old_table_missing_record_count > 0 \
+                or different_lengths_count > 0 or different_values_count > 0:
+            logger.info(f"{column}:")
+            logger.info(f"Missing records in new table: {new_table_missing_record_count}")
+            logger.info(f"Missing records in old table: {old_table_missing_record_count}")
+            logger.info(f"Different number of values in row: {different_lengths_count}")
+            logger.info(f"Different values in row: {different_values_count}")
 
-        if len(mismatched_records) > 0:
-            i = 0
+            if len(mismatched_records) > 0:
+                i = 0
 
-            print("\nExample values:\n")
+                new_column_header = f"new {column}"
+                old_column_header = f"old {column}"
 
-            for mismatched_record in mismatched_records:
-                print(f"{primary_key}: {mismatched_record['record_id']}")
-                if len(mismatched_record['left_table_value']) > 0:
-                    print(f"left table value(s): {sorted(mismatched_record['left_table_value'].split(';'))}")
+                if table_params['secondary_key'] is None:
+                    logger.info(f"{table_params['primary_key']:40} {old_column_header: 40} {new_column_header}")
                 else:
-                    print("left table value: None")
+                    logger.info(f"{table_params['primary_key']:40} {table_params['secondary_key']:40}"
+                                f" {old_column_header: 40} {new_column_header}")
 
-                if len(mismatched_record['right_table_value']) > 0:
-                    print(f"right table value(s): {sorted(mismatched_record['right_table_value'].split(';'))}\n")
-                else:
-                    print("right table value: None")
+                for mismatched_record in mismatched_records:
+                    if ';' in mismatched_record['record_id']:
+                        id_list = mismatched_record['record_id'].split(";")
+                        primary_key_val = id_list[0]
+                        secondary_key_val = id_list[1]
+                    else:
+                        primary_key_val = mismatched_record['record_id']
+                        secondary_key_val = None
 
-                i += 1
+                    logger.info(f"{table_params['primary_key']}: {mismatched_record['record_id']}")
+                    if len(mismatched_record['new_table_value']) > 0:
+                        logger.info(f"new table value(s): {sorted(mismatched_record['new_table_value'].split(';'))}")
+                    else:
+                        logger.info("new table value: None")
 
-                if i == 5:
-                    break
+                    if len(mismatched_record['old_table_value']) > 0:
+                        logger.info(f"old table value(s): {sorted(mismatched_record['old_table_value'].split(';'))}")
+                    else:
+                        logger.info("old table value: None")
+
+                    i += 1
+
+                    if i == 5:
+                        break
 
 
 def get_new_table_names(dataset: str) -> list[str]:

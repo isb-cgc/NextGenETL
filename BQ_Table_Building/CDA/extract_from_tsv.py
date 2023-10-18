@@ -205,6 +205,7 @@ def get_schema_filename(tsv_file_name: str) -> str:
     logger = logging.getLogger('base_script')
 
     if PARAMS['NODE'] == 'pdc':
+        # formatted like V3_3_Aliquot.aliquot_run_metadata_id.tsv
         # remove "." from file name, as occurs in PDC
         extension = tsv_file_name.split(".")[-1]
         file_name = "_".join(tsv_file_name.split(".")[:-1])
@@ -214,7 +215,7 @@ def get_schema_filename(tsv_file_name: str) -> str:
         schema_file_name = schema_file_name.split(".")[0]
         schema_file_name = f"{PARAMS['RELEASE']}_schema_{schema_file_name}.json"
     elif PARAMS['NODE'] == 'gdc':
-        # format like: r37_acl.tsv
+        # formatted like: r37_acl.tsv
         base_file_name = tsv_file_name.split('.')[0]
         base_file_name = base_file_name.replace(f"{PARAMS['RELEASE']}_", "")
         schema_file_name = f"{PARAMS['RELEASE']}_schema_{base_file_name}.json"
