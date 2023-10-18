@@ -45,8 +45,11 @@ def delete_old_tables(project_dataset_id_list: list[str], filter_string: str):
         logger = logging.getLogger('base_script')
         logger.info(f"Deleting the following tables in {project_dataset_id}:")
 
+        table_ids = list()
+
         for row in table_name_result:
             table_id = f"{project_dataset_id}.{row['table_name']}"
+            table_ids.append(table_id)
             logger.info(table_id)
 
         logger.info(f"Proceed? Y/n (continues automatically in 5 seconds)")
@@ -56,7 +59,7 @@ def delete_old_tables(project_dataset_id_list: list[str], filter_string: str):
         if response == 'n':
             exit("\nPublish aborted; exiting.")
 
-        for row in table_name_result:
+        for row in table_ids:
             table_id = f"{project_dataset_id}.{row['table_name']}"
 
             delete_bq_table(table_id)
