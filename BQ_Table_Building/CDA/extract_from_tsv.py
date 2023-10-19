@@ -288,9 +288,10 @@ def make_molecular_test_follow_up_case_query() -> str:
     """
 
 
-
 def main(args):
     try:
+        start_time = time.time()
+
         global PARAMS
         PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
@@ -299,8 +300,6 @@ def main(args):
     log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
-
-    start_time = time.time()
 
     if "download_cda_archive_file" in steps:
         logger.info("*** Downloading archive file from bucket!")
