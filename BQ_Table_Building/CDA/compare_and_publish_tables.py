@@ -371,7 +371,7 @@ def compare_table_columns(table_ids: dict[str, str],
     # noinspection SqlAmbiguousColumn
     def make_compare_table_column_sql(column_name) -> str:
         """
-        Make SQL query that compares ompare individual column values
+        Make SQL query that compares individual column values
         :param column_name:
         """
         if secondary_key is None:
