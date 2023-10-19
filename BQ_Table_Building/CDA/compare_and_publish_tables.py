@@ -473,6 +473,10 @@ def compare_table_columns(table_ids: dict[str, str],
             if secondary_key is None:
                 logger.info(f"{primary_key:40} {old_column_header: 40} {new_column_header}")
             else:
+                print(primary_key)
+                print(secondary_key)
+                print(old_column_header)
+                print(new_column_header)
                 logger.info(f"{primary_key:40} {secondary_key:40} {old_column_header: 40} {new_column_header}")
 
             count = 0
@@ -812,7 +816,8 @@ def main(args):
 
             if data_to_compare:
                 # display compare_to_last.sh style output
-                find_record_difference_counts(table_type, table_ids, table_params)
+                # todo remove comment
+                # find_record_difference_counts(table_type, table_ids, table_params)
                 compare_table_columns(table_ids=table_ids, table_params=table_params)
 
         if 'publish_tables' in steps:
