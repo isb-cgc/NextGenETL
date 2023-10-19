@@ -226,20 +226,22 @@ def find_record_difference_counts(table_type: str,
         # find added/removed/changed records by project
         result = query_and_retrieve_result(query)
 
+        print(result)
+
         total_results = 0
         num_columns = len(table_metadata['output_keys']) + 1
         output_string = ""
 
         if result.total_rows > 0:
-            for row in result:
-                total_results += row[0]
+            for _row in result:
+                total_results += _row[0]
 
                 # append the count, right justify
-                row_str = f"{row[0]:>10}"
+                row_str = f"{_row[0]:>10}"
 
                 # append the other values (e.g. project id, type) as specified in output keys
                 for i in range(1, num_columns):
-                    row_str += f"{row[i]:30}"
+                    row_str += f"{_row[i]:30}"
 
                 output_string += '\n' + row_str
 
