@@ -768,6 +768,8 @@ def publish_table(table_ids: dict[str, str]):
 
 
 def main(args):
+    print("test")
+
     try:
         start_time = time.time()
 
