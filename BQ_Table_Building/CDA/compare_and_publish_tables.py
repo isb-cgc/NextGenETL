@@ -235,7 +235,7 @@ def find_record_difference_counts(table_type: str,
                 total_results += _row[0]
 
                 # append the count, right justify
-                row_str = f"{str(_row[0]):>10}"
+                row_str = f"{str(_row[0]):>10}  "
 
                 # append the other values (e.g. project id, type) as specified in output keys
                 for i in range(1, num_columns):
