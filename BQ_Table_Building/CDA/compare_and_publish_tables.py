@@ -79,14 +79,14 @@ def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
         return True if row else False
 
 
-def compare_tables(table_ids: dict[str, str]):
+def compare_tables(table_ids: dict[str, str]) -> bool:
     logger = logging.getLogger('base_script')
 
     previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
 
     if previous_versioned_table_id is None:
         logger.warning(f"No previous version found for {table_ids['source']}. Will publish. Investigate if unexpected.")
-        return
+        return False
 
     logger.info(f"Comparing tables {table_ids['source']} and {previous_versioned_table_id}.")
 
@@ -122,8 +122,10 @@ def compare_tables(table_ids: dict[str, str]):
     # use previous_versioned_table_id
     if has_new_data:
         logger.info(f"New data found--table will be published.")
+        return True
     elif not has_new_data:
         logger.info(f"Tables are identical (no new data found)--table will not be published.")
+        return False
 
 
 def find_record_difference_counts(table_type: str,
@@ -138,17 +140,17 @@ def find_record_difference_counts(table_type: str,
     def make_added_record_count_query():
         return f"""
             WITH new_rows AS (
-                SELECT * 
+                SELECT * {excluded_column_sql_str}
                 FROM `{table_ids['source']}`
                 EXCEPT DISTINCT
-                SELECT *
+                SELECT * {excluded_column_sql_str}
                 FROM `{previous_versioned_table_id}`
             ), 
             old_rows AS (
-                SELECT * 
+                SELECT * {excluded_column_sql_str}
                 FROM `{previous_versioned_table_id}`
                 EXCEPT DISTINCT
-                SELECT *
+                SELECT * {excluded_column_sql_str}
                 FROM `{table_ids['source']}`
             )
 
@@ -166,17 +168,17 @@ def find_record_difference_counts(table_type: str,
     def make_removed_record_count_query():
         return f"""
             WITH new_rows AS (
-                SELECT * 
+                SELECT * {excluded_column_sql_str}
                 FROM `{table_ids['source']}`
                 EXCEPT DISTINCT
-                SELECT *
+                SELECT * {excluded_column_sql_str}
                 FROM `{previous_versioned_table_id}`
             ), 
             old_rows AS (
-                SELECT * 
+                SELECT * {excluded_column_sql_str}
                 FROM `{previous_versioned_table_id}`
                 EXCEPT DISTINCT
-                SELECT *
+                SELECT * {excluded_column_sql_str}
                 FROM `{table_ids['source']}`
             )
 
@@ -194,17 +196,17 @@ def find_record_difference_counts(table_type: str,
     def make_changed_record_count_query():
         return f"""
             WITH new_rows AS (
-                SELECT * 
+                SELECT * {excluded_column_sql_str}
                 FROM `{table_ids['source']}`
                 EXCEPT DISTINCT
-                SELECT *
+                SELECT * {excluded_column_sql_str}
                 FROM `{previous_versioned_table_id}`
             ), 
             old_rows AS (
-                SELECT * 
+                SELECT * {excluded_column_sql_str}
                 FROM `{previous_versioned_table_id}`
                 EXCEPT DISTINCT
-                SELECT *
+                SELECT * {excluded_column_sql_str}
                 FROM `{table_ids['source']}`
             ), intersects AS (
                 SELECT {primary_key}, {secondary_key} {output_key_string} 
@@ -242,6 +244,14 @@ def find_record_difference_counts(table_type: str,
                 output_string += '\n' + row_str
 
         return total_results, output_string
+
+    columns_excluded_from_compare = table_metadata['columns_excluded_from_compare']
+
+    # added to sql queries if certain columns are excluded
+    excluded_column_sql_str = ''
+    if columns_excluded_from_compare:
+        excluded_columns = ", ".join(columns_excluded_from_compare)
+        excluded_column_sql_str = f"EXCEPT ({excluded_columns})"
 
     logger = logging.getLogger('base_script')
 
@@ -797,12 +807,12 @@ def main(args):
         if 'compare_tables' in steps:
             logger.info(f"Comparing tables for {table_params['table_base_name']}!")
             # confirm that datasets and table ids exist, and preview whether table will be published
-            compare_tables(table_ids)
+            data_to_compare = compare_tables(table_ids)
 
-            # display compare_to_last.sh style output
-            find_record_difference_counts(table_type, table_ids, table_params)
-
-            compare_table_columns(table_ids=table_ids, table_params=table_params)
+            if data_to_compare:
+                # display compare_to_last.sh style output
+                find_record_difference_counts(table_type, table_ids, table_params)
+                compare_table_columns(table_ids=table_ids, table_params=table_params)
 
         if 'publish_tables' in steps:
             logger.info(f"Publishing tables for {table_params['table_base_name']}!")
@@ -837,24 +847,27 @@ def main(args):
                 if 'compare_tables' in steps:
                     logger.info(f"Comparing tables for {table_base_name}!")
                     # confirm that datasets and table ids exist, and preview whether table will be published
-                    compare_tables(table_ids)
+                    data_to_compare = compare_tables(table_ids)
 
-                    # display compare_to_last.sh style output
-                    find_record_difference_counts(table_type, table_ids, table_params)
+                    if data_to_compare:
 
-                    # get key based on field group, e.g. the clinical_diagnosis table uses diagnosis_id as primary key
-                    if table_name_list[-1] == 'clinical':
-                        primary_key = 'case_id'
-                    else:
-                        primary_key = f"{table_name_list[-1]}_id"
+                        # display compare_to_last.sh style output
+                        find_record_difference_counts(table_type, table_ids, table_params)
 
-                    modified_table_params = {
-                        'primary_key': primary_key,
-                        'concat_columns': table_params['concat_columns'],
-                        'columns_excluded_from_compare': table_params['columns_excluded_from_compare'],
-                    }
+                        # get key based on field group, e.g. the clinical_diagnosis table uses
+                        # diagnosis_id as primary key
+                        if table_name_list[-1] == 'clinical':
+                            primary_key = 'case_id'
+                        else:
+                            primary_key = f"{table_name_list[-1]}_id"
 
-                    compare_table_columns(table_ids=table_ids, table_params=modified_table_params)
+                        modified_table_params = {
+                            'primary_key': primary_key,
+                            'concat_columns': table_params['concat_columns'],
+                            'columns_excluded_from_compare': table_params['columns_excluded_from_compare'],
+                        }
+
+                        compare_table_columns(table_ids=table_ids, table_params=modified_table_params)
 
                 if 'publish_tables' in steps:
                     logger.info(f"Publishing tables for {table_base_name}!")
