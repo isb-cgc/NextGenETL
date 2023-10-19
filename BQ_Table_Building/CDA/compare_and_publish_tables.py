@@ -443,6 +443,9 @@ def compare_table_columns(table_ids: dict[str, str],
     excluded_columns = concat_column_set | not_compared_column_set
     excluded_columns.add(primary_key)
 
+    if secondary_key:
+        excluded_columns.add(secondary_key)
+
     old_version_table_id = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
 
     if not old_version_table_id:
@@ -473,10 +476,6 @@ def compare_table_columns(table_ids: dict[str, str],
             if secondary_key is None:
                 logger.info(f"{primary_key:40} {old_column_header: 40} {new_column_header}")
             else:
-                print(primary_key)
-                print(secondary_key)
-                print(old_column_header)
-                print(new_column_header)
                 logger.info(f"{primary_key:40} {secondary_key:40} {old_column_header:40} {new_column_header}")
 
             count = 0
