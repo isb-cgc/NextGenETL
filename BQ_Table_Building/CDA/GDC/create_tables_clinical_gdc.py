@@ -25,7 +25,7 @@ import time
 from typing import Any
 
 from cda_bq_etl.data_helpers import initialize_logging
-from cda_bq_etl.utils import create_dev_table_id, load_config, format_seconds
+from cda_bq_etl.utils import create_dev_table_id, load_config, format_seconds, create_clinical_table_id
 from cda_bq_etl.bq_helpers import query_and_retrieve_result, get_program_list, create_table_from_query
 
 PARAMS = dict()
@@ -594,9 +594,8 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         # get altered program name, in case where program name differs in table id due to length or punctuation
         # e.g. BEATAML1.0 -> BEATAML1_0, EXCEPTIONAL_RESPONDERS -> EXC_RESPONDERS
         program_name = PARAMS['ALTER_PROGRAM_NAMES'][program] if program in PARAMS['ALTER_PROGRAM_NAMES'] else program
-
-        clinical_table_name = f"{PARAMS['TABLE_PARAMS'][table]['table_name']}_{program_name}_{PARAMS['RELEASE']}"
-        clinical_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_CLINICAL_DATASET']}.{clinical_table_name}"
+        clinical_table_id = create_clinical_table_id(PARAMS,
+                                                     f"{PARAMS['TABLE_PARAMS'][table]['table_name']}_{program_name}")
 
         create_table_from_query(PARAMS, table_id=clinical_table_id, query=sql_query)
 

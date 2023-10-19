@@ -23,7 +23,7 @@ import sys
 import time
 
 from cda_bq_etl.data_helpers import initialize_logging
-from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds
+from cda_bq_etl.utils import load_config, format_seconds, create_metadata_table_id, create_per_sample_table_id
 from cda_bq_etl.bq_helpers import delete_bq_table, create_table_from_query, get_program_list, \
     update_table_schema_from_generic, get_program_schema_tags_gdc
 
@@ -37,11 +37,6 @@ def make_slide_entity_query(program_name: str) -> str:
     :param program_name: program used to filter query
     :return: sql string
     """
-    metadata_dataset_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}"
-    file_metadata_table_id = f"{metadata_dataset_id}.{PARAMS['FILE_TABLE_NAME']}_{PARAMS['RELEASE']}"
-    slide_case_table_id = f"{metadata_dataset_id}.{PARAMS['SLIDE_TABLE_NAME']}_{PARAMS['RELEASE']}"
-    file_entity_table_id = create_dev_table_id(PARAMS, 'file_associated_with_entity')
-
     return f"""
         SELECT DISTINCT 
             fm.file_gdc_id,
@@ -66,11 +61,11 @@ def make_slide_entity_query(program_name: str) -> str:
             fm.index_file_size,
             fm.`access`,
             fm.acl
-        FROM `{file_metadata_table_id}` fm
-        JOIN `{file_entity_table_id}` fawe
+        FROM `{create_metadata_table_id(PARAMS, PARAMS['FILE_TABLE_NAME'])}` fm
+        JOIN `{create_metadata_table_id(PARAMS, 'file_associated_with_entity')}` fawe
           ON fawe.file_id = fm.file_gdc_id AND 
              fawe.entity_id = fm.associated_entities__entity_gdc_id
-        JOIN `{slide_case_table_id}` stc
+        JOIN `{create_metadata_table_id(PARAMS, PARAMS['SLIDE_TABLE_NAME'])}` stc
           ON stc.slide_gdc_id = fm.associated_entities__entity_gdc_id AND 
              stc.slide_barcode = fawe.entity_submitter_id
         WHERE fm.case_gdc_id NOT LIKE '%;%' AND
@@ -86,12 +81,6 @@ def make_aliquot_entity_query(program_name: str) -> str:
     :param program_name: program used to filter query
     :return: sql string
     """
-    metadata_dataset_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}"
-    case_metadata_table_id = f"{metadata_dataset_id}.{PARAMS['CASE_TABLE_NAME']}_{PARAMS['RELEASE']}"
-    file_metadata_table_id = f"{metadata_dataset_id}.{PARAMS['FILE_TABLE_NAME']}_{PARAMS['RELEASE']}"
-    aliquot_case_table_id = f"{metadata_dataset_id}.{PARAMS['ALIQUOT_TABLE_NAME']}_{PARAMS['RELEASE']}"
-    file_entity_table_id = create_dev_table_id(PARAMS, 'file_associated_with_entity')
-
     return f"""
         WITH fm1 AS ( 
             # Files with < 8 associated aliquots (otherwise they're marked as multi) 
@@ -116,16 +105,14 @@ def make_aliquot_entity_query(program_name: str) -> str:
                 fm.index_file_size,
                 fm.`access`,
                 fm.acl
-            FROM `{file_metadata_table_id}` fm
+            FROM `{create_metadata_table_id(PARAMS, PARAMS['FILE_TABLE_NAME'])}` fm
             WHERE 
                 fm.associated_entities__entity_type = 'aliquot' AND
                 fm.case_gdc_id NOT LIKE '%;%' AND
                 fm.case_gdc_id != 'multi' AND 
                 fm.associated_entities__entity_gdc_id != 'multi' AND
                 fm.program_name = '{program_name}'
-        ), 
-    
-        fm2 AS (
+        ), fm2 AS (
             # Files with >= 8 associated aliquots, where 'multi' is substituted for concatenated aliquot string
             # Also, files are only associated with a single case.
             SELECT DISTINCT fm.file_gdc_id,
@@ -147,7 +134,7 @@ def make_aliquot_entity_query(program_name: str) -> str:
                 fm.index_file_size,
                 fm.`access`,
                 fm.acl
-            FROM `{file_metadata_table_id}` fm
+            FROM `{create_metadata_table_id(PARAMS, PARAMS['FILE_TABLE_NAME'])}` fm
             WHERE 
                 fm.associated_entities__entity_type = 'aliquot' AND
                 fm.case_gdc_id NOT LIKE '%;%' AND
@@ -179,9 +166,9 @@ def make_aliquot_entity_query(program_name: str) -> str:
             fm1.`access`,
             fm1.acl
         FROM fm1
-        JOIN `{file_entity_table_id}` fawe
+        JOIN `{create_metadata_table_id(PARAMS, 'file_associated_with_entity')}` fawe
             ON fm1.file_gdc_id = fawe.file_id
-        JOIN `{aliquot_case_table_id}` atc
+        JOIN `{create_metadata_table_id(PARAMS, PARAMS['ALIQUOT_TABLE_NAME'])}` atc
             ON  atc.case_gdc_id = fm1.case_gdc_id AND
                 atc.aliquot_gdc_id = fawe.entity_id AND
                 atc.aliquot_barcode = fawe.entity_submitter_id
@@ -212,7 +199,7 @@ def make_aliquot_entity_query(program_name: str) -> str:
             fm2.`access`,
             fm2.acl
         FROM fm2
-        JOIN `{case_metadata_table_id}` cm
+        JOIN `{create_metadata_table_id(PARAMS, PARAMS['CASE_TABLE_NAME'])}` cm
             ON cm.case_gdc_id = fm2.case_gdc_id
     """
 
@@ -223,10 +210,6 @@ def make_case_entity_query(program_name: str) -> str:
     :param program_name: program used to filter query
     :return: sql string
     """
-    metadata_dataset_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}"
-    case_metadata_table_id = f"{metadata_dataset_id}.{PARAMS['CASE_TABLE_NAME']}_{PARAMS['RELEASE']}"
-    file_metadata_table_id = f"{metadata_dataset_id}.{PARAMS['FILE_TABLE_NAME']}_{PARAMS['RELEASE']}"
-
     return f"""
         SELECT DISTINCT 
             fm.file_id as file_gdc_id,
@@ -251,8 +234,8 @@ def make_case_entity_query(program_name: str) -> str:
             fm.index_file_size,
             fm.`access`,
             fm.acl
-        FROM `{file_metadata_table_id}` AS fm
-        JOIN `{case_metadata_table_id}` AS c
+        FROM `{create_metadata_table_id(PARAMS, PARAMS['FILE_TABLE_NAME'])}` AS fm
+        JOIN `{create_metadata_table_id(PARAMS, PARAMS['CASE_TABLE_NAME'])}` AS c
             ON fm.case_gdc_id = c.case_gdc_id
         WHERE fm.case_gdc_id NOT LIKE '%;%' AND
               fm.case_gdc_id != 'multi' AND
@@ -271,17 +254,11 @@ def make_merged_sql_query(program_name: str) -> str:
     case_entity_sql = make_case_entity_query(program_name)
 
     return f"""
-        (
-        {slide_entity_sql}
-        )
+        ({slide_entity_sql})
         UNION ALL
-        (
-        {aliquot_entity_sql}
-        )
+        ({aliquot_entity_sql})
         UNION ALL
-        (
-        {case_entity_sql}
-        )
+        ({case_entity_sql})
     """
 
 
@@ -292,9 +269,6 @@ def make_add_uris_and_index_file_sql_query(no_uri_table_id: str, drs_uri_table_i
     :param drs_uri_table_id: DRS uri table id
     :return: sql string
     """
-    metadata_dataset_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}"
-    file_metadata_table_id = f"{metadata_dataset_id}.{PARAMS['FILE_TABLE_NAME']}_{PARAMS['RELEASE']}"
-
     return f"""
         SELECT psf.file_gdc_id,
             psf.case_gdc_id,
@@ -321,7 +295,7 @@ def make_add_uris_and_index_file_sql_query(no_uri_table_id: str, drs_uri_table_i
             FROM `{no_uri_table_id}` psf
             JOIN `{drs_uri_table_id}` f_uri
                 ON f_uri.file_uuid = psf.file_gdc_id
-            LEFT JOIN `{file_metadata_table_id}` fm
+            LEFT JOIN `{create_metadata_table_id(PARAMS, PARAMS['FILE_TABLE_NAME'])}` fm
                 ON fm.file_gdc_id = psf.index_file_id
             LEFT JOIN `{drs_uri_table_id}` i_uri
                 ON i_uri.file_uuid = psf.index_file_id
@@ -354,11 +328,8 @@ def main(args):
             else:
                 program_name_original = program_name
 
-            no_url_table_name = f"{PARAMS['TABLE_NAME']}_{program_name}_{PARAMS['RELEASE']}_no_url"
-            no_url_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{no_url_table_name}"
-
-            table_name = f"{PARAMS['TABLE_NAME']}_{program_name}_{PARAMS['RELEASE']}"
-            table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{table_name}"
+            no_url_table_id = create_per_sample_table_id(PARAMS, f"{program_name}_{PARAMS['TABLE_NAME']}_no_url")
+            table_id = create_per_sample_table_id(PARAMS, f"{program_name}_{PARAMS['TABLE_NAME']}")
 
             drs_uri_table_id = PARAMS['DRS_URI_TABLE_ID']
 

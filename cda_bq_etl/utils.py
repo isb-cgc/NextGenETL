@@ -250,6 +250,36 @@ def create_dev_table_id(params: Params, table_name: str, release_as_suffix: bool
         return f"{dev_dataset_id}.{params['RELEASE']}_{table_name}"
 
 
+def create_metadata_table_id(params: Params, table_name: str) -> str:
+    """
+    Create table id reference to one of the CDA metadata tables.
+    :param params: params supplied in yaml config
+    :param table_name: name of the table
+    :return: table id string
+    """
+    return f"{params['DEV_PROJECT']}.{params['DEV_METADATA_DATASET']}.{params['RELEASE']}_{table_name}"
+
+
+def create_per_sample_table_id(params: Params, table_name: str) -> str:
+    """
+    Create table id reference to one of the CDA per sample file tables.
+    :param params: params supplied in yaml config
+    :param table_name: name of the table
+    :return: table id string
+    """
+    return f"{params['DEV_PROJECT']}.{params['DEV_SAMPLE_DATASET']}.{params['RELEASE']}_{table_name}"
+
+
+def create_clinical_table_id(params: Params, table_name: str) -> str:
+    """
+    Create table id reference to one of the CDA clinical tables.
+    :param params: params supplied in yaml config
+    :param table_name: name of the table
+    :return: table id string
+    """
+    return f"{params['DEV_PROJECT']}.{params['DEV_CLINICAL_DATASET']}.{params['RELEASE']}_{table_name}"
+
+
 def input_with_timeout(seconds: int) -> Union[str, None]:
     """
     Wait for user response. Continue automatically after n seconds.

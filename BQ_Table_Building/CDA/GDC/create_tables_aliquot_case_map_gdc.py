@@ -22,7 +22,7 @@ SOFTWARE.
 import sys
 import time
 
-from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds
+from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds, create_metadata_table_id
 from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic
 from cda_bq_etl.data_helpers import initialize_logging
 
@@ -106,16 +106,16 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
-
     if 'create_table_from_query' in steps:
         logger.info("Entering create_table_from_query")
 
         legacy_table_id = PARAMS['LEGACY_TABLE_ID']
 
-        create_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_aliquot_case_table_sql(legacy_table_id))
+        create_table_from_query(params=PARAMS,
+                                table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']),
+                                query=make_aliquot_case_table_sql(legacy_table_id))
 
-        update_table_schema_from_generic(params=PARAMS, table_id=dev_table_id)
+        update_table_schema_from_generic(params=PARAMS, table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']))
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")

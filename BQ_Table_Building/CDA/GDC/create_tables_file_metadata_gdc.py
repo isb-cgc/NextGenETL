@@ -28,7 +28,7 @@ from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
 from cda_bq_etl.bq_helpers import query_and_retrieve_result, create_and_upload_schema_for_json, \
     create_and_load_table_from_jsonl, retrieve_bq_schema_object, update_table_schema_from_generic
-from cda_bq_etl.utils import format_seconds, load_config, create_dev_table_id
+from cda_bq_etl.utils import format_seconds, load_config, create_dev_table_id, create_metadata_table_id
 from cda_bq_etl.data_helpers import normalize_flat_json_values, write_list_to_jsonl_and_upload, initialize_logging
 
 PARAMS = dict()
@@ -450,8 +450,6 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
-
     if 'create_and_upload_file_metadata_jsonl' in steps:
         logger.info("Entering create_and_upload_file_metadata_jsonl")
 
@@ -476,10 +474,10 @@ def main(args):
         # Load jsonl data into BigQuery table
         create_and_load_table_from_jsonl(PARAMS,
                                          jsonl_file=f"file_{PARAMS['RELEASE']}.jsonl",
-                                         table_id=dev_table_id,
+                                         table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']),
                                          schema=table_schema)
 
-        update_table_schema_from_generic(params=PARAMS, table_id=dev_table_id)
+        update_table_schema_from_generic(params=PARAMS, table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']))
 
     end_time = time.time()
 
