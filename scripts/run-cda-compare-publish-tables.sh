@@ -53,5 +53,5 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3.9 ./BQ_Table_Building/CDA/extract_from_tsv.py ~/config/${SHARED_CONFIG_FILE} ~/config/${CONFIG_FILE}
+python3.9 ./BQ_Table_Building/CDA/compare_and_publish_tables.py ~/config/${SHARED_CONFIG_FILE} ~/config/${CONFIG_FILE}
 deactivate
