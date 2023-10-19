@@ -352,14 +352,14 @@ def generate_column_list(table_id_list: list[str], excluded_columns: set[str]) -
 
     for table_id in table_id_list:
         # retrieve table's column names and create a set
-        print(make_column_list_query())
         column_result = query_and_retrieve_result(make_column_list_query())
-        column_set = set(column_result)
 
-        if not column_union_set:
-            column_union_set = column_set
-        else:
-            column_union_set = column_union_set | column_set
+        column_set = set()
+
+        for row in column_result:
+            column_set.add(row[0])
+
+        column_union_set = column_union_set | column_set
 
     # remove any concatenated columns supplied in yaml config from column_list
     column_union_set = column_union_set - excluded_columns
