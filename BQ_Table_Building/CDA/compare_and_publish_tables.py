@@ -351,6 +351,7 @@ def generate_column_list(table_id_list: list[str], excluded_columns: set[str]) -
     column_union_set = set()
 
     for table_id in table_id_list:
+        print(table_id)
         # retrieve table's column names and create a set
         column_result = query_and_retrieve_result(make_column_list_query())
         column_set = set(column_result)
@@ -423,8 +424,6 @@ def compare_table_columns(table_ids: dict[str, str],
                 ON n.{primary_key} = o.{primary_key}
                     {secondary_key_join_str}
         """
-
-    print(table_ids)
 
     logger = logging.getLogger('base_script')
 
