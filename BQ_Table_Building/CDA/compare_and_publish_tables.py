@@ -783,9 +783,6 @@ def main(args):
     prod_project = PARAMS['PROD_PROJECT']
     dev_project = PARAMS['DEV_PROJECT']
 
-    logger.info('Test')
-    print("test")
-
     # COMPARE AND PUBLISH METADATA TABLES
     for table_type, table_params in PARAMS['METADATA_TABLE_TYPES'].items():
         prod_dataset = table_params['prod_dataset']
@@ -873,3 +870,7 @@ def main(args):
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
+
+
+if __name__ == "__main__":
+    main(sys.argv)
