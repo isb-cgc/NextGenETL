@@ -477,7 +477,7 @@ def compare_table_columns(table_ids: dict[str, str],
                 print(secondary_key)
                 print(old_column_header)
                 print(new_column_header)
-                logger.info(f"{primary_key:40} {secondary_key:40} {old_column_header: 40} {new_column_header}")
+                logger.info(f"{primary_key:40} {secondary_key:40} {old_column_header:40} {new_column_header}")
 
             count = 0
 
