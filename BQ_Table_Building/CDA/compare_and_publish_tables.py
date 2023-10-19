@@ -345,7 +345,7 @@ def generate_column_list(table_id_list: list[str], excluded_columns: set[str]) -
         return f"""
             SELECT column_name
             FROM `{project_dataset_name}`.INFORMATION_SCHEMA.COLUMNS
-            WHERE table_name = {table_name}        
+            WHERE table_name = '{table_name}'
             """
 
     column_union_set = set()
