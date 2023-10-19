@@ -176,9 +176,9 @@ def find_program_tables() -> dict[str, set[str]]:
     return tables_per_program_dict
 
 
-def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
+def create_clinical_tables(program: str, stand_alone_tables: set[str]):
     """
-    Create sql query which is used to create GDC clinical tables by analyzing available data as follows:
+    Create GDC clinical tables by analyzing available data as follows:
         - Find non-null columns for each field group, using column lists in TABLE_PARAMS
         - For base clinical and supplemental tables, determine whether mapping or count columns need to be appended.
             - Mapping columns provide id linkages to ancestor tables, if any (e.g. case_id for diagnosis table)
@@ -595,7 +595,7 @@ def create_sql_for_program_tables(program: str, stand_alone_tables: set[str]):
         # e.g. BEATAML1.0 -> BEATAML1_0, EXCEPTIONAL_RESPONDERS -> EXC_RESPONDERS
         program_name = PARAMS['ALTER_PROGRAM_NAMES'][program] if program in PARAMS['ALTER_PROGRAM_NAMES'] else program
         clinical_table_id = create_clinical_table_id(PARAMS,
-                                                     f"{PARAMS['TABLE_PARAMS'][table]['table_name']}_{program_name}")
+                                                     f"{program_name}_{PARAMS['TABLE_PARAMS'][table]['table_name']}")
 
         create_table_from_query(PARAMS, table_id=clinical_table_id, query=sql_query)
 
@@ -738,7 +738,7 @@ def main(args):
         tables_per_program_dict = find_program_tables()
 
         for program, stand_alone_tables in tables_per_program_dict.items():
-            create_sql_for_program_tables(program, stand_alone_tables)
+            create_clinical_tables(program, stand_alone_tables)
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
