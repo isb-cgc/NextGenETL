@@ -167,7 +167,7 @@ def make_aliquot_entity_query(program_name: str) -> str:
             fm1.`access`,
             fm1.acl
         FROM fm1
-        JOIN `{create_metadata_table_id(PARAMS, 'file_associated_with_entity')}` fawe
+        JOIN `{create_dev_table_id(PARAMS, 'file_associated_with_entity')}` fawe
             ON fm1.file_gdc_id = fawe.file_id
         JOIN `{create_metadata_table_id(PARAMS, PARAMS['ALIQUOT_TABLE_NAME'])}` atc
             ON  atc.case_gdc_id = fm1.case_gdc_id AND
