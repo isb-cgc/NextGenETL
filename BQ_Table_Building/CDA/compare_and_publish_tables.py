@@ -795,6 +795,7 @@ def main(args):
         }
 
         if 'compare_tables' in steps:
+            logger.info(f"Comparing tables for {table_params['table_base_name']}!")
             # confirm that datasets and table ids exist, and preview whether table will be published
             compare_tables(table_ids)
 
@@ -804,6 +805,7 @@ def main(args):
             compare_table_columns(table_ids=table_ids, table_params=table_params)
 
         if 'publish_tables' in steps:
+            logger.info(f"Publishing tables for {table_params['table_base_name']}!")
             publish_table(table_ids)
 
     # COMPARE AND PUBLISH CLINICAL AND PER SAMPLE FILE TABLES
@@ -833,6 +835,7 @@ def main(args):
                 }
 
                 if 'compare_tables' in steps:
+                    logger.info(f"Comparing tables for {table_base_name}!")
                     # confirm that datasets and table ids exist, and preview whether table will be published
                     compare_tables(table_ids)
 
@@ -854,6 +857,7 @@ def main(args):
                     compare_table_columns(table_ids=table_ids, table_params=modified_table_params)
 
                 if 'publish_tables' in steps:
+                    logger.info(f"Publishing tables for {table_base_name}!")
                     publish_table(table_ids)
             else:
                 pass
