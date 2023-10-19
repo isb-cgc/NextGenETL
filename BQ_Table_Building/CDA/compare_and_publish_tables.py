@@ -226,7 +226,7 @@ def find_record_difference_counts(table_type: str,
         # find added/removed/changed records by project
         result = query_and_retrieve_result(query)
 
-        print(result)
+        print(list(result))
 
         total_results = 0
         num_columns = len(table_metadata['output_keys']) + 1
