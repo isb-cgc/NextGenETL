@@ -23,7 +23,8 @@ import sys
 import time
 
 from cda_bq_etl.data_helpers import initialize_logging
-from cda_bq_etl.utils import load_config, format_seconds, create_metadata_table_id, create_per_sample_table_id
+from cda_bq_etl.utils import load_config, format_seconds, create_metadata_table_id, create_per_sample_table_id, \
+    create_dev_table_id
 from cda_bq_etl.bq_helpers import delete_bq_table, create_table_from_query, get_program_list, \
     update_table_schema_from_generic, get_program_schema_tags_gdc
 
@@ -62,7 +63,7 @@ def make_slide_entity_query(program_name: str) -> str:
             fm.`access`,
             fm.acl
         FROM `{create_metadata_table_id(PARAMS, PARAMS['FILE_TABLE_NAME'])}` fm
-        JOIN `{create_metadata_table_id(PARAMS, 'file_associated_with_entity')}` fawe
+        JOIN `{create_dev_table_id(PARAMS, 'file_associated_with_entity')}` fawe
           ON fawe.file_id = fm.file_gdc_id AND 
              fawe.entity_id = fm.associated_entities__entity_gdc_id
         JOIN `{create_metadata_table_id(PARAMS, PARAMS['SLIDE_TABLE_NAME'])}` stc

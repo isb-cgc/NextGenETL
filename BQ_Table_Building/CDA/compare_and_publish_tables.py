@@ -32,7 +32,7 @@ from google.cloud.bigquery.table import _EmptyRowIterator
 from cda_bq_etl.bq_helpers import find_most_recent_published_table_id, exists_bq_table, exists_bq_dataset, \
     copy_bq_table, update_friendly_name, change_status_to_archived, query_and_retrieve_result
 from cda_bq_etl.data_helpers import initialize_logging
-from cda_bq_etl.utils import input_with_timeout, load_config, format_seconds, get_filepath
+from cda_bq_etl.utils import input_with_timeout, load_config, format_seconds, get_filepath, create_metadata_table_id
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -646,7 +646,7 @@ def get_new_table_names(dataset: str) -> list[str]:
         return f"""
             SELECT table_name 
             FROM `{PARAMS['DEV_PROJECT']}.{dataset}`.INFORMATION_SCHEMA.TABLES
-            WHERE table_name LIKE '%{PARAMS['RELEASE']}'
+            WHERE table_name LIKE '%{PARAMS['RELEASE']}%'
         """
 
     table_names = query_and_retrieve_result(make_new_table_names_query())
@@ -791,7 +791,7 @@ def main(args):
         table_ids = {
             'current': f"{prod_project}.{prod_dataset}.{prod_table_name}_current",
             'versioned': f"{prod_project}.{prod_dataset}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
-            'source': f"{dev_project}.{PARAMS['DEV_METADATA_DATASET']}.{prod_table_name}_{PARAMS['RELEASE']}"
+            'source': create_metadata_table_id(PARAMS, table_params['table_base_name'])
         }
 
         if 'compare_tables' in steps:
@@ -817,23 +817,18 @@ def main(args):
         # find matching previous version table. If none, no comparison
         for table_name in new_table_names:
             # remove release from table name
-            table_name_no_rel = table_name.replace(f"_{PARAMS['RELEASE']}", "")
+            table_name_no_rel = table_name.replace(f"{PARAMS['RELEASE']}_", "")
 
             if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
-                prod_dataset = table_name_no_rel
-
-                # remove field groups from table name, leaving the program name (which is also the prod dataset)
-                for clinical_fg in table_params['field_groups'].keys():
-                    prod_dataset = prod_dataset.replace(f'{clinical_fg}_', "")
-
-                program = table_name_no_rel.replace(f"_{prod_dataset}", "")
-                field_group = table_name_no_rel.replace(f"_{program}", "").split("_")[-1]
-
-                prod_table_name = f"{program}_{PARAMS['NODE']}"
+                table_name_list = table_name_no_rel.split('_')
+                table_type_start_idx = table_name_list.index('clinical')
+                program = "_".join(table_name_list[0:table_type_start_idx])
+                table_base_name = "_".join(table_name_list[table_type_start_idx:])
+                prod_table_name = f"{table_base_name}_{PARAMS['NODE']}"
 
                 table_ids = {
-                    'current': f"{prod_project}.{prod_dataset}.{prod_table_name}_current",
-                    'versioned': f"{prod_project}.{prod_dataset}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
+                    'current': f"{prod_project}.{program}.{prod_table_name}_current",
+                    'versioned': f"{prod_project}.{program}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
                     'source': f"{dev_project}.{table_params['dev_dataset']}.{table_name}"
                 }
 
@@ -844,10 +839,11 @@ def main(args):
                     # display compare_to_last.sh style output
                     find_record_difference_counts(table_type, table_ids, table_params)
 
-                    if field_group == 'clinical':
+                    # get key based on field group, e.g. the clinical_diagnosis table uses diagnosis_id as primary key
+                    if table_name_list[-1] == 'clinical':
                         primary_key = 'case_id'
                     else:
-                        primary_key = f"{field_group}_id"
+                        primary_key = f"{table_name_list[-1]}_id"
 
                     modified_table_params = {
                         'primary_key': primary_key,
