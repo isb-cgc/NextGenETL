@@ -424,6 +424,8 @@ def compare_table_columns(table_ids: dict[str, str],
                     {secondary_key_join_str}
         """
 
+    print(table_ids)
+
     logger = logging.getLogger('base_script')
 
     primary_key = table_params['primary_key']
