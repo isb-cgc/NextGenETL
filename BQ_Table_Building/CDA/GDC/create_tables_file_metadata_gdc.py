@@ -433,7 +433,7 @@ def create_file_metadata_dict() -> JSONList:
     del index_file_result
 
     # convert into a list of dict objects--this is the form needed to create the jsonl file
-    logger.info("Done! File records merged.\n")
+    logger.info("Done! File records merged.")
     return list(file_records.values())
 
 

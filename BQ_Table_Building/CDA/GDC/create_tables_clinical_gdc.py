@@ -717,8 +717,6 @@ def find_table_column_frequency():
     for program in find_program_tables().keys():
         columns_by_program_dict[program] = find_program_non_null_columns_by_table()
 
-    print(table_column_counts_by_program)
-
 
 def main(args):
     try:
@@ -731,7 +729,7 @@ def main(args):
     log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
-    """
+
     if 'find_missing_fields' in steps:
         # logger.debug("Passing find_missing_fields")
         # Find discrepancies in field lists in yaml config and CDA data
@@ -742,8 +740,6 @@ def main(args):
 
         for program, stand_alone_tables in tables_per_program_dict.items():
             create_sql_for_program_tables(program, stand_alone_tables)
-    """
-    find_table_column_frequency()
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
