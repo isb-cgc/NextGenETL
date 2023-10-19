@@ -783,6 +783,8 @@ def main(args):
     prod_project = PARAMS['PROD_PROJECT']
     dev_project = PARAMS['DEV_PROJECT']
 
+    logger.debug('1')
+
     # COMPARE AND PUBLISH METADATA TABLES
     for table_type, table_params in PARAMS['METADATA_TABLE_TYPES'].items():
         prod_dataset = table_params['prod_dataset']
