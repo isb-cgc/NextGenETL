@@ -311,7 +311,8 @@ def main(args):
         download_from_bucket(PARAMS,
                              bucket_path=PARAMS['ARCHIVE_BUCKET_PATH'],
                              filename=PARAMS['TAR_FILE'],
-                             dir_path=local_tar_dir)
+                             dir_path=local_tar_dir,
+                             project=PARAMS['TAR_PROJECT'])
 
     if "extract_cda_archive_file" in steps:
         logger.info("*** Extracting archive file!")

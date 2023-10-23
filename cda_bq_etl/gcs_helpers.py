@@ -33,7 +33,8 @@ Params = dict[str, Union[str, dict, int]]
 def download_from_bucket(params: Params,
                          filename: str,
                          bucket_path: Optional[str] = None,
-                         dir_path: Optional[str] = None):
+                         dir_path: Optional[str] = None,
+                         project: Optional[str] = ""):
     """
     Download file from Google storage bucket onto VM.
     :param params: params from yaml config, used to retrieve default bucket directory path
@@ -41,6 +42,7 @@ def download_from_bucket(params: Params,
     :param bucket_path: Optional, override default bucket directory path
     :param dir_path: Optional, location in which to download file;
                      if not specified, defaults to scratch folder defined in params
+    :param project: Optional, defined if project outside the default scope
     """
     if not dir_path:
         file_path = get_scratch_fp(params, filename)
@@ -50,7 +52,8 @@ def download_from_bucket(params: Params,
     if os.path.isfile(file_path):
         os.remove(file_path)
 
-    storage_client = storage.Client(project="")
+    storage_client = storage.Client(project=project)
+
     if bucket_path:
         blob_name = f"{bucket_path}/{filename}"
     else:
