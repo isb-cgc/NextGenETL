@@ -25,7 +25,7 @@ import sys
 from typing import Union, Optional
 
 from google.cloud import storage, exceptions
-from cda_bq_etl.utils import get_scratch_fp
+from cda_bq_etl.utils import get_scratch_fp, get_filepath
 
 Params = dict[str, Union[str, dict, int]]
 
@@ -39,7 +39,7 @@ def download_from_external_bucket(project: str, uri_path: str, dir_path: str, fi
     :param filename: Name of file to download
     :param dir_path: VM location for downloaded file
     """
-    file_path = f"{dir_path}/{filename}"
+    file_path = get_filepath(dir_path, filename)
 
     if os.path.isfile(file_path):
         os.remove(file_path)
