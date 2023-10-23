@@ -61,8 +61,14 @@ def download_from_bucket(params: Params,
     bucket = storage_client.bucket(params['WORKING_BUCKET'])
     blob = bucket.blob(blob_name)
 
+    # with open(file_path, 'wb') as file_obj:
+    #    blob.download_to_file(file_obj)
+
     with open(file_path, 'wb') as file_obj:
-        blob.download_to_file(file_obj)
+        storage_client.download_blob_to_file(
+            blob_or_uri="gs://cda_etl_data/GDC/v38__extracted_2023-09-01__01__GDC_all_extracted_data_as_TSVs.tgz",
+            file_obj=file_obj
+        )
 
     if os.path.isfile(file_path):
         logger = logging.getLogger('base_script.cda_bq_etl.gcs_helpers')
