@@ -29,7 +29,7 @@ import time
 
 from typing import Union
 
-from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket
+from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket, download_from_external_bucket
 from cda_bq_etl.utils import get_scratch_fp, load_config, get_filepath, format_seconds, create_dev_table_id
 from cda_bq_etl.data_helpers import create_normalized_tsv, initialize_logging
 from cda_bq_etl.bq_helpers import retrieve_bq_schema_object, create_and_upload_schema_for_tsv, \
@@ -308,11 +308,10 @@ def main(args):
         if not os.path.exists(local_tar_dir):
             os.mkdir(local_tar_dir)
 
-        download_from_bucket(PARAMS,
-                             bucket_path=PARAMS['ARCHIVE_BUCKET_PATH'],
-                             filename=PARAMS['TAR_FILE'],
-                             dir_path=local_tar_dir,
-                             project=PARAMS['TAR_PROJECT'])
+        download_from_external_bucket(project=PARAMS['TAR_PROJECT'],
+                                      uri_path=PARAMS['BLOB_URI_PATH'],
+                                      dir_path=PARAMS['LOCAL_TAR_DIR'],
+                                      filename=PARAMS['TAR_FILE'])
 
     if "extract_cda_archive_file" in steps:
         logger.info("*** Extracting archive file!")

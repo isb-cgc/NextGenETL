@@ -30,6 +30,31 @@ from cda_bq_etl.utils import get_scratch_fp
 Params = dict[str, Union[str, dict, int]]
 
 
+def download_from_external_bucket(project: str, uri_path: str, dir_path: str, filename: str):
+
+    """
+    Download file from Google storage bucket onto VM.
+    :param project: GCS project from which to download blob
+    :param uri_path: GCS uri path
+    :param filename: Name of file to download
+    :param dir_path: VM location for downloaded file
+    """
+    file_path = f"{dir_path}/{filename}"
+
+    if os.path.isfile(file_path):
+        os.remove(file_path)
+
+    storage_client = storage.Client(project=project)
+
+    with open(file_path, 'wb') as file_obj:
+        uri = f"{uri_path}/{filename}"
+        storage_client.download_blob_to_file(blob_or_uri=uri, file_obj=file_obj)
+
+    if os.path.isfile(file_path):
+        logger = logging.getLogger('base_script.cda_bq_etl.gcs_helpers')
+        logger.info(f"File successfully downloaded from bucket to {file_path}")
+
+
 def download_from_bucket(params: Params,
                          filename: str,
                          bucket_path: Optional[str] = None,
@@ -61,14 +86,8 @@ def download_from_bucket(params: Params,
     bucket = storage_client.bucket(params['WORKING_BUCKET'])
     blob = bucket.blob(blob_name)
 
-    # with open(file_path, 'wb') as file_obj:
-    #    blob.download_to_file(file_obj)
-
     with open(file_path, 'wb') as file_obj:
-        storage_client.download_blob_to_file(
-            blob_or_uri="gs://cda_etl_data/GDC/v38__extracted_2023-09-01__01__GDC_all_extracted_data_as_TSVs.tgz",
-            file_obj=file_obj
-        )
+        blob.download_to_file(file_obj)
 
     if os.path.isfile(file_path):
         logger = logging.getLogger('base_script.cda_bq_etl.gcs_helpers')
