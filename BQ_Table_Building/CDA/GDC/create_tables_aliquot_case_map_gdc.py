@@ -54,7 +54,7 @@ def make_aliquot_case_table_sql(legacy_table_id: str) -> str:
                 an.submitter_id AS analyte_barcode,
                 al.aliquot_id AS aliquot_gdc_id,
                 al.submitter_id AS aliquot_barcode        
-            JOIN `{create_dev_table_id(PARAMS, 'portion')}` p 
+            FROM `{create_dev_table_id(PARAMS, 'portion')}` p 
             LEFT JOIN `{create_dev_table_id(PARAMS, 'analyte_from_portion')}` afp
                 ON p.portion_id = afp.portion_id
             LEFT JOIN `{create_dev_table_id(PARAMS, 'analyte')}` an
