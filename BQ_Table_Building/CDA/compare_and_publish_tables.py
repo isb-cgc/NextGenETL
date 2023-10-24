@@ -689,7 +689,7 @@ def get_current_table_names(table_type) -> list[str]:
     logger = logging.getLogger('base_script')
 
     program_metadata_fp = f"{PARAMS['BQ_REPO']}/{PARAMS['PROGRAM_METADATA_DIR']}"
-    program_metadata_fp = get_filepath(program_metadata_fp)
+    program_metadata_fp = get_filepath(program_metadata_fp, PARAMS['PROGRAM_METADATA_FILE'])
 
     if not os.path.exists(program_metadata_fp):
         logger.critical("BQEcosystem program metadata path not found")
