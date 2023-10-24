@@ -678,7 +678,7 @@ def get_new_table_names(dataset: str) -> list[str]:
     for row in table_names:
         table_name_list.append(row['table_name'])
 
-    return sorted(list(table_names))
+    return sorted(table_name_list)
 
 
 def get_current_table_names(table_type) -> list[str]:
