@@ -682,6 +682,7 @@ def get_current_table_names(table_type) -> list[str]:
             SELECT table_name 
             FROM `{PARAMS['PROD_PROJECT']}.{program_name}`.INFORMATION_SCHEMA.TABLES
             WHERE table_name LIKE '%{table_type}%'
+                AND table_name LIKE '%{PARAMS['NODE']}%'
         """
     # get program list from BQEcosystem/MetadataMappings/
     # for each program, look for tables in current list with 'clinical' or 'per_sample_file' prefix
