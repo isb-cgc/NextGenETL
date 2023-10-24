@@ -493,6 +493,11 @@ def compare_table_columns(table_ids: dict[str, str],
                     old_second_key_val = row.get(f"old_{secondary_key}")
                     secondary_key_val = new_second_key_val if new_second_key_val is not None else old_second_key_val
 
+                    print(primary_key_val)
+                    print(secondary_key_val)
+                    print(old_column_val)
+                    print(new_column_val)
+
                     logger.info(f"{primary_key_val:40} {secondary_key_val:40} {old_column_val:40} {new_column_val}")
                 else:
                     logger.info(f"{primary_key_val:40} {old_column_val:40} {new_column_val}")
