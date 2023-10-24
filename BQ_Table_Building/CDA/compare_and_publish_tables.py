@@ -715,7 +715,6 @@ def get_current_table_names(table_type) -> list[str]:
 
             for row in table_name_result:
                 table_name = row['table_name']
-                print(table_name)
                 table_name = table_name.replace(suffix, "")
                 program_table_name = f"{table_name}_{program_name}"
                 current_table_names.append(program_table_name)
@@ -734,6 +733,7 @@ def find_missing_tables(dataset, table_type):
     no_release_new_table_names = list()
 
     current_table_names = get_current_table_names(table_type)
+    print(current_table_names)
     new_table_names = get_new_table_names(dataset)
 
     for new_table_name in new_table_names:
