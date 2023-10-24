@@ -430,12 +430,12 @@ def compare_table_columns(table_ids: dict[str, str],
     primary_key = table_params['primary_key']
     secondary_key = table_params['secondary_key'] if 'secondary_key' in table_params else None
 
-    if 'concat_columns' in table_params:
+    if 'concat_columns' in table_params and table_params['concat_columns']:
         concat_column_set = set(table_params['concat_columns'])
     else:
         concat_column_set = set()
 
-    if 'columns_excluded_from_compare' in table_params:
+    if 'columns_excluded_from_compare' in table_params and table_params['columns_excluded_from_compare']:
         not_compared_column_set = set(table_params['columns_excluded_from_compare'])
     else:
         not_compared_column_set = set()
