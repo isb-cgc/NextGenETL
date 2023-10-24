@@ -673,6 +673,11 @@ def get_new_table_names(dataset: str) -> list[str]:
 
     table_names = query_and_retrieve_result(make_new_table_names_query())
 
+    table_name_list = list()
+
+    for row in table_names:
+        table_name_list.append(row['table_name'])
+
     return sorted(list(table_names))
 
 
@@ -730,18 +735,17 @@ def find_missing_tables(dataset, table_type):
     """
     logger = logging.getLogger('base_script')
 
-    no_release_new_table_names = list()
+    new_table_names_no_rel = list()
 
     current_table_names = get_current_table_names(table_type)
-    print(current_table_names)
     new_table_names = get_new_table_names(dataset)
 
     for new_table_name in new_table_names:
-        new_table_name = new_table_name.replace(PARAMS['RELEASE'], "")
-        no_release_new_table_names.append(new_table_name)
+        new_table_name = new_table_name.replace(f"{PARAMS['RELEASE']}_", "")
+        new_table_names_no_rel.append(new_table_name)
 
     for current_table_name in current_table_names:
-        if current_table_name not in no_release_new_table_names:
+        if current_table_name not in new_table_names_no_rel:
             logger.warning(f"Cannot find new dev table for published table {current_table_name}.")
 
 
