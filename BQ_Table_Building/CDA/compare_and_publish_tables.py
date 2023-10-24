@@ -483,20 +483,23 @@ def compare_table_columns(table_ids: dict[str, str],
             for row in column_comparison_result:
                 new_primary_key_val = row.get(f"new_{primary_key}")
                 old_primary_key_val = row.get(f"old_{primary_key}")
-                primary_key_val = new_primary_key_val if new_primary_key_val is not None else old_primary_key_val
 
-                new_column_val = row.get(f"new_{column}")
-                old_column_val = row.get(f"old_{column}")
+                if new_primary_key_val is not None:
+                    primary_key_val = str(new_primary_key_val)
+                else:
+                    primary_key_val = str(old_primary_key_val)
+
+                new_column_val = str(row.get(f"new_{column}"))
+                old_column_val = str(row.get(f"old_{column}"))
 
                 if secondary_key is not None:
                     new_second_key_val = row.get(f"new_{secondary_key}")
                     old_second_key_val = row.get(f"old_{secondary_key}")
-                    secondary_key_val = new_second_key_val if new_second_key_val is not None else old_second_key_val
 
-                    print(primary_key_val)
-                    print(secondary_key_val)
-                    print(old_column_val)
-                    print(new_column_val)
+                    if new_second_key_val is not None:
+                        secondary_key_val = str(new_second_key_val)
+                    else:
+                        secondary_key_val = str(old_second_key_val)
 
                     logger.info(f"{primary_key_val:40} {secondary_key_val:40} {old_column_val:40} {new_column_val}")
                 else:
