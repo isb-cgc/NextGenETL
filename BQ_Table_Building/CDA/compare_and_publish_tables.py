@@ -721,7 +721,7 @@ def get_current_table_names(table_type) -> list[str]:
             for row in table_name_result:
                 table_name = row['table_name']
                 table_name = table_name.replace(suffix, "")
-                program_table_name = f"{table_name}_{program_name}"
+                program_table_name = f"{program_name}_{table_name}"
                 current_table_names.append(program_table_name)
 
         return sorted(current_table_names)
