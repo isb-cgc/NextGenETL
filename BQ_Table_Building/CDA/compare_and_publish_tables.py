@@ -815,8 +815,7 @@ def main(args):
 
             if data_to_compare:
                 # display compare_to_last.sh style output
-                # todo remove comment
-                # find_record_difference_counts(table_type, table_ids, table_params)
+                find_record_difference_counts(table_type, table_ids, table_params)
                 compare_table_columns(table_ids=table_ids, table_params=table_params)
 
         if 'publish_tables' in steps:
