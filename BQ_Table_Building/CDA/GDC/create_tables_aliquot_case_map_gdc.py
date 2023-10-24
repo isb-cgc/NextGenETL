@@ -54,23 +54,23 @@ def make_aliquot_case_table_sql(legacy_table_id: str) -> str:
                 an.submitter_id AS analyte_barcode,
                 al.aliquot_id AS aliquot_gdc_id,
                 al.submitter_id AS aliquot_barcode        
-            FROM `{create_dev_table_id(PARAMS, 'portion')}` p 
-            LEFT JOIN `{create_dev_table_id(PARAMS, 'analyte_from_portion')}` afp
-                ON p.portion_id = afp.portion_id
-            LEFT JOIN `{create_dev_table_id(PARAMS, 'analyte')}` an
-                ON afp.analyte_id = an.analyte_id
-            LEFT JOIN `{create_dev_table_id(PARAMS, 'aliquot_of_analyte')}` aoa
-                ON an.analyte_id = aoa.analyte_id
-            LEFT JOIN `{create_dev_table_id(PARAMS, 'aliquot')}` al
+            FROM `{create_dev_table_id(PARAMS, 'aliquot')}` al
+            JOIN `{create_dev_table_id(PARAMS, 'aliquot_of_analyte')}` aoa
                 ON aoa.aliquot_id = al.aliquot_id
+            JOIN `{create_dev_table_id(PARAMS, 'analyte')}` an
+                ON an.analyte_id = aoa.analyte_id
+            JOIN `{create_dev_table_id(PARAMS, 'analyte_from_portion')}` afp
+                ON afp.analyte_id = an.analyte_id
+            JOIN `{create_dev_table_id(PARAMS, 'portion')}` p 
+                ON p.portion_id = afp.portion_id
             JOIN `{create_dev_table_id(PARAMS, 'portion_from_sample')}` pfs
-                ON p.portion_id = pfs.portion_id
+                ON pfs.portion_id = p.portion_id
             JOIN `{create_dev_table_id(PARAMS, 'sample')}` s
-                ON pfs.sample_id = s.sample_id
+                ON s.sample_id = pfs.sample_id
             JOIN `{create_dev_table_id(PARAMS, 'sample_from_case')}` sfc
-                ON s.sample_id = sfc.sample_id
+                ON sfc.sample_id = s.sample_id
             JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-                ON cpp.case_gdc_id = sfc.case_id
+                ON sfc.case_id = cpp.case_gdc_id
         ) UNION ALL (
             SELECT program_name,
                 project_id,
