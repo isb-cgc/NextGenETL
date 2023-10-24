@@ -703,9 +703,11 @@ def get_current_table_names(table_type) -> list[str]:
         suffix = f"_{PARAMS['NODE']}_current"
 
         for program_name in program_names:
-            table_names = query_and_retrieve_result(make_program_tables_query())
+            table_name_result = query_and_retrieve_result(make_program_tables_query())
 
-            for table_name in list(table_names):
+            for row in table_name_result:
+                table_name = row['table_name']
+                print(table_name)
                 table_name = table_name.replace(suffix, "")
                 program_table_name = f"{table_name}_{program_name}"
                 current_table_names.append(program_table_name)
