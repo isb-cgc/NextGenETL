@@ -680,7 +680,7 @@ def get_current_table_names(table_type) -> list[str]:
     def make_program_tables_query() -> str:
         return f"""
             SELECT table_name 
-            FROM `{PARAMS['DEV_PROJECT']}.{program_name}`.INFORMATION_SCHEMA.TABLES
+            FROM `{PARAMS['PROD_PROJECT']}.{program_name}`.INFORMATION_SCHEMA.TABLES
             WHERE table_name LIKE '%{table_type}%'
         """
     # get program list from BQEcosystem/MetadataMappings/
