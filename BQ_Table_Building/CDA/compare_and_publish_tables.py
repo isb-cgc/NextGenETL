@@ -703,7 +703,14 @@ def get_current_table_names(table_type) -> list[str]:
 
         suffix = f"_{PARAMS['NODE']}_current"
 
-        for program_name in program_names:
+        for program_name_original in program_names:
+            if program_name_original == "BEATAML1.0":
+                program_name = "BEATAML1_0"
+            elif program_name_original == "EXCEPTIONAL_RESPONDERS":
+                program_name = "EXC_RESPONDERS"
+            else:
+                program_name = program_name_original
+
             table_name_result = query_and_retrieve_result(make_program_tables_query())
 
             for row in table_name_result:
