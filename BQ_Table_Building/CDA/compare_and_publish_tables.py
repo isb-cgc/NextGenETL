@@ -474,7 +474,7 @@ def compare_table_columns(table_ids: dict[str, str],
 
             # output header row
             if secondary_key is None:
-                logger.info(f"{primary_key:40} {old_column_header: 40} {new_column_header}")
+                logger.info(f"{primary_key:40} {old_column_header:40} {new_column_header}")
             else:
                 logger.info(f"{primary_key:40} {secondary_key:40} {old_column_header:40} {new_column_header}")
 
