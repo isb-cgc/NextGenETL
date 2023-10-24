@@ -740,17 +740,14 @@ def find_missing_tables(dataset, table_type):
     current_table_names = get_current_table_names(table_type)
     new_table_names = get_new_table_names(dataset)
 
-    print(current_table_names)
-
     for new_table_name in new_table_names:
         new_table_name = new_table_name.replace(f"{PARAMS['RELEASE']}_", "")
         new_table_names_no_rel.append(new_table_name)
 
-    print(new_table_names_no_rel)
-
     for current_table_name in current_table_names:
         if current_table_name not in new_table_names_no_rel:
-            logger.warning(f"Cannot find new dev table for published table {current_table_name}.")
+            logger.warning(f"Cannot find new dev table for published table {current_table_name}. "
+                           f"Is this due to change from singular to plural?")
 
 
 def publish_table(table_ids: dict[str, str]):
@@ -874,6 +871,8 @@ def main(args):
                     'versioned': f"{prod_project}.{program}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
                     'source': f"{dev_project}.{table_params['dev_dataset']}.{table_name}"
                 }
+
+                print(table_ids)
 
                 if 'compare_tables' in steps:
                     logger.info(f"Comparing tables for {table_base_name}!")
