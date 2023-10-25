@@ -44,16 +44,16 @@ def make_case_metadata_table_sql(legacy_table_id: str) -> str:
         ) 
         (
             SELECT cpp.case_gdc_id, 
-            c.primary_site, 
-            cpp.project_dbgap_accession_number, 
-            pdt.disease_type as project_disease_type,
-            cpp.project_name, 
-            cpp.program_dbgap_accession_number,
-            cpp.program_name, 
-            cpp.project_id, 
-            c.submitter_id AS case_barcode,
-            r.legacy_file_count,
-            counts.active_file_count
+                c.primary_site, 
+                cpp.project_dbgap_accession_number, 
+                pdt.disease_type as project_disease_type,
+                cpp.project_name, 
+                cpp.program_dbgap_accession_number,
+                cpp.program_name, 
+                cpp.project_id, 
+                c.submitter_id AS case_barcode,
+                r.legacy_file_count,
+                counts.active_file_count
             FROM `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
             JOIN `{create_dev_table_id(PARAMS, 'case')}` c
                 ON c.case_id = cpp.case_gdc_id
