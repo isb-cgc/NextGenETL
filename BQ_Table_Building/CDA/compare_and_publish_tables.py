@@ -288,12 +288,13 @@ def find_record_difference_counts(table_type: str,
     if removed_str and not compare_primary_keys:
         logger.info(removed_str)
 
-    # find changed records by project
-    changed_count, changed_str = compare_records(query=make_changed_record_count_query())
+    if not compare_primary_keys:
+        # find changed records by project
+        changed_count, changed_str = compare_records(query=make_changed_record_count_query())
 
-    logger.info(f"Changed {table_type} count: {changed_count}")
-    if changed_str and not compare_primary_keys:
-        logger.info(changed_str)
+        logger.info(f"Changed {table_type} count: {changed_count}")
+        if changed_str and not compare_primary_keys:
+            logger.info(changed_str)
 
 
 def generate_column_list(table_id_list: list[str], excluded_columns: set[str]) -> list[str]:
