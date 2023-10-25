@@ -915,7 +915,6 @@ def main(args):
 
                         modified_table_params = {
                             'primary_key': primary_key,
-                            'concat_columns': table_params['concat_columns'],
                             'columns_excluded_from_compare': table_params['columns_excluded_from_compare'],
                         }
 
