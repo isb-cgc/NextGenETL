@@ -766,6 +766,41 @@ def publish_table(table_ids: dict[str, str]):
         else:
             logger.info(f"{table_ids['source']} not published, no changes detected")
 
+def get_gdc_clinical_primary_key(table_ids):
+    current_table_name = table_ids['current'].split('.')[-1]
+    current_table_name = current_table_name.replace("_current", "")
+    base_table_name = current_table_name.replace("_PARAMS['NODE']", "")
+    primary_key_type = base_table_name.split("_")[-1]
+
+    if primary_key_type == 'clinical':
+        return 'case_id'
+    else:
+        return f"{primary_key_type}_id"
+
+
+def generate_gdc_clinical_table_id_list(table_params: dict[str, str]) -> list[dict[str, str]]:
+    new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
+
+    table_ids_list = list()
+
+    for table_name in new_table_names:
+        table_name_no_rel = table_name.replace(f"{PARAMS['RELEASE']}_", "")
+        split_table_name = table_name_no_rel.split('_')
+        # index to split table name from program
+        table_type_start_idx = split_table_name.index('clinical')
+        program = "_".join(split_table_name[0:table_type_start_idx])
+        table_base_name = "_".join(split_table_name[table_type_start_idx:])
+        prod_table_name = f"{table_base_name}_{PARAMS['NODE']}"
+
+        table_ids = {
+            'current': f"{PARAMS['PROD_PROJECT']}.{program}.{prod_table_name}_current",
+            'versioned': f"{PARAMS['PROD_PROJECT']}.{program}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
+            'source': f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}",
+        }
+        table_ids['previous_versioned'] = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
+        table_ids_list.append(table_ids)
+
+    return table_ids_list
 
 def main(args):
     try:
@@ -816,66 +851,36 @@ def main(args):
         # find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
 
         if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
-            # for clinical:
-            # get list of tables from clinical dataset for current release
-            new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
-            # find matching previous version table. If none, no comparison
-            for table_name in new_table_names:
-                # remove release from table name
-                table_name_no_rel = table_name.replace(f"{PARAMS['RELEASE']}_", "")
+            table_ids_list = generate_gdc_clinical_table_id_list(table_params)
 
-                if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
-                    table_name_list = table_name_no_rel.split('_')
-                    table_type_start_idx = table_name_list.index('clinical')
-                    program = "_".join(table_name_list[0:table_type_start_idx])
-                    table_base_name = "_".join(table_name_list[table_type_start_idx:])
-                    prod_table_name = f"{table_base_name}_{PARAMS['NODE']}"
+            if 'compare_tables' in steps:
+                for table_ids in table_ids_list:
+                    logger.info(f"Comparing tables for {table_ids['source']}!")
+                    # confirm that datasets and table ids exist, and preview whether table will be published
+                    data_to_compare = can_compare_tables(table_ids)
 
-                    table_ids = {
-                        'current': f"{prod_project}.{program}.{prod_table_name}_current",
-                        'versioned': f"{prod_project}.{program}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
-                        'source': f"{dev_project}.{table_params['dev_dataset']}.{table_name}",
-                        'previous_versioned': find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
-                    }
+                    if data_to_compare:
+                        modified_table_params = {
+                            'primary_key': get_gdc_clinical_primary_key(table_ids),
+                            'columns_excluded_from_compare': table_params['columns_excluded_from_compare'],
+                            'output_keys': list()
+                        }
 
-                    if 'compare_tables' in steps:
-                        logger.info(f"Comparing tables for {table_base_name}!")
-                        # confirm that datasets and table ids exist, and preview whether table will be published
-                        data_to_compare = can_compare_tables(table_ids)
+                        # display compare_to_last.sh style output
+                        find_record_difference_counts(table_type,
+                                                      table_ids,
+                                                      modified_table_params,
+                                                      compare_primary_keys=True)
 
-                        if data_to_compare:
-                            # get key based on field group, e.g. the clinical_diagnosis table uses
-                            # diagnosis_id as primary key
-                            if table_name_list[-1] == 'clinical':
-                                primary_key = 'case_id'
-                            else:
-                                primary_key = f"{table_name_list[-1]}_id"
+                        compare_table_columns(table_ids=table_ids, table_params=modified_table_params)
 
-                            modified_table_params = {
-                                'primary_key': primary_key,
-                                'columns_excluded_from_compare': table_params['columns_excluded_from_compare'],
-                                'output_keys': list()
-                            }
-
-                            # display compare_to_last.sh style output
-                            find_record_difference_counts(table_type,
-                                                          table_ids,
-                                                          modified_table_params,
-                                                          compare_primary_keys=True)
-
-                            compare_table_columns(table_ids=table_ids, table_params=modified_table_params)
-
-                    if 'publish_tables' in steps:
-                        logger.info(f"Publishing clinical tables for {program}!")
-                        publish_table(table_ids)
-                else:
-                    pass
-                    # todo create prod table names and datasets for per_sample_file in gdc and pdc, clinical in pdc
-
-            # get column lists for new table and previous table
-            # - any new or removed columns? note in output
-            # - any column type changes? note in output; won't be able to compare values
-            # - for all remaining, matching columns, compare columns, matching on primary key.
+            if 'publish_tables' in steps:
+                logger.info(f"Publishing clinical tables!")
+                for table_ids in table_ids_list:
+                    publish_table(table_ids)
+        else:
+            pass
+            # todo create prod table names and datasets for per_sample_file in gdc and pdc, clinical in pdc
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
