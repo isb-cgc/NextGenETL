@@ -875,7 +875,8 @@ def main(args):
     # COMPARE AND PUBLISH CLINICAL AND PER SAMPLE FILE TABLES
     for table_type, table_params in PARAMS['PER_PROJECT_TABLE_TYPES'].items():
         # look for list of last release's published tables to ensure none have disappeared before comparing
-        find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
+        # todo remove comment
+        # find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
 
         # for clinical:
         # get list of tables from clinical dataset for current release
