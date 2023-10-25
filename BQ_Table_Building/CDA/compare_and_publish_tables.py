@@ -899,7 +899,8 @@ def main(args):
                         # display compare_to_last.sh style output
                         find_record_difference_counts(table_type,
                                                       table_ids,
-                                                      modified_table_params)
+                                                      modified_table_params,
+                                                      compare_primary_keys=True)
 
                         compare_table_columns(table_ids=table_ids, table_params=modified_table_params)
 
