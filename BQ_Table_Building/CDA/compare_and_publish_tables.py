@@ -765,10 +765,11 @@ def publish_table(table_ids: dict[str, str]):
         else:
             logger.info(f"{table_ids['source']} not published, no changes detected")
 
+
 def get_gdc_clinical_primary_key(table_ids):
     current_table_name = table_ids['current'].split('.')[-1]
     current_table_name = current_table_name.replace("_current", "")
-    base_table_name = current_table_name.replace("_PARAMS['NODE']", "")
+    base_table_name = current_table_name.replace(f"_{PARAMS['NODE']}", "")
     primary_key_type = base_table_name.split("_")[-1]
 
     if primary_key_type == 'clinical':
