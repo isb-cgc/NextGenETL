@@ -290,7 +290,7 @@ def find_record_difference_counts(table_type: str,
 
     primary_key = table_metadata['primary_key']
 
-    if table_metadata['secondary_key'] is not None:
+    if 'secondary_key' in table_metadata and table_metadata['secondary_key'] is not None:
         secondary_key = table_metadata['secondary_key'] + ', '
     else:
         secondary_key = ''
