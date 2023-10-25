@@ -245,6 +245,7 @@ def find_record_difference_counts(table_type: str,
 
     def compare_records(query: str) -> tuple[int, str]:
         # find added/removed/changed records by project
+        print(query)
         result = query_and_retrieve_result(query)
 
         total_results = 0
