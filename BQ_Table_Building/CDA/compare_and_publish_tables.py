@@ -82,13 +82,11 @@ def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
 def compare_tables(table_ids: dict[str, str]) -> bool:
     logger = logging.getLogger('base_script')
 
-    previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
-
-    if previous_versioned_table_id is None:
+    if table_ids['previous_versioned'] is None:
         logger.warning(f"No previous version found for {table_ids['source']}. Will publish. Investigate if unexpected.")
         return False
 
-    logger.info(f"Comparing tables {table_ids['source']} and {previous_versioned_table_id}.")
+    logger.info(f"Comparing tables {table_ids['source']} and {table_ids['previous_versioned']}.")
 
     # does source table exist?
     if not exists_bq_table(table_ids['source']):
@@ -109,14 +107,12 @@ def compare_tables(table_ids: dict[str, str]) -> bool:
         logger.critical(f"Dataset {versioned_dataset} doesn't exist, cannot publish.")
         sys.exit(-1)
 
-    logger.info("Previous published and source tables exist, great! Continuing.")
-
     # display published table_ids
     logger.info("To-be-published table_ids:")
     logger.info(f"current: {table_ids['current']}")
     logger.info(f"versioned: {table_ids['versioned']}")
 
-    has_new_data = table_has_new_data(previous_versioned_table_id, table_ids['source'])
+    has_new_data = table_has_new_data(table_ids['previous_versioned'], table_ids['source'])
 
     # is there a previous version to compare with new table?
     # use previous_versioned_table_id
@@ -152,11 +148,11 @@ def find_record_difference_counts(table_type: str,
                 FROM `{table_ids['source']}`
                 EXCEPT DISTINCT
                 SELECT * {excluded_column_sql_str}
-                FROM `{previous_versioned_table_id}`
+                FROM `{table_ids['previous_versioned']}`
             ), 
             old_rows AS (
                 SELECT * {excluded_column_sql_str}
-                FROM `{previous_versioned_table_id}`
+                FROM `{table_ids['previous_versioned']}`
                 EXCEPT DISTINCT
                 SELECT * {excluded_column_sql_str}
                 FROM `{table_ids['source']}`
@@ -187,11 +183,11 @@ def find_record_difference_counts(table_type: str,
                 FROM `{table_ids['source']}`
                 EXCEPT DISTINCT
                 SELECT * {excluded_column_sql_str}
-                FROM `{previous_versioned_table_id}`
+                FROM `{table_ids['previous_versioned']}`
             ), 
             old_rows AS (
                 SELECT * {excluded_column_sql_str}
-                FROM `{previous_versioned_table_id}`
+                FROM `{table_ids['previous_versioned']}`
                 EXCEPT DISTINCT
                 SELECT * {excluded_column_sql_str}
                 FROM `{table_ids['source']}`
@@ -222,11 +218,11 @@ def find_record_difference_counts(table_type: str,
                 FROM `{table_ids['source']}`
                 EXCEPT DISTINCT
                 SELECT * {excluded_column_sql_str}
-                FROM `{previous_versioned_table_id}`
+                FROM `{table_ids['previous_versioned']}`
             ), 
             old_rows AS (
                 SELECT * {excluded_column_sql_str}
-                FROM `{previous_versioned_table_id}`
+                FROM `{table_ids['previous_versioned']}`
                 EXCEPT DISTINCT
                 SELECT * {excluded_column_sql_str}
                 FROM `{table_ids['source']}`
@@ -278,9 +274,7 @@ def find_record_difference_counts(table_type: str,
 
     logger = logging.getLogger('base_script')
 
-    previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
-
-    if previous_versioned_table_id is None:
+    if table_ids['previous_versioned'] is None:
         logger.warning(f"No previous table found for {table_ids['versioned']}; therefore, no changes to report.")
         return
 
@@ -297,7 +291,7 @@ def find_record_difference_counts(table_type: str,
         secondary_key = ''
 
     # get record count from previous versioned table
-    previous_version_count_result = query_and_retrieve_result(make_record_count_query(previous_versioned_table_id))
+    previous_version_count_result = query_and_retrieve_result(make_record_count_query(table_ids['previous_versioned']))
 
     try:
         previous_version_count = None
@@ -309,7 +303,7 @@ def find_record_difference_counts(table_type: str,
         if previous_version_count is None:
             raise TypeError
     except TypeError:
-        logger.critical(f"No value returned for previous version row count in {previous_versioned_table_id}.")
+        logger.critical(f"No value returned for previous version row count in {table_ids['previous_versioned']}.")
         logger.critical("Probably an error in the table id or SQL query.")
         sys.exit(-1)
 
@@ -473,9 +467,7 @@ def compare_table_columns(table_ids: dict[str, str],
     if secondary_key:
         excluded_columns.add(secondary_key)
 
-    old_version_table_id = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
-
-    if not old_version_table_id:
+    if not table_ids['previous_versioned']:
         logger.info(f"Previous version of table (future versioned table id: {table_ids['versioned']}) not found.")
         return
 
@@ -587,8 +579,7 @@ def compare_concat_columns(table_ids: dict[str, str],
 
     new_table_records_dict = make_records_dict(query=make_concat_column_query(table_ids['source']))
 
-    old_version_table_id = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
-    old_table_records_dict = make_records_dict(query=make_concat_column_query(old_version_table_id))
+    old_table_records_dict = make_records_dict(query=make_concat_column_query(table_ids['previous_versioned']))
 
     logger.info("Comparing concatenated columns!")
 
@@ -788,15 +779,14 @@ def publish_table(table_ids: dict[str, str]):
     """
     logger = logging.getLogger('base_script')
 
-    previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
-    logger.info(f"previous_versioned_table_id: {previous_versioned_table_id}")
+    logger.info(f"previous_versioned_table_id: {table_ids['previous_versioned']}")
 
     if PARAMS['TEST_PUBLISH']:
         logger.error("Cannot run publish table step with TEST_PUBLISH set to true.")
         sys.exit(-1)
 
     if exists_bq_table(table_ids['source']):
-        if table_has_new_data(previous_versioned_table_id, table_ids['source']):
+        if table_has_new_data(table_ids['previous_versioned'], table_ids['source']):
             delay = 5
 
             logger.info(f"""\n\nPublishing the following tables:""")
@@ -823,9 +813,9 @@ def publish_table(table_ids: dict[str, str]):
             logger.info(f"Updating friendly name for {table_ids['versioned']}")
             update_friendly_name(PARAMS, table_id=table_ids['versioned'])
 
-            if previous_versioned_table_id:
-                logger.info(f"Archiving {previous_versioned_table_id}")
-                change_status_to_archived(previous_versioned_table_id)
+            if table_ids['previous_versioned']:
+                logger.info(f"Archiving {table_ids['previous_versioned']}")
+                change_status_to_archived(table_ids['previous_versioned'])
 
         else:
             logger.info(f"{table_ids['source']} not published, no changes detected")
@@ -848,7 +838,6 @@ def main(args):
     dev_project = PARAMS['DEV_PROJECT']
 
     # COMPARE AND PUBLISH METADATA TABLES
-    """
     for table_type, table_params in PARAMS['METADATA_TABLE_TYPES'].items():
         prod_dataset = table_params['prod_dataset']
         prod_table_name = table_params['table_base_name']
@@ -858,6 +847,9 @@ def main(args):
             'versioned': f"{prod_project}.{prod_dataset}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
             'source': create_metadata_table_id(PARAMS, table_params['table_base_name'])
         }
+
+        previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
+        table_ids['previous_versioned'] = previous_versioned_table_id
 
         if 'compare_tables' in steps:
             logger.info(f"Comparing tables for {table_params['table_base_name']}!")
@@ -872,7 +864,6 @@ def main(args):
         if 'publish_tables' in steps:
             logger.info(f"Publishing tables for {table_params['table_base_name']}!")
             publish_table(table_ids)
-    """
     # COMPARE AND PUBLISH CLINICAL AND PER SAMPLE FILE TABLES
     for table_type, table_params in PARAMS['PER_PROJECT_TABLE_TYPES'].items():
         # look for list of last release's published tables to ensure none have disappeared before comparing
@@ -900,7 +891,8 @@ def main(args):
                     'source': f"{dev_project}.{table_params['dev_dataset']}.{table_name}"
                 }
 
-                print(table_ids)
+                previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
+                table_ids['previous_versioned'] = previous_versioned_table_id
 
                 if 'compare_tables' in steps:
                     logger.info(f"Comparing tables for {table_base_name}!")
