@@ -838,6 +838,7 @@ def main(args):
     dev_project = PARAMS['DEV_PROJECT']
 
     # COMPARE AND PUBLISH METADATA TABLES
+    """
     for table_type, table_params in PARAMS['METADATA_TABLE_TYPES'].items():
         prod_dataset = table_params['prod_dataset']
         prod_table_name = table_params['table_base_name']
@@ -864,6 +865,7 @@ def main(args):
         if 'publish_tables' in steps:
             logger.info(f"Publishing tables for {table_params['table_base_name']}!")
             publish_table(table_ids)
+    """
     # COMPARE AND PUBLISH CLINICAL AND PER SAMPLE FILE TABLES
     for table_type, table_params in PARAMS['PER_PROJECT_TABLE_TYPES'].items():
         # look for list of last release's published tables to ensure none have disappeared before comparing
