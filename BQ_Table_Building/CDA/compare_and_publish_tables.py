@@ -779,6 +779,8 @@ def get_gdc_clinical_primary_key(table_ids):
 
 
 def generate_gdc_clinical_table_id_list(table_params: dict[str, str]) -> list[dict[str, str]]:
+    logger = logging.getLogger('base_script')
+    logger.info("Generating GDC clinical table id list")
     new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
 
     table_ids_list = list()
@@ -804,6 +806,9 @@ def generate_gdc_clinical_table_id_list(table_params: dict[str, str]) -> list[di
             table_ids['previous_versioned'] = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
 
         table_ids_list.append(table_ids)
+
+        if len(table_ids_list) % 5 == 0:
+            logger.info(f"{len(table_ids_list)} of {len(new_table_names)}")
 
     return table_ids_list
 
