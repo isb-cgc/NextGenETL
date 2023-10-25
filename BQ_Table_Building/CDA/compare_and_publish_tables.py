@@ -138,6 +138,14 @@ def find_record_difference_counts(table_type: str,
         """
 
     def make_added_record_count_query():
+        if output_key_string:
+            select_clause = f"SELECT COUNT({primary_key}) AS changed_count, {output_key_string}"
+            group_by_clause = f"GROUP BY {output_key_string}" \
+                              f"ORDER BY {output_key_string}"
+        else:
+            select_clause = f"SELECT COUNT({primary_key}) AS changed_count"
+            group_by_clause = ""
+
         return f"""
             WITH new_rows AS (
                 SELECT * {excluded_column_sql_str}
@@ -155,17 +163,24 @@ def find_record_difference_counts(table_type: str,
             )
 
             # added aliquots
-            SELECT COUNT({primary_key}) AS changed_count, {output_key_string} 
+            {select_clause}
             FROM new_rows
             WHERE {primary_key} NOT IN (
                 SELECT {primary_key} 
                 FROM old_rows
             )
-            GROUP BY {output_key_string}
-            ORDER BY {output_key_string}
+            {group_by_clause}
         """
 
     def make_removed_record_count_query():
+        if output_key_string:
+            select_clause = f"SELECT COUNT({primary_key}) AS changed_count, {output_key_string}"
+            group_by_clause = f"GROUP BY {output_key_string}" \
+                              f"ORDER BY {output_key_string}"
+        else:
+            select_clause = f"SELECT COUNT({primary_key}) AS changed_count"
+            group_by_clause = ""
+
         return f"""
             WITH new_rows AS (
                 SELECT * {excluded_column_sql_str}
@@ -183,17 +198,24 @@ def find_record_difference_counts(table_type: str,
             )
 
             # added aliquots
-            SELECT COUNT({primary_key}) AS changed_count, {output_key_string} 
+            {select_clause}
             FROM old_rows
             WHERE {primary_key} NOT IN (
                 SELECT {primary_key} 
                 FROM new_rows
             )
-            GROUP BY {output_key_string}
-            ORDER BY {output_key_string}
+            {group_by_clause}
         """
 
     def make_changed_record_count_query():
+        if output_key_string:
+            select_clause = f"SELECT COUNT({primary_key}) AS changed_count, {output_key_string}"
+            group_by_clause = f"GROUP BY {output_key_string}" \
+                              f"ORDER BY {output_key_string}"
+        else:
+            select_clause = f"SELECT COUNT({primary_key}) AS changed_count"
+            group_by_clause = ""
+
         return f"""
             WITH new_rows AS (
                 SELECT * {excluded_column_sql_str}
@@ -216,10 +238,9 @@ def find_record_difference_counts(table_type: str,
                 FROM new_rows
             )
 
-            SELECT COUNT({primary_key}) AS changed_count, {output_key_string}
+            {select_clause}
             FROM intersects
-            GROUP BY {output_key_string}
-            ORDER BY {output_key_string}
+            {group_by_clause}
         """
 
     def compare_records(query: str) -> tuple[int, str]:
@@ -249,6 +270,7 @@ def find_record_difference_counts(table_type: str,
 
     # added to sql queries if certain columns are excluded
     excluded_column_sql_str = ''
+
     if columns_excluded_from_compare:
         excluded_columns = ", ".join(columns_excluded_from_compare)
         excluded_column_sql_str = f"EXCEPT ({excluded_columns})"
@@ -261,7 +283,11 @@ def find_record_difference_counts(table_type: str,
         logger.warning(f"No previous table found for {table_ids['versioned']}; therefore, no changes to report.")
         return
 
-    output_key_string = ",".join(table_metadata['output_keys'])
+    if 'output_keys' in table_metadata and table_metadata['output_keys']:
+        output_key_string = ",".join(table_metadata['output_keys'])
+    else:
+        output_key_string = ''
+
     primary_key = table_metadata['primary_key']
 
     if table_metadata['secondary_key'] is not None:
@@ -821,7 +847,7 @@ def main(args):
     dev_project = PARAMS['DEV_PROJECT']
 
     # COMPARE AND PUBLISH METADATA TABLES
-    """
+
     for table_type, table_params in PARAMS['METADATA_TABLE_TYPES'].items():
         prod_dataset = table_params['prod_dataset']
         prod_table_name = table_params['table_base_name']
@@ -845,7 +871,7 @@ def main(args):
         if 'publish_tables' in steps:
             logger.info(f"Publishing tables for {table_params['table_base_name']}!")
             publish_table(table_ids)
-    """
+
     # COMPARE AND PUBLISH CLINICAL AND PER SAMPLE FILE TABLES
     for table_type, table_params in PARAMS['PER_PROJECT_TABLE_TYPES'].items():
         # look for list of last release's published tables to ensure none have disappeared before comparing
@@ -882,6 +908,7 @@ def main(args):
                     if data_to_compare:
 
                         # display compare_to_last.sh style output
+                        # todo this isn't set up to work with per-program tables
                         find_record_difference_counts(table_type, table_ids, table_params)
 
                         # get key based on field group, e.g. the clinical_diagnosis table uses

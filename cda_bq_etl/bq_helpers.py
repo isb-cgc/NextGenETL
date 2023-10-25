@@ -672,7 +672,6 @@ def find_most_recent_published_table_id(params, versioned_table_id):
 
         # remove release version from versioned_table_id
         table_id_without_release = versioned_table_id.replace(params['RELEASE'], '')
-        print(table_id_without_release)
 
         # iterate through all possible previous releases to find a matching release
         for release in range(int(last_gdc_release), oldest_etl_release - 1, -1):
