@@ -862,9 +862,20 @@ def main(args):
 
         if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
             logger.info("Comparing GDC clinical tables!")
-            table_ids_list = generate_gdc_clinical_table_id_list(table_params)
-
-            print(table_ids_list)
+            # table_ids_list = generate_gdc_clinical_table_id_list(table_params)
+            table_ids_list = [
+                {
+                    'current': 'isb-cgc-bq.CDDP_EAGLE.clinical_gdc_current',
+                    'versioned': 'isb-cgc-bq.CDDP_EAGLE_versioned.clinical_gdc_r37',
+                    'source': 'isb-project-zero.cda_gdc_clinical.r37_CDDP_EAGLE_clinical',
+                    'previous_versioned': 'isb-cgc-bq.CDDP_EAGLE_versioned.clinical_gdc_r36'
+                }, {
+                    'current': 'isb-cgc-bq.CDDP_EAGLE.clinical_diagnosis_treatment_gdc_current',
+                    'versioned': 'isb-cgc-bq.CDDP_EAGLE_versioned.clinical_diagnosis_treatment_gdc_r37',
+                    'source': 'isb-project-zero.cda_gdc_clinical.r37_CDDP_EAGLE_clinical_diagnosis_treatment',
+                    'previous_versioned': ''
+                }
+            ]
 
             if 'compare_tables' in steps:
                 for table_ids in table_ids_list:
