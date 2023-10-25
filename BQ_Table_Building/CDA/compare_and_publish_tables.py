@@ -796,14 +796,17 @@ def generate_gdc_clinical_table_id_list(table_params: dict[str, str]) -> list[di
             'current': f"{PARAMS['PROD_PROJECT']}.{program}.{prod_table_name}_current",
             'versioned': f"{PARAMS['PROD_PROJECT']}.{program}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
             'source': f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}",
+            'previous_versioned': ''
         }
-        table_ids['previous_versioned'] = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
 
-        print(table_ids_list)
+        # todo remove once using renamed staging tables
+        if table_base_name == 'clinical':
+            table_ids['previous_versioned'] = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
 
         table_ids_list.append(table_ids)
 
     return table_ids_list
+
 
 def main(args):
     try:
