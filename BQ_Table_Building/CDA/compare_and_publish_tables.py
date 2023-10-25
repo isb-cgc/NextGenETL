@@ -186,7 +186,6 @@ def find_record_difference_counts(table_type: str,
 
     def compare_records(query: str) -> tuple[int, str]:
         # find added/removed/changed records by project
-        print(query)
         result = query_and_retrieve_result(query)
 
         total_results = 0
@@ -279,21 +278,21 @@ def find_record_difference_counts(table_type: str,
     added_count, added_str = compare_records(query=make_added_record_count_query())
 
     logger.info(f"Added {table_type} count: {added_count}")
-    if added_str:
+    if added_str and not compare_primary_keys:
         logger.info(added_str)
 
     # find removed records by project
     removed_count, removed_str = compare_records(query=make_removed_record_count_query())
 
     logger.info(f"Removed {table_type} count: {removed_count}")
-    if removed_str:
+    if removed_str and not compare_primary_keys:
         logger.info(removed_str)
 
     # find changed records by project
     changed_count, changed_str = compare_records(query=make_changed_record_count_query())
 
     logger.info(f"Changed {table_type} count: {changed_count}")
-    if changed_str:
+    if changed_str and not compare_primary_keys:
         logger.info(changed_str)
 
 
@@ -875,6 +874,11 @@ def main(args):
                     'versioned': 'isb-cgc-bq.CDDP_EAGLE_versioned.clinical_diagnosis_treatment_gdc_r37',
                     'source': 'isb-project-zero.cda_gdc_clinical.r37_CDDP_EAGLE_clinical_diagnosis_treatment',
                     'previous_versioned': ''
+                }, {
+                    'current': 'isb-cgc-bq.CGCI.clinical_gdc_current',
+                    'versioned': 'isb-cgc-bq.CGCI_versioned.clinical_gdc_r37',
+                    'source': 'isb-project-zero.cda_gdc_clinical.r37_CGCI_clinical',
+                    'previous_versioned': 'isb-cgc-bq.CGCI_versioned.clinical_gdc_r33'
                 }
             ]
 
