@@ -781,8 +781,6 @@ def get_gdc_clinical_primary_key(table_ids):
 def generate_gdc_clinical_table_id_list(table_params: dict[str, str]) -> list[dict[str, str]]:
     new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
 
-    print(new_table_names)
-
     table_ids_list = list()
 
     for table_name in new_table_names:
@@ -800,6 +798,9 @@ def generate_gdc_clinical_table_id_list(table_params: dict[str, str]) -> list[di
             'source': f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}",
         }
         table_ids['previous_versioned'] = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
+
+        print(table_ids_list)
+
         table_ids_list.append(table_ids)
 
     return table_ids_list
