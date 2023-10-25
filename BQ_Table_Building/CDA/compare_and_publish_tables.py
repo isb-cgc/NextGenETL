@@ -906,11 +906,6 @@ def main(args):
                     data_to_compare = compare_tables(table_ids)
 
                     if data_to_compare:
-
-                        # display compare_to_last.sh style output
-                        # todo this isn't set up to work with per-program tables
-                        find_record_difference_counts(table_type, table_ids, table_params)
-
                         # get key based on field group, e.g. the clinical_diagnosis table uses
                         # diagnosis_id as primary key
                         if table_name_list[-1] == 'clinical':
@@ -923,6 +918,9 @@ def main(args):
                             'concat_columns': table_params['concat_columns'],
                             'columns_excluded_from_compare': table_params['columns_excluded_from_compare'],
                         }
+
+                        # display compare_to_last.sh style output
+                        find_record_difference_counts(table_type, table_ids, modified_table_params)
 
                         compare_table_columns(table_ids=table_ids, table_params=modified_table_params)
 
