@@ -851,7 +851,10 @@ def main(args):
         # find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
 
         if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
+            logger.info("Comparing GDC clinical tables!")
             table_ids_list = generate_gdc_clinical_table_id_list(table_params)
+
+            print(table_ids_list)
 
             if 'compare_tables' in steps:
                 for table_ids in table_ids_list:
