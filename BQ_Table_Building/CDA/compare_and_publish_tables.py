@@ -140,7 +140,7 @@ def find_record_difference_counts(table_type: str,
     def make_added_record_count_query():
         if output_key_string:
             select_clause = f"SELECT COUNT({primary_key}) AS changed_count, {output_key_string}"
-            group_by_clause = f"GROUP BY {output_key_string}" \
+            group_by_clause = f"GROUP BY {output_key_string} " \
                               f"ORDER BY {output_key_string}"
         else:
             select_clause = f"SELECT COUNT({primary_key}) AS changed_count"
@@ -284,7 +284,7 @@ def find_record_difference_counts(table_type: str,
         return
 
     if 'output_keys' in table_metadata and table_metadata['output_keys']:
-        output_key_string = ",".join(table_metadata['output_keys'])
+        output_key_string = ", ".join(table_metadata['output_keys'])
     else:
         output_key_string = ''
 
