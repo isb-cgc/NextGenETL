@@ -79,7 +79,7 @@ def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
         return True if row else False
 
 
-def compare_tables(table_ids: dict[str, str]) -> bool:
+def can_compare_tables(table_ids: dict[str, str]) -> bool:
     logger = logging.getLogger('base_script')
     logger.info(f"Comparing tables {table_ids['source']} and {table_ids['previous_versioned']}.")
 
@@ -150,7 +150,7 @@ def find_record_difference_counts(table_type: str,
             {make_with_clauses(table_ids['source'], table_ids['previous_versioned'])}
             {make_select_clause()}
             FROM new_rows
-            WHERE primary_key NOT IN (
+            WHERE {primary_key} NOT IN (
                 SELECT {primary_key}
                 FROM old_rows
             )
@@ -162,7 +162,7 @@ def find_record_difference_counts(table_type: str,
             {make_with_clauses(table_ids['source'], table_ids['previous_versioned'])}
             {make_select_clause()}
             FROM old_rows
-            WHERE primary_key NOT IN (
+            WHERE {primary_key} NOT IN (
                 SELECT {primary_key}
                 FROM new_rows
             )
@@ -798,10 +798,9 @@ def main(args):
 
         if 'compare_tables' in steps:
             logger.info(f"Comparing tables for {table_params['table_base_name']}!")
-            # confirm that datasets and table ids exist, and preview whether table will be published
-            data_to_compare = compare_tables(table_ids)
 
-            if data_to_compare:
+            # confirm that datasets and table ids exist, and preview whether table will be published
+            if can_compare_tables(table_ids):
                 # display compare_to_last.sh style output
                 find_record_difference_counts(table_type, table_ids, table_params)
                 compare_table_columns(table_ids=table_ids, table_params=table_params)
@@ -842,7 +841,7 @@ def main(args):
                     if 'compare_tables' in steps:
                         logger.info(f"Comparing tables for {table_base_name}!")
                         # confirm that datasets and table ids exist, and preview whether table will be published
-                        data_to_compare = compare_tables(table_ids)
+                        data_to_compare = can_compare_tables(table_ids)
 
                         if data_to_compare:
                             # get key based on field group, e.g. the clinical_diagnosis table uses
