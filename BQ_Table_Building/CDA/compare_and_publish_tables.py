@@ -81,152 +81,98 @@ def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
 
 def compare_tables(table_ids: dict[str, str]) -> bool:
     logger = logging.getLogger('base_script')
+    logger.info(f"Comparing tables {table_ids['source']} and {table_ids['previous_versioned']}.")
 
     if table_ids['previous_versioned'] is None:
         logger.warning(f"No previous version found for {table_ids['source']}. Will publish. Investigate if unexpected.")
         return False
 
-    logger.info(f"Comparing tables {table_ids['source']} and {table_ids['previous_versioned']}.")
-
-    # does source table exist?
-    if not exists_bq_table(table_ids['source']):
-        logger.critical("Source table id doesn't exist, cannot publish.")
-        sys.exit(-1)
-
-    # does current dataset exist?
-    current_dataset = ".".join(table_ids['current'].split('.')[:-1])
-
-    if not exists_bq_dataset(current_dataset):
-        logger.critical(f"Dataset {current_dataset} doesn't exist, cannot publish.")
-        sys.exit(-1)
-
-    # does versioned dataset exist?
-    versioned_dataset = ".".join(table_ids['versioned'].split('.')[:-1])
-
-    if not exists_bq_dataset(versioned_dataset):
-        logger.critical(f"Dataset {versioned_dataset} doesn't exist, cannot publish.")
-        sys.exit(-1)
-
-    # display published table_ids
-    logger.info("To-be-published table_ids:")
-    logger.info(f"current: {table_ids['current']}")
-    logger.info(f"versioned: {table_ids['versioned']}")
-
+    # is there a previous version to compare with new table?
     has_new_data = table_has_new_data(table_ids['previous_versioned'], table_ids['source'])
 
-    # is there a previous version to compare with new table?
-    # use previous_versioned_table_id
     if has_new_data:
         logger.info(f"New data found--table will be published.")
+        logger.info(f"To-be-published table_ids: {table_ids['current']}, {table_ids['versioned']}")
         return True
-    elif not has_new_data:
+    else:
         logger.info(f"Tables are identical (no new data found)--table will not be published.")
         return False
 
 
 def find_record_difference_counts(table_type: str,
                                   table_ids: dict[str, str],
-                                  table_metadata: dict[str, Union[str, list[str]]]):
+                                  table_metadata: dict[str, Union[str, list[str]]],
+                                  compare_primary_keys: bool = False):
     def make_record_count_query(table_id):
         return f"""
             SELECT COUNT(*) AS record_count
             FROM `{table_id}`
         """
 
-    def make_added_record_count_query():
-        if output_key_string:
-            select_clause = f"SELECT COUNT({primary_key}) AS changed_count, {output_key_string}"
-            group_by_clause = f"GROUP BY {output_key_string} " \
-                              f"ORDER BY {output_key_string}"
+    def make_subquery(table_id_1, table_id_2):
+        if not compare_primary_keys:
+            select_str = f"SELECT * {excluded_column_sql_str} "
         else:
-            select_clause = f"SELECT COUNT({primary_key}) AS changed_count"
-            group_by_clause = ""
+            select_str = f"SELECT {primary_key} "
 
         return f"""
-            WITH new_rows AS (
-                SELECT * {excluded_column_sql_str}
-                FROM `{table_ids['source']}`
-                EXCEPT DISTINCT
-                SELECT * {excluded_column_sql_str}
-                FROM `{table_ids['previous_versioned']}`
-            ), 
-            old_rows AS (
-                SELECT * {excluded_column_sql_str}
-                FROM `{table_ids['previous_versioned']}`
-                EXCEPT DISTINCT
-                SELECT * {excluded_column_sql_str}
-                FROM `{table_ids['source']}`
-            )
+            {select_str}
+            FROM `{table_id_1}`
+            EXCEPT DISTINCT
+            {select_str}
+            FROM `{table_id_2}`
+        """
 
-            # added aliquots
-            {select_clause}
+    def make_with_clauses(table_id_1, table_id_2):
+        return f"""
+            WITH new_rows AS (
+                {make_subquery(table_id_1, table_id_2)}
+            ), old_rows AS (
+                {make_subquery(table_id_2, table_id_1)}
+            )
+        """
+
+    def make_select_clause():
+        if output_key_string:
+            return f"SELECT COUNT({primary_key}) AS changed_count, {output_key_string}"
+        else:
+            return f"SELECT COUNT({primary_key}) AS changed_count"
+
+    def make_group_by_clause():
+        if output_key_string:
+            return f"GROUP BY {output_key_string} " \
+                   f"ORDER BY {output_key_string} "
+        else:
+            return ""
+
+    def make_added_record_count_query():
+        return f"""
+            {make_with_clauses(table_ids['source'], table_ids['previous_versioned'])}
+            {make_select_clause()}
             FROM new_rows
-            WHERE {primary_key} NOT IN (
-                SELECT {primary_key} 
+            WHERE primary_key NOT IN (
+                SELECT {primary_key}
                 FROM old_rows
             )
-            {group_by_clause}
+            {make_group_by_clause()}
         """
 
     def make_removed_record_count_query():
-        if output_key_string:
-            select_clause = f"SELECT COUNT({primary_key}) AS changed_count, {output_key_string} "
-            group_by_clause = f"GROUP BY {output_key_string} " \
-                              f"ORDER BY {output_key_string}"
-        else:
-            select_clause = f"SELECT COUNT({primary_key}) AS changed_count"
-            group_by_clause = ""
-
         return f"""
-            WITH new_rows AS (
-                SELECT * {excluded_column_sql_str}
-                FROM `{table_ids['source']}`
-                EXCEPT DISTINCT
-                SELECT * {excluded_column_sql_str}
-                FROM `{table_ids['previous_versioned']}`
-            ), 
-            old_rows AS (
-                SELECT * {excluded_column_sql_str}
-                FROM `{table_ids['previous_versioned']}`
-                EXCEPT DISTINCT
-                SELECT * {excluded_column_sql_str}
-                FROM `{table_ids['source']}`
-            )
-
-            # added aliquots
-            {select_clause}
+            {make_with_clauses(table_ids['source'], table_ids['previous_versioned'])}
+            {make_select_clause()}
             FROM old_rows
-            WHERE {primary_key} NOT IN (
-                SELECT {primary_key} 
+            WHERE primary_key NOT IN (
+                SELECT {primary_key}
                 FROM new_rows
             )
-            {group_by_clause}
+            {make_group_by_clause()}
         """
 
     def make_changed_record_count_query():
-        if output_key_string:
-            select_clause = f"SELECT COUNT({primary_key}) AS changed_count, {output_key_string} "
-            group_by_clause = f"GROUP BY {output_key_string} " \
-                              f"ORDER BY {output_key_string}"
-        else:
-            select_clause = f"SELECT COUNT({primary_key}) AS changed_count"
-            group_by_clause = ""
-
         return f"""
-            WITH new_rows AS (
-                SELECT * {excluded_column_sql_str}
-                FROM `{table_ids['source']}`
-                EXCEPT DISTINCT
-                SELECT * {excluded_column_sql_str}
-                FROM `{table_ids['previous_versioned']}`
-            ), 
-            old_rows AS (
-                SELECT * {excluded_column_sql_str}
-                FROM `{table_ids['previous_versioned']}`
-                EXCEPT DISTINCT
-                SELECT * {excluded_column_sql_str}
-                FROM `{table_ids['source']}`
-            ), intersects AS (
+            {make_with_clauses(table_ids['source'], table_ids['previous_versioned'])}, 
+            intersects AS (
                 SELECT {primary_key}, {secondary_key} {output_key_string} 
                 FROM old_rows
                 INTERSECT DISTINCT
@@ -234,9 +180,9 @@ def find_record_difference_counts(table_type: str,
                 FROM new_rows
             )
 
-            {select_clause}
+            {make_select_clause()}
             FROM intersects
-            {group_by_clause}
+            {make_group_by_clause()}
         """
 
     def compare_records(query: str) -> tuple[int, str]:
@@ -838,7 +784,7 @@ def main(args):
     dev_project = PARAMS['DEV_PROJECT']
 
     # COMPARE AND PUBLISH METADATA TABLES
-    """
+    # """
     for table_type, table_params in PARAMS['METADATA_TABLE_TYPES'].items():
         prod_dataset = table_params['prod_dataset']
         prod_table_name = table_params['table_base_name']
@@ -863,7 +809,7 @@ def main(args):
         if 'publish_tables' in steps:
             logger.info(f"Publishing tables for {table_params['table_base_name']}!")
             publish_table(table_ids)
-    """
+    # """
     # COMPARE AND PUBLISH CLINICAL AND PER SAMPLE FILE TABLES
     for table_type, table_params in PARAMS['PER_PROJECT_TABLE_TYPES'].items():
         # look for list of last release's published tables to ensure none have disappeared before comparing
