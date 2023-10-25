@@ -917,6 +917,7 @@ def main(args):
                         modified_table_params = {
                             'primary_key': primary_key,
                             'columns_excluded_from_compare': table_params['columns_excluded_from_compare'],
+                            'output_keys': list()
                         }
 
                         # display compare_to_last.sh style output
