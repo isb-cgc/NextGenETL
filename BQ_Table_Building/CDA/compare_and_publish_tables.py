@@ -793,8 +793,8 @@ def main(args):
             'current': f"{prod_project}.{prod_dataset}.{prod_table_name}_current",
             'versioned': f"{prod_project}.{prod_dataset}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
             'source': create_metadata_table_id(PARAMS, table_params['table_base_name']),
-            'previous_versioned': find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
         }
+        table_ids['previous_versioned'] = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
 
         if 'compare_tables' in steps:
             logger.info(f"Comparing tables for {table_params['table_base_name']}!")
