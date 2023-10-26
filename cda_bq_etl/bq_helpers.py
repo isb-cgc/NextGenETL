@@ -394,8 +394,13 @@ def delete_bq_table(table_id: str):
     Permanently delete BigQuery table located by table_id.
     :param table_id: target table id
     """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
     client = bigquery.Client()
     client.delete_table(table=table_id, not_found_ok=True)
+
+    if exists_bq_table(table_id):
+        logger.error(f"Table {table_id} not deleted.")
 
 
 def copy_bq_table(params: Params, src_table: str, dest_table: str, replace_table: bool = False):
