@@ -356,6 +356,39 @@ def exists_bq_table(table_id: str) -> bool:
     return True
 
 
+def list_tables_in_dataset(project_dataset_id: str, filter_terms: Union[str, list[str]] = None) -> list[str]:
+    """
+    Create a list of table names contained within dataset.
+    :param project_dataset_id: search location dataset id
+    :param filter_terms: Optional, pass a string or a list of strings that should match a table name substring
+        (e.g. "gdc" would return only tables associated with that node.)
+    :return: list of filtered table names
+    """
+    where_clause = ''
+    if filter_terms:
+        if isinstance(filter_terms, str):
+            where_clause = f"WHERE table_name like '%{filter_terms}%' "
+        else:
+            where_clause = f"WHERE table_name like '%{filter_terms[0]}%' "
+            for i in range(1, filter_terms):
+                where_clause += f"AND table_name like '%{filter_terms[i]}%' "
+
+    query = f"""
+        SELECT table_name
+        FROM `{project_dataset_id}`.INFORMATION_SCHEMA.TABLES
+        {where_clause}
+    """
+
+    tables_result = query_and_retrieve_result(query)
+
+    table_list = list()
+
+    for row in tables_result:
+        table_list.append(row[0])
+
+    return table_list
+
+
 def delete_bq_table(table_id: str):
     """
     Permanently delete BigQuery table located by table_id.

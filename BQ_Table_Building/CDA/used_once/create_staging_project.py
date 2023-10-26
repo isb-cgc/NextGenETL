@@ -24,7 +24,7 @@ import time
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, format_seconds
-from cda_bq_etl.bq_helpers import create_bq_dataset
+from cda_bq_etl.bq_helpers import create_bq_dataset, list_tables_in_dataset, copy_bq_table
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -53,15 +53,47 @@ def main(args):
     if 'create_datasets' in steps:
         logger.info("Creating datasets!")
         create_datasets()
+
     if 'copy_tables' in steps:
-        # find tables in each program dataset that have PARAMS['NODE'] in the name, as well as one of the table keywords
-        # if current:
-        # - if clinical, alter names using WORDS_TO_ALTER
-        # - copy all these tables
-        # if versioned:
-        # - if clinical, alter names using WORDS_TO_ALTER
-        # - only copy the newest version. Find all the table types, sort in desc order, take the first one?
-        pass
+        program_datasets = PARAMS['NEW_DATASETS']
+        program_datasets.remove(PARAMS['METADATA_DATASET'])
+
+        metadata_project_dataset_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['METADATA_DATASET']}"
+
+        metadata_tables = list_tables_in_dataset(metadata_project_dataset_id)
+
+        for table in metadata_tables:
+            prod_table_id = f"{metadata_project_dataset_id}.{table}"
+            dest_table_id = f"{PARAMS['STAGING_PROJECT']}.{PARAMS['METADATA_DATASET']}.{table}"
+
+            vers_table_name = table.replace("current", "r36")
+            vers_dest_table_id = f"{PARAMS['STAGING_PROJECT']}.{PARAMS['METADATA_DATASET']}_versioned.{vers_table_name}"
+
+            copy_bq_table(params=PARAMS, src_table=prod_table_id, dest_table=dest_table_id)
+            copy_bq_table(params=PARAMS, src_table=prod_table_id, dest_table=vers_dest_table_id)
+
+        for program_dataset in program_datasets:
+            for table_type in PARAMS['TABLE_KEYWORDS']:
+                program_dataset_id = f"{PARAMS['PROD_PROJECT']}.{program_dataset}"
+
+                filter_words = [table_type, PARAMS['NODE']]
+
+                program_tables = list_tables_in_dataset(program_dataset_id, filter_words)
+
+                for table in program_tables:
+                    prod_table_id = f"{program_dataset_id}.{table}"
+                    dest_table_id = f"{PARAMS['STAGING_PROJECT']}.{program_dataset}.{table}"
+
+                    vers_table_name = table.replace("current", "r36")
+
+                    for old_word, new_word in PARAMS['WORDS_TO_ALTER'].items():
+                        vers_table_name = vers_table_name.replace(old_word, new_word)
+
+                    vers_dest_dataset_id = f"{PARAMS['STAGING_PROJECT']}.{PARAMS['METADATA_DATASET']}_versioned"
+                    vers_dest_table_id = f"{vers_dest_dataset_id}.{vers_table_name}"
+
+                    copy_bq_table(params=PARAMS, src_table=prod_table_id, dest_table=dest_table_id)
+                    copy_bq_table(params=PARAMS, src_table=prod_table_id, dest_table=vers_dest_table_id)
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
