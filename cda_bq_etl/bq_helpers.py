@@ -365,7 +365,7 @@ def delete_bq_table(table_id: str):
     client.delete_table(table=table_id, not_found_ok=True)
 
 
-def copy_bq_table(params, src_table, dest_table, replace_table=False):
+def copy_bq_table(params: Params, src_table: str, dest_table: str, replace_table: bool = False):
     """
     Copy an existing BigQuery src_table into location specified by dest_table.
     :param params: param object from yaml config
@@ -386,6 +386,22 @@ def copy_bq_table(params, src_table, dest_table, replace_table=False):
     if await_job(params, client, bq_job):
         logger.info("Successfully copied table:")
         logger.info(f"src: {src_table}\n dest: {dest_table}\n")
+
+
+# PyCharm linter gets confused about BQ class typing and the warnings are distracting, so suppressed
+# noinspection PyTypeChecker
+def create_bq_dataset(params: Params, project_id: str, dataset_name: str):
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
+    client = bigquery.Client(project=project_id)
+
+    dataset_id = f"{project_id}.{dataset_name}"
+
+    dataset = bigquery.Dataset(dataset_id)
+    dataset.location = params['LOCATION']
+
+    dataset = client.create_dataset(dataset)
+    logger.info(f"Created dataset {client.project}.{dataset.dataset_id}")
 
 
 def retrieve_bq_schema_object(params: Params,
