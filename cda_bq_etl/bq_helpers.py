@@ -370,7 +370,7 @@ def list_tables_in_dataset(project_dataset_id: str, filter_terms: Union[str, lis
             where_clause = f"WHERE table_name like '%{filter_terms}%' "
         else:
             where_clause = f"WHERE table_name like '%{filter_terms[0]}%' "
-            for i in range(1, filter_terms):
+            for i in range(1, len(filter_terms)):
                 where_clause += f"AND table_name like '%{filter_terms[i]}%' "
 
     query = f"""
