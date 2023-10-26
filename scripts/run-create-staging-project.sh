@@ -34,5 +34,5 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3.9 ./BQ_Table_Building/CDA/extract_from_tsv.py ~/config/${CONFIG_FILE}
+python3.9 ./BQ_Table_Building/CDA/used_once/create_staging_project.py ~/config/${CONFIG_FILE}
 deactivate
