@@ -24,7 +24,7 @@ import time
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, format_seconds
-from cda_bq_etl.bq_helpers import create_bq_dataset, list_tables_in_dataset, copy_bq_table
+from cda_bq_etl.bq_helpers import create_bq_dataset, list_tables_in_dataset, copy_bq_table, exists_bq_table
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -92,8 +92,8 @@ def main(args):
                     vers_dest_dataset_id = f"{PARAMS['STAGING_PROJECT']}.{PARAMS['METADATA_DATASET']}_versioned"
                     vers_dest_table_id = f"{vers_dest_dataset_id}.{vers_table_name}"
 
-                    copy_bq_table(params=PARAMS, src_table=prod_table_id, dest_table=dest_table_id)
-                    copy_bq_table(params=PARAMS, src_table=prod_table_id, dest_table=vers_dest_table_id)
+                    copy_bq_table(PARAMS, src_table=prod_table_id, dest_table=dest_table_id, replace_table=True)
+                    copy_bq_table(PARAMS, src_table=prod_table_id, dest_table=vers_dest_table_id, replace_table=True)
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
