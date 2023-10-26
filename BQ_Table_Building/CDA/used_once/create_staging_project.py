@@ -51,6 +51,7 @@ def main(args):
 
     # create datasets
     if 'create_datasets' in steps:
+        logger.info("Creating datasets!")
         create_datasets()
     if 'copy_tables' in steps:
         # find tables in each program dataset that have PARAMS['NODE'] in the name, as well as one of the table keywords
@@ -61,7 +62,6 @@ def main(args):
         # - if clinical, alter names using WORDS_TO_ALTER
         # - only copy the newest version. Find all the table types, sort in desc order, take the first one?
         pass
-
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
