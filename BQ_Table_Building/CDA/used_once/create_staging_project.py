@@ -30,6 +30,12 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
+def create_datasets():
+    for dataset in PARAMS['NEW_DATASETS']:
+        create_bq_dataset(PARAMS, project_id=PARAMS['STAGING_PROJECT'], dataset_name=dataset)
+        create_bq_dataset(PARAMS, project_id=PARAMS['STAGING_PROJECT'], dataset_name=f"{dataset}_versioned")
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -44,6 +50,8 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     # create datasets
+    if 'create_datasets' in steps:
+        create_datasets()
     # copy projects with new naming schema
 
 
