@@ -69,8 +69,8 @@ def main(args):
             vers_table_name = table.replace("current", "r36")
             vers_dest_table_id = f"{PARAMS['STAGING_PROJECT']}.{PARAMS['METADATA_DATASET']}_versioned.{vers_table_name}"
 
-            copy_bq_table(params=PARAMS, src_table=prod_table_id, dest_table=dest_table_id)
-            copy_bq_table(params=PARAMS, src_table=prod_table_id, dest_table=vers_dest_table_id)
+            copy_bq_table(params=PARAMS, src_table=prod_table_id, dest_table=dest_table_id, replace_table=True)
+            copy_bq_table(params=PARAMS, src_table=prod_table_id, dest_table=vers_dest_table_id, replace_table=True)
 
         for program_dataset in program_datasets:
             for table_type in PARAMS['TABLE_KEYWORDS']:
