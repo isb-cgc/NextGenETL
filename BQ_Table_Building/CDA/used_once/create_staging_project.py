@@ -52,7 +52,15 @@ def main(args):
     # create datasets
     if 'create_datasets' in steps:
         create_datasets()
-    # copy projects with new naming schema
+    if 'copy_tables' in steps:
+        # find tables in each program dataset that have PARAMS['NODE'] in the name, as well as one of the table keywords
+        # if current:
+        # - if clinical, alter names using WORDS_TO_ALTER
+        # - copy all these tables
+        # if versioned:
+        # - if clinical, alter names using WORDS_TO_ALTER
+        # - only copy the newest version. Find all the table types, sort in desc order, take the first one?
+        pass
 
 
     end_time = time.time()
