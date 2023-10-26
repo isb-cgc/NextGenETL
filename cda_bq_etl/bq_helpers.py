@@ -393,9 +393,13 @@ def copy_bq_table(params: Params, src_table: str, dest_table: str, replace_table
 def create_bq_dataset(params: Params, project_id: str, dataset_name: str):
     logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
 
-    client = bigquery.Client(project=project_id)
-
     dataset_id = f"{project_id}.{dataset_name}"
+
+    if exists_bq_dataset(dataset_id):
+        logger.info(f"Dataset {dataset_id} already exists, returning")
+        return
+
+    client = bigquery.Client(project=project_id)
 
     dataset = bigquery.Dataset(dataset_id)
     dataset.location = params['LOCATION']
