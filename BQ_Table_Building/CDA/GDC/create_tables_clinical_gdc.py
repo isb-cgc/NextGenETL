@@ -335,7 +335,7 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
             table_column_locations[stand_alone_table] = list()
 
             child_tables = PARAMS['TABLE_PARAMS'][stand_alone_table]['parent_of']
-            print(f"child_tables: {child_tables}")
+            print(f"child_tables1: {child_tables}")
 
             if not child_tables:
                 continue
@@ -359,7 +359,7 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
                                 print(f"child_tables: {child_tables}")
                 else:
                     print(f"{child_tables[i]} standalone or empty.")
-                    print(f"child_tables: {child_tables}")
+                    print(f"child_tables2: {child_tables}")
 
                 i += 1
 
