@@ -192,7 +192,7 @@ def find_record_difference_counts(table_type: str,
         num_columns = len(table_metadata['output_keys']) + 1
         output_string = ""
 
-        if result.total_rows > 0:
+        if result and result.total_rows > 0:
             for _row in result:
                 total_results += _row[0]
 
