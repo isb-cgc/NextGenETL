@@ -331,11 +331,13 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
         table_column_locations = dict()
 
         for stand_alone_table in stand_alone_tables:
+            print(f"stand_alone_table: {stand_alone_table}")
             table_column_locations[stand_alone_table] = list()
 
             child_tables = PARAMS['TABLE_PARAMS'][stand_alone_table]['parent_of']
+            print(f"child_tables: {child_tables}")
 
-            if not child_tables or len(child_tables) == 0:
+            if not child_tables:
                 continue
 
             i = 0
@@ -344,14 +346,17 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
                 # if child table does not require a stand-alone table and has non-null columns,
                 # add to table_column_locations, then check its children as well
                 if child_tables[i] not in stand_alone_tables and non_null_column_dict[child_tables[i]]:
+                    print(f"{child_tables[i]} not standalone and has columns.")
                     table_column_locations[stand_alone_table].append(child_tables[i])
 
                     descendent_tables = PARAMS['TABLE_PARAMS'][child_tables[i]]['parent_of']
+                    print(f"descendent_tables: {descendent_tables}")
 
                     if descendent_tables:
                         for descendent_table in descendent_tables:
                             if descendent_table not in child_tables:
                                 child_tables.append(descendent_table)
+                                print(f"child_tables: {child_tables}")
 
                 i += 1
 
@@ -477,7 +482,6 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
         }
 
     logger = logging.getLogger('base_script')
-
     logger.info(f"Processing {program} data...")
 
     # used to store information for sql query
@@ -488,6 +492,7 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
     mapping_count_columns = get_mapping_and_count_columns()
     # dict of this program's non-null columns, by table
     non_null_column_dict = find_program_non_null_columns_by_table()
+    print(non_null_column_dict)
 
     # dict specifying into which table to insert every non-null field group that doesn't get its own supplemental table
     logger.info(f" - Getting insert locations")
