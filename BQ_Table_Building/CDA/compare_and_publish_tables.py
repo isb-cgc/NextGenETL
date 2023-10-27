@@ -470,6 +470,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_dis
 
                 i += 1
                 if i == max_display_rows:
+                    logger.info("")
                     break
 
 
