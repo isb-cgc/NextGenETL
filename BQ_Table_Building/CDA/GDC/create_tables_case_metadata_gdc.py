@@ -66,7 +66,17 @@ def make_case_metadata_table_sql(legacy_table_id: str) -> str:
         ) 
         UNION ALL
         (
-            SELECT * 
+            SELECT case_gdc_id, 
+                primary_site, 
+                project_dbgap_accession_number, 
+                project_disease_type,
+                project_name, 
+                program_dbgap_accession_number,
+                program_name, 
+                project_id, 
+                case_barcode,
+                legacy_file_count,
+                active_file_count 
             FROM `{legacy_table_id}` 
         )
     """

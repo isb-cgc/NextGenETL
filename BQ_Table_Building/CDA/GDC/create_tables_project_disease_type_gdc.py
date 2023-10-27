@@ -19,7 +19,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-import logging
 import sys
 import time
 
@@ -42,8 +41,6 @@ def create_merged_project_studies_disease_type_jsonl():
         SELECT *
         FROM `{create_dev_table_id(PARAMS, 'project_studies_disease_type')}`
         """
-
-    logger = logging.getLogger('base_script')
 
     result = query_and_retrieve_result(sql=make_project_studies_disease_type_query())
 

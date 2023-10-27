@@ -51,7 +51,7 @@ def convert_concat_to_multi(value_string: str, max_length: int = 8, filter_dupli
     if filter_duplicates:
         filtered_set_length = len(set(value_string.split(';')))
 
-        # if filtered set is small enough to not be converted to multi, do filtering step, otherwise don't bother
+        # only concatenate if set length is under the threshold to be converted to multi
         if filtered_set_length <= max_length:
             filtered_value_list = list()
             filtered_value_set = set()

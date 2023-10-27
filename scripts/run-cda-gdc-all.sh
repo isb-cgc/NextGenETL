@@ -49,12 +49,21 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
+echo "*** Downloading CDA files and building raw BQ tables"
 python3.9 ./BQ_Table_Building/CDA/extract_from_tsv.py ~/config/${SHARED_CONFIG_FILE} ~/config/${EXTRACT_CONFIG_FILE}
+echo "*** Building project_disease_type dev table"
 python3.9 ./BQ_Table_Building/CDA/GDC/create_tables_project_disease_type_gdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${DISEASE_CONFIG_FILE}
+echo "*** Building caseData dev table"
 python3.9 ./BQ_Table_Building/CDA/GDC/create_tables_case_metadata_gdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${CASE_CONFIG_FILE}
+echo "*** Building aliquot2caseIDmap dev table"
 python3.9 ./BQ_Table_Building/CDA/GDC/create_tables_aliquot_case_map_gdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${ALIQUOT_CONFIG_FILE}
+echo "*** Building slide2caseIDmap dev table"
 python3.9 ./BQ_Table_Building/CDA/GDC/create_tables_slide_case_map_gdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${SLIDE_CONFIG_FILE}
+echo "*** Building fileData_active dev table"
 python3.9 ./BQ_Table_Building/CDA/GDC/create_tables_file_metadata_gdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${FILE_CONFIG_FILE}
+echo "*** Building per_sample_file_metadata dev tables"
 python3.9 ./BQ_Table_Building/CDA/GDC/create_tables_per_sample_file_gdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${PER_SAMPLE_CONFIG_FILE}
+echo "*** Building clinical dev tables"
 python3.9 ./BQ_Table_Building/CDA/GDC/create_tables_clinical_gdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${CLINICAL_CONFIG_FILE}
+echo "*** Load complete. Please run run-cda-compare-publish-tables.sh to test and publish."
 deactivate
