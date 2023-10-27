@@ -428,16 +428,13 @@ def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_dis
         if not column_comparison_result:
             logger.info(f"{column}: Column doesn't exist in one or both tables, or data types don't match.\n")
         elif column_comparison_result.total_rows > 0:
-            logger.info(f"{column}: {column_comparison_result.total_rows} differences found. Examples: ")
-
-            new_column_header = f"new {column}"
-            old_column_header = f"old {column}"
+            logger.info(f"{column}: {column_comparison_result.total_rows} differences found. Examples:\n")
 
             # output header row
             if secondary_key is None:
-                logger.info(f"{primary_key:45} {old_column_header:45} {new_column_header}")
+                logger.info(f"{primary_key:50} {column} ")
             else:
-                logger.info(f"{primary_key:45} {secondary_key:45} {old_column_header:40} {new_column_header}")
+                logger.info(f"{primary_key:50} {secondary_key:50} {column:50}")
 
             i = 0
 
@@ -454,6 +451,9 @@ def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_dis
                 new_column_val = str(row.get(f"new_{column}"))
                 old_column_val = str(row.get(f"old_{column}"))
 
+                if not new_column_val or not old_column_val or new_column_val != old_column_val:
+                    column_val = f"{str(old_column_val)} -> {str(new_column_val)}"
+
                 if secondary_key is not None:
                     new_second_key_val = row.get(f"new_{secondary_key}")
                     old_second_key_val = row.get(f"old_{secondary_key}")
@@ -464,9 +464,9 @@ def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_dis
                     else:
                         secondary_key_val = str(old_second_key_val)
 
-                    logger.info(f"{primary_key_val:45} {secondary_key_val:45} {old_column_val:40} {new_column_val}")
+                    logger.info(f"{primary_key_val:50} {secondary_key_val:50} {column_val}")
                 else:
-                    logger.info(f"{primary_key_val:45} {old_column_val:45} {new_column_val}")
+                    logger.info(f"{primary_key_val:50} {column_val}")
 
                 i += 1
                 if i == max_display_rows:
