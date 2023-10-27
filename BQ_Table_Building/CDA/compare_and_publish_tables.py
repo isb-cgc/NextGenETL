@@ -29,8 +29,8 @@ from typing import Union
 
 from google.cloud.bigquery.table import _EmptyRowIterator
 
-from cda_bq_etl.bq_helpers import find_most_recent_published_table_id, exists_bq_table, exists_bq_dataset, \
-    copy_bq_table, update_friendly_name, change_status_to_archived, query_and_retrieve_result
+from cda_bq_etl.bq_helpers import find_most_recent_published_table_id, exists_bq_table, copy_bq_table, \
+    update_friendly_name, change_status_to_archived, query_and_retrieve_result
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import input_with_timeout, load_config, format_seconds, get_filepath, create_metadata_table_id
 
