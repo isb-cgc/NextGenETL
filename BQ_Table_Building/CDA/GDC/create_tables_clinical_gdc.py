@@ -357,6 +357,9 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
                             if descendent_table not in child_tables:
                                 child_tables.append(descendent_table)
                                 print(f"child_tables: {child_tables}")
+                else:
+                    print(f"{child_tables[i]} standalone or empty.")
+                    print(f"child_tables: {child_tables}")
 
                 i += 1
 
@@ -492,7 +495,6 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
     mapping_count_columns = get_mapping_and_count_columns()
     # dict of this program's non-null columns, by table
     non_null_column_dict = find_program_non_null_columns_by_table()
-    print(non_null_column_dict)
 
     # dict specifying into which table to insert every non-null field group that doesn't get its own supplemental table
     logger.info(f" - Getting insert locations")
