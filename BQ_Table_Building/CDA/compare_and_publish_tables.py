@@ -767,16 +767,12 @@ def publish_table(table_ids: dict[str, str]):
             logger.info(f"{table_ids['source']} not published, no changes detected")
 
 
-def get_gdc_clinical_primary_key(table_ids: dict[str, str]) -> str:
+def get_gdc_clinical_primary_key(table_params: dict[str, str], table_ids: dict[str, str]) -> str:
     current_table_name = table_ids['current'].split('.')[-1]
     current_table_name = current_table_name.replace("_current", "")
     base_table_name = current_table_name.replace(f"_{PARAMS['NODE']}", "")
-    primary_key_type = base_table_name.split("_")[-1]
 
-    if primary_key_type == 'clinical':
-        return 'case_id'
-    else:
-        return f"{primary_key_type}_id"
+    return table_params['clinical']['table_primary_key'][base_table_name]
 
 
 def generate_gdc_clinical_table_id_list(table_params: dict[str, str]) -> list[dict[str, str]]:
@@ -893,7 +889,7 @@ def main(args):
 
                     if data_to_compare:
                         modified_table_params = {
-                            'primary_key': get_gdc_clinical_primary_key(table_ids),
+                            'primary_key': get_gdc_clinical_primary_key(table_params, table_ids),
                             'columns_excluded_from_compare': table_params['columns_excluded_from_compare'],
                             'output_keys': list()
                         }
