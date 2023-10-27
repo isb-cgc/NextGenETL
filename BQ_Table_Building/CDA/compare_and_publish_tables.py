@@ -875,12 +875,12 @@ def main(args):
                     'current': 'isb-cgc-sandbox-000.CDDP_EAGLE.clinical_diagnosis_treatment_gdc_current',
                     'versioned': 'isb-cgc-sandbox-000.CDDP_EAGLE_versioned.clinical_diagnosis_treatment_gdc_r37',
                     'source': 'isb-project-zero.cda_gdc_clinical.r37_CDDP_EAGLE_clinical_diagnosis_treatment',
-                    'previous_versioned': ''
+                    'previous_versioned': 'isb-cgc-sandbox-000.CDDP_EAGLE_versioned.clinical_diagnosis_treatment_gdc_r36'
                 }, {
                     'current': 'isb-cgc-sandbox-000.CGCI.clinical_gdc_current',
                     'versioned': 'isb-cgc-sandbox-000.CGCI_versioned.clinical_gdc_r37',
                     'source': 'isb-project-zero.cda_gdc_clinical.r37_CGCI_clinical',
-                    'previous_versioned': 'isb-cgc-sandbox-000.CGCI_versioned.clinical_gdc_r33'
+                    'previous_versioned': 'isb-cgc-sandbox-000.CGCI_versioned.clinical_gdc_r36'
                 }
             ]
 
