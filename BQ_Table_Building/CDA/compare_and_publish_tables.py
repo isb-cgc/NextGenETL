@@ -329,7 +329,7 @@ def generate_column_list(table_id_list: list[str], excluded_columns: set[str]) -
         for row in column_result:
             column_set.add(row[0])
 
-        column_union_set = column_union_set | column_set
+        column_union_set |= column_set
 
     # remove any concatenated columns supplied in yaml config from column_list
     column_union_set = column_union_set - excluded_columns
@@ -422,7 +422,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_dis
     column_list = table_params['column_list'] if 'column_list' in table_params else None
 
     if column_list is None:
-        table_id_list = [table_ids['source'], table_ids['versioned']]
+        table_id_list = [table_ids['source'], table_ids['previous_versioned']]
         column_list = generate_column_list(table_id_list=table_id_list, excluded_columns=excluded_columns)
 
     for column in sorted(column_list):
