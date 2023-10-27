@@ -772,7 +772,7 @@ def get_gdc_clinical_primary_key(table_params: dict[str, Union[str, dict[str, st
     current_table_name = current_table_name.replace("_current", "")
     base_table_name = current_table_name.replace(f"_{PARAMS['NODE']}", "")
 
-    return table_params['table_primary_key'][base_table_name]
+    return table_params['table_primary_keys'][base_table_name]
 
 
 def generate_gdc_clinical_table_id_list(table_params: dict[str, str]) -> list[dict[str, str]]:
@@ -859,8 +859,8 @@ def main(args):
 
         if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
             logger.info("Comparing GDC clinical tables!")
-            table_ids_list = generate_gdc_clinical_table_id_list(table_params)
-            """
+            # table_ids_list = generate_gdc_clinical_table_id_list(table_params)
+
             table_ids_list = [
                 {
                     'current': 'isb-cgc-sandbox-000.CDDP_EAGLE.clinical_gdc_current',
@@ -879,7 +879,6 @@ def main(args):
                     'previous_versioned': 'isb-cgc-sandbox-000.CGCI_versioned.clinical_gdc_r33'
                 }
             ]
-            """
 
             if 'compare_tables' in steps:
                 for table_ids in table_ids_list:
