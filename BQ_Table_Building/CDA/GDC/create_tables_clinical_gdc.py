@@ -741,7 +741,9 @@ def main(args):
     if 'find_missing_fields' in steps:
         # logger.debug("Passing find_missing_fields")
         # Find discrepancies in field lists in yaml config and CDA data
-        find_missing_fields()
+        # todo uncomment
+        # find_missing_fields()
+        pass
     if 'create_tables' in steps:
         # create dict of programs : base/supplemental tables to be created
         tables_per_program_dict = find_program_tables()
