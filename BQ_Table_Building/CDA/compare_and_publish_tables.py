@@ -707,6 +707,9 @@ def find_missing_tables(dataset, table_type):
     current_table_names = get_current_table_names(table_type)
     new_table_names = get_new_table_names(dataset)
 
+    print(current_table_names)
+    print(new_table_names)
+
     for new_table_name in new_table_names:
         new_table_name = new_table_name.replace(f"{PARAMS['RELEASE']}_", "")
         new_table_names_no_rel.append(new_table_name)
