@@ -435,9 +435,9 @@ def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_dis
 
             # output header row
             if secondary_key is None:
-                logger.info(f"{primary_key:40} {old_column_header:40} {new_column_header}")
+                logger.info(f"{primary_key:45} {old_column_header:45} {new_column_header}")
             else:
-                logger.info(f"{primary_key:40} {secondary_key:40} {old_column_header:40} {new_column_header}")
+                logger.info(f"{primary_key:45} {secondary_key:45} {old_column_header:40} {new_column_header}")
 
             i = 0
 
@@ -464,9 +464,9 @@ def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_dis
                     else:
                         secondary_key_val = str(old_second_key_val)
 
-                    logger.info(f"{primary_key_val:40} {secondary_key_val:40} {old_column_val:40} {new_column_val}")
+                    logger.info(f"{primary_key_val:45} {secondary_key_val:45} {old_column_val:40} {new_column_val}")
                 else:
-                    logger.info(f"{primary_key_val:40} {old_column_val:40} {new_column_val}")
+                    logger.info(f"{primary_key_val:45} {old_column_val:45} {new_column_val}")
 
                 i += 1
                 if i == max_display_rows:
