@@ -297,6 +297,8 @@ def find_record_difference_counts(table_type: str,
         if changed_str and not compare_primary_keys:
             logger.info(changed_str)
 
+    logger.info("")
+
 
 def generate_column_list(table_id_list: list[str], excluded_columns: set[str]) -> list[str]:
     """
@@ -426,9 +428,11 @@ def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_dis
         column_comparison_result = query_and_retrieve_result(sql=make_compare_table_column_sql(column))
 
         if not column_comparison_result:
-            logger.info(f"{column}: Column doesn't exist in one or both tables, or data types don't match.\n")
+            logger.info(f"{column}: Column doesn't exist in one or both tables, or data types don't match.")
+            logger.info("")
         elif column_comparison_result.total_rows > 0:
-            logger.info(f"{column}: {column_comparison_result.total_rows} differences found. Examples:\n")
+            logger.info(f"{column}: {column_comparison_result.total_rows} differences found. Examples:")
+            logger.info("")
 
             # output header row
             if secondary_key is None:
