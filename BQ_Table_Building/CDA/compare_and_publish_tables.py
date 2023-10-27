@@ -767,12 +767,12 @@ def publish_table(table_ids: dict[str, str]):
             logger.info(f"{table_ids['source']} not published, no changes detected")
 
 
-def get_gdc_clinical_primary_key(table_params: dict[str, str], table_ids: dict[str, str]) -> str:
+def get_gdc_clinical_primary_key(table_params: dict[str, Union[str, dict[str, str]]], table_ids: dict[str, str]) -> str:
     current_table_name = table_ids['current'].split('.')[-1]
     current_table_name = current_table_name.replace("_current", "")
     base_table_name = current_table_name.replace(f"_{PARAMS['NODE']}", "")
 
-    return table_params['clinical']['table_primary_key'][base_table_name]
+    return table_params['table_primary_key'][base_table_name]
 
 
 def generate_gdc_clinical_table_id_list(table_params: dict[str, str]) -> list[dict[str, str]]:
