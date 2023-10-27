@@ -59,7 +59,7 @@ def make_case_metadata_table_sql(legacy_table_id: str) -> str:
                 ON c.case_id = cpp.case_gdc_id
             LEFT JOIN `{create_dev_table_id(PARAMS, 'project_disease_types_merged')}` pdt
                 ON pdt.project_id = cpp.project_id
-            JOIN `{PARAMS['ARCHIVE_COUNT_TABLE_ID']}` r
+            JOIN `{PARAMS['LEGACY_FILE_COUNT_TABLE_ID']}` r
                 ON cpp.case_gdc_id = r.case_gdc_id
             JOIN counts 
                 ON counts.case_id = cpp.case_gdc_id
