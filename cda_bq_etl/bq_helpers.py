@@ -511,7 +511,7 @@ def query_and_retrieve_result(sql: str) -> Union[BQQueryResult, None]:
     query_job = client.get_job(job_id=query_job.job_id, location=location)
 
     if query_job.error_result is not None:
-        logger.warning(f"{query_job.error_result}")
+        logger.warning(f"Query failed: {query_job.error_result['message']}")
         return None
 
     return query_job.result()
