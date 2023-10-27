@@ -333,9 +333,7 @@ def generate_column_list(table_id_list: list[str], excluded_columns: set[str]) -
     return sorted(list(column_union_set))
 
 
-def compare_table_columns(table_ids: dict[str, str],
-                          table_params: dict,
-                          max_display_rows: int = 5):
+def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_display_rows: int = 5):
     """
     Compare column in new table and most recently published table, matching values based on primary key (and,
         optionally, secondary key).
