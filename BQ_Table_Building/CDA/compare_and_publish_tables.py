@@ -269,7 +269,8 @@ def find_record_difference_counts(table_type: str,
 
     count_difference = int(new_version_count) - int(previous_version_count)
 
-    logger.info(f"***** {table_type.upper()} *****")
+    if table_type is not "clinical" and table_type is not "per_sample_file":
+        logger.info(f"***** {table_type.upper()} *****")
     logger.info(f"Current {table_type} count: {new_version_count}")
     logger.info(f"Previous {table_type} count: {previous_version_count}")
     logger.info(f"Difference: {count_difference}")
