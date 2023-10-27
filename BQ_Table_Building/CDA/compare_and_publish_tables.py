@@ -337,19 +337,20 @@ def compare_table_columns(table_ids: dict[str, str],
                           table_params: dict,
                           max_display_rows: int = 5):
     """
-    Compare column in new table and most recently published table, matching values based on primary key
-    (and, optionally, secondary key).
-    :param table_ids: todo
-    :param table_params: todo
-    :param max_display_rows: maximum result rows to display in output; default is 5
+    Compare column in new table and most recently published table, matching values based on primary key (and,
+        optionally, secondary key).
+    :param table_ids: dict of table ids: 'source' (dev table), 'versioned' and 'current' (future published ids),
+                      and 'previous_versioned' (most recent published table)
+    :param table_params: metadata dict containing table parameters, such as primary and secondary keys,
+                         concatenated columns, columns excluded from comparison
+    :param max_display_rows: maximum number of records to display in log output; defaults to 5
     """
 
     # warning suppressed because PyCharm gets confused by the secondary key clause variables
     # noinspection SqlAmbiguousColumn
     def make_compare_table_column_sql(column_name) -> str:
         """
-        Make SQL query that compares individual column values
-        :param column_name:
+        Make SQL query that compares individual column values.
         """
         if secondary_key is None:
             secondary_key_with_str = ''
@@ -389,7 +390,7 @@ def compare_table_columns(table_ids: dict[str, str],
             FULL JOIN different_in_old o
                 ON n.{primary_key} = o.{primary_key}
                     {secondary_key_join_str}
-            LIMIT {max_display_rows}
+            ORDER BY n.{primary_key}
         """
 
     logger = logging.getLogger('base_script')
@@ -427,12 +428,9 @@ def compare_table_columns(table_ids: dict[str, str],
         column_comparison_result = query_and_retrieve_result(sql=make_compare_table_column_sql(column))
 
         if not column_comparison_result:
-            logger.info(f"{column}: Column doesn't exist in one or both tables, or data types don't match.")
-            logger.info("")
-        elif column_comparison_result.total_rows == 0:
-            pass  # no changes found, skipping output here to minimize verbosity
-        else:
-            logger.info(f"{column}: {column_comparison_result.total_rows} differences found. Examples:")
+            logger.info(f"{column}: Column doesn't exist in one or both tables, or data types don't match.\n")
+        elif column_comparison_result.total_rows > 0:
+            logger.info(f"{column}: {column_comparison_result.total_rows} differences found. Examples: ")
 
             new_column_header = f"new {column}"
             old_column_header = f"old {column}"
@@ -443,14 +441,15 @@ def compare_table_columns(table_ids: dict[str, str],
             else:
                 logger.info(f"{primary_key:40} {secondary_key:40} {old_column_header:40} {new_column_header}")
 
-            count = 0
+            i = 0
 
             for row in column_comparison_result:
                 new_primary_key_val = row.get(f"new_{primary_key}")
                 old_primary_key_val = row.get(f"old_{primary_key}")
 
-                if new_primary_key_val is not None:
-                    primary_key_val = str(new_primary_key_val)
+                # include both key values if they differ--should only occur if row is added or removed
+                if not new_primary_key_val or not old_primary_key_val or new_primary_key_val != old_primary_key_val:
+                    primary_key_val = f"{str(old_primary_key_val)} -> {str(new_primary_key_val)}"
                 else:
                     primary_key_val = str(old_primary_key_val)
 
@@ -461,8 +460,9 @@ def compare_table_columns(table_ids: dict[str, str],
                     new_second_key_val = row.get(f"new_{secondary_key}")
                     old_second_key_val = row.get(f"old_{secondary_key}")
 
-                    if new_second_key_val is not None:
-                        secondary_key_val = str(new_second_key_val)
+                    # include both key values if they differ
+                    if not new_second_key_val or not old_second_key_val or new_second_key_val != old_second_key_val:
+                        secondary_key_val = f"{str(old_second_key_val)} -> {str(new_second_key_val)}"
                     else:
                         secondary_key_val = str(old_second_key_val)
 
@@ -470,19 +470,21 @@ def compare_table_columns(table_ids: dict[str, str],
                 else:
                     logger.info(f"{primary_key_val:40} {old_column_val:40} {new_column_val}")
 
-                count += 1
-
-                if count == max_display_rows:
-                    logger.info("")
+                i += 1
+                if i == max_display_rows:
                     break
 
 
 def compare_concat_columns(table_ids: dict[str, str],
-                           table_params: dict[str, str]):
+                           table_params: dict[str, str],
+                           max_display_rows: int = 5):
     """
     Compare concatenated column values to ensure matching data, as order is not guaranteed in these column strings.
-    :param table_ids: todo
-    :param table_params:
+    :param table_ids: dict of table ids: 'source' (dev table), 'versioned' and 'current' (future published ids),
+                      and 'previous_versioned' (most recent published table)
+    :param table_params: metadata dict containing table parameters, such as primary and secondary keys,
+                         concatenated columns, columns excluded from comparison
+    :param max_display_rows: Maximum number of records to display in log output; defaults to 5
     """
     def make_concat_column_query(table_id: str) -> str:
         secondary_key_string = ''
@@ -521,12 +523,10 @@ def compare_concat_columns(table_ids: dict[str, str],
 
         return records_dict
 
-    logger = logging.getLogger('base_script')
-
     new_table_records_dict = make_records_dict(query=make_concat_column_query(table_ids['source']))
-
     old_table_records_dict = make_records_dict(query=make_concat_column_query(table_ids['previous_versioned']))
 
+    logger = logging.getLogger('base_script')
     logger.info("Comparing concatenated columns!")
 
     record_key_set = set(new_table_records_dict.keys())
@@ -588,10 +588,10 @@ def compare_concat_columns(table_ids: dict[str, str],
         if new_table_missing_record_count > 0 or old_table_missing_record_count > 0 \
                 or different_lengths_count > 0 or different_values_count > 0:
             logger.info(f"{column}:")
-            logger.info(f"Missing records in new table: {new_table_missing_record_count}")
-            logger.info(f"Missing records in old table: {old_table_missing_record_count}")
-            logger.info(f"Different number of values in row: {different_lengths_count}")
-            logger.info(f"Different values in row: {different_values_count}")
+            logger.info(f"Missing records in old table: {old_table_missing_record_count}, "
+                        f"new table: {new_table_missing_record_count}")
+            logger.info(f"Rows with differing item counts: {different_lengths_count}, "
+                        f"same count but mismatched records {different_values_count}")
 
             if len(mismatched_records) > 0:
                 i = 0
@@ -622,8 +622,7 @@ def compare_concat_columns(table_ids: dict[str, str],
                                     f"{mismatched_record['old_table_value']:40} {mismatched_record['new_table_value']}")
 
                     i += 1
-
-                    if i == 5:
+                    if i == max_display_rows:
                         break
 
 
@@ -721,7 +720,8 @@ def publish_table(table_ids: dict[str, str]):
         - publish tables
         - update friendly name for versioned table
         - change last version tables' status labels to archived
-    :param table_ids: dict containing source, current and versioned table ids
+    :param table_ids: dict of table ids: 'source' (dev table), 'versioned' and 'current' (future published ids),
+                      and 'previous_versioned' (most recent published table)
     """
     logger = logging.getLogger('base_script')
 
@@ -802,9 +802,7 @@ def generate_gdc_clinical_table_id_list(table_params: dict[str, str]) -> list[di
             'previous_versioned': ''
         }
 
-        # todo remove once using renamed staging tables
-        if table_base_name == 'clinical':
-            table_ids['previous_versioned'] = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
+        table_ids['previous_versioned'] = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
 
         table_ids_list.append(table_ids)
 
@@ -910,8 +908,9 @@ def main(args):
                 for table_ids in table_ids_list:
                     publish_table(table_ids)
         else:
+            # handling for per_sample_file in gdc
+            # handling for other nodes
             pass
-            # todo create prod table names and datasets for per_sample_file in gdc and pdc, clinical in pdc
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
