@@ -470,8 +470,9 @@ def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_dis
 
                 i += 1
                 if i == max_display_rows:
-                    logger.info("")
                     break
+
+            logger.info("")
 
 
 def compare_concat_columns(table_ids: dict[str, str],
@@ -857,6 +858,7 @@ def main(args):
     # COMPARE AND PUBLISH CLINICAL AND PER SAMPLE FILE TABLES
     for table_type, table_params in PARAMS['PER_PROJECT_TABLE_TYPES'].items():
         # look for list of last release's published tables to ensure none have disappeared before comparing
+        logger.info("Searching for missing tables!")
         find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
 
         if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
