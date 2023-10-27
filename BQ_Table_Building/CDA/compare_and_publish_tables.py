@@ -857,12 +857,12 @@ def main(args):
     # COMPARE AND PUBLISH CLINICAL AND PER SAMPLE FILE TABLES
     for table_type, table_params in PARAMS['PER_PROJECT_TABLE_TYPES'].items():
         # look for list of last release's published tables to ensure none have disappeared before comparing
-        # todo remove comment
-        # find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
+        find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
 
         if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
             logger.info("Comparing GDC clinical tables!")
-            # table_ids_list = generate_gdc_clinical_table_id_list(table_params)
+            table_ids_list = generate_gdc_clinical_table_id_list(table_params)
+            """
             table_ids_list = [
                 {
                     'current': 'isb-cgc-sandbox-000.CDDP_EAGLE.clinical_gdc_current',
@@ -881,6 +881,7 @@ def main(args):
                     'previous_versioned': 'isb-cgc-sandbox-000.CGCI_versioned.clinical_gdc_r33'
                 }
             ]
+            """
 
             if 'compare_tables' in steps:
                 for table_ids in table_ids_list:
