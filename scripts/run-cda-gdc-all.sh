@@ -49,8 +49,8 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3.9 ./BQ_Table_Building/CDA/extract_from_tsv.py ~/config/${SHARED_CONFIG_FILE} ~/config/${EXTRACT_CONFIG_FILE}
-python3.9 ./BQ_Table_Building/CDA/GDC/create_tables_project_disease_type_gdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${DISEASE_CONFIG_FILE}
+# python3.9 ./BQ_Table_Building/CDA/extract_from_tsv.py ~/config/${SHARED_CONFIG_FILE} ~/config/${EXTRACT_CONFIG_FILE}
+# python3.9 ./BQ_Table_Building/CDA/GDC/create_tables_project_disease_type_gdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${DISEASE_CONFIG_FILE}
 python3.9 ./BQ_Table_Building/CDA/GDC/create_tables_case_metadata_gdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${CASE_CONFIG_FILE}
 python3.9 ./BQ_Table_Building/CDA/GDC/create_tables_aliquot_case_map_gdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${ALIQUOT_CONFIG_FILE}
 python3.9 ./BQ_Table_Building/CDA/GDC/create_tables_slide_case_map_gdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${SLIDE_CONFIG_FILE}
