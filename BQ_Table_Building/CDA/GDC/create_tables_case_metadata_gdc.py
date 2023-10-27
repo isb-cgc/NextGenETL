@@ -30,10 +30,9 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
-def make_case_metadata_table_sql(legacy_table_id: str) -> str:
+def make_case_metadata_table_sql() -> str:
     """
     Make BigQuery sql statement, used to generate case metadata table.
-    :param legacy_table_id: table id for legacy data
     :return: sql string
     """
     return f"""
@@ -77,7 +76,7 @@ def make_case_metadata_table_sql(legacy_table_id: str) -> str:
                 case_barcode,
                 legacy_file_count,
                 active_file_count 
-            FROM `{legacy_table_id}` 
+            FROM `{PARAMS['LEGACY_TABLE_ID']}` 
         )
     """
 
@@ -98,11 +97,9 @@ def main(args):
     if 'create_table_from_query' in steps:
         logger.info("Entering create_table_from_query")
 
-        legacy_table_id = PARAMS['LEGACY_TABLE_ID']
-
         create_table_from_query(params=PARAMS,
                                 table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']),
-                                query=make_case_metadata_table_sql(legacy_table_id))
+                                query=make_case_metadata_table_sql())
 
         update_table_schema_from_generic(params=PARAMS, table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']))
 
