@@ -863,7 +863,7 @@ def main(args):
         # look for list of last release's published tables to ensure none have disappeared before comparing
         logger.info("Searching for missing tables!")
         find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
-
+        """
         if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
             logger.info("Comparing GDC clinical tables!")
             # table_ids_list = generate_gdc_clinical_table_id_list(table_params)
@@ -916,6 +916,7 @@ def main(args):
             # handling for per_sample_file in gdc
             # handling for other nodes
             pass
+        """
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
