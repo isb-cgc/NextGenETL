@@ -79,7 +79,7 @@ def make_aliquot_case_table_sql() -> str:
                 sample_barcode,
                 sample_type,
                 sample_type_name,
-                sample_is_ffpe, 
+                CAST(sample_is_ffpe AS BOOL), 
                 sample_preservation_method,
                 portion_gdc_id,
                 portion_barcode,
