@@ -82,17 +82,18 @@ def main(args):
 
                 for table in program_tables:
                     prod_table_id = f"{program_dataset_id}.{table}"
-                    dest_table_id = f"{PARAMS['STAGING_PROJECT']}.{program_dataset}.{table}"
+                    dest_dataset_id = f"{PARAMS['STAGING_PROJECT']}.{program_dataset}"
 
-                    vers_table_name = table.replace("current", "r36")
+                    table_name = table
 
                     for old_word, new_word in PARAMS['WORDS_TO_ALTER'].items():
-                        vers_table_name = vers_table_name.replace(old_word, new_word)
+                        table_name = table_name.replace(old_word, new_word)
 
-                    vers_dest_dataset_id = f"{PARAMS['STAGING_PROJECT']}.{program_dataset}_versioned"
-                    vers_dest_table_id = f"{vers_dest_dataset_id}.{vers_table_name}"
+                    vers_table_name = table_name.replace("current", "r36")
+                    vers_dest_table_id = f"{dest_dataset_id}_versioned.{vers_table_name}"
+                    curr_dest_table_id = f"{dest_dataset_id}.{table_name}"
 
-                    copy_bq_table(PARAMS, src_table=prod_table_id, dest_table=dest_table_id, replace_table=True)
+                    copy_bq_table(PARAMS, src_table=prod_table_id, dest_table=curr_dest_table_id, replace_table=True)
                     copy_bq_table(PARAMS, src_table=prod_table_id, dest_table=vers_dest_table_id, replace_table=True)
 
     end_time = time.time()
