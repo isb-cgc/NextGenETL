@@ -643,6 +643,7 @@ def get_new_table_names(dataset: str) -> list[str]:
     table_name_list = list()
 
     for row in table_names:
+        table_name = table_name.replace(f"_{PARAMS['NODE']}", "")
         table_name_list.append(row['table_name'])
 
     return sorted(table_name_list)
