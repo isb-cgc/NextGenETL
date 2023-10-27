@@ -89,7 +89,7 @@ def main(args):
                     for old_word, new_word in PARAMS['WORDS_TO_ALTER'].items():
                         vers_table_name = vers_table_name.replace(old_word, new_word)
 
-                    vers_dest_dataset_id = f"{PARAMS['STAGING_PROJECT']}.{PARAMS['METADATA_DATASET']}_versioned"
+                    vers_dest_dataset_id = f"{PARAMS['STAGING_PROJECT']}.{program_dataset}_versioned"
                     vers_dest_table_id = f"{vers_dest_dataset_id}.{vers_table_name}"
 
                     copy_bq_table(PARAMS, src_table=prod_table_id, dest_table=dest_table_id, replace_table=True)

@@ -389,6 +389,7 @@ def compare_table_columns(table_ids: dict[str, str],
             FULL JOIN different_in_old o
                 ON n.{primary_key} = o.{primary_key}
                     {secondary_key_join_str}
+            LIMIT {max_display_rows}
         """
 
     logger = logging.getLogger('base_script')
