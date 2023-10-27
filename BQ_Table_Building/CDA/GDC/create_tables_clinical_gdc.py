@@ -493,6 +493,8 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
     logger.info(f" - Getting insert locations")
     table_insert_locations = get_table_column_insert_locations()
 
+    print(table_insert_locations)
+
     for table in stand_alone_tables:
         # used to construct a sql query that creates one of the program tables
         table_sql_dict[table] = {
