@@ -329,6 +329,9 @@ def generate_column_list(table_id_list: list[str], excluded_columns: set[str]) -
         for row in column_result:
             column_set.add(row[0])
 
+            print(f"for {table_id}:")
+            print(column_set)
+
         column_union_set |= column_set
 
     # remove any concatenated columns supplied in yaml config from column_list
@@ -897,7 +900,6 @@ def main(args):
                     'previous_versioned': 'isb-cgc-sandbox-000.CGCI_versioned.clinical_follow_up_gdc_r36'
                 },
             ]
-
 
             if 'compare_tables' in steps:
                 for table_ids in table_ids_list:
