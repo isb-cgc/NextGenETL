@@ -422,8 +422,8 @@ def copy_bq_table(params: Params, src_table: str, dest_table: str, replace_table
     bq_job = client.copy_table(src_table, dest_table, job_config=job_config)
 
     if await_job(params, client, bq_job):
-        logger.info(f"Successfully copied {src_table} -> "
-                    f"\n\t\t\t\t\t\t\t{dest_table}")
+        logger.info(f"Successfully copied {src_table} -> ")
+        logger.info(f"\t\t\t{dest_table}")
 
 
 # PyCharm linter gets confused about BQ class typing and the warnings are distracting, so suppressed
