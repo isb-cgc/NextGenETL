@@ -368,11 +368,11 @@ def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_dis
                 FROM `{table_ids['source']}`
                 EXCEPT DISTINCT 
                 SELECT {secondary_key_with_str} {primary_key}, {column_name}
-                FROM `{table_ids['versioned']}`
+                FROM `{table_ids['previous_versioned']}`
                 ORDER BY {primary_key}
             ), different_in_old AS (
                 SELECT {secondary_key_with_str} {primary_key}, {column_name}
-                FROM `{table_ids['versioned']}`
+                FROM `{table_ids['previous_versioned']}`
                 EXCEPT DISTINCT 
                 SELECT {secondary_key_with_str} {primary_key}, {column_name}
                 FROM `{table_ids['source']}`
@@ -838,8 +838,6 @@ def main(args):
             'source': create_metadata_table_id(PARAMS, table_params['table_base_name']),
         }
         table_ids['previous_versioned'] = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
-
-        print(table_ids)
 
         if 'compare_tables' in steps:
             logger.info(f"Comparing tables for {table_params['table_base_name']}!")
