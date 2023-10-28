@@ -207,8 +207,11 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
                 'count_columns': []
             }
 
+            child_tables = list()
+
             # fetch children for table
-            child_tables = PARAMS['TABLE_PARAMS'][table_name]['parent_of']
+            for child in PARAMS['TABLE_PARAMS'][table_name]['parent_of']:
+                child_tables.append(child)
 
             if child_tables:
                 i = 0
@@ -336,7 +339,12 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
 
             print(PARAMS['TABLE_PARAMS'])
 
-            child_tables = PARAMS['TABLE_PARAMS'][stand_alone_table]['parent_of']
+            child_tables = list()
+
+            # fetch children for table
+            for child in PARAMS['TABLE_PARAMS'][stand_alone_table]['parent_of']:
+                child_tables.append(child)
+
             print(f"child_tables1: {child_tables}")
 
             if not child_tables:
@@ -358,10 +366,10 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
                         for descendent_table in descendent_tables:
                             if descendent_table not in child_tables:
                                 child_tables.append(descendent_table)
-                                print(f"child_tables: {child_tables}")
+                                print(f"child_tables2: {child_tables}")
                 else:
                     print(f"{child_tables[i]} standalone or empty.")
-                    print(f"child_tables2: {child_tables}")
+                    print(f"child_tables3: {child_tables}")
 
                 i += 1
 
