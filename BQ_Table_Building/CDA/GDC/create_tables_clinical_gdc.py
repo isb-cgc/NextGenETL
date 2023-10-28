@@ -338,8 +338,6 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
             print(f"stand_alone_table: {stand_alone_table}")
             table_column_locations[stand_alone_table] = list()
 
-            print(PARAMS['TABLE_PARAMS'])
-
             child_tables = list()
 
             if PARAMS['TABLE_PARAMS'][stand_alone_table]['parent_of']:
