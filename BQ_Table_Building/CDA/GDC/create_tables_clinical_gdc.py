@@ -335,7 +335,6 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
         table_column_locations = dict()
 
         for stand_alone_table in stand_alone_tables:
-            print(f"stand_alone_table: {stand_alone_table}")
             table_column_locations[stand_alone_table] = list()
 
             child_tables = list()
@@ -344,8 +343,6 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
                 # fetch children for table
                 for child in PARAMS['TABLE_PARAMS'][stand_alone_table]['parent_of']:
                     child_tables.append(child)
-
-            print(f"child_tables1: {child_tables}")
 
             if not child_tables:
                 continue
@@ -356,21 +353,14 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
                 # if child table does not require a stand-alone table and has non-null columns,
                 # add to table_column_locations, then check its children as well
                 if child_tables[i] not in stand_alone_tables and non_null_column_dict[child_tables[i]]:
-                    print(f"{child_tables[i]} not standalone and has columns.")
                     table_column_locations[stand_alone_table].append(child_tables[i])
 
                     descendent_tables = PARAMS['TABLE_PARAMS'][child_tables[i]]['parent_of']
-                    print(f"descendent_tables: {descendent_tables}")
 
                     if descendent_tables:
                         for descendent_table in descendent_tables:
                             if descendent_table not in child_tables:
                                 child_tables.append(descendent_table)
-                                print(f"child_tables2: {child_tables}")
-                else:
-                    print(f"{child_tables[i]} standalone or empty.")
-                    print(f"child_tables3: {child_tables}")
-
                 i += 1
 
         return table_column_locations
@@ -510,8 +500,6 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
     logger.info(f" - Getting insert locations")
     table_insert_locations = get_table_column_insert_locations()
 
-    print(table_insert_locations)
-
     for table in stand_alone_tables:
         # used to construct a sql query that creates one of the program tables
         table_sql_dict[table] = {
@@ -619,6 +607,7 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
         create_table_from_query(PARAMS, table_id=clinical_table_id, query=sql_query)
 
 
+'''
 def find_table_column_frequency():
     def find_program_non_null_columns_by_table():
         def make_count_column_sql() -> str:
@@ -734,6 +723,7 @@ def find_table_column_frequency():
 
     for program in find_program_tables().keys():
         columns_by_program_dict[program] = find_program_non_null_columns_by_table()
+'''
 
 
 def main(args):
@@ -751,9 +741,7 @@ def main(args):
     if 'find_missing_fields' in steps:
         # logger.debug("Passing find_missing_fields")
         # Find discrepancies in field lists in yaml config and CDA data
-        # todo uncomment
-        # find_missing_fields()
-        pass
+        find_missing_fields()
     if 'create_tables' in steps:
         # create dict of programs : base/supplemental tables to be created
         tables_per_program_dict = find_program_tables()
