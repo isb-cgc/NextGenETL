@@ -209,9 +209,10 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
 
             child_tables = list()
 
-            # fetch children for table
-            for child in PARAMS['TABLE_PARAMS'][table_name]['parent_of']:
-                child_tables.append(child)
+            if PARAMS['TABLE_PARAMS'][table_name]['parent_of']:
+                # fetch children for table
+                for child in PARAMS['TABLE_PARAMS'][table_name]['parent_of']:
+                    child_tables.append(child)
 
             if child_tables:
                 i = 0
@@ -341,9 +342,10 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
 
             child_tables = list()
 
-            # fetch children for table
-            for child in PARAMS['TABLE_PARAMS'][stand_alone_table]['parent_of']:
-                child_tables.append(child)
+            if PARAMS['TABLE_PARAMS'][stand_alone_table]['parent_of']:
+                # fetch children for table
+                for child in PARAMS['TABLE_PARAMS'][stand_alone_table]['parent_of']:
+                    child_tables.append(child)
 
             print(f"child_tables1: {child_tables}")
 
