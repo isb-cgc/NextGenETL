@@ -96,6 +96,8 @@ def make_aliquot_case_table_sql() -> str:
             SELECT * 
             FROM aliquot_records
         )
+    """
+    """
         EXCEPT DISTINCT 
         (
             SELECT *
