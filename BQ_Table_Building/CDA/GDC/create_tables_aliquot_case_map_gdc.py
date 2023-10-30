@@ -70,7 +70,7 @@ def make_aliquot_case_table_sql() -> str:
                 ON an.analyte_id = aoa.analyte_id
             LEFT JOIN `{create_dev_table_id(PARAMS, 'aliquot')}` al
                 ON aoa.aliquot_id = al.aliquot_id
-        ) UNION ALL (
+        ) UNION DISTINCT (
             SELECT program_name, 
                 project_id,
                 case_gdc_id, 
