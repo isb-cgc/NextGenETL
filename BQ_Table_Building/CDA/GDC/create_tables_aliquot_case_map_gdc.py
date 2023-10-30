@@ -95,7 +95,7 @@ def make_aliquot_case_table_sql() -> str:
         SELECT * 
         FROM aliquot_records
         AND portion_gdc_id not in (
-            SELECT *
+            SELECT portion_gdc_id
             FROM `isb-project-zero.cda_gdc_metadata.r37_aliquot2caseIDmap` 
             where portion_gdc_id in (
               select portion_id
