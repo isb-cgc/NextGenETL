@@ -308,6 +308,7 @@ def generate_column_list(table_id_list: list[str], excluded_columns: set[str]) -
     :param excluded_columns: set of columns to exclude from the list
     :return: a list representing the union of columns from every table in table_id_list, less any excluded_columns
     """
+
     def make_column_list_query() -> str:
         project_dataset_name = ".".join(table_id.split('.')[0:2])
         table_name = table_id.split('.')[-1]
@@ -490,6 +491,7 @@ def compare_concat_columns(table_ids: dict[str, str],
                          concatenated columns, columns excluded from comparison
     :param max_display_rows: Maximum number of records to display in log output; defaults to 5
     """
+
     def make_concat_column_query(table_id: str) -> str:
         secondary_key_string = ''
 
@@ -657,6 +659,7 @@ def get_current_table_names(table_type) -> list[str]:
             WHERE table_name LIKE '%{table_type}%'
                 AND table_name LIKE '%{PARAMS['NODE']}%'
         """
+
     # get program list from BQEcosystem/MetadataMappings/
     # for each program, look for tables in current list with 'clinical' or 'per_sample_file' prefix
     # add any tables to list object
@@ -870,34 +873,39 @@ def main(args):
             logger.info("Comparing GDC clinical tables!")
             table_ids_list = generate_gdc_clinical_table_id_list(table_params)
 
-            print(table_ids_list)
-
-            """
             table_ids_list = [
-                {
-                    'current': 'isb-cgc-sandbox-000.CGCI.clinical_gdc_current',
-                    'versioned': 'isb-cgc-sandbox-000.CGCI_versioned.clinical_gdc_r37',
-                    'source': 'isb-project-zero.cda_gdc_clinical.r37_CGCI_clinical',
-                    'previous_versioned': 'isb-cgc-sandbox-000.CGCI_versioned.clinical_gdc_r36'
-                },
-                {
-                    'current': 'isb-cgc-sandbox-000.CGCI.clinical_diagnosis_gdc_current',
-                    'versioned': 'isb-cgc-sandbox-000.CGCI_versioned.clinical_diagnosis_gdc_r37',
-                    'source': 'isb-project-zero.cda_gdc_clinical.r37_CGCI_clinical_diagnosis',
-                    'previous_versioned': 'isb-cgc-sandbox-000.CGCI_versioned.clinical_diagnosis_gdc_r36'
-                },
-                {
-                    'current': 'isb-cgc-sandbox-000.CGCI.clinical_diagnosis_treatment_gdc_current',
-                    'versioned': 'isb-cgc-sandbox-000.CGCI_versioned.clinical_diagnosis_treatment_gdc_r37',
-                    'source': 'isb-project-zero.cda_gdc_clinical.r37_CGCI_clinical_diagnosis_treatment',
-                    'previous_versioned': 'isb-cgc-sandbox-000.CGCI_versioned.clinical_diagnosis_treatment_gdc_r36'
-                },
-                {
-                    'current': 'isb-cgc-sandbox-000.CGCI.clinical_follow_up_gdc_current',
-                    'versioned': 'isb-cgc-sandbox-000.CGCI_versioned.clinical_follow_up_gdc_r37',
-                    'source': 'isb-project-zero.cda_gdc_clinical.r37_CGCI_clinical_follow_up',
-                    'previous_versioned': 'isb-cgc-sandbox-000.CGCI_versioned.clinical_follow_up_gdc_r36'
-                },
+                {'current': 'isb-cgc-sandbox-000.TARGET.clinical_gdc_current',
+                 'versioned': 'isb-cgc-sandbox-000.TARGET_versioned.clinical_gdc_r37',
+                 'source': 'isb-project-zero.cda_gdc_clinical.r37_TARGET_clinical',
+                 'previous_versioned': 'isb-cgc-sandbox-000.TARGET_versioned.clinical_gdc_r36'},
+                {'current': 'isb-cgc-sandbox-000.TCGA.clinical_gdc_current',
+                 'versioned': 'isb-cgc-sandbox-000.TCGA_versioned.clinical_gdc_r37',
+                 'source': 'isb-project-zero.cda_gdc_clinical.r37_TCGA_clinical',
+                 'previous_versioned': 'isb-cgc-sandbox-000.TCGA_versioned.clinical_gdc_r36'},
+                {'current': 'isb-cgc-sandbox-000.TCGA.clinical_diagnosis_treatment_gdc_current',
+                 'versioned': 'isb-cgc-sandbox-000.TCGA_versioned.clinical_diagnosis_treatment_gdc_r37',
+                 'source': 'isb-project-zero.cda_gdc_clinical.r37_TCGA_clinical_diagnosis_treatment',
+                 'previous_versioned': 'isb-cgc-sandbox-000.TCGA_versioned.clinical_diagnosis_treatment_gdc_r36'},
+                {'current': 'isb-cgc-sandbox-000.TRIO.clinical_gdc_current',
+                 'versioned': 'isb-cgc-sandbox-000.TRIO_versioned.clinical_gdc_r37',
+                 'source': 'isb-project-zero.cda_gdc_clinical.r37_TRIO_clinical',
+                 'previous_versioned': 'isb-cgc-sandbox-000.TRIO_versioned.clinical_gdc_r36'},
+                {'current': 'isb-cgc-sandbox-000.VAREPOP.clinical_gdc_current',
+                 'versioned': 'isb-cgc-sandbox-000.VAREPOP_versioned.clinical_gdc_r37',
+                 'source': 'isb-project-zero.cda_gdc_clinical.r37_VAREPOP_clinical',
+                 'previous_versioned': 'isb-cgc-sandbox-000.VAREPOP_versioned.clinical_gdc_r36'},
+                {'current': 'isb-cgc-sandbox-000.VAREPOP.clinical_diagnosis_treatment_gdc_current',
+                 'versioned': 'isb-cgc-sandbox-000.VAREPOP_versioned.clinical_diagnosis_treatment_gdc_r37',
+                 'source': 'isb-project-zero.cda_gdc_clinical.r37_VAREPOP_clinical_diagnosis_treatment',
+                 'previous_versioned': 'isb-cgc-sandbox-000.VAREPOP_versioned.clinical_diagnosis_treatment_gdc_r36'},
+                {'current': 'isb-cgc-sandbox-000.VAREPOP.clinical_family_history_gdc_current',
+                 'versioned': 'isb-cgc-sandbox-000.VAREPOP_versioned.clinical_family_history_gdc_r37',
+                 'source': 'isb-project-zero.cda_gdc_clinical.r37_VAREPOP_clinical_family_history',
+                 'previous_versioned': 'isb-cgc-sandbox-000.VAREPOP_versioned.clinical_family_history_gdc_r36'},
+                {'current': 'isb-cgc-sandbox-000.WCDT.clinical_gdc_current',
+                 'versioned': 'isb-cgc-sandbox-000.WCDT_versioned.clinical_gdc_r37',
+                 'source': 'isb-project-zero.cda_gdc_clinical.r37_WCDT_clinical',
+                 'previous_versioned': 'isb-cgc-sandbox-000.WCDT_versioned.clinical_gdc_r36'}
             ]
             # """
 
@@ -930,7 +938,6 @@ def main(args):
             # handling for per_sample_file in gdc
             # handling for other nodes
             pass
-
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
