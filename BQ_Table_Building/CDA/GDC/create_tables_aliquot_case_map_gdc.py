@@ -92,10 +92,20 @@ def make_aliquot_case_table_sql() -> str:
             )
         )
         
-        (
-            SELECT * 
-            FROM aliquot_records
+        SELECT * 
+        FROM aliquot_records
+        AND portion_gdc_id not in (
+            SELECT *
+            FROM `isb-project-zero.cda_gdc_metadata.r37_aliquot2caseIDmap` 
+            where portion_gdc_id in (
+              select portion_id
+              from `isb-project-zero.cda_gdc_raw.r37_slide_from_portion`
+            ) and portion_gdc_id not in (
+              select portion_id
+              from `isb-project-zero.cda_gdc_raw.r37_analyte_from_portion`
+            )
         )
+        
     """
     """
         EXCEPT DISTINCT 
