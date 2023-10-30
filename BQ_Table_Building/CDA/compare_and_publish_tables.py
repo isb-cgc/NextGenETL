@@ -871,7 +871,7 @@ def main(args):
 
         if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
             logger.info("Comparing GDC clinical tables!")
-            table_ids_list = generate_gdc_clinical_table_id_list(table_params)
+            # table_ids_list = generate_gdc_clinical_table_id_list(table_params)
 
             table_ids_list = [
                 {'current': 'isb-cgc-sandbox-000.TARGET.clinical_gdc_current',
