@@ -456,8 +456,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_dis
                 new_column_val = str(row.get(f"new_{column}"))
                 old_column_val = str(row.get(f"old_{column}"))
 
-                if not new_column_val or not old_column_val or new_column_val != old_column_val:
-                    column_val = f"{str(old_column_val)} -> {str(new_column_val)}"
+                column_val = f"{old_column_val} -> {new_column_val}"
 
                 if secondary_key is not None:
                     new_second_key_val = row.get(f"new_{secondary_key}")
@@ -870,6 +869,8 @@ def main(args):
         if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
             logger.info("Comparing GDC clinical tables!")
             table_ids_list = generate_gdc_clinical_table_id_list(table_params)
+
+            print(table_ids_list)
 
             """
             table_ids_list = [
