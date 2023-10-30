@@ -836,8 +836,7 @@ def main(args):
     dev_project = PARAMS['DEV_PROJECT']
 
     # COMPARE AND PUBLISH METADATA TABLES
-    # todo uncomment
-    """
+    # """
     for table_type, table_params in PARAMS['METADATA_TABLE_TYPES'].items():
         prod_dataset = table_params['prod_dataset']
         prod_table_name = table_params['table_base_name']
@@ -871,8 +870,9 @@ def main(args):
 
         if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
             logger.info("Comparing GDC clinical tables!")
-            # table_ids_list = generate_gdc_clinical_table_id_list(table_params)
+            table_ids_list = generate_gdc_clinical_table_id_list(table_params)
 
+            """
             table_ids_list = [
                 {'current': 'isb-cgc-sandbox-000.TARGET.clinical_gdc_current',
                  'versioned': 'isb-cgc-sandbox-000.TARGET_versioned.clinical_gdc_r37',
