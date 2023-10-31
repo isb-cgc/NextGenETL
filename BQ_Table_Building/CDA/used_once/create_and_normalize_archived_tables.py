@@ -203,6 +203,23 @@ def create_table(table_name: str):
     create_and_load_table_from_jsonl(BQ_PARAMS, jsonl_file=jsonl_file, table_id=table_id, schema=table_schema)
 
 
+def make_case_legacy_table_query():
+    return f"""
+    SELECT case_id AS case_gdc_id,
+        primary_site,
+        project__dbgap_accession_number AS project_dbgap_accession_number,
+        project__disease_type AS project_disease_type,
+        project__name AS project_name,
+        project__program__dbgap_accession_number AS program_dbgap_accession_number,
+        project__program__name AS program_name,
+        project__project_id AS project_id,
+        submitter_id AS case_barcode,
+        summary__file_count AS legacy_file_count,
+        0 AS active_file_count
+    FROM `isb-project-zero.cda_gdc_legacy.case_legacy`
+    """
+
+
 def main(args):
     try:
         global API_PARAMS, BQ_PARAMS
@@ -210,31 +227,9 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
-    if 'create_aliquot_to_case_legacy_jsonl' in steps:
-        print(make_aliquot_to_case_legacy_filtered_query())
-        create_jsonl_and_schema(sql=make_aliquot_to_case_legacy_filtered_query(),
-                                column_list=BQ_PARAMS['ALIQUOT_COLUMN_LIST'],
-                                table_name=BQ_PARAMS['ALIQUOT_TABLE_NAME'])
-
-    if 'create_aliquot_to_case_legacy_table' in steps:
-        create_table(table_name=BQ_PARAMS['ALIQUOT_TABLE_NAME'])
-
-    if 'create_case_metadata_legacy_jsonl' in steps:
-        print(make_case_metadata_legacy_filtered_query())
-        create_jsonl_and_schema(sql=make_case_metadata_legacy_filtered_query(),
-                                column_list=BQ_PARAMS['CASE_COLUMN_LIST'],
-                                table_name=BQ_PARAMS['CASE_TABLE_NAME'])
-
     if 'create_case_metadata_legacy_table' in steps:
         create_table(table_name=BQ_PARAMS['CASE_TABLE_NAME'])
 
-    if 'create_file_metadata_legacy_jsonl' in steps:
-        create_jsonl_and_schema(sql=make_file_metadata_legacy_filtered_query(),
-                                column_list=BQ_PARAMS['FILE_COLUMN_LIST'],
-                                table_name=BQ_PARAMS['FILE_TABLE_NAME'])
-
-    if 'create_file_metadata_legacy_table' in steps:
-        create_table(table_name=BQ_PARAMS['FILE_TABLE_NAME'])
 
 
 if __name__ == "__main__":

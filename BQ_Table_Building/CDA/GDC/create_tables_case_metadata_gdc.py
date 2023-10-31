@@ -36,48 +36,65 @@ def make_case_metadata_table_sql() -> str:
     :return: sql string
     """
     return f"""
-        WITH counts AS (
-            SELECT case_id, COUNT(file_id) AS active_file_count 
+        WITH active_counts AS (
+            SELECT case_id AS case_gdc_id, COUNT(file_id) AS active_file_count 
             FROM `{create_dev_table_id(PARAMS, 'file_in_case')}`
             GROUP BY case_id
-        ) 
-        (
-            SELECT cpp.case_gdc_id, 
-                c.primary_site, 
-                cpp.project_dbgap_accession_number, 
-                pdt.disease_type as project_disease_type,
-                cpp.project_name, 
-                cpp.program_dbgap_accession_number,
-                cpp.program_name, 
-                cpp.project_id, 
-                c.submitter_id AS case_barcode,
-                r.legacy_file_count,
-                counts.active_file_count
-            FROM `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-            JOIN `{create_dev_table_id(PARAMS, 'case')}` c
-                ON c.case_id = cpp.case_gdc_id
-            LEFT JOIN `{create_dev_table_id(PARAMS, 'project_disease_types_merged')}` pdt
-                ON pdt.project_id = cpp.project_id
-            JOIN `{PARAMS['LEGACY_FILE_COUNT_TABLE_ID']}` r
-                ON cpp.case_gdc_id = r.case_gdc_id
-            JOIN counts 
-                ON counts.case_id = cpp.case_gdc_id
-        ) 
-        UNION ALL
-        (
-            SELECT case_gdc_id, 
-                primary_site, 
-                project_dbgap_accession_number, 
-                project_disease_type,
-                project_name, 
-                program_dbgap_accession_number,
-                program_name, 
-                project_id, 
-                case_barcode,
-                legacy_file_count,
-                active_file_count 
-            FROM `{PARAMS['LEGACY_TABLE_ID']}` 
+        ), legacy_counts AS (
+            SELECT case_gdc_id, COUNT(file_id) AS legacy_file_count 
+            FROM `{PARAMS['LEGACY_TABLE_ID']}`
+        ), cases AS (
+            (
+                SELECT cpp.case_gdc_id, 
+                    c.primary_site, 
+                    cpp.project_dbgap_accession_number, 
+                    pdt.disease_type as project_disease_type,
+                    cpp.project_name, 
+                    cpp.program_dbgap_accession_number,
+                    cpp.program_name, 
+                    cpp.project_id, 
+                    c.submitter_id AS case_barcode
+                FROM `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
+                JOIN `{create_dev_table_id(PARAMS, 'case')}` c
+                    ON c.case_id = cpp.case_gdc_id
+                JOIN `{create_dev_table_id(PARAMS, 'project_disease_types_merged')}` pdt
+                    ON pdt.project_id = cpp.project_id
+            ) UNION DISTINCT (
+                SELECT case_gdc_id, 
+                    primary_site, 
+                    project_dbgap_accession_number, 
+                    project_disease_type,
+                    project_name, 
+                    program_dbgap_accession_number,
+                    program_name, 
+                    project_id, 
+                    case_barcode 
+                FROM `{PARAMS['LEGACY_TABLE_ID']}` 
+            )
         )
+        
+        SELECT c.case_gdc_id, 
+            c.primary_site, 
+            c.project_dbgap_accession_number, 
+            c.project_disease_type,
+            c.project_name, 
+            c.program_dbgap_accession_number,
+            c.program_name, 
+            c.project_id, 
+            c.case_barcode,
+            CASE ac.active_file_count
+                WHEN IS NULL THEN 0
+                ELSE ac.active_file_count
+                END
+            CASE lc.legacy_file_count
+                WHEN IS NULL THEN 0
+                ELSE lc.legacy_file_count
+                END
+        FROM cases c
+        LEFT JOIN active_counts ac
+            AS c.case_gdc_id = ac.case_gdc_id
+        LEFT JOIN legacy_counts lc
+            AS c.case_gdc_id = ac.case_gdc_id
     """
 
 
