@@ -86,9 +86,9 @@ def make_case_metadata_table_sql() -> str:
             IFNULL(lc.legacy_file_count, 0)
         FROM cases c
         LEFT JOIN active_counts ac
-            AS c.case_gdc_id = ac.case_gdc_id
+            ON c.case_gdc_id = ac.case_gdc_id
         LEFT JOIN legacy_counts lc
-            AS c.case_gdc_id = ac.case_gdc_id
+            ON c.case_gdc_id = ac.case_gdc_id
     """
 
 
