@@ -104,7 +104,10 @@ def make_aliquot_case_table_sql() -> str:
         
         SELECT * 
         FROM aliquot_records
-        WHERE portion_gdc_id not in excluded_portions
+        WHERE portion_gdc_id not in (
+            SELECT portion_gdc_id 
+            FROM excluded_portions
+        )
         
     """
 
