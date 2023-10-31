@@ -36,32 +36,48 @@ def make_slide_case_table_sql() -> str:
     :return: slide to case map sql query
     """
     return f"""
-    SELECT 
-        cpp.program_name, 
-        cpp.project_id,
-        cpp.case_gdc_id, 
-        cpp.case_barcode,
-        s.sample_id AS sample_gdc_id,
-        s.submitter_id AS sample_barcode,
-        s.sample_type_id AS sample_type,
-        s.sample_type AS sample_type_name,
-        p.portion_id AS portion_gdc_id,
-        p.submitter_id AS portion_barcode,
-        sl.slide_id AS slide_gdc_id,
-        sl.submitter_id AS slide_barcode
-    FROM `{create_dev_table_id(PARAMS, 'slide')}` sl
-    JOIN `{create_dev_table_id(PARAMS, 'slide_from_portion')}` sfp
-        ON sfp.slide_id = sl.slide_id
-    JOIN `{create_dev_table_id(PARAMS, 'portion')}` p 
-        ON p.portion_id = sfp.portion_id
-    JOIN `{create_dev_table_id(PARAMS, 'portion_from_sample')}` pfs  
-        ON pfs.portion_id = p.portion_id
-    JOIN `{create_dev_table_id(PARAMS, 'sample')}` s
-        ON s.sample_id = pfs.sample_id
-    JOIN `{create_dev_table_id(PARAMS, 'sample_from_case')}` sic
-        ON sic.sample_id = s.sample_id
-    JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-        ON cpp.case_gdc_id = sic.case_id
+    (
+        SELECT 
+            cpp.program_name, 
+            cpp.project_id,
+            cpp.case_gdc_id, 
+            cpp.case_barcode,
+            s.sample_id AS sample_gdc_id,
+            s.submitter_id AS sample_barcode,
+            s.sample_type_id AS sample_type,
+            s.sample_type AS sample_type_name,
+            p.portion_id AS portion_gdc_id,
+            p.submitter_id AS portion_barcode,
+            sl.slide_id AS slide_gdc_id,
+            sl.submitter_id AS slide_barcode
+        FROM `{create_dev_table_id(PARAMS, 'slide')}` sl
+        JOIN `{create_dev_table_id(PARAMS, 'slide_from_portion')}` sfp
+            ON sfp.slide_id = sl.slide_id
+        JOIN `{create_dev_table_id(PARAMS, 'portion')}` p 
+            ON p.portion_id = sfp.portion_id
+        JOIN `{create_dev_table_id(PARAMS, 'portion_from_sample')}` pfs  
+            ON pfs.portion_id = p.portion_id
+        JOIN `{create_dev_table_id(PARAMS, 'sample')}` s
+            ON s.sample_id = pfs.sample_id
+        JOIN `{create_dev_table_id(PARAMS, 'sample_from_case')}` sic
+            ON sic.sample_id = s.sample_id
+        JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
+            ON cpp.case_gdc_id = sic.case_id
+    ) UNION DISTINCT (
+        SELECT program_name, 
+            project_id,
+            case_gdc_id, 
+            case_barcode,
+            sample_gdc_id,
+            sample_barcode,
+            sample_type,
+            sample_type_name,
+            portion_gdc_id,
+            portion_barcode,
+            slide_gdc_id,
+            slide_barcode
+        FROM `{PARAMS['LEGACY_TABLE_ID']}` 
+    )
     """
 
 
