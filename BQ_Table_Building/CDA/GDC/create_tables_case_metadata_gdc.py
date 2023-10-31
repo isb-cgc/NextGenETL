@@ -82,8 +82,8 @@ def make_case_metadata_table_sql() -> str:
             c.program_name, 
             c.project_id, 
             c.case_barcode,
-            IFNULL(ac.active_file_count, 0),
-            IFNULL(lc.legacy_file_count, 0)
+            ac.active_file_count,
+            lc.legacy_file_count,
         FROM cases c
         LEFT JOIN active_counts ac
             ON c.case_gdc_id = ac.case_gdc_id
