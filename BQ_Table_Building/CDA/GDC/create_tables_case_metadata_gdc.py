@@ -41,7 +41,7 @@ def make_case_metadata_table_sql() -> str:
             FROM `{create_dev_table_id(PARAMS, 'file_in_case')}`
             GROUP BY case_id
         ), legacy_counts AS (
-            SELECT case_gdc_id, COUNT(file_id) AS legacy_file_count 
+            SELECT case_gdc_id, legacy_file_count 
             FROM `{PARAMS['LEGACY_TABLE_ID']}`
         ), cases AS (
             (
