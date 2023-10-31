@@ -90,25 +90,23 @@ def make_aliquot_case_table_sql() -> str:
                     aliquot_barcode  
                 FROM `{PARAMS['LEGACY_TABLE_ID']}` 
             )
+        ), excluded_portions AS (
+            SELECT portion_gdc_id
+            FROM aliquot_records 
+            WHERE portion_gdc_id IN (
+                SELECT portion_id 
+                FROM `isb-project-zero.cda_gdc_raw.r37_slide_from_portion`
+            ) AND portion_gdc_id NOT IN (
+                SELECT portion_id
+                FROM `isb-project-zero.cda_gdc_raw.r37_analyte_from_portion`
+            )
         )
         
         SELECT * 
         FROM aliquot_records
+        WHERE portion_gdc_id not in excluded_portions
         
     """
-    """
-        EXCEPT DISTINCT 
-        (
-            SELECT *
-            FROM aliquot_records
-            WHERE aliquot_barcode is null
-                and aliquot_gdc_id is null
-                and analyte_barcode is null
-                and analyte_gdc_id is null
-                and portion_barcode is null 
-        )
-    """
-
 
 def main(args):
     try:
