@@ -207,6 +207,8 @@ def find_record_difference_counts(table_type: str,
 
         return total_results, output_string
 
+    print(table_metadata)
+
     columns_excluded_from_compare = table_metadata['columns_excluded_from_compare']
 
     # added to sql queries if certain columns are excluded
