@@ -805,7 +805,7 @@ def generate_gdc_clinical_table_id_list(table_params: dict[str, str]) -> list[di
         table_ids = {
             'current': f"{PARAMS['PROD_PROJECT']}.{program}.{prod_table_name}_current",
             'versioned': f"{PARAMS['PROD_PROJECT']}.{program}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
-            'source': f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}",
+            'source': f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}_{PARAMS['NODE']}",
             'previous_versioned': ''
         }
 
