@@ -360,7 +360,7 @@ def main(args):
                                              schema_tags=schema_tags,
                                              metadata_file=metadata_file)
 
-            delete_bq_table(no_url_table_id)
+            # delete_bq_table(no_url_table_id)
 
     end_time = time.time()
 
