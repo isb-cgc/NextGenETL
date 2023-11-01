@@ -971,6 +971,8 @@ def main(args):
 
             table_ids_list = generate_gdc_per_sample_file_table_id_list(table_params)
 
+            print(table_ids_list)
+
             # todo can everything from here be merged?
             if 'compare_tables' in steps:
                 for table_ids in table_ids_list:
