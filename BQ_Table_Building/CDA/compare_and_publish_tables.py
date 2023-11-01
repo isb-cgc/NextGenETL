@@ -85,6 +85,7 @@ def can_compare_tables(table_ids: dict[str, str]) -> bool:
     if not table_ids['previous_versioned']:
         logger.warning(f"No previous version found for {table_ids['source']}. Will publish. Investigate if unexpected.")
         logger.warning(f"{table_ids['current']}")
+        logger.warning("")
         return False
 
     # is there a previous version to compare with new table?
@@ -92,9 +93,11 @@ def can_compare_tables(table_ids: dict[str, str]) -> bool:
 
     if has_new_data:
         logger.info(f"New data found--table will be published.")
+        logger.info("")
         return True
     else:
         logger.info(f"No changes found--table will not be published.")
+        logger.info("")
         return False
 
 
