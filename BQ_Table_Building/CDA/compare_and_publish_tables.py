@@ -983,7 +983,8 @@ def main(args):
                     if data_to_compare:
                         modified_table_params = {
                             # todo this differs in clinical, so account for that
-                            # 'primary_key': get_gdc_clinical_primary_key(table_params, table_ids),
+                            'primary_key': table_params['primary_key'],
+                            'secondary_key': table_params['secondary_key'],
                             'columns_excluded_from_compare': table_params['columns_excluded_from_compare'],
                             'output_keys': list()
                         }
