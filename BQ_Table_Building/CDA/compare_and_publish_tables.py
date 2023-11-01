@@ -279,7 +279,7 @@ def find_record_difference_counts(table_type: str,
 
     logger.info(f"Added {table_type} count: {added_count}")
     # outputs counts by project or other type, where applicable
-    if added_str and not table_metadata['compare_primary_keys'] and added_str.strip() != added_count:
+    if added_str and not table_metadata['compare_using_primary_only'] and added_str.strip() != added_count:
         logger.info(added_str)
 
     # find removed records by project
@@ -287,10 +287,10 @@ def find_record_difference_counts(table_type: str,
 
     logger.info(f"Removed {table_type} count: {removed_count}")
     # outputs counts by project or other type, where applicable
-    if removed_str and not table_metadata['compare_primary_keys'] and removed_str.strip() != removed_count:
+    if removed_str and not table_metadata['compare_using_primary_only'] and removed_str.strip() != removed_count:
         logger.info(removed_str)
 
-    if not table_metadata['compare_primary_keys']:
+    if not table_metadata['compare_using_primary_only']:
         # find changed records by project
         changed_count, changed_str = compare_records(query=make_changed_record_count_query())
 
