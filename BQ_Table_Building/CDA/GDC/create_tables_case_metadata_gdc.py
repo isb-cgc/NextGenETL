@@ -68,9 +68,9 @@ def make_case_metadata_table_sql() -> str:
         WITH cases AS (
             (
                 SELECT cpp.case_gdc_id, 
-                    c.primary_site, 
+                    # c.primary_site, 
                     cpp.project_dbgap_accession_number, 
-                    pdt.disease_type as project_disease_type,
+                    # pdt.disease_type as project_disease_type,
                     cpp.project_name, 
                     cpp.program_dbgap_accession_number,
                     cpp.program_name, 
@@ -83,9 +83,9 @@ def make_case_metadata_table_sql() -> str:
                     ON pdt.project_id = cpp.project_id
             ) UNION DISTINCT (
                 SELECT case_gdc_id, 
-                    primary_site, 
+                    # primary_site, 
                     project_dbgap_accession_number, 
-                    project_disease_type,
+                    # project_disease_type,
                     project_name, 
                     program_dbgap_accession_number,
                     program_name, 
