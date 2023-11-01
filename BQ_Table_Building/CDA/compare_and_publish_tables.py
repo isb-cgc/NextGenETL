@@ -99,8 +99,7 @@ def can_compare_tables(table_ids: dict[str, str]) -> bool:
 
 def find_record_difference_counts(table_type: str,
                                   table_ids: dict[str, str],
-                                  table_metadata: dict[str, Union[str, list[str]]],
-                                  compare_primary_keys: bool = False):
+                                  table_metadata: dict[str, Union[str, list[str]]]):
     def make_record_count_query(table_id):
         return f"""
             SELECT COUNT(*) AS record_count
@@ -108,7 +107,7 @@ def find_record_difference_counts(table_type: str,
         """
 
     def make_subquery(table_id_1, table_id_2):
-        if not compare_primary_keys:
+        if not table_metadata['compare_primary_keys']:
             select_str = f"SELECT * {excluded_column_sql_str} "
         else:
             select_str = f"SELECT {primary_key} "
@@ -280,7 +279,7 @@ def find_record_difference_counts(table_type: str,
 
     logger.info(f"Added {table_type} count: {added_count}")
     # outputs counts by project or other type, where applicable
-    if added_str and not compare_primary_keys and added_str.strip() != added_count:
+    if added_str and not table_metadata['compare_primary_keys'] and added_str.strip() != added_count:
         logger.info(added_str)
 
     # find removed records by project
@@ -288,16 +287,16 @@ def find_record_difference_counts(table_type: str,
 
     logger.info(f"Removed {table_type} count: {removed_count}")
     # outputs counts by project or other type, where applicable
-    if removed_str and not compare_primary_keys and removed_str.strip() != removed_count:
+    if removed_str and not table_metadata['compare_primary_keys'] and removed_str.strip() != removed_count:
         logger.info(removed_str)
 
-    if not compare_primary_keys:
+    if not table_metadata['compare_primary_keys']:
         # find changed records by project
         changed_count, changed_str = compare_records(query=make_changed_record_count_query())
 
         logger.info(f"Changed {table_type} count: {changed_count}")
         # outputs counts by project or other type, where applicable
-        if changed_str and not compare_primary_keys and changed_str.strip() != changed_count:
+        if changed_str and changed_str.strip() != changed_count:
             logger.info(changed_str)
 
     logger.info("")
@@ -776,15 +775,80 @@ def publish_table(table_ids: dict[str, str]):
         else:
             logger.info(f"{table_ids['source']} not published, no changes detected")
 
-
+'''
 def get_gdc_clinical_primary_key(table_params: dict[str, Union[str, dict[str, str]]], table_ids: dict[str, str]) -> str:
     current_table_name = table_ids['current'].split('.')[-1]
     current_table_name = current_table_name.replace("_current", "")
     base_table_name = current_table_name.replace(f"_{PARAMS['NODE']}", "")
 
     return table_params['table_primary_keys'][base_table_name]
+'''
 
 
+def get_primary_key(table_type, table_params, table_ids):
+    logger = logging.getLogger('base_script')
+
+    if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
+        current_table_name = table_ids['current'].split('.')[-1]
+        current_table_name = current_table_name.replace("_current", "")
+        base_table_name = current_table_name.replace(f"_{PARAMS['NODE']}", "")
+
+        return table_params['table_primary_keys'][base_table_name]
+    else:
+        logger.critical("Not defined for this node or type")
+        sys.exit(-1)
+
+
+def generate_table_id_list(table_type: str, table_params: dict[str, str]) -> list[dict[str, str]]:
+    def parse_gdc_clinical_table_id() -> tuple[str, str]:
+        table_name_no_rel = table_name.replace(f"{PARAMS['RELEASE']}_", "")
+        split_table_name = table_name_no_rel.split('_')
+        # index to split table name from program
+        table_type_start_idx = split_table_name.index('clinical')
+        dataset_name = "_".join(split_table_name[0:table_type_start_idx])
+        table_base_name = "_".join(split_table_name[table_type_start_idx:])
+        prod_table_name = f"{table_base_name}_{PARAMS['NODE']}"
+
+        return dataset_name, prod_table_name
+
+    def parse_gdc_per_sample_file_table_id() -> tuple[str, str]:
+        base_table_name = f"per_sample_file_metadata_hg38"
+        table_name_no_rel = table_name.replace(f"{PARAMS['RELEASE']}_", "")
+        dataset_name = table_name_no_rel.replace(f"_{base_table_name}", "")
+        prod_table_name = f"{base_table_name}_{PARAMS['NODE']}"
+
+        return dataset_name, prod_table_name
+
+    logger = logging.getLogger('base_script')
+    logger.info("Generating table id list")
+    new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
+
+    table_ids_list = list()
+
+    for table_name in new_table_names:
+        if PARAMS['NODE'] == 'gdc' and table_type == 'clinical':
+            dataset, prod_table = parse_gdc_clinical_table_id()
+        elif PARAMS['NODE'] == 'gdc' and table_type == 'per_sample_file':
+            dataset, prod_table = parse_gdc_per_sample_file_table_id()
+        else:
+            logger.critical("Not configured for this node or type")
+            sys.exit(-1)
+
+        table_ids = {
+            'current': f"{PARAMS['PROD_PROJECT']}.{dataset}.{prod_table}_current",
+            'versioned': f"{PARAMS['PROD_PROJECT']}.{dataset}_versioned.{prod_table}_{PARAMS['RELEASE']}",
+            'source': f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}",
+            'previous_versioned': ''
+        }
+
+        table_ids['previous_versioned'] = find_most_recent_published_table_id(current_table_id=table_ids['current'])
+
+        table_ids_list.append(table_ids)
+
+    return table_ids_list
+
+
+"""
 def generate_gdc_clinical_table_id_list(table_params: dict[str, str]) -> list[dict[str, str]]:
     logger = logging.getLogger('base_script')
     logger.info("Generating GDC clinical table id list")
@@ -797,13 +861,13 @@ def generate_gdc_clinical_table_id_list(table_params: dict[str, str]) -> list[di
         split_table_name = table_name_no_rel.split('_')
         # index to split table name from program
         table_type_start_idx = split_table_name.index('clinical')
-        program = "_".join(split_table_name[0:table_type_start_idx])
+        dataset = "_".join(split_table_name[0:table_type_start_idx])
         table_base_name = "_".join(split_table_name[table_type_start_idx:])
         prod_table_name = f"{table_base_name}_{PARAMS['NODE']}"
 
         table_ids = {
-            'current': f"{PARAMS['PROD_PROJECT']}.{program}.{prod_table_name}_current",
-            'versioned': f"{PARAMS['PROD_PROJECT']}.{program}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
+            'current': f"{PARAMS['PROD_PROJECT']}.{dataset}.{prod_table_name}_current",
+            'versioned': f"{PARAMS['PROD_PROJECT']}.{dataset}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
             'source': f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}",
             'previous_versioned': ''
         }
@@ -826,21 +890,14 @@ def generate_gdc_per_sample_file_table_id_list(table_params: dict[str, str]) -> 
 
     for table_name in new_table_names:
         table_name_no_rel = table_name.replace(f"{PARAMS['RELEASE']}_", "")
-        program = table_name_no_rel.replace(f"_{base_table_name}", "")
+        dataset = table_name_no_rel.replace(f"_{base_table_name}", "")
 
         table_ids = {
-            'current': f"{PARAMS['PROD_PROJECT']}.{program}.{base_table_name}_{PARAMS['NODE']}_current",
-            'versioned': f"{PARAMS['PROD_PROJECT']}.{program}_versioned.{base_table_name}_{PARAMS['NODE']}_{PARAMS['RELEASE']}",
+            'current': f"{PARAMS['PROD_PROJECT']}.{dataset}.{base_table_name}_{PARAMS['NODE']}_current",
+            'versioned': f"{PARAMS['PROD_PROJECT']}.{dataset}_versioned.{base_table_name}_{PARAMS['NODE']}_{PARAMS['RELEASE']}",
             'source': f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}_{PARAMS['NODE']}",
             'previous_versioned': ''
         }
-
-        """
-        {'current': 'isb-cgc-sandbox-000.APOLLO.per_sample_file_metadata_hg38_gdc_current', 
-        'versioned': 'isb-cgc-sandbox-000.APOLLO_versioned.per_sample_file_metadata_hg38_gdc_r37', 
-        'source': 'isb-project-zero.cda_gdc_per_sample_file.r37_APOLLO_per_sample_file_metadata_hg38', 
-        'previous_versioned': 'isb-cgc-sandbox-000.APOLLO.per_sample_file_metadata_hg38_gdc_current'}
-        """
 
         table_ids['previous_versioned'] = find_most_recent_published_table_id(table_ids['current'])
 
@@ -850,7 +907,7 @@ def generate_gdc_per_sample_file_table_id_list(table_params: dict[str, str]) -> 
             logger.info(f"{len(table_ids_list)} of {len(new_table_names)}")
 
     return table_ids_list
-
+"""
 
 def main(args):
     try:
@@ -867,10 +924,8 @@ def main(args):
 
     # COMPARE AND PUBLISH METADATA TABLES
     # """
+    logger.info("Processing metadata tables!")
     for table_type, table_params in PARAMS['METADATA_TABLE_TYPES'].items():
-        # todo remove
-        if table_type != 'case':
-            continue
         prod_dataset = table_params['prod_dataset']
         prod_table_name = table_params['table_base_name']
 
@@ -894,116 +949,40 @@ def main(args):
             logger.info(f"Publishing tables for {table_params['table_base_name']}!")
             publish_table(table_ids)
     # """
-
+    logger.info("Processing per-program and per-project tables.")
     # COMPARE AND PUBLISH CLINICAL AND PER SAMPLE FILE TABLES
     for table_type, table_params in PARAMS['PER_PROJECT_TABLE_TYPES'].items():
         # look for list of last release's published tables to ensure none have disappeared before comparing
         logger.info("Searching for missing tables!")
         find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
 
-        if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
-            logger.info("Comparing GDC clinical tables!")
-            table_ids_list = generate_gdc_clinical_table_id_list(table_params)
+        logger.info(f"Comparing {PARAMS['NODE']} {table_type} tables!")
 
-            """
-            table_ids_list = [
-                {'current': 'isb-cgc-sandbox-000.TARGET.clinical_gdc_current',
-                 'versioned': 'isb-cgc-sandbox-000.TARGET_versioned.clinical_gdc_r37',
-                 'source': 'isb-project-zero.cda_gdc_clinical.r37_TARGET_clinical',
-                 'previous_versioned': 'isb-cgc-sandbox-000.TARGET_versioned.clinical_gdc_r36'},
-                {'current': 'isb-cgc-sandbox-000.TCGA.clinical_gdc_current',
-                 'versioned': 'isb-cgc-sandbox-000.TCGA_versioned.clinical_gdc_r37',
-                 'source': 'isb-project-zero.cda_gdc_clinical.r37_TCGA_clinical',
-                 'previous_versioned': 'isb-cgc-sandbox-000.TCGA_versioned.clinical_gdc_r36'},
-                {'current': 'isb-cgc-sandbox-000.TCGA.clinical_diagnosis_treatment_gdc_current',
-                 'versioned': 'isb-cgc-sandbox-000.TCGA_versioned.clinical_diagnosis_treatment_gdc_r37',
-                 'source': 'isb-project-zero.cda_gdc_clinical.r37_TCGA_clinical_diagnosis_treatment',
-                 'previous_versioned': 'isb-cgc-sandbox-000.TCGA_versioned.clinical_diagnosis_treatment_gdc_r36'},
-                {'current': 'isb-cgc-sandbox-000.TRIO.clinical_gdc_current',
-                 'versioned': 'isb-cgc-sandbox-000.TRIO_versioned.clinical_gdc_r37',
-                 'source': 'isb-project-zero.cda_gdc_clinical.r37_TRIO_clinical',
-                 'previous_versioned': 'isb-cgc-sandbox-000.TRIO_versioned.clinical_gdc_r36'},
-                {'current': 'isb-cgc-sandbox-000.VAREPOP.clinical_gdc_current',
-                 'versioned': 'isb-cgc-sandbox-000.VAREPOP_versioned.clinical_gdc_r37',
-                 'source': 'isb-project-zero.cda_gdc_clinical.r37_VAREPOP_clinical',
-                 'previous_versioned': 'isb-cgc-sandbox-000.VAREPOP_versioned.clinical_gdc_r36'},
-                {'current': 'isb-cgc-sandbox-000.VAREPOP.clinical_diagnosis_treatment_gdc_current',
-                 'versioned': 'isb-cgc-sandbox-000.VAREPOP_versioned.clinical_diagnosis_treatment_gdc_r37',
-                 'source': 'isb-project-zero.cda_gdc_clinical.r37_VAREPOP_clinical_diagnosis_treatment',
-                 'previous_versioned': 'isb-cgc-sandbox-000.VAREPOP_versioned.clinical_diagnosis_treatment_gdc_r36'},
-                {'current': 'isb-cgc-sandbox-000.VAREPOP.clinical_family_history_gdc_current',
-                 'versioned': 'isb-cgc-sandbox-000.VAREPOP_versioned.clinical_family_history_gdc_r37',
-                 'source': 'isb-project-zero.cda_gdc_clinical.r37_VAREPOP_clinical_family_history',
-                 'previous_versioned': 'isb-cgc-sandbox-000.VAREPOP_versioned.clinical_family_history_gdc_r36'},
-                {'current': 'isb-cgc-sandbox-000.WCDT.clinical_gdc_current',
-                 'versioned': 'isb-cgc-sandbox-000.WCDT_versioned.clinical_gdc_r37',
-                 'source': 'isb-project-zero.cda_gdc_clinical.r37_WCDT_clinical',
-                 'previous_versioned': 'isb-cgc-sandbox-000.WCDT_versioned.clinical_gdc_r36'}
-            ]
-            # """
+        table_ids_list = generate_table_id_list(table_type, table_params)
 
-            if 'compare_tables' in steps:
-                for table_ids in table_ids_list:
-                    logger.info(f"Comparing tables for {table_ids['source']}!")
-                    # confirm that datasets and table ids exist, and preview whether table will be published
-                    data_to_compare = can_compare_tables(table_ids)
+        if 'compare_tables' in steps:
+            for table_ids in table_ids_list:
+                logger.info(f"Comparing tables for {table_ids['source']}!")
+                # confirm that datasets and table ids exist, and preview whether table will be published
+                data_to_compare = can_compare_tables(table_ids)
 
-                    if data_to_compare:
-                        modified_table_params = {
-                            'primary_key': get_gdc_clinical_primary_key(table_params, table_ids),
-                            'columns_excluded_from_compare': table_params['columns_excluded_from_compare'],
-                            'output_keys': list()
-                        }
+                modified_table_params = dict()
 
-                        # display compare_to_last.sh style output
-                        find_record_difference_counts(table_type,
-                                                      table_ids,
-                                                      modified_table_params,
-                                                      compare_primary_keys=True)
+                if data_to_compare:
+                    for key, value in table_params.items():
+                        modified_table_params[key] = value
 
-                        compare_table_columns(table_ids=table_ids, table_params=modified_table_params)
+                    if 'primary_key' not in modified_table_params:
+                        modified_table_params['primary_key'] = get_primary_key(table_type, table_params, table_ids)
 
-            if 'publish_tables' in steps:
-                logger.info(f"Publishing clinical tables!")
-                for table_ids in table_ids_list:
-                    publish_table(table_ids)
-        elif table_type == 'per_sample_file' and PARAMS['NODE'] == 'gdc':
-            logger.info("Comparing GDC per sample file metadata tables!")
+                    # display compare_to_last.sh style output
+                    find_record_difference_counts(table_type, table_ids, modified_table_params)
+                    compare_table_columns(table_ids=table_ids, table_params=modified_table_params)
 
-            table_ids_list = generate_gdc_per_sample_file_table_id_list(table_params)
-
-            # todo can everything from here be merged?
-            if 'compare_tables' in steps:
-                for table_ids in table_ids_list:
-                    logger.info(f"Comparing tables for {table_ids['source']}!")
-                    # confirm that datasets and table ids exist, and preview whether table will be published
-                    data_to_compare = can_compare_tables(table_ids)
-
-                    if data_to_compare:
-                        modified_table_params = {
-                            # todo this differs in clinical, so account for that
-                            'primary_key': table_params['primary_key'],
-                            'secondary_key': table_params['secondary_key'],
-                            'columns_excluded_from_compare': table_params['columns_excluded_from_compare'],
-                            'output_keys': list()
-                        }
-
-                        # display compare_to_last.sh style output
-                        find_record_difference_counts(table_type,
-                                                      table_ids,
-                                                      modified_table_params)
-
-                        compare_table_columns(table_ids=table_ids, table_params=modified_table_params)
-
-            if 'publish_tables' in steps:
-                logger.info(f"Publishing clinical tables!")
-                for table_ids in table_ids_list:
-                    publish_table(table_ids)
-
-        else:
-            # handling for per_sample_file in gdc
-            # handling for other nodes
-            logger.warning("The script is not configured to handle either this node or table type.")
+        if 'publish_tables' in steps:
+            logger.info(f"Publishing clinical tables!")
+            for table_ids in table_ids_list:
+                publish_table(table_ids)
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
