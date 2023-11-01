@@ -418,8 +418,8 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
                 count_mapping_table_id = create_dev_table_id(params=PARAMS, table_name=count_mapping_table_name)
 
                 with_sql_str = f"{right_table_alias}_counts AS (" \
-                               f"SELECT {left_table_alias}_id, COUNT({right_table_alias}_id) " \
-                               f"   AS {count_column_prefix}__count " \
+                               f"SELECT {left_table_alias}_id, " \
+                               f"IFNULL(COUNT({right_table_alias}_id), 0) AS {count_column_prefix}__count " \
                                f"FROM `{count_mapping_table_id}` " \
                                f"GROUP BY {left_table_alias}_id " \
                                f") "
