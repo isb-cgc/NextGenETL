@@ -419,7 +419,7 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
 
                 with_sql_str = f"{right_table_alias}_counts AS (" \
                                f"SELECT {left_table_alias}_id, " \
-                               f"IFNULL(COUNT({right_table_alias}_id), 0) AS {count_column_prefix}__count " \
+                               f"COUNT({right_table_alias}_id) AS {count_column_prefix}__count " \
                                f"FROM `{count_mapping_table_id}` " \
                                f"GROUP BY {left_table_alias}_id " \
                                f") "
@@ -556,7 +556,8 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
                 )
 
                 # add count column to select list
-                table_sql_dict[table]['select'].append(f"{child_table}_counts.{count_prefix}__count")
+                table_sql_dict[table]['select'].append(f"IFNULL({child_table}_counts.{count_prefix}__count, 0) "
+                                                       f"   AS {count_prefix}__count")
 
         # add filtered middle columns from base table to 'select'
         middle_columns = PARAMS['TABLE_PARAMS'][table]['column_order']['middle']
