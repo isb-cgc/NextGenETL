@@ -971,8 +971,6 @@ def main(args):
 
             table_ids_list = generate_gdc_per_sample_file_table_id_list(table_params)
 
-            print(table_ids_list)
-
             # todo can everything from here be merged?
             if 'compare_tables' in steps:
                 for table_ids in table_ids_list:
@@ -992,8 +990,7 @@ def main(args):
                         # display compare_to_last.sh style output
                         find_record_difference_counts(table_type,
                                                       table_ids,
-                                                      modified_table_params,
-                                                      compare_primary_keys=True)
+                                                      modified_table_params)
 
                         compare_table_columns(table_ids=table_ids, table_params=modified_table_params)
 
