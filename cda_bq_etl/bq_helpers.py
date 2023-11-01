@@ -714,7 +714,22 @@ def change_status_to_archived(archived_table_id: str):
         logger.warning("Couldn't find a table to archive. Likely this table's first release; otherwise an error.")
 
 
-def find_most_recent_published_table_id(params, versioned_table_id):
+def find_most_recent_published_table_id(params, current_table_id):
+    """
+    Function for locating published table id for dataset's previous release, if it exists
+    :param params: params supplied in yaml config
+    :param current_table_id: published table id for current release
+    :return: last published table id, if any; otherwise None
+    """
+    if exists_bq_table(current_table_id):
+        # found last release table, stop iterating
+        return current_table_id
+    else:
+        # if there is no previously-published table, return None
+        return None
+
+
+def find_most_recent_published_table_id(versioned_table_id):
     """
     Function for locating published table id for dataset's previous release, if it exists
     :param params: params supplied in yaml config
