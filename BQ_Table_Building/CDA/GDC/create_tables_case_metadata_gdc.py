@@ -176,6 +176,8 @@ def main(args):
     if 'create_table_from_query' in steps:
         logger.info("Entering create_table_from_query")
 
+        print(make_case_file_counts_types_sql())
+
         # """
         create_table_from_query(params=PARAMS,
                                 table_id=create_dev_table_id(PARAMS, PARAMS['COUNT_TABLE_NAME']),
