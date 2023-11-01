@@ -728,7 +728,7 @@ def find_most_recent_published_table_id(params, current_table_id):
         # if there is no previously-published table, return None
         return None
 
-
+'''
 def find_most_recent_published_table_id(versioned_table_id):
     """
     Function for locating published table id for dataset's previous release, if it exists
@@ -788,6 +788,7 @@ def find_most_recent_published_table_id(versioned_table_id):
         logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
         logger.critical(f"Need to create find_most_recent_published_table_id function for {params['NODE']}.")
         sys.exit(-1)
+'''
 
 
 def update_table_schema_from_generic(params, table_id, schema_tags=None, metadata_file=None):
