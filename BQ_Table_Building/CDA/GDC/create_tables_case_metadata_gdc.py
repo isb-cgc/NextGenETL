@@ -129,7 +129,7 @@ def make_case_metadata_table_sql() -> str:
             c.program_name, 
             c.project_id, 
             c.case_barcode,
-            IFNULL(counts.legacy_file_count, 0) AS legacy_file_count
+            IFNULL(counts.legacy_file_count, 0) AS legacy_file_count,
             IFNULL(counts.active_file_count, 0) AS active_file_count
         FROM cases c
         LEFT JOIN `{create_dev_table_id(PARAMS, PARAMS['COUNT_TABLE_NAME'])}` counts
