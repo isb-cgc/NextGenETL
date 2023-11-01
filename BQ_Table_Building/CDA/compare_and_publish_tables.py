@@ -819,6 +819,36 @@ def generate_gdc_clinical_table_id_list(table_params: dict[str, str]) -> list[di
     return table_ids_list
 
 
+def generate_gdc_per_sample_file_table_id_list(table_params: dict[str, str]) -> list[dict[str, str]]:
+    logger = logging.getLogger('base_script')
+    logger.info("Generating GDC per sample file table id list")
+    new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
+
+    table_ids_list = list()
+
+    base_table_name = f"per_sample_file_metadata_hg38_{PARAMS['NODE']}"
+
+    for table_name in new_table_names:
+        table_name_no_rel = table_name.replace(f"{PARAMS['RELEASE']}_", "")
+        program = table_name_no_rel.replace(f"_{base_table_name}", "")
+
+        table_ids = {
+            'current': f"{PARAMS['PROD_PROJECT']}.{program}.{base_table_name}_current",
+            'versioned': f"{PARAMS['PROD_PROJECT']}.{program}_versioned.{base_table_name}_{PARAMS['RELEASE']}",
+            'source': f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}",
+            'previous_versioned': ''
+        }
+
+        table_ids['previous_versioned'] = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
+
+        table_ids_list.append(table_ids)
+
+        if len(table_ids_list) % 10 == 0:
+            logger.info(f"{len(table_ids_list)} of {len(new_table_names)}")
+
+    return table_ids_list
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -836,7 +866,7 @@ def main(args):
     dev_project = PARAMS['DEV_PROJECT']
 
     # COMPARE AND PUBLISH METADATA TABLES
-    # """
+    """
     for table_type, table_params in PARAMS['METADATA_TABLE_TYPES'].items():
         prod_dataset = table_params['prod_dataset']
         prod_table_name = table_params['table_base_name']
@@ -863,6 +893,8 @@ def main(args):
     # """
     # COMPARE AND PUBLISH CLINICAL AND PER SAMPLE FILE TABLES
     for table_type, table_params in PARAMS['PER_PROJECT_TABLE_TYPES'].items():
+        if table_type == 'clinical':
+            continue
         # look for list of last release's published tables to ensure none have disappeared before comparing
         logger.info("Searching for missing tables!")
         # todo uncomment
@@ -934,6 +966,39 @@ def main(args):
                 logger.info(f"Publishing clinical tables!")
                 for table_ids in table_ids_list:
                     publish_table(table_ids)
+        elif table_type == 'per_sample_file' and PARAMS['NODE'] == 'gdc':
+            logger.info("Comparing GDC per sample file metadata tables!")
+
+            table_ids_list = generate_gdc_per_sample_file_table_id_list(table_params)
+
+            # todo can everything from here be merged?
+            if 'compare_tables' in steps:
+                for table_ids in table_ids_list:
+                    logger.info(f"Comparing tables for {table_ids['source']}!")
+                    # confirm that datasets and table ids exist, and preview whether table will be published
+                    data_to_compare = can_compare_tables(table_ids)
+
+                    if data_to_compare:
+                        modified_table_params = {
+                            # todo this differs in clinical, so account for that
+                            # 'primary_key': get_gdc_clinical_primary_key(table_params, table_ids),
+                            'columns_excluded_from_compare': table_params['columns_excluded_from_compare'],
+                            'output_keys': list()
+                        }
+
+                        # display compare_to_last.sh style output
+                        find_record_difference_counts(table_type,
+                                                      table_ids,
+                                                      modified_table_params,
+                                                      compare_primary_keys=True)
+
+                        compare_table_columns(table_ids=table_ids, table_params=modified_table_params)
+
+            if 'publish_tables' in steps:
+                logger.info(f"Publishing clinical tables!")
+                for table_ids in table_ids_list:
+                    publish_table(table_ids)
+
         else:
             # handling for per_sample_file in gdc
             # handling for other nodes
