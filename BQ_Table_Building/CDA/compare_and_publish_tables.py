@@ -826,15 +826,15 @@ def generate_gdc_per_sample_file_table_id_list(table_params: dict[str, str]) -> 
 
     table_ids_list = list()
 
-    base_table_name = f"per_sample_file_metadata_hg38_{PARAMS['NODE']}"
+    base_table_name = f"per_sample_file_metadata_hg38"
 
     for table_name in new_table_names:
         table_name_no_rel = table_name.replace(f"{PARAMS['RELEASE']}_", "")
         program = table_name_no_rel.replace(f"_{base_table_name}", "")
 
         table_ids = {
-            'current': f"{PARAMS['PROD_PROJECT']}.{program}.{base_table_name}_current",
-            'versioned': f"{PARAMS['PROD_PROJECT']}.{program}_versioned.{base_table_name}_{PARAMS['RELEASE']}",
+            'current': f"{PARAMS['PROD_PROJECT']}.{program}.{base_table_name}_{PARAMS['NODE']}_current",
+            'versioned': f"{PARAMS['PROD_PROJECT']}.{program}_versioned.{base_table_name}_{PARAMS['NODE']}_{PARAMS['RELEASE']}",
             'source': f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}",
             'previous_versioned': ''
         }
