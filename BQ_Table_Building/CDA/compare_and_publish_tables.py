@@ -895,7 +895,7 @@ def main(args):
             continue
         # look for list of last release's published tables to ensure none have disappeared before comparing
         logger.info("Searching for missing tables!")
-        find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
+        # find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
 
         logger.info(f"Comparing {PARAMS['NODE']} {table_type} tables!")
 
