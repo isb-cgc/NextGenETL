@@ -194,18 +194,19 @@ def find_record_difference_counts(table_type: str,
         num_columns = len(table_metadata['output_keys']) + 1
         output_string = ""
 
-        if result and result.total_rows > 0:
+        if result:
             for _row in result:
                 total_results += _row[0]
 
-                # append the count, right justify
-                row_str = f"{str(_row[0]):>10}  "
+                if result.total_rows > 1:
+                    # append the count, right justify
+                    row_str = f"{str(_row[0]):>10}  "
 
-                # append the other values (e.g. project id, type) as specified in output keys
-                for i in range(1, num_columns):
-                    row_str += f"{str(_row[i]):30}"
+                    # append the other values (e.g. project id, type) as specified in output keys
+                    for i in range(1, num_columns):
+                        row_str += f"{str(_row[i]):30}"
 
-                output_string += '\n' + row_str
+                    output_string += '\n' + row_str
 
         return total_results, output_string
 
