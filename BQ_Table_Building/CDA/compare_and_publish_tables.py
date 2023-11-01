@@ -806,6 +806,7 @@ def generate_table_id_list(table_type: str, table_params: dict[str, str]) -> lis
         split_table_name_list = table_name.split('_')
         split_table_name_list.remove(PARAMS['RELEASE'])
         split_table_name_list.remove(PARAMS['NODE'])
+        print(split_table_name_list)
         # index to split table name from program
         clinical_idx = split_table_name_list.index('clinical')
         dataset_name = "_".join(split_table_name_list[0:clinical_idx])
