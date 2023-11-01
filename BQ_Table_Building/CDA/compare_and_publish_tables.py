@@ -812,9 +812,6 @@ def generate_gdc_clinical_table_id_list(table_params: dict[str, str]) -> list[di
 
         table_ids_list.append(table_ids)
 
-        if len(table_ids_list) % 10 == 0:
-            logger.info(f"{len(table_ids_list)} of {len(new_table_names)}")
-
     return table_ids_list
 
 

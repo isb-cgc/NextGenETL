@@ -31,12 +31,25 @@ YAML_HEADERS = ('params', 'steps')
 
 
 def make_case_file_counts_types_sql() -> str:
-    return f"""
+    """
+        WITH active_counts AS (
+            SELECT case_id AS case_gdc_id, COUNT(DISTINCT file_id) AS active_file_count
+            FROM `{create_dev_table_id(PARAMS, 'file_in_case')}`
+            GROUP BY case_id
+        ),
         WITH active_counts AS (
             SELECT entity_case_id AS case_gdc_id, COUNT(DISTINCT file_id) AS active_file_count
-            FROM `{create_dev_table_id(PARAMS, 'file_associated_with_entity')}` 
+            FROM `{create_dev_table_id(PARAMS, 'file_associated_with_entity')}`
             GROUP BY entity_case_id
-        ), 
+        ),
+
+    """
+    return f"""
+        WITH active_counts AS (
+            SELECT case_id AS case_gdc_id, COUNT(DISTINCT file_id) AS active_file_count 
+            FROM `{create_dev_table_id(PARAMS, 'file_in_case')}`
+            GROUP BY case_id
+        ),
         legacy_counts AS (
             SELECT case_gdc_id, legacy_file_count 
             FROM `{PARAMS['LEGACY_TABLE_ID']}`
