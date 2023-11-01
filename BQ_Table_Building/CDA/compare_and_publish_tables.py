@@ -848,67 +848,6 @@ def generate_table_id_list(table_type: str, table_params: dict[str, str]) -> lis
     return table_ids_list
 
 
-"""
-def generate_gdc_clinical_table_id_list(table_params: dict[str, str]) -> list[dict[str, str]]:
-    logger = logging.getLogger('base_script')
-    logger.info("Generating GDC clinical table id list")
-    new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
-
-    table_ids_list = list()
-
-    for table_name in new_table_names:
-        table_name_no_rel = table_name.replace(f"{PARAMS['RELEASE']}_", "")
-        split_table_name = table_name_no_rel.split('_')
-        # index to split table name from program
-        table_type_start_idx = split_table_name.index('clinical')
-        dataset = "_".join(split_table_name[0:table_type_start_idx])
-        table_base_name = "_".join(split_table_name[table_type_start_idx:])
-        prod_table_name = f"{table_base_name}_{PARAMS['NODE']}"
-
-        table_ids = {
-            'current': f"{PARAMS['PROD_PROJECT']}.{dataset}.{prod_table_name}_current",
-            'versioned': f"{PARAMS['PROD_PROJECT']}.{dataset}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
-            'source': f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}",
-            'previous_versioned': ''
-        }
-
-        table_ids['previous_versioned'] = find_most_recent_published_table_id(current_table_id=table_ids['current'])
-
-        table_ids_list.append(table_ids)
-
-    return table_ids_list
-
-
-def generate_gdc_per_sample_file_table_id_list(table_params: dict[str, str]) -> list[dict[str, str]]:
-    logger = logging.getLogger('base_script')
-    logger.info("Generating GDC per sample file table id list")
-    new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
-
-    table_ids_list = list()
-
-    base_table_name = f"per_sample_file_metadata_hg38"
-
-    for table_name in new_table_names:
-        table_name_no_rel = table_name.replace(f"{PARAMS['RELEASE']}_", "")
-        dataset = table_name_no_rel.replace(f"_{base_table_name}", "")
-
-        table_ids = {
-            'current': f"{PARAMS['PROD_PROJECT']}.{dataset}.{base_table_name}_{PARAMS['NODE']}_current",
-            'versioned': f"{PARAMS['PROD_PROJECT']}.{dataset}_versioned.{base_table_name}_{PARAMS['NODE']}_{PARAMS['RELEASE']}",
-            'source': f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}_{PARAMS['NODE']}",
-            'previous_versioned': ''
-        }
-
-        table_ids['previous_versioned'] = find_most_recent_published_table_id(table_ids['current'])
-
-        table_ids_list.append(table_ids)
-
-        if len(table_ids_list) % 10 == 0:
-            logger.info(f"{len(table_ids_list)} of {len(new_table_names)}")
-
-    return table_ids_list
-"""
-
 def main(args):
     try:
         start_time = time.time()
