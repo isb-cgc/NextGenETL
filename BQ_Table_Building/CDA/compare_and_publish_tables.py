@@ -873,7 +873,7 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     # COMPARE AND PUBLISH METADATA TABLES
-    """
+    # """
     logger.info("Processing metadata tables!")
     for table_type, table_params in PARAMS['METADATA_TABLE_TYPES'].items():
         prod_dataset = table_params['prod_dataset']
@@ -914,6 +914,8 @@ def main(args):
 
         if 'compare_tables' in steps:
             for table_ids in table_ids_list:
+                for key in table_ids.keys():
+                    print(f"{key}: {table_ids[key]}")
                 logger.info(f"Comparing tables for {table_ids['source']}!")
                 # confirm that datasets and table ids exist, and preview whether table will be published
                 data_to_compare = can_compare_tables(table_ids)
