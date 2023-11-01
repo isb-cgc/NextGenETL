@@ -868,6 +868,9 @@ def main(args):
     # COMPARE AND PUBLISH METADATA TABLES
     # """
     for table_type, table_params in PARAMS['METADATA_TABLE_TYPES'].items():
+        # todo remove
+        if table_type != 'case':
+            continue
         prod_dataset = table_params['prod_dataset']
         prod_table_name = table_params['table_base_name']
 
