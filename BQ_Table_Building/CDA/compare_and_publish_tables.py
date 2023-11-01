@@ -207,8 +207,6 @@ def find_record_difference_counts(table_type: str,
 
         return total_results, output_string
 
-    print(table_ids)
-
     columns_excluded_from_compare = table_metadata['columns_excluded_from_compare']
 
     # added to sql queries if certain columns are excluded
@@ -807,7 +805,7 @@ def generate_gdc_clinical_table_id_list(table_params: dict[str, str]) -> list[di
         table_ids = {
             'current': f"{PARAMS['PROD_PROJECT']}.{program}.{prod_table_name}_current",
             'versioned': f"{PARAMS['PROD_PROJECT']}.{program}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
-            'source': f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}_{PARAMS['NODE']}",
+            'source': f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}",
             'previous_versioned': ''
         }
 
@@ -872,7 +870,7 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     # COMPARE AND PUBLISH METADATA TABLES
-    # """
+    """
     for table_type, table_params in PARAMS['METADATA_TABLE_TYPES'].items():
         prod_dataset = table_params['prod_dataset']
         prod_table_name = table_params['table_base_name']
