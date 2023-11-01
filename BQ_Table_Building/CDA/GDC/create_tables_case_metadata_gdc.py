@@ -30,17 +30,26 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
-def make_case_file_counts_sql() -> str:
+def make_case_file_counts_types_sql() -> str:
     return f"""
         WITH active_counts AS (
-            SELECT entity_case_id AS case_gdc_id, 
-                COUNT(DISTINCT file_id) AS active_file_count
+            SELECT entity_case_id AS case_gdc_id, COUNT(DISTINCT file_id) AS active_file_count
             FROM `{create_dev_table_id(PARAMS, 'file_associated_with_entity')}` 
             GROUP BY entity_case_id
         ), 
         legacy_counts AS (
             SELECT case_gdc_id, legacy_file_count 
             FROM `{PARAMS['LEGACY_TABLE_ID']}`
+        ), active_cases AS (
+            SELECT c.case_gdc_id, c.primary_site, pdt.disease_type as project_disease_type
+            FROM `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
+            JOIN `{create_dev_table_id(PARAMS, 'case')}` c
+                ON c.case_id = cpp.case_gdc_id
+            JOIN `{create_dev_table_id(PARAMS, 'project_disease_types_merged')}` pdt
+                ON pdt.project_id = cpp.project_id
+        ), legacy_cases AS (
+            SELECT case_gdc_id, primary_site, project_disease_type
+            FROM `{PARAMS['LEGACY_TABLE_ID']}` 
         ), case_gdc_ids AS (
             SELECT case_gdc_id 
             FROM active_counts
@@ -48,14 +57,57 @@ def make_case_file_counts_sql() -> str:
             SELECT case_gdc_id
             FROM legacy_counts
         )
+
         SELECT c.case_gdc_id,
             IFNULL(ac.active_file_count, 0) AS active_file_count,
-            IFNULL(lc.legacy_file_count, 0) AS legacy_file_count
+            IFNULL(lc.legacy_file_count, 0) AS legacy_file_count,
+            IFNULL(ac.primary_site, lc.primary_site) AS primary_site,
+            IFNULL(ac.project_disease_type, lc.project_disease_type) AS project_disease_type
         FROM case_gdc_ids c
         LEFT JOIN active_counts ac
             ON c.case_gdc_id = ac.case_gdc_id
         LEFT JOIN legacy_counts lc
             ON c.case_gdc_id = lc.case_gdc_id
+        LEFT JOIN active_cases ac
+            ON c.case_gdc_id = ac.case_gdc_id
+        LEFT JOIN legacy_cases lc
+            ON c.case_gdc_id = lc.case_gdc_id
+    """
+
+
+def make_case_disease_type_primary_site() -> str:
+    return f"""
+        WITH active_cases AS (
+                SELECT c.case_gdc_id, 
+                    c.primary_site, 
+                    pdt.disease_type as project_disease_type,
+                FROM `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
+                JOIN `{create_dev_table_id(PARAMS, 'case')}` c
+                    ON c.case_id = cpp.case_gdc_id
+                JOIN `{create_dev_table_id(PARAMS, 'project_disease_types_merged')}` pdt
+                    ON pdt.project_id = cpp.project_id
+        ), legacy_cases AS (
+            SELECT case_gdc_id, 
+                primary_site, 
+                project_disease_type
+            FROM `{PARAMS['LEGACY_TABLE_ID']}` 
+        ), case_gdc_ids AS (
+            SELECT case_gdc_id
+            FROM active_cases
+            UNION DISTINCT 
+            SELECT case_gdc_id
+            FROM legacy_cases
+        )
+        
+        SELECT case_gdc_id,
+            IFNULL(ac.primary_site, lc.primary_site) AS primary_site,
+            IFNULL(ac.project_disease_type, lc.project_disease_type) AS project_disease_type,
+        FROM case_gdc_ids c
+        LEFT JOIN active_cases ac
+            ON c.case_gdc_id = ac.case_gdc_id
+        LEFT JOIN legacy_cases lc
+            ON c.case_gdc_id = lc.case_gdc_id
+        
     """
 
 
@@ -68,9 +120,7 @@ def make_case_metadata_table_sql() -> str:
         WITH cases AS (
             (
                 SELECT cpp.case_gdc_id, 
-                    # c.primary_site, 
                     cpp.project_dbgap_accession_number, 
-                    # pdt.disease_type as project_disease_type,
                     cpp.project_name, 
                     cpp.program_dbgap_accession_number,
                     cpp.program_name, 
@@ -83,9 +133,7 @@ def make_case_metadata_table_sql() -> str:
                     ON pdt.project_id = cpp.project_id
             ) UNION DISTINCT (
                 SELECT case_gdc_id, 
-                    # primary_site, 
                     project_dbgap_accession_number, 
-                    # project_disease_type,
                     project_name, 
                     program_dbgap_accession_number,
                     program_name, 
@@ -96,16 +144,16 @@ def make_case_metadata_table_sql() -> str:
         )
         
         SELECT c.case_gdc_id, 
-            # c.primary_site, 
+            counts.primary_site,
             c.project_dbgap_accession_number, 
-            # c.project_disease_type,
+            counts.project_disease_type,
             c.project_name, 
             c.program_dbgap_accession_number,
             c.program_name, 
             c.project_id, 
             c.case_barcode,
-            counts.active_file_count,
-            counts.legacy_file_count
+            counts.legacy_file_count,
+            counts.active_file_count
         FROM cases c
         LEFT JOIN `{create_dev_table_id(PARAMS, PARAMS['COUNT_TABLE_NAME'])}` counts
             ON c.case_gdc_id = counts.case_gdc_id
@@ -128,11 +176,11 @@ def main(args):
     if 'create_table_from_query' in steps:
         logger.info("Entering create_table_from_query")
 
-        """
+        # """
         create_table_from_query(params=PARAMS,
                                 table_id=create_dev_table_id(PARAMS, PARAMS['COUNT_TABLE_NAME']),
-                                query=make_case_file_counts_sql())
-        """
+                                query=make_case_file_counts_types_sql())
+        # """
 
         create_table_from_query(params=PARAMS,
                                 table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']),
