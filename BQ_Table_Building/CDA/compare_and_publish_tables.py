@@ -91,10 +91,9 @@ def can_compare_tables(table_ids: dict[str, str]) -> bool:
 
     if has_new_data:
         logger.info(f"New data found--table will be published.")
-        logger.info(f"To-be-published table_ids: {table_ids['current']}, {table_ids['versioned']}")
         return True
     else:
-        logger.info(f"Tables are identical (no new data found)--table will not be published.")
+        logger.info(f"No changes found--table will not be published.")
         return False
 
 
