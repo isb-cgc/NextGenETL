@@ -107,7 +107,7 @@ def find_record_difference_counts(table_type: str,
         """
 
     def make_subquery(table_id_1, table_id_2):
-        if not table_metadata['compare_primary_keys']:
+        if not table_metadata['compare_using_primary_only']:
             select_str = f"SELECT * {excluded_column_sql_str} "
         else:
             select_str = f"SELECT {primary_key} "
