@@ -290,14 +290,12 @@ def make_add_uris_and_index_file_sql_query(no_uri_table_id: str, drs_uri_table_i
             f_uri.gcs_path AS file_name_key,
             psf.index_file_id,
             i_uri.gcs_path AS index_file_name_key,
-            fm.file_size AS index_file_size,
+            psf.index_file_size,
             psf.`access`,
             psf.acl
             FROM `{no_uri_table_id}` psf
             JOIN `{drs_uri_table_id}` f_uri
                 ON f_uri.file_uuid = psf.file_gdc_id
-            LEFT JOIN `{create_metadata_table_id(PARAMS, PARAMS['FILE_TABLE_NAME'])}` fm
-                ON fm.file_gdc_id = psf.index_file_id
             LEFT JOIN `{drs_uri_table_id}` i_uri
                 ON i_uri.file_uuid = psf.index_file_id
     """
@@ -360,7 +358,7 @@ def main(args):
                                              schema_tags=schema_tags,
                                              metadata_file=metadata_file)
 
-            # delete_bq_table(no_url_table_id)
+            delete_bq_table(no_url_table_id)
 
     end_time = time.time()
 
