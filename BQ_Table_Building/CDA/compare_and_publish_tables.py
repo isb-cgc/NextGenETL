@@ -646,8 +646,7 @@ def get_new_table_names(dataset: str) -> list[str]:
     table_name_list = list()
 
     for row in table_names:
-        table_name = row['table_name'].replace(f"_{PARAMS['NODE']}", "")
-        table_name_list.append(table_name)
+        table_name_list.append(row['table_name'])
 
     return sorted(table_name_list)
 
@@ -714,6 +713,8 @@ def find_missing_tables(dataset, table_type):
 
     for new_table_name in new_table_names:
         new_table_name = new_table_name.replace(f"{PARAMS['RELEASE']}_", "")
+        new_table_name = new_table_name.replace(f"_{PARAMS['NODE']}", "")
+
         new_table_names_no_rel.append(new_table_name)
 
     for current_table_name in current_table_names:
@@ -801,12 +802,14 @@ def get_primary_key(table_type, table_params, table_ids):
 
 def generate_table_id_list(table_type: str, table_params: dict[str, str]) -> list[dict[str, str]]:
     def parse_gdc_clinical_table_id() -> tuple[str, str]:
-        table_name_no_rel = table_name.replace(f"{PARAMS['RELEASE']}_", "")
-        split_table_name = table_name_no_rel.split('_')
+        split_table_name_list = table_name.split('_')
+        split_table_name_list.remove(PARAMS['RELEASE'])
+        split_table_name_list.remove(PARAMS['NODE'])
         # index to split table name from program
-        table_type_start_idx = split_table_name.index('clinical')
-        dataset_name = "_".join(split_table_name[0:table_type_start_idx])
-        table_base_name = "_".join(split_table_name[table_type_start_idx:])
+        clinical_idx = split_table_name_list.index('clinical')
+        dataset_name = "_".join(split_table_name_list[0:clinical_idx])
+        table_base_name = "_".join(split_table_name_list[clinical_idx:])
+
         prod_table_name = f"{table_base_name}_{PARAMS['NODE']}"
 
         return dataset_name, prod_table_name
