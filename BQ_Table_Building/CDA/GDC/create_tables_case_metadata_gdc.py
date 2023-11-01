@@ -96,9 +96,9 @@ def make_case_metadata_table_sql() -> str:
         )
         
         SELECT c.case_gdc_id, 
-            c.primary_site, 
+            # c.primary_site, 
             c.project_dbgap_accession_number, 
-            c.project_disease_type,
+            # c.project_disease_type,
             c.project_name, 
             c.program_dbgap_accession_number,
             c.program_name, 
