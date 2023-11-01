@@ -862,7 +862,7 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     # COMPARE AND PUBLISH METADATA TABLES
-    # """
+    """
     logger.info("Processing metadata tables!")
     for table_type, table_params in PARAMS['METADATA_TABLE_TYPES'].items():
         prod_dataset = table_params['prod_dataset']
