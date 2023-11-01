@@ -30,20 +30,42 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
+def make_case_file_counts_sql() -> str:
+    return f"""
+        WITH active_counts AS (
+            SELECT entity_case_id AS case_gdc_id, 
+                COUNT(DISTINCT file_id) AS active_file_count
+            FROM `{create_dev_table_id(PARAMS, 'file_associated_with_entity')}` 
+            GROUP BY entity_case_id
+        ), 
+        legacy_counts AS (
+            SELECT case_gdc_id, legacy_file_count 
+            FROM `{PARAMS['LEGACY_TABLE_ID']}`
+        ), case_gdc_ids AS (
+            SELECT case_gdc_id 
+            FROM active_counts
+            UNION DISTINCT 
+            SELECT case_gdc_id
+            FROM legacy_counts
+        )
+        SELECT c.case_gdc_id,
+            IFNULL(ac.active_file_count, 0) AS active_file_count,
+            IFNULL(lc.legacy_file_count, 0) AS legacy_file_count
+        FROM case_gdc_ids c
+        LEFT JOIN active_counts ac
+            ON c.case_gdc_id = ac.case_gdc_id
+        LEFT JOIN legacy_counts lc
+            ON c.case_gdc_id = lc.case_gdc_id
+    """
+
+
 def make_case_metadata_table_sql() -> str:
     """
     Make BigQuery sql statement, used to generate case metadata table.
     :return: sql string
     """
     return f"""
-        WITH active_counts AS (
-            SELECT case_id AS case_gdc_id, COUNT(file_id) AS active_file_count 
-            FROM `{create_dev_table_id(PARAMS, 'file_in_case')}`
-            GROUP BY case_id
-        ), legacy_counts AS (
-            SELECT case_gdc_id, legacy_file_count 
-            FROM `{PARAMS['LEGACY_TABLE_ID']}`
-        ), cases AS (
+        WITH cases AS (
             (
                 SELECT cpp.case_gdc_id, 
                     c.primary_site, 
@@ -82,13 +104,11 @@ def make_case_metadata_table_sql() -> str:
             c.program_name, 
             c.project_id, 
             c.case_barcode,
-            ac.active_file_count,
-            lc.legacy_file_count,
+            counts.active_file_count,
+            counts.legacy_file_count,
         FROM cases c
-        LEFT JOIN active_counts ac
-            ON c.case_gdc_id = ac.case_gdc_id
-        LEFT JOIN legacy_counts lc
-            ON c.case_gdc_id = ac.case_gdc_id
+        LEFT JOIN `{create_dev_table_id(PARAMS, PARAMS['COUNT_TABLE_NAME'])}` counts
+            ON c.case_gdc_id = counts.case_gdc_id
     """
 
 
@@ -107,6 +127,10 @@ def main(args):
 
     if 'create_table_from_query' in steps:
         logger.info("Entering create_table_from_query")
+
+        create_table_from_query(params=PARAMS,
+                                table_id=create_dev_table_id(PARAMS, PARAMS['COUNT_TABLE_NAME']),
+                                query=make_case_file_counts_sql())
 
         create_table_from_query(params=PARAMS,
                                 table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']),
