@@ -105,7 +105,7 @@ def make_case_metadata_table_sql() -> str:
             c.project_id, 
             c.case_barcode,
             counts.active_file_count,
-            counts.legacy_file_count,
+            counts.legacy_file_count
         FROM cases c
         LEFT JOIN `{create_dev_table_id(PARAMS, PARAMS['COUNT_TABLE_NAME'])}` counts
             ON c.case_gdc_id = counts.case_gdc_id
@@ -127,6 +127,9 @@ def main(args):
 
     if 'create_table_from_query' in steps:
         logger.info("Entering create_table_from_query")
+
+        print(make_case_metadata_table_sql())
+        exit()
 
         create_table_from_query(params=PARAMS,
                                 table_id=create_dev_table_id(PARAMS, PARAMS['COUNT_TABLE_NAME']),
