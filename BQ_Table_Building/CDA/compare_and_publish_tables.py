@@ -902,11 +902,9 @@ def main(args):
     logger.info("Processing per-program and per-project tables.")
     # COMPARE AND PUBLISH CLINICAL AND PER SAMPLE FILE TABLES
     for table_type, table_params in PARAMS['PER_PROJECT_TABLE_TYPES'].items():
-        if table_type == 'clinical':
-            continue
         # look for list of last release's published tables to ensure none have disappeared before comparing
         logger.info("Searching for missing tables!")
-        # find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
+        find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
 
         logger.info(f"Comparing {PARAMS['NODE']} {table_type} tables!")
 
@@ -914,8 +912,6 @@ def main(args):
 
         if 'compare_tables' in steps:
             for table_ids in table_ids_list:
-                for key in table_ids.keys():
-                    print(f"{key}: {table_ids[key]}")
                 logger.info(f"Comparing tables for {table_ids['source']}!")
                 # confirm that datasets and table ids exist, and preview whether table will be published
                 data_to_compare = can_compare_tables(table_ids)
