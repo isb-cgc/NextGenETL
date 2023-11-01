@@ -41,7 +41,7 @@ def make_case_file_counts_types_sql() -> str:
             SELECT case_gdc_id, legacy_file_count 
             FROM `{PARAMS['LEGACY_TABLE_ID']}`
         ), active_cases AS (
-            SELECT c.case_gdc_id, c.primary_site, pdt.disease_type as project_disease_type
+            SELECT c.case_id AS case_gdc_id, c.primary_site, pdt.disease_type as project_disease_type
             FROM `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
             JOIN `{create_dev_table_id(PARAMS, 'case')}` c
                 ON c.case_id = cpp.case_gdc_id
