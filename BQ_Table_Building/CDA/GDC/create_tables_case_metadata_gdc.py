@@ -48,6 +48,10 @@ def make_case_file_counts_types_sql() -> str:
         WITH active_counts AS (
             SELECT case_id AS case_gdc_id, COUNT(DISTINCT file_id) AS active_file_count 
             FROM `{create_dev_table_id(PARAMS, 'file_in_case')}`
+            WHERE file_id not in (
+                SELECT DISTINCT index_file_id
+                FROM `{create_dev_table_id(PARAMS, 'file_has_index_file')}`
+            )
             GROUP BY case_id
         ),
         legacy_counts AS (
