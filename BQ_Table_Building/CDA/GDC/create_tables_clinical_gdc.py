@@ -599,6 +599,7 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
         sql_query = make_sql_statement_from_dict()
 
         print(sql_query)
+        exit()
 
         # get altered program name, in case where program name differs in table id due to length or punctuation
         # e.g. BEATAML1.0 -> BEATAML1_0, EXCEPTIONAL_RESPONDERS -> EXC_RESPONDERS
