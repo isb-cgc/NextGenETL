@@ -837,9 +837,16 @@ def generate_gdc_per_sample_file_table_id_list(table_params: dict[str, str]) -> 
         table_ids = {
             'current': f"{PARAMS['PROD_PROJECT']}.{program}.{base_table_name}_{PARAMS['NODE']}_current",
             'versioned': f"{PARAMS['PROD_PROJECT']}.{program}_versioned.{base_table_name}_{PARAMS['NODE']}_{PARAMS['RELEASE']}",
-            'source': f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}",
+            'source': f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}_{PARAMS['NODE']}",
             'previous_versioned': ''
         }
+
+        """
+        {'current': 'isb-cgc-sandbox-000.APOLLO.per_sample_file_metadata_hg38_gdc_current', 
+        'versioned': 'isb-cgc-sandbox-000.APOLLO_versioned.per_sample_file_metadata_hg38_gdc_r37', 
+        'source': 'isb-project-zero.cda_gdc_per_sample_file.r37_APOLLO_per_sample_file_metadata_hg38', 
+        'previous_versioned': 'isb-cgc-sandbox-000.APOLLO.per_sample_file_metadata_hg38_gdc_current'}
+        """
 
         table_ids['previous_versioned'] = find_most_recent_published_table_id(table_ids['current'])
 
