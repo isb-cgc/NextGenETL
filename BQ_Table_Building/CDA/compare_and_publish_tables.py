@@ -871,21 +871,18 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    prod_project = PARAMS['PROD_PROJECT']
-    dev_project = PARAMS['DEV_PROJECT']
-
     # COMPARE AND PUBLISH METADATA TABLES
-    """
+    # """
     for table_type, table_params in PARAMS['METADATA_TABLE_TYPES'].items():
         prod_dataset = table_params['prod_dataset']
         prod_table_name = table_params['table_base_name']
 
         table_ids = {
-            'current': f"{prod_project}.{prod_dataset}.{prod_table_name}_current",
-            'versioned': f"{prod_project}.{prod_dataset}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
+            'current': f"{PARAMS['PROD_PROJECT']}.{prod_dataset}.{prod_table_name}_current",
+            'versioned': f"{PARAMS['PROD_PROJECT']}.{prod_dataset}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
             'source': create_metadata_table_id(PARAMS, table_params['table_base_name']),
         }
-        table_ids['previous_versioned'] = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
+        table_ids['previous_versioned'] = find_most_recent_published_table_id(table_ids['current'])
 
         if 'compare_tables' in steps:
             logger.info(f"Comparing tables for {table_params['table_base_name']}!")
@@ -900,14 +897,12 @@ def main(args):
             logger.info(f"Publishing tables for {table_params['table_base_name']}!")
             publish_table(table_ids)
     # """
+
     # COMPARE AND PUBLISH CLINICAL AND PER SAMPLE FILE TABLES
     for table_type, table_params in PARAMS['PER_PROJECT_TABLE_TYPES'].items():
-        if table_type == 'clinical':
-            continue
         # look for list of last release's published tables to ensure none have disappeared before comparing
         logger.info("Searching for missing tables!")
-        # todo uncomment
-        # find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
+        find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
 
         if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
             logger.info("Comparing GDC clinical tables!")
@@ -1011,7 +1006,7 @@ def main(args):
         else:
             # handling for per_sample_file in gdc
             # handling for other nodes
-            pass
+            logger.warning("The script is not configured to handle either this node or table type.")
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
