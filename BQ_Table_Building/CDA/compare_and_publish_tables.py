@@ -82,7 +82,7 @@ def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
 def can_compare_tables(table_ids: dict[str, str]) -> bool:
     logger = logging.getLogger('base_script')
 
-    if not table_ids['previous_versioned']:
+    if not table_ids['published_current']:
         logger.warning(f"No previous version found for {table_ids['source']}. Will publish. Investigate if unexpected.")
         logger.warning(f"{table_ids['current']}")
         logger.warning("")
@@ -852,7 +852,7 @@ def generate_table_id_list(table_type: str, table_params: dict[str, str]) -> lis
             'previous_versioned': ''
         }
 
-        table_ids['previous_versioned'] = find_most_recent_published_table_id(current_table_id=table_ids['current'])
+        table_ids['previous_versioned'] = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
 
         table_ids_list.append(table_ids)
 

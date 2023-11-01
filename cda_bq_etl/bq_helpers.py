@@ -714,22 +714,7 @@ def change_status_to_archived(archived_table_id: str):
         logger.warning("Couldn't find a table to archive. Likely this table's first release; otherwise an error.")
 
 
-def find_most_recent_published_table_id(current_table_id: str):
-    """
-    Function for locating published table id for dataset's previous release, if it exists
-    :param params: params supplied in yaml config
-    :param current_table_id: published table id for current release
-    :return: last published table id, if any; otherwise None
-    """
-    if exists_bq_table(current_table_id):
-        # found last release table, stop iterating
-        return current_table_id
-    else:
-        # if there is no previously-published table, return None
-        return None
-
-'''
-def find_most_recent_published_table_id(versioned_table_id):
+def find_most_recent_published_table_id(params, versioned_table_id):
     """
     Function for locating published table id for dataset's previous release, if it exists
     :param params: params supplied in yaml config
@@ -737,7 +722,7 @@ def find_most_recent_published_table_id(versioned_table_id):
     :return: last published table id, if any; otherwise None
     """
     if params['NODE'].lower() == 'gdc':
-        oldest_etl_release = 260  # the oldest table release we published
+        oldest_etl_release = 300  # r30
         current_gdc_release_number = params['RELEASE'][1:]
 
         # this shift allows for non-int release versions, e.g. r33.1
@@ -788,7 +773,7 @@ def find_most_recent_published_table_id(versioned_table_id):
         logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
         logger.critical(f"Need to create find_most_recent_published_table_id function for {params['NODE']}.")
         sys.exit(-1)
-'''
+
 
 
 def update_table_schema_from_generic(params, table_id, schema_tags=None, metadata_file=None):
