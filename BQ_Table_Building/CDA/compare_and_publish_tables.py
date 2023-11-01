@@ -809,7 +809,7 @@ def generate_gdc_clinical_table_id_list(table_params: dict[str, str]) -> list[di
             'previous_versioned': ''
         }
 
-        table_ids['previous_versioned'] = find_most_recent_published_table_id(table_ids['current'])
+        table_ids['previous_versioned'] = find_most_recent_published_table_id(current_table_id=table_ids['current'])
 
         table_ids_list.append(table_ids)
 
