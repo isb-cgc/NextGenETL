@@ -172,7 +172,8 @@ def get_column_list_tsv(header_list: Optional[list[str]] = None,
                     column = make_string_bq_friendly(column)
                     column_list.append(column)
                 else:
-                    logger.error(f"blank column found at idx {count} of {len(columns)}")
+                    logger.critical(f"blank column found at idx {count} of {len(columns)}")
+                    sys.exit(-1)
 
     return column_list
 
@@ -214,6 +215,13 @@ def aggregate_column_data_types_tsv(tsv_fp: str,
 
             if count % sample_interval == 0:
                 row_list = row.split('\t')
+
+                if len(row_list) != len(column_headers):
+                    print(f"len row_list: {len(row_list)}")
+                    print(f"row_list: {row_list}")
+                    print(f"len column_headers: {len(column_headers)}")
+                    print(f"column_headers: {column_headers}")
+                    exit()
 
                 for idx, value in enumerate(row_list):
                     value = value.strip()
