@@ -16,19 +16,22 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import logging
 import sys
 import time
 import os
 import pandas as pd
-from common_etl.utils import (get_filepath, has_fatal_error, load_config, get_rel_prefix,
-                              make_string_bq_friendly, create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
-                              create_and_load_table_from_tsv, upload_to_bucket)
+
+from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object, 
+                                   create_and_load_table_from_tsv)
+from cda_bq_etl.gcs_helpers import upload_to_bucket
+from cda_bq_etl.data_helpers import initialize_logging, make_string_bq_friendly
+from cda_bq_etl.utils import format_seconds, get_filepath, load_config
 
 from common_etl.support import (get_the_bq_manifest, build_file_list, build_pull_list_with_bq_public, BucketPuller)
 
 PARAMS = dict()
-BQ_PARAMS = dict()
-YAML_HEADERS = ('params', 'bq_params', 'programs', 'steps')
+YAML_HEADERS = ('params', 'programs', 'steps')
 
 
 def convert_excel_to_tsv(all_files, header_idx):
@@ -38,9 +41,10 @@ def convert_excel_to_tsv(all_files, header_idx):
     :param header_idx: header row idx
     :return: list of tsv files
     """
+    logger = logging.getLogger('base_script')
     tsv_files = []
     for file_path in all_files:
-        print(file_path)
+        logger.info(file_path)
         tsv_filepath = '.'.join(file_path.split('.')[0:-1])
         tsv_filepath = f"{tsv_filepath}.tsv"
         excel_data = pd.read_excel(io=file_path,
@@ -51,10 +55,10 @@ def convert_excel_to_tsv(all_files, header_idx):
         # get rid of funky newline formatting in headers
         excel_data.columns = excel_data.columns.map(lambda x: x.replace('\r','').replace('\n', ''))
         # get rid of funky newline formatting in cells
-        excel_data = excel_data.replace(to_replace=[r"\\t|\\n|\\r", "\t|\n|\r"], value=["",""], regex=True)
+        excel_data = excel_data.replace(to_replace=[r"\\t|\\n|\\r", "\t|\n|\r"], value=["", ""], regex=True)
 
         if excel_data.size == 0:
-            print(f"*** no rows found in excel file: {file_path}; skipping")
+            logger.info(f"*** no rows found in excel file: {file_path}; skipping")
             continue
         df_rows = len(excel_data)
         excel_data.to_csv(tsv_filepath,
@@ -64,7 +68,7 @@ def convert_excel_to_tsv(all_files, header_idx):
         with open(tsv_filepath, 'r') as tsv_fh:
             tsv_rows = len(tsv_fh.readlines()) - 1
         if df_rows != tsv_rows:
-            print(f"df_rows: {df_rows}, tsv_rows: {tsv_rows}")
+            logger.info(f"df_rows: {df_rows}, tsv_rows: {tsv_rows}")
         tsv_files.append(tsv_filepath)
     return tsv_files
 
@@ -122,17 +126,23 @@ def create_tsv_with_final_headers(tsv_file, headers, data_start_idx):
 
 
 def main(args):
-    print(f"GDC clinical file script started at {time.strftime('%x %X', time.localtime())}")
-    steps = None
-
     try:
-        global PARAMS, BQ_PARAMS
-        PARAMS, BQ_PARAMS, programs, steps = load_config(args, YAML_HEADERS)
+        start_time = time.time()
+
+        global PARAMS
+        PARAMS, programs, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
-        has_fatal_error(err, ValueError)
+        sys.exit(err)
+        
+    log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
+    log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
+    logger = initialize_logging(log_filepath)
+    
+    logger.info(f"GDC clinical file script started at {time.strftime('%x %X', time.localtime())}")
 
     if not programs:
-        has_fatal_error("Specify program parameters in YAML.")
+        logger.critical("Specify program parameters in YAML.")
+        sys.exit(-1)
 
     local_dir_root = get_filepath(f"{PARAMS['SCRATCH_DIR']}")
     base_file_name = PARAMS['BASE_FILE_NAME']
@@ -140,18 +150,23 @@ def main(args):
     # run steps in order for each program.
     # NOTE: if step fails part way though, you need to manually empty the scratch directory on the VM.
     # I tried to create an automated step for this, but it's complicated to do in Python
+    # todo no it isn't, past self. do eet.
     for program in programs:
         # check to make sure required variables exist in yaml config
         if 'filters' not in programs[program]:
-            has_fatal_error(f"'filters' not in programs section of yaml for {program}")
+            logger.critical(f"'filters' not in programs section of yaml for {program}")
+            sys.exit(-1)
         if 'header_row_idx' not in programs[program]:
-            has_fatal_error(f"'header_row_idx' not in programs section of yaml for {program}")
+            logger.critical(f"'header_row_idx' not in programs section of yaml for {program}")
+            sys.exit(-1)
         if 'data_start_idx' not in programs[program]:
-            has_fatal_error(f"'data_start_idx' not in programs section of yaml for {program}")
+            logger.critical(f"'data_start_idx' not in programs section of yaml for {program}")
+            sys.exit(-1)
         if 'file_suffix' not in programs[program]:
-            has_fatal_error(f"'file_suffix' not in programs section of yaml for {program}")
+            logger.critical(f"'file_suffix' not in programs section of yaml for {program}")
+            sys.exit(-1)
 
-        print(f"Running script for {program}")
+        logger.info(f"Running script for {program}")
         local_program_dir = f"{local_dir_root}/{program}"
         local_files_dir = f"{local_program_dir}/files"
         local_schemas_dir = f"{local_program_dir}/schemas"
@@ -166,69 +181,72 @@ def main(args):
 
         local_pull_list = f"{local_program_dir}/{base_file_name}_pull_list_{program}.tsv"
         file_traversal_list = f"{local_program_dir}/{base_file_name}_traversal_list_{program}.txt"
-        tables_file = f"{local_program_dir}/{get_rel_prefix(PARAMS)}_tables_{program}.txt"
+        tables_file = f"{local_program_dir}/{PARAMS['RELEASE']}_tables_{program}.txt"
 
         # the source metadata files have a different release notation (relXX vs rXX)
-        src_table_release = f"{BQ_PARAMS['SRC_TABLE_PREFIX']}{PARAMS['RELEASE']}"
+        src_table_release = f"{PARAMS['SRC_TABLE_PREFIX']}{PARAMS['RELEASE']}"
 
-        # final_target_table = f"{get_rel_prefix(PARAMS)}_{program}_clin_files"
+        manifest_table_name = f"{PARAMS['RELEASE']}_{program}_manifest"
+        manifest_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{manifest_table_name}"
+
+        # final_target_table = f"{PARAMS['RELEASE']}_{program}_clin_files"
         if 'build_manifest_from_filters' in steps:
             # Build a file manifest based on fileData table in GDC_metadata (filename, md5, etc)
             # Write to file, create BQ table
-            print('\nbuild_manifest_from_filters')
+            logger.info('build_manifest_from_filters')
+
             filter_dict = programs[program]['filters']
-            file_table_name = f"{src_table_release}_{BQ_PARAMS['FILE_TABLE']}"
-            file_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['META_DATASET']}.{file_table_name}"
+            file_table_name = f"{src_table_release}_{PARAMS['FILE_TABLE']}"
+            file_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['META_DATASET']}.{file_table_name}"
             manifest_file = f"{local_program_dir}/{base_file_name}_{program}.tsv"
             bucket_tsv = f"{PARAMS['WORKING_BUCKET_DIR']}/{src_table_release}_{base_file_name}_{program}.tsv"
-            manifest_table_name = f"{get_rel_prefix(PARAMS)}_{program}_manifest"
-            manifest_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['TARGET_DATASET']}.{manifest_table_name}"
 
             manifest_success = get_the_bq_manifest(file_table=file_table_id,
                                                    filter_dict=filter_dict,
                                                    max_files=None,
-                                                   project=BQ_PARAMS['WORKING_PROJECT'],
-                                                   tmp_dataset=BQ_PARAMS['TARGET_DATASET'],
+                                                   project=PARAMS['DEV_PROJECT'],
+                                                   tmp_dataset=PARAMS['DEV_DATASET'],
                                                    tmp_bq=manifest_table_name,
                                                    tmp_bucket=PARAMS['WORKING_BUCKET'],
                                                    tmp_bucket_file=bucket_tsv,
                                                    local_file=manifest_file,
-                                                   do_batch=BQ_PARAMS['BQ_AS_BATCH'])
+                                                   do_batch=PARAMS['BQ_AS_BATCH'])
             if not manifest_success:
-                has_fatal_error("Failure generating manifest")
+                logger.critical("Failure generating manifest")
+                sys.exit(-1)
 
         if 'build_pull_list' in steps:
             # Build list of file paths in the GDC cloud, create file and bq table
-            print('\nbuild_pull_list')
-            bq_pull_list_table_name = f"{get_rel_prefix(PARAMS)}_{program}_pull_list"
-            indexd_table_name = f"{src_table_release}_{BQ_PARAMS['INDEXD_TABLE']}"
-            indexd_table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['MANIFEST_DATASET']}.{indexd_table_name}"
+            logger.info('build_pull_list')
+            bq_pull_list_table_name = f"{PARAMS['RELEASE']}_{program}_pull_list"
+            indexd_table_name = f"{src_table_release}_{PARAMS['INDEXD_TABLE']}"
+            indexd_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['MANIFEST_DATASET']}.{indexd_table_name}"
 
             success = build_pull_list_with_bq_public(manifest_table=manifest_table_id,
                                                      indexd_table=indexd_table_id,
-                                                     project=BQ_PARAMS['WORKING_PROJECT'],
-                                                     tmp_dataset=BQ_PARAMS['TARGET_DATASET'],
+                                                     project=PARAMS['DEV_PROJECT'],
+                                                     tmp_dataset=PARAMS['DEV_DATASET'],
                                                      tmp_bq=bq_pull_list_table_name,
                                                      tmp_bucket=PARAMS['WORKING_BUCKET'],
                                                      tmp_bucket_file=PARAMS['BUCKET_PULL_LIST'],
                                                      local_file=local_pull_list,
-                                                     do_batch=BQ_PARAMS['BQ_AS_BATCH'])
+                                                     do_batch=PARAMS['BQ_AS_BATCH'])
             if not success:
-                print("Build pull list failed")
+                logger.warning("Build pull list failed")
                 return
 
         if 'download_from_gdc' in steps:
             # download files from gdc buckets and download to local scratch directory
-            print('\ndownload_from_gdc')
+            logger.info('download_from_gdc')
             with open(local_pull_list, mode='r') as pull_list_file:
                 pull_list = pull_list_file.read().splitlines()
-            print("Preparing to download %s files from buckets\n" % len(pull_list))
+            logger.info("Preparing to download %s files from buckets\n" % len(pull_list))
             bp = BucketPuller(10)
             bp.pull_from_buckets(pull_list, local_files_dir)
 
         if 'build_file_list' in steps:
             # build list of files in local scratch directories
-            print('\nbuild_file_list')
+            logger.info('build_file_list')
             all_files = build_file_list(local_files_dir)
             with open(file_traversal_list, mode='w') as traversal_list:
                 for line in all_files:
@@ -243,12 +261,12 @@ def main(args):
         if 'convert_excel_to_csv' in steps:
             # If file suffix is xlsx or xls, convert to tsv.
             # Then modify traversal list file to point to the newly created tsv files.
-            print('\nconvert_excel_to_tsv')
+            logger.info('convert_excel_to_tsv')
             if programs[program]['file_suffix'] == 'xlsx' or programs[program]['file_suffix'] == 'xls':
                 with open(file_traversal_list, mode='r') as traversal_list_file:
                     all_files = traversal_list_file.read().splitlines()
                     for excel_file in all_files:
-                        upload_to_bucket(BQ_PARAMS, scratch_fp=excel_file, delete_local=False)
+                        upload_to_bucket(PARAMS, scratch_fp=excel_file, delete_local=False)
                     all_files = convert_excel_to_tsv(all_files=all_files,
                                                      header_idx=programs[program]['header_row_idx'])
                 with open(file_traversal_list, mode='w') as traversal_list_file:
@@ -256,7 +274,7 @@ def main(args):
                         traversal_list_file.write(f"{line}\n")
 
         if 'upload_tsv_file_and_schema_to_bucket' in steps:
-            print(f"upload_tsv_file_and_schema_to_bucket")
+            logger.info(f"upload_tsv_file_and_schema_to_bucket")
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
                 header_row_idx = programs[program]['header_row_idx']
@@ -271,20 +289,22 @@ def main(args):
                     with open(tsv_file_path, 'r', encoding="ISO-8859-1") as tsv_fh:
                         row_count = len(tsv_fh.readlines())
                 if row_count <= 1:
-                    print(f"*** probably an issue: row count is {row_count} for {tsv_file_path}")
+                    logger.info(f"*** probably an issue: row count is {row_count} for {tsv_file_path}")
                 bq_column_names = create_bq_column_names(tsv_file=tsv_file_path, header_row_idx=header_row_idx)
                 create_tsv_with_final_headers(tsv_file=tsv_file_path,
                                               headers=bq_column_names,
                                               data_start_idx=programs[program]['data_start_idx'])
                 file_name = tsv_file_path.split("/")[-1]
                 table_base_name = "_".join(file_name.split('.')[0:-1])
-                table_name = f"{get_rel_prefix(PARAMS)}_{table_base_name}"
+                table_name = f"{PARAMS['RELEASE']}_{table_base_name}"
                 schema_file_name = f"schema_{table_name}.json"
                 schema_file_path = f"{local_schemas_dir}/{schema_file_name}"
-                create_and_upload_schema_for_tsv(PARAMS, BQ_PARAMS, tsv_fp=tsv_file_path, table_name=table_name,
-                                                 header_row=0, skip_rows=1, row_check_interval=1,
-                                                 schema_fp=schema_file_path, delete_local=True)
-                upload_to_bucket(BQ_PARAMS, tsv_file_path, delete_local=True)
+                create_and_upload_schema_for_tsv(PARAMS, 
+                                                 tsv_fp=tsv_file_path, 
+                                                 header_row=0, 
+                                                 skip_rows=1, 
+                                                 schema_fp=schema_file_path)
+                upload_to_bucket(PARAMS, tsv_file_path, delete_local=True)
 
         if 'build_raw_tables' in steps:
             with open(file_traversal_list, mode='r') as traversal_list_file:
@@ -293,14 +313,14 @@ def main(args):
             for tsv_file_path in all_files:
                 file_name = tsv_file_path.split("/")[-1]
                 table_base_name = "_".join(file_name.split('.')[0:-1])
-                table_name = f"{get_rel_prefix(PARAMS)}_{table_base_name}"
-                table_id = f"{BQ_PARAMS['WORKING_PROJECT']}.{BQ_PARAMS['TARGET_RAW_DATASET']}.{table_name}"
+                table_name = f"{PARAMS['RELEASE']}_{table_base_name}"
+                table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}_raw.{table_name}"
                 schema_file_name = f"schema_{table_name}.json"
-                bq_schema = retrieve_bq_schema_object(PARAMS, BQ_PARAMS,
+                bq_schema = retrieve_bq_schema_object(PARAMS,
                                                       table_name=table_name,
                                                       schema_filename=schema_file_name,
                                                       schema_dir=local_schemas_dir)
-                create_and_load_table_from_tsv(BQ_PARAMS,
+                create_and_load_table_from_tsv(PARAMS,
                                                tsv_file=file_name,
                                                table_id=table_id,
                                                num_header_rows=1,
@@ -310,10 +330,10 @@ def main(args):
                 for table_name in table_list:
                     tables_fh.write(f"{table_name}\n")
 
-            print(f"\n\nTables created for {program}:")
+            logger.info(f"Tables created for {program}:")
             for table in table_list:
-                print(table)
-            print('\n')
+                logger.info(table)
+            logger.info("")
 
         """
         TODO:
@@ -323,6 +343,9 @@ def main(args):
         Publish.
         Delete working tables.
         """
+    end_time = time.time()
+
+    logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
 
 
 if __name__ == '__main__':
