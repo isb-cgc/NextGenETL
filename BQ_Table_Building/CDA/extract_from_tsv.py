@@ -190,12 +190,8 @@ def get_normalized_file_names() -> list[str]:
                 directory_normalized_file_names = normalize_files(file_list=file_list, dest_path=local_directory)
                 normalized_file_names.extend(directory_normalized_file_names)
     elif PARAMS['NODE'] == "gdc":
-        directory = os.listdir(dest_path)
-
-        dest_path += f"/{directory[0]}"
-
-        print(f"directory: {directory}")
-        print(f"dest_path: {dest_path}")
+        extracted_folder = ".".join(PARAMS['TAR_FILE'].split('.')[:-1])
+        dest_path += f"/{extracted_folder}"
 
         file_list = list()
 
