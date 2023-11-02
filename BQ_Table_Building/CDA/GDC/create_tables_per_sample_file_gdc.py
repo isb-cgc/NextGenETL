@@ -316,22 +316,18 @@ def main(args):
 
     program_list = get_program_list(PARAMS)
 
-    if 'create_program_tables' in steps:
-        logger.info("Entering create_program_tables")
+    for program_name in program_list:
+        if program_name == "BEATAML1_0":
+            program_name_original = "BEATAML1.0"
+        elif program_name == "EXC_RESPONDERS":
+            program_name_original = "EXCEPTIONAL_RESPONDERS"
+        else:
+            program_name_original = program_name
 
-        for program_name in program_list:
-            if program_name == "BEATAML1_0":
-                program_name_original = "BEATAML1.0"
-            elif program_name == "EXC_RESPONDERS":
-                program_name_original = "EXCEPTIONAL_RESPONDERS"
-            else:
-                program_name_original = program_name
+        no_url_table_id = create_per_sample_table_id(PARAMS, f"{program_name}_{PARAMS['TABLE_NAME']}_no_url")
+        table_id = create_per_sample_table_id(PARAMS, f"{program_name}_{PARAMS['TABLE_NAME']}")
 
-            no_url_table_id = create_per_sample_table_id(PARAMS, f"{program_name}_{PARAMS['TABLE_NAME']}_no_url")
-            table_id = create_per_sample_table_id(PARAMS, f"{program_name}_{PARAMS['TABLE_NAME']}")
-
-            drs_uri_table_id = PARAMS['DRS_URI_TABLE_ID']
-
+        if 'create_program_tables_no_url' in steps:
             logger.info(f"Creating base table for {program_name_original}!\n")
 
             # create table with everything but file uris from manifest
@@ -339,7 +335,10 @@ def main(args):
                                     table_id=no_url_table_id,
                                     query=make_merged_sql_query(program_name_original))
 
+        if 'add_url_to_program_tables' in steps:
             logger.info(f"Creating table with added uris for {program_name_original}!\n")
+
+            drs_uri_table_id = PARAMS['DRS_URI_TABLE_ID']
 
             # add index file size and file/index file keys to finish populating the table
             create_table_from_query(params=PARAMS,
