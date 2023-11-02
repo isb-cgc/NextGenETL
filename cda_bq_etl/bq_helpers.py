@@ -686,9 +686,9 @@ def update_friendly_name(params: Params, table_id: str, custom_name: Optional[st
     if custom_name:
         friendly_name = custom_name
     else:
-        # todo how are we going to handle friendly names with CDA workflow?
         if params['NODE'].lower() == 'gdc':
-            friendly_name = f"{table.friendly_name} REL{params['RELEASE']} versioned"
+            release = params['RELEASE'].replace('r', '')
+            friendly_name = f"{table.friendly_name} REL{release} versioned"
         else:
             friendly_name = f"{table.friendly_name} {params['RELEASE']} versioned"
 
@@ -773,7 +773,6 @@ def find_most_recent_published_table_id(params, versioned_table_id):
         logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
         logger.critical(f"Need to create find_most_recent_published_table_id function for {params['NODE']}.")
         sys.exit(-1)
-
 
 
 def update_table_schema_from_generic(params, table_id, schema_tags=None, metadata_file=None):

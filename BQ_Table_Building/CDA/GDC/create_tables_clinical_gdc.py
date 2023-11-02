@@ -26,7 +26,8 @@ from typing import Any
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import create_dev_table_id, load_config, format_seconds, create_clinical_table_id
-from cda_bq_etl.bq_helpers import query_and_retrieve_result, get_program_list, create_table_from_query
+from cda_bq_etl.bq_helpers import query_and_retrieve_result, get_program_list, create_table_from_query, \
+    get_program_schema_tags_gdc, update_table_schema_from_generic
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -602,10 +603,30 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
         # get altered program name, in case where program name differs in table id due to length or punctuation
         # e.g. BEATAML1.0 -> BEATAML1_0, EXCEPTIONAL_RESPONDERS -> EXC_RESPONDERS
         program_name = PARAMS['ALTER_PROGRAM_NAMES'][program] if program in PARAMS['ALTER_PROGRAM_NAMES'] else program
+
+        if program_name == "BEATAML1_0":
+            program_name_original = "BEATAML1.0"
+        elif program_name == "EXC_RESPONDERS":
+            program_name_original = "EXCEPTIONAL_RESPONDERS"
+        else:
+            program_name_original = program_name
+
         clinical_table_id = create_clinical_table_id(PARAMS,
                                                      f"{program_name}_{PARAMS['TABLE_PARAMS'][table]['table_name']}")
 
         create_table_from_query(PARAMS, table_id=clinical_table_id, query=sql_query)
+
+        schema_tags = get_program_schema_tags_gdc(params=PARAMS, program_name=program_name_original)
+
+        if 'program-label' in schema_tags:
+            metadata_file = PARAMS['METADATA_FILE_SINGLE_PROGRAM']
+        else:
+            metadata_file = PARAMS['METADATA_FILE_MULTI_PROGRAM']
+
+        update_table_schema_from_generic(params=PARAMS,
+                                         table_id=clinical_table_id,
+                                         schema_tags=schema_tags,
+                                         metadata_file=metadata_file)
 
 
 '''
