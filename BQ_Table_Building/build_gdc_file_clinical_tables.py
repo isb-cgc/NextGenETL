@@ -26,7 +26,7 @@ from google.cloud import storage
 
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object, 
                                    create_and_load_table_from_tsv)
-from cda_bq_etl.gcs_helpers import upload_to_bucket
+from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket, download_from_external_bucket
 from cda_bq_etl.data_helpers import initialize_logging, make_string_bq_friendly
 from cda_bq_etl.utils import format_seconds, get_filepath, load_config
 
@@ -246,11 +246,17 @@ def main(args):
             logger.info("Preparing to download %s files from buckets\n" % len(pull_list))
 
             for item in pull_list:
-                logger.debug(item)
-            exit()
+                file_name = item.split("/")[-1]
+                uri_path = "/".join(item.split("/")[:-1])
+                download_from_external_bucket(uri_path=uri_path,
+                                              dir_path=local_files_dir,
+                                              filename=file_name)
+
+            """
 
             bp = BucketPuller(10)
             bp.pull_from_buckets(pull_list, local_files_dir)
+            """
 
         if 'build_file_list' in steps:
             # build list of files in local scratch directories

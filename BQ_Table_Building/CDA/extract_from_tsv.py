@@ -389,10 +389,8 @@ def main(args):
         if not os.path.exists(local_tar_dir):
             os.mkdir(local_tar_dir)
 
-        download_from_external_bucket(project=PARAMS['CDA_BUCKET_PROJECT'],
-                                      uri_path=PARAMS['BLOB_URI_PATH'],
-                                      dir_path=PARAMS['LOCAL_TAR_DIR'],
-                                      filename=PARAMS['TAR_FILE'])
+        download_from_external_bucket(uri_path=PARAMS['BLOB_URI_PATH'], dir_path=PARAMS['LOCAL_TAR_DIR'],
+                                      filename=PARAMS['TAR_FILE'], project=PARAMS['CDA_BUCKET_PROJECT'])
 
     if "extract_cda_archive_file" in steps:
         logger.info("*** Extracting archive file!")

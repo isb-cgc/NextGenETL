@@ -30,7 +30,7 @@ from cda_bq_etl.utils import get_scratch_fp, get_filepath
 Params = dict[str, Union[str, dict, int]]
 
 
-def download_from_external_bucket(project: str, uri_path: str, dir_path: str, filename: str):
+def download_from_external_bucket(uri_path: str, dir_path: str, filename: str, project: str = None):
 
     """
     Download file from Google storage bucket onto VM.
@@ -44,15 +44,21 @@ def download_from_external_bucket(project: str, uri_path: str, dir_path: str, fi
     if os.path.isfile(file_path):
         os.remove(file_path)
 
-    storage_client = storage.Client(project=project)
+    if project:
+        storage_client = storage.Client(project=project)
+    else:
+        storage_client = storage.Client()
 
     with open(file_path, 'wb') as file_obj:
         uri = f"{uri_path}/{filename}"
         storage_client.download_blob_to_file(blob_or_uri=uri, file_obj=file_obj)
 
+    logger = logging.getLogger('base_script.cda_bq_etl.gcs_helpers')
+
     if os.path.isfile(file_path):
-        logger = logging.getLogger('base_script.cda_bq_etl.gcs_helpers')
         logger.info(f"File successfully downloaded from bucket to {file_path}")
+    else:
+        logger.error(f"Download failed for {uri_path}.")
 
 
 def download_from_bucket(params: Params,
