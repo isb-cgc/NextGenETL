@@ -167,9 +167,12 @@ def get_column_list_tsv(header_list: Optional[list[str]] = None,
                 logger.critical("No column name values supplied by header row index")
                 sys.exit(-1)
 
-            for column in columns:
-                column = make_string_bq_friendly(column)
-                column_list.append(column)
+            for count, column in enumerate(columns):
+                if column:
+                    column = make_string_bq_friendly(column)
+                    column_list.append(column)
+                else:
+                    logger.error(f"blank column found at idx {count} of {len(columns)}")
 
     return column_list
 
