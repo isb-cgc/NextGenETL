@@ -253,7 +253,6 @@ def main(args):
                                               filename=file_name)
 
             """
-
             bp = BucketPuller(10)
             bp.pull_from_buckets(pull_list, local_files_dir)
             """
