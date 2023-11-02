@@ -249,10 +249,10 @@ def main(args):
                 file_name = item.split("/")[-1]
                 uri_path = "/".join(item.split("/")[:-1])
 
-                logger.debug(local_files_dir)
+                local_path = f"{program}/files"
 
                 download_from_external_bucket(uri_path=uri_path,
-                                              dir_path=local_files_dir,
+                                              dir_path=local_path,
                                               filename=file_name)
 
             """
