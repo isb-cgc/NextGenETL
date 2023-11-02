@@ -242,6 +242,11 @@ def main(args):
             with open(local_pull_list, mode='r') as pull_list_file:
                 pull_list = pull_list_file.read().splitlines()
             logger.info("Preparing to download %s files from buckets\n" % len(pull_list))
+
+            for item in pull_list:
+                logger.debug(item)
+            exit()
+
             bp = BucketPuller(10)
             bp.pull_from_buckets(pull_list, local_files_dir)
 
