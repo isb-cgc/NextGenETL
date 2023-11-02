@@ -160,7 +160,7 @@ def get_normalized_file_names() -> list[str]:
             if file_type != "tsv":
                 continue
 
-            original_tsv_path = f"{dest_path}/{tsv_file}"
+            original_tsv_path = f"{directory}/{tsv_file}"
 
             with open(original_tsv_path, 'r') as fp:
                 line_count = len(fp.readlines())
