@@ -53,15 +53,6 @@ def download_from_external_bucket(uri_path: str, dir_path: str, filename: str, p
     else:
         storage_client = storage.Client()
 
-    bucket_name = uri_path.replace("gs://", "").split("/")[0]
-    blob_path = uri_path.replace("gs://", "").split("/")[1:]
-    blob_path = f"{blob_path}/{filename}"
-
-    bucket = storage_client.bucket(bucket_name=bucket_name)
-    exists = storage.Blob(bucket=bucket, name=blob_path).exists(storage_client)
-
-    print(f"exists:{exists}")
-
     with open(file_path, 'wb') as file_obj:
         uri = f"{uri_path}/{filename}"
         storage_client.download_blob_to_file(blob_or_uri=uri, file_obj=file_obj)
