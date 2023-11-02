@@ -28,7 +28,7 @@ from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq
                                    create_and_load_table_from_tsv)
 from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket, download_from_external_bucket
 from cda_bq_etl.data_helpers import initialize_logging, make_string_bq_friendly
-from cda_bq_etl.utils import format_seconds, get_filepath, load_config
+from cda_bq_etl.utils import format_seconds, get_filepath, load_config, get_scratch_fp
 
 from common_etl.support import (get_the_bq_manifest, build_file_list, build_pull_list_with_bq_public, BucketPuller)
 
@@ -146,7 +146,6 @@ def main(args):
         logger.critical("Specify program parameters in YAML.")
         sys.exit(-1)
 
-    local_dir_root = get_filepath(f"{PARAMS['SCRATCH_DIR']}")
     base_file_name = PARAMS['BASE_FILE_NAME']
 
     # run steps in order for each program.
@@ -169,17 +168,28 @@ def main(args):
             sys.exit(-1)
 
         logger.info(f"Running script for {program}")
-        local_program_dir = f"{local_dir_root}/{program}"
+        local_program_dir = get_scratch_fp(PARAMS, program)
         local_files_dir = f"{local_program_dir}/files"
         local_schemas_dir = f"{local_program_dir}/schemas"
 
         # create needed directories if they don't already exist
         if not os.path.exists(local_program_dir):
+            logger.info(f"Creating directory {local_program_dir}")
             os.makedirs(local_program_dir)
+        else:
+            logger.info(f"Directory {local_program_dir} already exists, didn't create.")
+
         if not os.path.exists(local_files_dir):
+            logger.info(f"Creating directory {local_files_dir}")
             os.makedirs(local_files_dir)
+        else:
+            logger.info(f"Directory {local_files_dir} already exists, didn't create.")
+
         if not os.path.exists(local_schemas_dir):
+            logger.info(f"Creating directory {local_schemas_dir}")
             os.makedirs(local_schemas_dir)
+        else:
+            logger.info(f"Directory {local_schemas_dir} already exists, didn't create.")
 
         local_pull_list = f"{local_program_dir}/{base_file_name}_pull_list_{program}.tsv"
         file_traversal_list = f"{local_program_dir}/{base_file_name}_traversal_list_{program}.txt"
