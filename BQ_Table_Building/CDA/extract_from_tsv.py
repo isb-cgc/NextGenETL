@@ -151,6 +151,25 @@ def create_table_name(file_name: str) -> str:
 
 
 def get_normalized_file_names() -> list[str]:
+    def delete_empty_tsv_files() -> list[str]:
+        new_file_list = list()
+
+        for tsv_file in file_list:
+            file_type = tsv_file.split(".")[-1]
+
+            if file_type != "tsv":
+                continue
+
+            original_tsv_path = f"{dest_path}/{tsv_file}"
+
+            with open(original_tsv_path, 'r') as fp:
+                line_count = len(fp.readlines())
+
+                if line_count > 1:
+                    new_file_list.append(tsv_file)
+
+        return new_file_list
+
     dest_path = get_filepath(PARAMS['LOCAL_EXTRACT_DIR'])
 
     normalized_file_names = list()
@@ -161,9 +180,11 @@ def get_normalized_file_names() -> list[str]:
         for directory, file_list in dir_file_dict.items():
             local_directory = f"{dest_path}/{directory}"
 
-            directory_normalized_file_names = normalize_files(file_list=file_list, dest_path=local_directory)
+            file_list = delete_empty_tsv_files()
 
-            normalized_file_names.extend(directory_normalized_file_names)
+            if file_list:
+                directory_normalized_file_names = normalize_files(file_list=file_list, dest_path=local_directory)
+                normalized_file_names.extend(directory_normalized_file_names)
     elif PARAMS['NODE'] == "gdc":
         directory = os.listdir(dest_path)
 
@@ -180,6 +201,7 @@ def get_normalized_file_names() -> list[str]:
         normalized_file_names = normalize_files(file_list=file_list, dest_path=dest_path)
 
     return normalized_file_names
+
 
 def normalize_files(file_list: list[str], dest_path: str) -> list[str]:
     """
@@ -380,13 +402,6 @@ def main(args):
             shutil.rmtree(dest_path)
 
         extract_tarfile(src_path, dest_path, overwrite=True)
-
-        directory = os.listdir(dest_path)
-
-        for dir_name in directory:
-            if dir_name[0] == '.' or dir_name[0] == '_':
-                path = os.path.join(dest_path, dir_name)
-                os.remove(path)
 
     if "normalize_and_upload_tsvs" in steps:
         logger.info("*** Normalizing and uploading tsvs!")
