@@ -167,8 +167,12 @@ def get_normalized_file_names() -> list[str]:
 
                 if line_count > 1:
                     new_file_list.append(tsv_file)
+                else:
+                    logger.info(f"Skipping empty tsv {tsv_file}")
 
         return new_file_list
+
+    logger = logging.getLogger('base_script')
 
     dest_path = get_filepath(PARAMS['LOCAL_EXTRACT_DIR'])
 

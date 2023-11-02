@@ -742,10 +742,6 @@ def publish_table(table_ids: dict[str, str]):
 
     logger.info(f"previous_versioned_table_id: {table_ids['previous_versioned']}")
 
-    if PARAMS['TEST_PUBLISH']:
-        logger.error("Cannot run publish table step with TEST_PUBLISH set to true.")
-        sys.exit(-1)
-
     if exists_bq_table(table_ids['source']):
         if table_has_new_data(table_ids['previous_versioned'], table_ids['source']):
             delay = 5
