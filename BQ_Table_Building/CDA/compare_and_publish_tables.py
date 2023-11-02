@@ -740,6 +740,9 @@ def publish_table(table_ids: dict[str, str]):
     """
     logger = logging.getLogger('base_script')
 
+    # todo remove
+    PARAMS['OVERWRITE_PROD_TABLE'] = True
+
     logger.info(f"previous_versioned_table_id: {table_ids['previous_versioned']}")
 
     if exists_bq_table(table_ids['source']):
