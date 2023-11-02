@@ -261,7 +261,8 @@ def main(args):
 
                 download_from_external_bucket(uri_path=uri_path,
                                               dir_path=local_files_dir,
-                                              filename=file_name)
+                                              filename=file_name,
+                                              expand_fp=False)
 
             """
             bp = BucketPuller(10)
