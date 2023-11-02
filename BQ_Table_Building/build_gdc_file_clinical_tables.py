@@ -184,7 +184,8 @@ def main(args):
         tables_file = f"{local_program_dir}/{PARAMS['RELEASE']}_tables_{program}.txt"
 
         # the source metadata files have a different release notation (relXX vs rXX)
-        src_table_release = f"{PARAMS['SRC_TABLE_PREFIX']}{PARAMS['RELEASE']}"
+        rel_no_prefix = PARAMS['RELEASE'].replace('r', '')
+        src_table_release = f"{PARAMS['SRC_TABLE_PREFIX']}{rel_no_prefix}"
 
         manifest_table_name = f"{PARAMS['RELEASE']}_{program}_manifest"
         manifest_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{manifest_table_name}"
