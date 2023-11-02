@@ -248,6 +248,9 @@ def main(args):
             for item in pull_list:
                 file_name = item.split("/")[-1]
                 uri_path = "/".join(item.split("/")[:-1])
+
+                logger.debug(local_files_dir)
+
                 download_from_external_bucket(uri_path=uri_path,
                                               dir_path=local_files_dir,
                                               filename=file_name)
