@@ -30,7 +30,8 @@ from cda_bq_etl.utils import get_scratch_fp, get_filepath
 Params = dict[str, Union[str, dict, int]]
 
 
-def download_from_external_bucket(uri_path: str, dir_path: str, filename: str, project: str = None):
+def download_from_external_bucket(uri_path: str, dir_path: str, filename: str, project: str = None,
+                                  expand_fp: bool = True):
 
     """
     Download file from Google storage bucket onto VM.
@@ -39,7 +40,10 @@ def download_from_external_bucket(uri_path: str, dir_path: str, filename: str, p
     :param filename: Name of file to download
     :param dir_path: VM location for downloaded file
     """
-    file_path = get_filepath(dir_path, filename)
+    if expand_fp:
+        file_path = get_filepath(dir_path, filename)
+    else:
+        file_path = f"{dir_path}/{filename}"
 
     if os.path.isfile(file_path):
         os.remove(file_path)
