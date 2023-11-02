@@ -194,6 +194,9 @@ def get_normalized_file_names() -> list[str]:
 
         dest_path += f"/{directory[0]}"
 
+        print(f"directory: {directory}")
+        print(f"dest_path: {dest_path}")
+
         file_list = list()
 
         for file_name in os.listdir(dest_path):
@@ -390,7 +393,7 @@ def main(args):
         if not os.path.exists(local_tar_dir):
             os.mkdir(local_tar_dir)
 
-        download_from_external_bucket(project=PARAMS['TAR_PROJECT'],
+        download_from_external_bucket(project=PARAMS['CDA_BUCKET_PROJECT'],
                                       uri_path=PARAMS['BLOB_URI_PATH'],
                                       dir_path=PARAMS['LOCAL_TAR_DIR'],
                                       filename=PARAMS['TAR_FILE'])
