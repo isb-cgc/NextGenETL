@@ -23,7 +23,7 @@ import sys
 import time
 
 from cda_bq_etl.data_helpers import initialize_logging
-from cda_bq_etl.utils import load_config, format_seconds
+from cda_bq_etl.utils import load_config, format_seconds, create_metadata_table_id
 from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic
 
 PARAMS = dict()
@@ -62,13 +62,12 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
-
     if 'create_table_from_query' in steps:
         logger.info("Entering create_table_from_query")
 
-        create_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_associated_entity_query())
+        dev_table_id = create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME'])
 
+        create_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_associated_entity_query())
         update_table_schema_from_generic(params=PARAMS, table_id=dev_table_id)
 
     end_time = time.time()

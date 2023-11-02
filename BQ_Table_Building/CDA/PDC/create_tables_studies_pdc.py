@@ -26,7 +26,7 @@ import json
 from typing import Optional, Any
 
 from cda_bq_etl.data_helpers import normalize_flat_json_values, write_list_to_jsonl_and_upload, initialize_logging
-from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds, get_filepath
+from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds, get_filepath, create_metadata_table_id
 from cda_bq_etl.bq_helpers import query_and_retrieve_result, update_table_schema_from_generic, \
     create_and_upload_schema_for_json, retrieve_bq_schema_object, create_and_load_table_from_jsonl
 
@@ -213,7 +213,7 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
+    dev_table_id = create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME'])
 
     if 'create_and_upload_study_jsonl' in steps:
         logger.info("Entering create_and_upload_study_jsonl")

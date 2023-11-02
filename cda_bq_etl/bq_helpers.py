@@ -1068,3 +1068,29 @@ def get_program_list(params: Params, rename_programs: bool = True) -> list[str]:
     else:
         logger.critical(f"get_project_list() is not yet defined for {params['NODE']}.")
         sys.exit(-1)
+
+
+def get_pdc_projects_metadata_list(params: Params) -> list[dict[str, str]]:
+    """
+    Return current list of PDC projects (pulled from study metadata table in BQEcosystem repo).
+    """
+    def make_all_studies_query() -> str:
+        studies_table_id = f"{params['DEV_PROJECT']}.{params['DEV_METADATA_DATASET']}.studies_{params['RELEASE']}"
+
+        return f"""
+            SELECT distinct project_short_name, 
+            project_friendly_name, 
+            project_submitter_id, 
+            program_short_name, 
+            program_labels
+            FROM `{studies_table_id}`
+        """
+
+    projects_result = query_and_retrieve_result(make_all_studies_query())
+
+    projects_list = list()
+
+    for project in projects_result:
+        projects_list.append(dict(project))
+
+    return projects_list

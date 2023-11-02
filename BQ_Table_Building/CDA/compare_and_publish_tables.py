@@ -809,11 +809,12 @@ def generate_table_id_list(table_type: str, table_params: dict[str, str]) -> lis
     def parse_gdc_clinical_table_id() -> tuple[str, str]:
         split_table_name_list = table_name.split('_')
         split_table_name_list.remove(PARAMS['RELEASE'])
+
         # index to split table name from program
         clinical_idx = split_table_name_list.index('clinical')
+
         dataset_name = "_".join(split_table_name_list[0:clinical_idx])
         table_base_name = "_".join(split_table_name_list[clinical_idx:])
-
         prod_table_name = f"{table_base_name}_{PARAMS['NODE']}"
 
         return dataset_name, prod_table_name
@@ -850,7 +851,6 @@ def generate_table_id_list(table_type: str, table_params: dict[str, str]) -> lis
             'source': f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}",
             'previous_versioned': ''
         }
-
         table_ids['previous_versioned'] = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
 
         table_ids_list.append(table_ids)
@@ -872,7 +872,7 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     # COMPARE AND PUBLISH METADATA TABLES
-    """
+    # """
     logger.info("Processing metadata tables!")
     for table_type, table_params in PARAMS['METADATA_TABLE_TYPES'].items():
         prod_dataset = table_params['prod_dataset']

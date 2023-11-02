@@ -24,7 +24,7 @@ import time
 
 from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic, query_and_retrieve_result
 from cda_bq_etl.data_helpers import initialize_logging
-from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds
+from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds, create_per_sample_table_id
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -124,8 +124,8 @@ def main(args):
         logger.info("Entering create_project_tables")
 
         for project in projects_list:
-            project_table_name = f"{PARAMS['TABLE_NAME']}_{project['project_short_name']}_{PARAMS['RELEASE']}"
-            project_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{project_table_name}"
+            project_table_base_name = f"{project['project_short_name']}_{PARAMS['TABLE_NAME']}"
+            project_table_id = create_per_sample_table_id(PARAMS, project_table_base_name)
 
             create_table_from_query(params=PARAMS,
                                     table_id=project_table_id,
