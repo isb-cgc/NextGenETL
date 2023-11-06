@@ -885,6 +885,7 @@ def update_schema(table_id: str, new_descriptions: dict[str, str]):
     """
     client = bigquery.Client()
     table = client.get_table(table_id)
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
 
     new_schema = []
 
@@ -894,9 +895,10 @@ def update_schema(table_id: str, new_descriptions: dict[str, str]):
         if column['name'] in new_descriptions.keys():
             name = column['name']
             column['description'] = new_descriptions[name]
-        elif column['description'] == '':
-            logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
-            logger.info(f"Still no description for field: {column['name']}")
+        else:
+            logger.error(f"Need to define {column['name']} in BQEcosystem field description dictionary.")
+        if 'description' in column and column['description'] == '':
+            logger.error(f"Still no description for field: {column['name']}")
 
         mod_column = bigquery.SchemaField.from_api_repr(column)
         new_schema.append(mod_column)
