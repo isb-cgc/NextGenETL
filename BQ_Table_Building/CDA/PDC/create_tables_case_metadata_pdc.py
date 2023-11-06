@@ -35,11 +35,20 @@ def make_case_metadata_query() -> str:
     Make BigQuery sql statement, used to generate the case_metadata table.
     :return: sql query statement
     """
+    """
+    
+    """
     return f"""
         WITH file_counts AS (
-            SELECT case_id, COUNT(file_id) AS file_count
-            FROM `{create_dev_table_id(PARAMS, "file_case_id")}`
-            GROUP BY case_id
+            SELECT c.case_id, count(fma.file_id) file_count
+            FROM `{create_dev_table_id(PARAMS, "case")}` c
+            LEFT JOIN `{create_dev_table_id(PARAMS, "case_samples")}` cs
+              ON c.case_id = cs.case_id
+            LEFT JOIN `{create_dev_table_id(PARAMS, "sample_aliquots")}` sa
+              ON sa.sample_id = cs.sample_id
+            LEFT JOIN `{create_dev_table_id(PARAMS, "filemetadata_aliquots")}` fma
+              ON sa.aliquot_id = fma.aliquot_id
+            GROUP BY c.case_id
         )
 
         SELECT c.case_id,
@@ -51,14 +60,12 @@ def make_case_metadata_query() -> str:
             proj.project_id,
             fc.file_count
         FROM `{create_dev_table_id(PARAMS, "case")}` c 
-        LEFT JOIN `{create_dev_table_id(PARAMS, "case_project_id")}` cp
-            ON cp.case_id = c.case_id
         LEFT JOIN `{create_dev_table_id(PARAMS, "project")}` proj
-            ON proj.project_id = cp.project_id
-        LEFT JOIN `{create_dev_table_id(PARAMS, "program_project_id")}` pp
-            ON pp.project_id = proj.project_id
+            ON c.project_id = proj.project_id
+        LEFT JOIN `{create_dev_table_id(PARAMS, "program_projects")}` pp
+            ON proj.project_id = pp.project_id
         LEFT JOIN `{create_dev_table_id(PARAMS, "program")}` prog
-            ON prog.program_id = pp.program_id
+            ON pp.program_id = prog.program_id
         LEFT JOIN file_counts fc
             ON fc.case_id = c.case_id
     """
@@ -83,7 +90,6 @@ def main(args):
         logger.info("Entering create_table_from_query")
 
         create_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_case_metadata_query())
-
         update_table_schema_from_generic(params=PARAMS, table_id=dev_table_id)
 
     end_time = time.time()
