@@ -261,14 +261,21 @@ def main(args):
 
             for gs_uri in sorted(pull_list):
                 file_name = gs_uri.split("/")[-1]
+                file_path = get_scratch_fp(PARAMS, filename=file_name)
+                file_obj = open(file_path, 'wb')
 
-                with open(get_scratch_fp(PARAMS, filename=file_name), 'wb') as file_obj:
-                    try:
-                        storage_client.download_blob_to_file(blob_or_uri=gs_uri, file_obj=file_obj)
-                    except InvalidResponse:
-                        print(f"{file_name} request failed")
-                    except Forbidden:
-                        print(f"{file_name} request failed")
+                try:
+                    storage_client.download_blob_to_file(blob_or_uri=gs_uri, file_obj=file_obj)
+                    file_obj.close()
+                except InvalidResponse:
+                    print(f"{gs_uri} request failed")
+                    file_obj.close()
+                    os.remove(file_path)
+                except Forbidden:
+                    print(f"{gs_uri} request failed")
+                    file_obj.close()
+                    os.remove(file_path)
+
 
             # bp = BucketPuller(10)
             # bp.pull_from_buckets(pull_list, local_files_dir)
