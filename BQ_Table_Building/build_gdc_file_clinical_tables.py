@@ -21,8 +21,10 @@ import sys
 import time
 import os
 import pandas as pd
+from google.api_core.exceptions import Forbidden
 
 from google.cloud import storage
+from google.resumable_media import InvalidResponse
 
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object, 
                                    create_and_load_table_from_tsv)
@@ -261,8 +263,12 @@ def main(args):
                 file_name = gs_uri.split("/")[-1]
 
                 with open(get_scratch_fp(PARAMS, filename=file_name), 'wb') as file_obj:
-                    storage_client.download_blob_to_file(blob_or_uri=gs_uri, file_obj=file_obj)
-
+                    try:
+                        storage_client.download_blob_to_file(blob_or_uri=gs_uri, file_obj=file_obj)
+                    except InvalidResponse:
+                        print(f"{file_name} request failed")
+                    except Forbidden:
+                        print(f"{file_name} request failed")
 
             # bp = BucketPuller(10)
             # bp.pull_from_buckets(pull_list, local_files_dir)
