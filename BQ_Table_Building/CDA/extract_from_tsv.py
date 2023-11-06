@@ -143,7 +143,13 @@ def create_table_name(file_name: str) -> str:
     :return: Valid BigQuery table name
     :rtype: str
     """
-    file_name = file_name.lower()
+    if PARAMS['NODE'] == 'pdc':
+        file_name = file_name.replace(f"{PARAMS['RELEASE']}", "")
+        file_name = file_name.lower()
+        file_name = PARAMS['RELEASE'] + file_name
+    else:
+        file_name = file_name.lower()
+
     split_file_name = file_name.split(".")
     table_name = "_".join(split_file_name[:-1])
 
