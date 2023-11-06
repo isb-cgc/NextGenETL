@@ -32,10 +32,10 @@ from google.cloud.exceptions import NotFound
 from google.cloud.bigquery import SchemaField, Client, LoadJobConfig, QueryJob
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
-from cda_bq_etl.utils import get_filename, get_scratch_fp, input_with_timeout, get_filepath, create_dev_table_id
+from cda_bq_etl.utils import get_filename, get_scratch_fp, get_filepath, create_dev_table_id, create_metadata_table_id
 from cda_bq_etl.gcs_helpers import download_from_bucket, upload_to_bucket
-from cda_bq_etl.data_helpers import recursively_detect_object_structures, get_column_list_tsv, \
-    aggregate_column_data_types_tsv, resolve_type_conflicts, resolve_type_conflict
+from cda_bq_etl.data_helpers import (recursively_detect_object_structures, get_column_list_tsv,
+                                     aggregate_column_data_types_tsv, resolve_type_conflicts, resolve_type_conflict)
 
 Params = dict[str, Union[str, dict, int, bool]]
 ColumnTypes = Union[None, str, float, int, bool]
@@ -908,48 +908,37 @@ def update_schema(table_id: str, new_descriptions: dict[str, str]):
     client.update_table(table, ['schema'])
 
 
-def get_project_program_names(params: Params, project_submitter_id: str) -> dict[str, str]:
+def get_pdc_projects_metadata(params: Params, project_submitter_id: str = None) -> list[dict[str, str]]:
     """
     Get project short name, program short name and project name for given project submitter id.
     :param params: params from YAML config
     :param project_submitter_id: Project submitter id for which to retrieve names
     :return: tuple containing (project_short_name, program_short_name, project_name) strings
     """
+    def make_study_query():
+        where_clause = ''
+        if project_submitter_id:
+            where_clause = f"WHERE project_submitter_id = '{project_submitter_id}'"
 
-    # todo incorrect, fix
-    study_table_name = "studies"
-    study_table_id = f"{params['DEV_PROJECT']}.{params['META_DATASET']}.{study_table_name}"
+        return f"""
+            SELECT project_short_name, program_short_name, project_name, project_friendly_name, program_labels
+            FROM {create_metadata_table_id(params, "studies")}
+            {where_clause}
+        """
 
-    query = f"""
-        SELECT project_short_name, program_short_name, project_name, project_friendly_name, program_labels
-        FROM {study_table_id}
-        WHERE project_submitter_id = '{project_submitter_id}'
-        LIMIT 1
-    """
+    projects_result = query_and_retrieve_result(make_study_query())
 
-    res = query_and_retrieve_result(sql=query)
+    projects_list = list()
 
-    for row in res:
-        if not row:
+    for project in projects_result:
+        if not project:
             logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
-            logger.critical(f"No result for query: {query}")
+            logger.critical(f"No project found for {project_submitter_id}")
             sys.exit(-1)
 
-        project_short_name = row[0]
-        program_short_name = row[1]
-        project_name = row[2]
-        project_friendly_name = row[3]
-        program_labels = row[4]
+        projects_list.append(dict(project))
 
-        project_name_dict = {
-            "project_short_name": project_short_name,
-            "program_short_name": program_short_name,
-            "project_name": project_name,
-            "project_friendly_name": project_friendly_name,
-            "program_labels": program_labels
-        }
-
-        return project_name_dict
+    return projects_list
 
 
 def get_project_level_schema_tags(params: Params, project_submitter_id: str) -> dict[str, str]:
@@ -959,7 +948,7 @@ def get_project_level_schema_tags(params: Params, project_submitter_id: str) -> 
     :param project_submitter_id: Project submitter id for which to retrieve schema tags
     :return: Dict of schema tags
     """
-    project_name_dict = get_project_program_names(params, project_submitter_id)
+    project_name_dict = get_pdc_projects_metadata(params, project_submitter_id)[0]
     program_labels_list = project_name_dict['program_labels'].split("; ")
 
     logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
@@ -972,18 +961,18 @@ def get_project_level_schema_tags(params: Params, project_submitter_id: str) -> 
         sys.exit(-1)
     elif len(program_labels_list) == 2:
         return {
-            "project-name": project_name_dict['project_name'],
+            "project-name": project_name_dict['project_short_name'].strip(),
             "mapping-name": "",  # only used by clinical, but including it elsewhere is harmless
-            "friendly-project-name-upper": project_name_dict['project_friendly_name'],
-            "program-name-0-lower": program_labels_list[0].lower(),
-            "program-name-1-lower": program_labels_list[1].lower()
+            "friendly-project-name-upper": project_name_dict['project_friendly_name'].upper().strip(),
+            "program-name-0-lower": program_labels_list[0].lower().strip(),
+            "program-name-1-lower": program_labels_list[1].lower().strip()
         }
     else:
         return {
-            "project-name": project_name_dict['project_name'],
+            "project-name": project_name_dict['project_short_name'].strip(),
             "mapping-name": "",  # only used by clinical, but including it elsewhere is harmless
-            "friendly-project-name-upper": project_name_dict['project_friendly_name'],
-            "program-name-lower": project_name_dict['program_labels'].lower()
+            "friendly-project-name-upper": project_name_dict['project_friendly_name'].upper().strip(),
+            "program-name-lower": project_name_dict['program_labels'].lower().strip()
         }
 
 

@@ -761,9 +761,9 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     if 'find_missing_fields' in steps:
-        logger.debug("Passing find_missing_fields")
+        # logger.debug("Passing find_missing_fields")
         # Find discrepancies in field lists in yaml config and CDA data
-        # find_missing_fields()
+        find_missing_fields()
 
     if 'create_tables' in steps:
         # create dict of programs : base/supplemental tables to be created
