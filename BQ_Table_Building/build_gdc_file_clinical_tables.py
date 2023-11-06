@@ -255,11 +255,17 @@ def main(args):
                 pull_list = pull_list_file.read().splitlines()
             logger.info("Preparing to download %s files from buckets\n" % len(pull_list))
 
-            for gs_uri in sorted(pull_list):
-                print(gs_uri)
+            storage_client = storage.Client()
 
-            bp = BucketPuller(10)
-            bp.pull_from_buckets(pull_list, local_files_dir)
+            for gs_uri in sorted(pull_list):
+                file_name = gs_uri.split("/")[-1]
+
+                with open(get_scratch_fp(PARAMS, filename=file_name), 'wb') as file_obj:
+                    storage_client.download_blob_to_file(blob_or_uri=gs_uri, file_obj=file_obj)
+
+
+            # bp = BucketPuller(10)
+            # bp.pull_from_buckets(pull_list, local_files_dir)
 
         if 'build_file_list' in steps:
             # build list of files in local scratch directories
