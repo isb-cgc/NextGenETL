@@ -57,15 +57,15 @@ def make_aliquot_table_query() -> str:
             a.aliquot_id, 
             a.aliquot_submitter_id
         FROM `{create_dev_table_id(PARAMS, "aliquot")}` a
-        JOIN `{create_dev_table_id(PARAMS, "sample_aliquot_id")}` sa
+        JOIN `{create_dev_table_id(PARAMS, "sample_aliquots")}` sa
             ON a.aliquot_id = sa.aliquot_id
         JOIN `{create_dev_table_id(PARAMS, "sample")}` s
             ON sa.sample_id = s.sample_id
-        JOIN `{create_dev_table_id(PARAMS, "case_sample_id")}` cs
+        JOIN `{create_dev_table_id(PARAMS, "case_samples")}` cs
             ON cs.sample_id = s.sample_id
         JOIN `{create_dev_table_id(PARAMS, "case")}` c
             ON cs.case_id = c.case_id
-        JOIN `{create_dev_table_id(PARAMS, "case_project_id")}` cp
+        JOIN `{create_dev_table_id(PARAMS, "case_projects")}` cp
             ON cp.case_id = c.case_id
         JOIN `{create_dev_table_id(PARAMS, "project")}` proj
             ON proj.project_id = cp.project_id
