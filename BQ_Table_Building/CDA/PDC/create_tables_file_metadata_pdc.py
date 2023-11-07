@@ -69,11 +69,8 @@ def make_file_metadata_query() -> str:
         FROM `{create_dev_table_id(PARAMS, 'file')}` f
         LEFT JOIN study_ids si
             ON si.file_id = f.file_id
-        LEFT JOIN `{create_dev_table_id(PARAMS, 'file_study_run_metadata_id')}` fsrm
-            ON fsrm.file_id = f.file_id
-        # todo this is currently broken in PDC pipeline, awaiting fix from CDA
-        LEFT JOIN `{create_dev_table_id(PARAMS, 'studyrunmetadata')}` srm
-            ON srm.study_run_metadata_id = fsrm.study_run_metadata_id
+        LEFT JOIN `{create_dev_table_id(PARAMS, 'file_study_run_metadata_ids')}` srm
+            ON srm.file_id = f.file_id
         LEFT JOIN file_instruments fi
             ON fi.file_id = f.file_id
     """
