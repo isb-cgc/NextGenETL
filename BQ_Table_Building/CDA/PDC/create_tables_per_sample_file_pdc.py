@@ -22,11 +22,11 @@ SOFTWARE.
 import sys
 import time
 
-from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic, query_and_retrieve_result, \
-    get_project_level_schema_tags, get_pdc_projects_metadata
+from cda_bq_etl.bq_helpers import (create_table_from_query, update_table_schema_from_generic, get_pdc_projects_metadata,
+                                   get_project_level_schema_tags)
 from cda_bq_etl.data_helpers import initialize_logging
-from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds, create_per_sample_table_id, \
-    create_metadata_table_id
+from cda_bq_etl.utils import (load_config, create_dev_table_id, format_seconds, create_per_sample_table_id,
+                              create_metadata_table_id)
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -107,33 +107,6 @@ def main(args):
                                     query=make_project_per_sample_file_query(project['project_submitter_id']))
 
             schema_tags = get_project_level_schema_tags(PARAMS, project['project_submitter_id'])
-
-            """
-            schema_tags = dict()
-
-            if 'program_labels' not in project:
-                logger.critical(f"No program labels found for {project['project_submitter_id']}.")
-                sys.exit(-1)
-
-            program_label_list = project['program_labels'].split('; ')
-
-            if len(program_label_list) == 0:
-                logger.critical(f"No program labels found for {project['project_submitter_id']}.")
-                sys.exit(-1)
-            elif len(program_label_list) == 1:
-                schema_tags['program-name-lower'] = program_label_list[0].lower().strip()
-                generic_table_metadata_file = PARAMS['GENERIC_TABLE_METADATA_FILE']
-            elif len(program_label_list) == 2:
-                schema_tags['program-name-0-lower'] = program_label_list[0].lower().strip()
-                schema_tags['program-name-1-lower'] = program_label_list[1].lower().strip()
-                generic_table_metadata_file = PARAMS['GENERIC_TABLE_METADATA_FILE_2_PROGRAM']
-            else:
-                logger.critical(f"Too many program labels found for {project['project_submitter_id']}.")
-                sys.exit(-1)
-
-            schema_tags['project-name'] = project['project_short_name'].strip()
-            schema_tags['friendly-project-name-upper'] = project['project_friendly_name'].upper().strip()
-            """
 
             if 'program-name-1-lower' in schema_tags:
                 generic_table_metadata_file = PARAMS['GENERIC_TABLE_METADATA_FILE_2_PROGRAM']
