@@ -22,7 +22,7 @@ SOFTWARE.
 import sys
 import time
 
-from cda_bq_etl.utils import load_config, format_seconds, create_dev_table_id, create_metadata_table_id
+from cda_bq_etl.utils import load_config, format_seconds, create_dev_table_id
 from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic
 from cda_bq_etl.data_helpers import initialize_logging
 
@@ -57,15 +57,15 @@ def make_aliquot_table_query() -> str:
             a.aliquot_id, 
             a.aliquot_submitter_id
         FROM `{create_dev_table_id(PARAMS, "aliquot")}` a
-        JOIN `{create_dev_table_id(PARAMS, "sample_aliquots")}` sa
+        JOIN `{create_dev_table_id(PARAMS, "sample_aliquot_id")}` sa
             ON a.aliquot_id = sa.aliquot_id
         JOIN `{create_dev_table_id(PARAMS, "sample")}` s
             ON sa.sample_id = s.sample_id
-        JOIN `{create_dev_table_id(PARAMS, "case_samples")}` cs
+        JOIN `{create_dev_table_id(PARAMS, "case_sample_id")}` cs
             ON cs.sample_id = s.sample_id
         JOIN `{create_dev_table_id(PARAMS, "case")}` c
             ON cs.case_id = c.case_id
-        JOIN `{create_dev_table_id(PARAMS, "case_projects")}` cp
+        JOIN `{create_dev_table_id(PARAMS, "case_project_id")}` cp
             ON cp.case_id = c.case_id
         JOIN `{create_dev_table_id(PARAMS, "project")}` proj
             ON proj.project_id = cp.project_id
@@ -89,12 +89,13 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    dev_table_id = create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME'])
+    dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
 
     if 'create_table_from_query' in steps:
         logger.info("Entering create_table_from_query")
 
         create_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_aliquot_table_query())
+
         update_table_schema_from_generic(params=PARAMS, table_id=dev_table_id)
 
     end_time = time.time()

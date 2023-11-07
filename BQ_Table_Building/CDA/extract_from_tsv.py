@@ -188,8 +188,8 @@ def get_normalized_file_names() -> list[str]:
         dir_file_dict, dest_path = scan_directories_and_create_file_dict(dest_path)
 
         for directory, file_list in dir_file_dict.items():
-            if directory not in PARAMS['DIRS_TO_KEEP']:
-                continue
+            # if directory not in PARAMS['DIRS_TO_KEEP']:
+            #    continue
             local_directory = f"{dest_path}/{directory}"
 
             file_list = delete_empty_tsv_files()
