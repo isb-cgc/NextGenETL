@@ -25,14 +25,15 @@ import time
 from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic, query_and_retrieve_result, \
     get_project_level_schema_tags, get_pdc_projects_metadata
 from cda_bq_etl.data_helpers import initialize_logging
-from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds, create_per_sample_table_id
+from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds, create_per_sample_table_id, \
+    create_metadata_table_id
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
 def make_project_per_sample_file_query(project_submitter_id):
-    studies_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.studies_{PARAMS['RELEASE']}"
+    studies_table_id = create_metadata_table_id(PARAMS, "studies")
 
     return f"""
         WITH file_instruments AS (

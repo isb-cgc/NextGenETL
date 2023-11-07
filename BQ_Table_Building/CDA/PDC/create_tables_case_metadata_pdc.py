@@ -77,7 +77,7 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    dev_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_METADATA_DATASET']}.{PARAMS['TABLE_NAME']}_{PARAMS['RELEASE']}"
+    dev_table_id = create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME'])
 
     if 'create_table_from_query' in steps:
         logger.info("Entering create_table_from_query")
