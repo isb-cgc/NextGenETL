@@ -23,7 +23,7 @@ import sys
 import time
 
 from cda_bq_etl.data_helpers import initialize_logging
-from cda_bq_etl.utils import load_config, format_seconds, create_metadata_table_id
+from cda_bq_etl.utils import load_config, format_seconds, create_metadata_table_id, create_dev_table_id
 from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic
 
 PARAMS = dict()
@@ -41,10 +41,10 @@ def make_associated_entity_query() -> str:
             a.aliquot_id,
             a.aliquot_submitter_id,
             "aliquot" AS entity_type
-        FROM `isb-project-zero.cda_pdc_raw.2023_06_file_aliquot_id` fa
-        JOIN `isb-project-zero.cda_pdc_raw.2023_06_aliquot` a
+        FROM `{create_dev_table_id(PARAMS, 'file_aliquot_id')}` fa
+        JOIN `{create_dev_table_id(PARAMS, 'aliquot')}` a
             ON a.aliquot_id = fa.aliquot_id
-        JOIN `isb-project-zero.cda_pdc_raw.2023_06_aliquot_case_id` ac
+        JOIN `{create_dev_table_id(PARAMS, 'aliquot_case_id')}` ac
             ON ac.aliquot_id = a.aliquot_id
     """
 
