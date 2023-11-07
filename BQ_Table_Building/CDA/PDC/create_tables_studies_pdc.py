@@ -86,11 +86,11 @@ def make_study_query() -> str:
             prog.start_date,
             prog.end_date
         FROM `{create_dev_table_id(PARAMS, "study")}` s
-        JOIN `{create_dev_table_id(PARAMS, "project_studies")}` proj_study
+        JOIN `{create_dev_table_id(PARAMS, "project_study_id")}` proj_study
             ON s.study_id = proj_study.study_id
         JOIN `{create_dev_table_id(PARAMS, "project")}` proj
             ON proj.project_id = proj_study.project_id
-        JOIN `{create_dev_table_id(PARAMS, "program_projects")}` prog_proj
+        JOIN `{create_dev_table_id(PARAMS, "program_project_id")}` prog_proj
             ON prog_proj.project_id = proj.project_id
         JOIN `{create_dev_table_id(PARAMS, "program")}` prog
             ON prog.program_id = prog_proj.program_id
@@ -103,7 +103,7 @@ def make_study_disease_type_query() -> str:
             s.study_id,
             STRING_AGG(sdt.disease_type, ';' ORDER BY sdt.disease_type) AS disease_type,
         FROM `{create_dev_table_id(PARAMS, "study")}` s
-        LEFT JOIN `{create_dev_table_id(PARAMS, "study_disease_types")}` sdt
+        LEFT JOIN `{create_dev_table_id(PARAMS, "study_disease_type")}` sdt
             ON s.study_id = sdt.study_id
         GROUP BY s.pdc_study_id, s.study_id
     """
@@ -115,7 +115,7 @@ def make_study_primary_site_query() -> str:
             s.study_id,
             STRING_AGG(sps.primary_site, ';' ORDER BY sps.primary_site) AS primary_site
         FROM `{create_dev_table_id(PARAMS, "study")}` s
-        LEFT JOIN `{create_dev_table_id(PARAMS, "study_primary_sites")}` sps
+        LEFT JOIN `{create_dev_table_id(PARAMS, "study_primary_site")}` sps
             ON s.study_id = sps.study_id
         GROUP BY s.pdc_study_id, s.study_id
     """
@@ -212,7 +212,7 @@ def main(args):
     log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
-
+    
     dev_table_id = create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME'])
 
     if 'create_and_upload_study_jsonl' in steps:
