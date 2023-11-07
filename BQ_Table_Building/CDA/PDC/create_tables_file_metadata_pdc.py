@@ -41,7 +41,6 @@ def make_file_metadata_query() -> str:
                 STRING_AGG(DISTINCT instrument, ';' ORDER BY instrument) AS instruments
             FROM `{create_dev_table_id(PARAMS, 'file_instrument')}`
             GROUP BY file_id
-        )
         ), study_ids AS (
             SELECT fs.file_id,
                 STRING_AGG(DISTINCT s.pdc_study_id, ';' ORDER BY s.pdc_study_id) as pdc_study_ids
