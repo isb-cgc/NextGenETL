@@ -113,7 +113,7 @@ def find_missing_fields(include_trivial_columns: bool = False):
         logger.info("No missing fields!")
 
 
-def find_project_tables(projects_list: list[str]) -> dict[str, set[str]]:
+def find_project_tables(projects_list: list[dict[str, str]]) -> dict[str, set[str]]:
     """
     Creates per-program dict of tables to be created.
     :return: dict in the form { <program-name>: {set of standalone tables} }
@@ -121,11 +121,11 @@ def find_project_tables(projects_list: list[str]) -> dict[str, set[str]]:
     def make_projects_with_multiple_ids_per_case_sql() -> str:
         return f"""
             WITH projects AS (
-                SELECT DISTINCT proj.project_submitter_id
+                SELECT DISTINCT proj.project_short_name
                 FROM `{create_dev_table_id(PARAMS, table_metadata['mapping_table'])}` base_mapping_table
                 JOIN `{create_dev_table_id(PARAMS, 'case_project_id')}` case_proj
                     ON base_mapping_table.case_id = case_proj.case_id
-                JOIN `{create_dev_table_id(PARAMS, 'project')}` proj
+                JOIN `{create_metadata_table_id(PARAMS, 'studies')}` proj
                     ON case_proj.project_id = proj.project_id
                 GROUP BY base_mapping_table.case_id, case_proj.project_id
                 HAVING COUNT(base_mapping_table.case_id) > 1
@@ -145,10 +145,8 @@ def find_project_tables(projects_list: list[str]) -> dict[str, set[str]]:
         logger.critical("No programs found, exiting.")
         sys.exit(-1)
 
-    print(projects_list)
-
     for base_project in projects_list:
-        tables_per_project_dict[base_project] = {'case'}
+        tables_per_project_dict[base_project['project_short_name']] = {'case'}
 
     # Create set of programs for each mapping table type,
     # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
