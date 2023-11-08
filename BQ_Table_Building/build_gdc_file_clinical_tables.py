@@ -265,6 +265,7 @@ def main(args):
                 file_obj = open(file_path, 'wb')
 
                 try:
+                    print(gs_uri)
                     storage_client.download_blob_to_file(blob_or_uri=gs_uri, file_obj=file_obj)
                     file_obj.close()
                 except InvalidResponse:
