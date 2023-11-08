@@ -248,7 +248,7 @@ def main(args):
         if 'build_file_pull_list' in steps:
             logger.info('build_file_pull_list')
 
-            file_pull_list = make_file_pull_list()
+            file_pull_list = make_file_pull_list(programs[program]['filters'], program)
 
             storage_client = storage.Client()
 
