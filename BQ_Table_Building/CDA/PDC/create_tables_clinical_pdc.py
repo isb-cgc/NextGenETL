@@ -113,6 +113,61 @@ def find_missing_fields(include_trivial_columns: bool = False):
         logger.info("No missing fields!")
 
 
+def find_project_tables(projects_list: list[str]) -> dict[str, set[str]]:
+    """
+    Creates per-program dict of tables to be created.
+    :return: dict in the form { <program-name>: {set of standalone tables} }
+    """
+    def make_projects_with_multiple_ids_per_case_sql() -> str:
+        return f"""
+            WITH projects AS (
+                SELECT DISTINCT proj.project_submitter_id
+                FROM `{create_dev_table_id(PARAMS, table_metadata['mapping_table'])}` base_mapping_table
+                JOIN `{create_dev_table_id(PARAMS, 'case_project_id')}` case_proj
+                    ON base_mapping_table.case_id = case_proj.case_id
+                JOIN `{create_dev_table_id(PARAMS, 'project')}` proj
+                    ON case_proj.project_id = proj.project_id
+                GROUP BY base_mapping_table.case_id, case_proj.project_id
+                HAVING COUNT(base_mapping_table.case_id) > 1
+            )
+
+            SELECT DISTINCT project_submitter_id
+            FROM projects
+            """
+
+    table_dict = PARAMS['TABLE_PARAMS']
+
+    logger = logging.getLogger('base_script')
+    # Create program set for base clinical tables -- will include every program with clinical cases
+    tables_per_project_dict = dict()
+
+    if projects_list is None:
+        logger.critical("No programs found, exiting.")
+        sys.exit(-1)
+
+    for base_project in projects_list:
+        tables_per_project_dict[base_project] = {'case'}
+
+    # Create set of programs for each mapping table type,
+    # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
+    for table_name, table_metadata in table_dict.items():
+        if table_name == 'case':
+            continue
+
+        # create the query and retrieve results
+        result = query_and_retrieve_result(sql=make_projects_with_multiple_ids_per_case_sql())
+
+        if result is None:
+            logger.error("SQL result is none for query: ")
+            logger.debug(make_projects_with_multiple_ids_per_case_sql())
+            sys.exit(-1)
+
+        for project_row in result:
+            tables_per_project_dict[project_row[0]].add(table_name)
+
+    return tables_per_project_dict
+
+
 def make_clinical_table_query(project_submitter_id: str) -> str:
     # get all cases for project submitter id
     # get clinical data, demographics and diagnoses
@@ -120,22 +175,10 @@ def make_clinical_table_query(project_submitter_id: str) -> str:
     return f"""
         SELECT c.case_id,
             c.case_submitter_id,
-            s.sample_id,
-            s.sample_submitter_id,
-            s.sample_type,
             study.project_short_name,
             study.project_submitter_id,
             study.program_short_name,
-            study.program_name,
-            f.data_category,
-            f.experiment_type,
-            f.file_type,
-            f.file_size,
-            f.file_format,
-            fi.instruments AS instrument,
-            f.file_name,
-            f.file_location,
-            "open" AS `access`
+            study.program_name
         FROM `{create_dev_table_id(PARAMS, 'case')}` c
         JOIN `{create_dev_table_id(PARAMS, 'case_study_id')}` cs
             ON c.case_id = cs.case_id
@@ -163,10 +206,14 @@ def main(args):
     # todo add find missing fields
 
     if 'find_missing_fields' in steps:
-        logger.info("Finding missing fields")
-        find_missing_fields()
-
+        # logger.info("Finding missing fields")
+        # find_missing_fields()
+        logger.info("Passing missing fields")
     if 'create_project_tables' in steps:
+        tables_per_project_dict = find_project_tables(projects_list)
+
+        logger.debug(tables_per_project_dict)
+
         logger.info("Entering create_project_tables")
 
         for project in projects_list:
