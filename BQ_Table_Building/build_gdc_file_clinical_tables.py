@@ -202,12 +202,7 @@ def main(args):
     log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
-    
     logger.info(f"GDC clinical file script started at {time.strftime('%x %X', time.localtime())}")
-
-    if not programs:
-        logger.critical("Specify program parameters in YAML.")
-        sys.exit(-1)
 
     base_file_name = PARAMS['BASE_FILE_NAME']
 
@@ -234,7 +229,6 @@ def main(args):
             logger.info(f"Creating directory {local_schemas_dir}")
             os.makedirs(local_schemas_dir)
 
-        local_pull_list = f"{local_program_dir}/{base_file_name}_pull_list_{program}.tsv"
         file_traversal_list = f"{local_program_dir}/{base_file_name}_traversal_list_{program}.txt"
         tables_file = f"{local_program_dir}/{PARAMS['RELEASE']}_tables_{program}.txt"
 
@@ -263,7 +257,6 @@ def main(args):
                 file_obj = open(file_path, 'wb')
 
                 try:
-                    print(gs_uri)
                     storage_client.download_blob_to_file(blob_or_uri=gs_uri, file_obj=file_obj)
                     file_obj.close()
 
@@ -286,84 +279,6 @@ def main(args):
                     os.remove(file_path)
 
         """
-        # final_target_table = f"{PARAMS['RELEASE']}_{program}_clin_files"
-        if 'build_manifest_from_filters' in steps:
-            # Build a file manifest based on fileData table in GDC_metadata (filename, md5, etc)
-            # Write to file, create BQ table
-            logger.info('build_manifest_from_filters')
-
-            filter_dict = programs[program]['filters']
-            file_table_name = f"{src_table_release}_{PARAMS['FILE_TABLE']}"
-            file_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['META_DATASET']}.{file_table_name}"
-            manifest_file = f"{local_program_dir}/{base_file_name}_{program}.tsv"
-            bucket_tsv = f"{PARAMS['WORKING_BUCKET_DIR']}/{src_table_release}_{base_file_name}_{program}.tsv"
-
-            manifest_success = get_the_bq_manifest(file_table=file_table_id,
-                                                   filter_dict=filter_dict,
-                                                   max_files=None,
-                                                   project=PARAMS['DEV_PROJECT'],
-                                                   tmp_dataset=PARAMS['DEV_DATASET'],
-                                                   tmp_bq=manifest_table_name,
-                                                   tmp_bucket=PARAMS['WORKING_BUCKET'],
-                                                   tmp_bucket_file=bucket_tsv,
-                                                   local_file=manifest_file,
-                                                   do_batch=PARAMS['BQ_AS_BATCH'])
-            if not manifest_success:
-                logger.critical("Failure generating manifest")
-                sys.exit(-1)
-
-        if 'build_pull_list' in steps:
-            # Build list of file paths in the GDC cloud, create file and bq table
-            logger.info('build_pull_list')
-            bq_pull_list_table_name = f"{PARAMS['RELEASE']}_{program}_pull_list"
-            indexd_table_name = f"{src_table_release}_{PARAMS['INDEXD_TABLE']}"
-            indexd_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['MANIFEST_DATASET']}.{indexd_table_name}"
-
-            success = build_pull_list_with_bq_public(manifest_table=manifest_table_id,
-                                                     indexd_table=indexd_table_id,
-                                                     project=PARAMS['DEV_PROJECT'],
-                                                     tmp_dataset=PARAMS['DEV_DATASET'],
-                                                     tmp_bq=bq_pull_list_table_name,
-                                                     tmp_bucket=PARAMS['WORKING_BUCKET'],
-                                                     tmp_bucket_file=PARAMS['BUCKET_PULL_LIST'],
-                                                     local_file=local_pull_list,
-                                                     do_batch=PARAMS['BQ_AS_BATCH'])
-            if not success:
-                logger.warning("Build pull list failed")
-                return
-
-        if 'download_from_gdc' in steps:
-            # download files from gdc buckets and download to local scratch directory
-            logger.info('download_from_gdc')
-            with open(local_pull_list, mode='r') as pull_list_file:
-                pull_list = pull_list_file.read().splitlines()
-            logger.info("Preparing to download %s files from buckets\n" % len(pull_list))
-
-            storage_client = storage.Client()
-
-            for gs_uri in sorted(pull_list):
-                file_name = gs_uri.split("/")[-1]
-                file_path = get_scratch_fp(PARAMS, filename=file_name)
-                file_obj = open(file_path, 'wb')
-
-                try:
-                    print(gs_uri)
-                    storage_client.download_blob_to_file(blob_or_uri=gs_uri, file_obj=file_obj)
-                    file_obj.close()
-                except InvalidResponse:
-                    print(f"{gs_uri} request failed")
-                    file_obj.close()
-                    os.remove(file_path)
-                except Forbidden:
-                    print(f"{gs_uri} request failed")
-                    file_obj.close()
-                    os.remove(file_path)
-
-
-            # bp = BucketPuller(10)
-            # bp.pull_from_buckets(pull_list, local_files_dir)
-    
-
         if 'build_file_list' in steps:
             # build list of files in local scratch directories
             logger.info('build_file_list')
@@ -378,11 +293,17 @@ def main(args):
                         if '_CDE_' in line:
                             continue
                     traversal_list.write(f"{line}\n")
-
+        """
         if 'convert_excel_to_csv' in steps:
             # If file suffix is xlsx or xls, convert to tsv.
             # Then modify traversal list file to point to the newly created tsv files.
             logger.info('convert_excel_to_tsv')
+
+            file_names = os.listdir(local_files_dir)
+
+            print(file_names)
+            exit()
+
             if programs[program]['file_suffix'] == 'xlsx' or programs[program]['file_suffix'] == 'xls':
                 with open(file_traversal_list, mode='r') as traversal_list_file:
                     all_files = traversal_list_file.read().splitlines()
@@ -455,7 +376,6 @@ def main(args):
             for table in table_list:
                 logger.info(table)
             logger.info("")
-        """
 
         """
         TODO:
