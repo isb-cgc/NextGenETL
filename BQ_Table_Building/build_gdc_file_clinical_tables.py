@@ -283,6 +283,7 @@ def main(args):
                     file_obj.close()
                     os.remove(file_path)
 
+        """
         # final_target_table = f"{PARAMS['RELEASE']}_{program}_clin_files"
         if 'build_manifest_from_filters' in steps:
             # Build a file manifest based on fileData table in GDC_metadata (filename, md5, etc)
@@ -359,6 +360,7 @@ def main(args):
 
             # bp = BucketPuller(10)
             # bp.pull_from_buckets(pull_list, local_files_dir)
+    
 
         if 'build_file_list' in steps:
             # build list of files in local scratch directories
@@ -451,6 +453,7 @@ def main(args):
             for table in table_list:
                 logger.info(table)
             logger.info("")
+        """
 
         """
         TODO:
