@@ -21,18 +21,128 @@ SOFTWARE.
 """
 import sys
 import time
+import logging
 
 from cda_bq_etl.data_helpers import initialize_logging
-from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds, create_clinical_table_id
+from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds, create_clinical_table_id, \
+    create_metadata_table_id
 from cda_bq_etl.bq_helpers import (create_table_from_query, get_pdc_projects_metadata, get_project_level_schema_tags,
-                                   update_table_schema_from_generic)
+                                   update_table_schema_from_generic, query_and_retrieve_result)
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
+def find_missing_fields(include_trivial_columns: bool = False):
+    """
+    Get list of columns from CDA table, compare to column order and excluded column lists in yaml config (TABLE_PARAMS),
+    output any missing columns in either location.
+    :param include_trivial_columns: Optional; if True, will list columns that are not found in yaml config even if they
+                                    have only null values in the dataset
+    """
+    def make_column_query():
+        full_table_name = create_dev_table_id(PARAMS, table_name).split('.')[2]
+
+        return f"""
+            SELECT column_name
+            FROM {PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.INFORMATION_SCHEMA.COLUMNS
+            WHERE table_name = '{full_table_name}' 
+        """
+
+    def make_column_values_query():
+        return f"""
+            SELECT DISTINCT {column}
+            FROM {create_dev_table_id(PARAMS, table_name)}
+            WHERE {column} IS NOT NULL
+        """
+
+    logger = logging.getLogger('base_script')
+    logger.info("Scanning for missing fields in config yaml!")
+
+    has_missing_columns = False
+
+    for table_name in PARAMS['TABLE_PARAMS'].keys():
+        result = query_and_retrieve_result(make_column_query())
+
+        cda_columns_set = set()
+
+        for row in result:
+            cda_columns_set.add(row[0])
+
+        columns_set = set(PARAMS['TABLE_PARAMS'][table_name]['column_order'])
+        excluded_columns_set = set()
+
+        if PARAMS['TABLE_PARAMS'][table_name]['excluded_columns'] is not None:
+            excluded_columns_set = set(PARAMS['TABLE_PARAMS'][table_name]['excluded_columns'])
+
+        # join into one set
+        all_columns_set = columns_set | excluded_columns_set
+
+        deprecated_columns = all_columns_set - cda_columns_set
+        missing_columns = cda_columns_set - all_columns_set
+
+        non_trivial_columns = set()
+
+        for column in missing_columns:
+            result = query_and_retrieve_result(make_column_values_query())
+            result_list = list(result)
+
+            if len(result_list) > 0:
+                non_trivial_columns.add(column)
+
+        trivial_columns = missing_columns - non_trivial_columns
+
+        if len(deprecated_columns) > 0 or len(non_trivial_columns) > 0 \
+                or (len(trivial_columns) > 0 and include_trivial_columns):
+            logger.info(f"For {table_name}:")
+
+            if len(deprecated_columns) > 0:
+                logger.info(f"Columns no longer found in CDA: {deprecated_columns}")
+            if len(trivial_columns) > 0 and include_trivial_columns:
+                logger.info(f"Trivial (only null) columns missing from TABLE_PARAMS: {trivial_columns}")
+            if len(non_trivial_columns) > 0:
+                logger.error(f"Non-trivial columns missing from TABLE_PARAMS: {non_trivial_columns}")
+                has_missing_columns = True
+
+    if has_missing_columns:
+        logger.critical("Missing columns found (see above output). Please take the following steps, then restart:")
+        logger.critical(" - add columns to TABLE_PARAMS in yaml config")
+        logger.critical(" - confirm column description is provided in BQEcosystem/TableFieldUpdates.")
+        sys.exit(-1)
+    else:
+        logger.info("No missing fields!")
+
+
 def make_clinical_table_query(project_submitter_id: str) -> str:
-    pass
+    # get all cases for project submitter id
+    # get clinical data, demographics and diagnoses
+    #
+    return f"""
+        SELECT c.case_id,
+            c.case_submitter_id,
+            s.sample_id,
+            s.sample_submitter_id,
+            s.sample_type,
+            study.project_short_name,
+            study.project_submitter_id,
+            study.program_short_name,
+            study.program_name,
+            f.data_category,
+            f.experiment_type,
+            f.file_type,
+            f.file_size,
+            f.file_format,
+            fi.instruments AS instrument,
+            f.file_name,
+            f.file_location,
+            "open" AS `access`
+        FROM `{create_dev_table_id(PARAMS, 'case')}` c
+        JOIN `{create_dev_table_id(PARAMS, 'case_study_id')}` cs
+            ON c.case_id = cs.case_id
+        JOIN `{create_metadata_table_id(PARAMS, "studies")}` study
+            ON cs.study_id = study.study_id
+        WHERE study.project_submitter_id = '{project_submitter_id}'
+    """
 
 
 def main(args):
@@ -49,6 +159,12 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     projects_list = get_pdc_projects_metadata(PARAMS)
+
+    # todo add find missing fields
+
+    if 'find_missing_fields' in steps:
+        logger.info("Finding missing fields")
+        find_missing_fields()
 
     if 'create_project_tables' in steps:
         logger.info("Entering create_project_tables")

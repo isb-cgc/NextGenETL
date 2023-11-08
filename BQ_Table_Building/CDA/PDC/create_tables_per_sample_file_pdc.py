@@ -33,8 +33,6 @@ YAML_HEADERS = ('params', 'steps')
 
 
 def make_project_per_sample_file_query(project_submitter_id):
-    studies_table_id = create_metadata_table_id(PARAMS, "studies")
-
     return f"""
         WITH file_instruments AS (
             SELECT file_id, 
@@ -73,7 +71,7 @@ def make_project_per_sample_file_query(project_submitter_id):
             ON s.sample_id = sc.sample_id
         JOIN `{create_dev_table_id(PARAMS, 'file_study_id')}` fs
             ON fs.file_id = f.file_id
-        JOIN `{studies_table_id}` study
+        JOIN `{create_metadata_table_id(PARAMS, "studies")}` study
             ON study.study_id = fs.study_id
         JOIN file_instruments fi
             ON fi.file_id = f.file_id
