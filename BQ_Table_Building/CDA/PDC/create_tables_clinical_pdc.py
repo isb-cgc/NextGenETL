@@ -145,6 +145,8 @@ def find_project_tables(projects_list: list[str]) -> dict[str, set[str]]:
         logger.critical("No programs found, exiting.")
         sys.exit(-1)
 
+    print(projects_list)
+
     for base_project in projects_list:
         tables_per_project_dict[base_project] = {'case'}
 
