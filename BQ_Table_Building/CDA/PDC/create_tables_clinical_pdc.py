@@ -127,7 +127,7 @@ def find_project_tables(projects_list: list[dict[str, str]]) -> dict[str, set[st
                     ON base_mapping_table.case_id = case_proj.case_id
                 JOIN `{create_metadata_table_id(PARAMS, 'studies')}` proj
                     ON case_proj.project_id = proj.project_id
-                GROUP BY base_mapping_table.case_id, case_proj.project_id
+                GROUP BY base_mapping_table.case_id, case_proj.project_id, proj.project_short_name
                 HAVING COUNT(base_mapping_table.case_id) > 1
             )
 
