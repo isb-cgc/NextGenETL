@@ -274,7 +274,7 @@ def main(args):
                         logger.error(f"expected {md5sum}, actual {md5sum_actual}")
                         sys.exit(-1)
                     else:
-                        logger.info(f"md5sums match! {md5sum}, {md5sum_actual}")
+                        logger.info(f"md5sums match! Written to {file_path}")
 
                 except InvalidResponse:
                     print(f"{gs_uri} request failed")
