@@ -131,7 +131,7 @@ def find_project_tables(projects_list: list[dict[str, str]]) -> dict[str, set[st
                 HAVING COUNT(base_mapping_table.case_id) > 1
             )
 
-            SELECT DISTINCT project_submitter_id
+            SELECT DISTINCT project_short_name
             FROM projects
             """
 
