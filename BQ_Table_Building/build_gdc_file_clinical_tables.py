@@ -217,18 +217,6 @@ def main(args):
         local_program_dir = get_scratch_fp(PARAMS, program)
         local_files_dir = f"{local_program_dir}/files"
         local_schemas_dir = f"{local_program_dir}/schemas"
-
-        # create needed directories if they don't already exist
-        if not os.path.exists(local_program_dir):
-            logger.info(f"Creating directory {local_program_dir}")
-            os.makedirs(local_program_dir)
-        if not os.path.exists(local_files_dir):
-            logger.info(f"Creating directory {local_files_dir}")
-            os.makedirs(local_files_dir)
-        if not os.path.exists(local_schemas_dir):
-            logger.info(f"Creating directory {local_schemas_dir}")
-            os.makedirs(local_schemas_dir)
-
         file_traversal_list = f"{local_program_dir}/{base_file_name}_traversal_list_{program}.txt"
         tables_file = f"{local_program_dir}/{PARAMS['RELEASE']}_tables_{program}.txt"
 
@@ -240,7 +228,22 @@ def main(args):
         manifest_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{manifest_table_name}"
 
         if 'build_file_pull_list' in steps:
+            # create needed directories if they don't already exist
             logger.info('build_file_pull_list')
+
+            if os.path.exists(local_program_dir):
+                shutil.rmtree(local_program_dir)
+
+            # create needed directories if they don't already exist
+            if not os.path.exists(local_program_dir):
+                logger.info(f"Creating directory {local_program_dir}")
+                os.makedirs(local_program_dir)
+            if not os.path.exists(local_files_dir):
+                logger.info(f"Creating directory {local_files_dir}")
+                os.makedirs(local_files_dir)
+            if not os.path.exists(local_schemas_dir):
+                logger.info(f"Creating directory {local_schemas_dir}")
+                os.makedirs(local_schemas_dir)
 
             file_pull_list = make_file_pull_list(program, programs[program]['filters'])
 
@@ -250,7 +253,6 @@ def main(args):
                 file_name = file_data['file_name']
                 gs_uri = file_data['file_gdc_url']
                 md5sum = file_data['md5sum']
-                file_size = file_data['file_size']
 
                 file_path = f"{local_files_dir}/{file_name}"
 
