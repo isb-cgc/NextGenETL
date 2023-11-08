@@ -113,7 +113,7 @@ def find_missing_fields(include_trivial_columns: bool = False):
         logger.info("No missing fields!")
 
 
-def find_project_tables(projects_list: list[str]) -> dict[str, set[str]]:
+def find_project_tables(projects_list: list[dict[str, str]]) -> dict[str, set[str]]:
     """
     Creates per-program dict of tables to be created.
     :return: dict in the form { <program-name>: {set of standalone tables} }
@@ -210,11 +210,10 @@ def main(args):
         # find_missing_fields()
         logger.info("Passing missing fields")
     if 'create_project_tables' in steps:
-        tables_per_project_dict = find_project_tables(projects_list)
-
-        logger.debug(tables_per_project_dict)
-
         logger.info("Entering create_project_tables")
+
+        tables_per_project_dict = find_project_tables(projects_list)
+        logger.debug(tables_per_project_dict)
 
         for project in projects_list:
             project_table_base_name = f"{project['project_short_name']}_{PARAMS['TABLE_NAME']}"
