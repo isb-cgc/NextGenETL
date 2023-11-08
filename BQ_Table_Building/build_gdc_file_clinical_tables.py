@@ -273,6 +273,8 @@ def main(args):
                         logger.error(f"md5sum mismatch for {gs_uri}.")
                         logger.error(f"expected {md5sum}, actual {md5sum_actual}")
                         sys.exit(-1)
+                    else:
+                        logger.info(f"md5sums match! {md5sum}, {md5sum_actual}")
 
                 except InvalidResponse:
                     print(f"{gs_uri} request failed")
