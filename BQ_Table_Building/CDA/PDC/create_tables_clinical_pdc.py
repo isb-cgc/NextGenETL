@@ -97,11 +97,11 @@ def find_missing_fields(include_trivial_columns: bool = False):
             logger.info(f"For {table_name}:")
 
             if len(deprecated_columns) > 0:
-                logger.info(f"Columns no longer found in CDA: {deprecated_columns}")
+                logger.info(f"Columns no longer found in CDA: {sorted(deprecated_columns)}")
             if len(trivial_columns) > 0 and include_trivial_columns:
-                logger.info(f"Trivial (only null) columns missing from TABLE_PARAMS: {trivial_columns}")
+                logger.info(f"Trivial (only null) columns missing from TABLE_PARAMS: {sorted(trivial_columns)}")
             if len(non_trivial_columns) > 0:
-                logger.error(f"Non-trivial columns missing from TABLE_PARAMS: {non_trivial_columns}")
+                logger.error(f"Non-trivial columns missing from TABLE_PARAMS: {sorted(non_trivial_columns)}")
                 has_missing_columns = True
 
     if has_missing_columns:
