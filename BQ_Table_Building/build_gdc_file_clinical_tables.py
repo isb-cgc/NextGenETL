@@ -17,20 +17,23 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import logging
+import shutil
 import sys
 import time
 import os
+from typing import Union
+
 import pandas as pd
 from google.api_core.exceptions import Forbidden
 
 from google.cloud import storage
 from google.resumable_media import InvalidResponse
 
-from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object, 
-                                   create_and_load_table_from_tsv)
+from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
+                                   create_and_load_table_from_tsv, query_and_retrieve_result)
 from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket, download_from_external_bucket
-from cda_bq_etl.data_helpers import initialize_logging, make_string_bq_friendly
-from cda_bq_etl.utils import format_seconds, get_filepath, load_config, get_scratch_fp
+from cda_bq_etl.data_helpers import initialize_logging, make_string_bq_friendly, write_list_to_tsv
+from cda_bq_etl.utils import format_seconds, get_filepath, load_config, get_scratch_fp, calculate_md5sum
 
 from common_etl.support import (get_the_bq_manifest, build_file_list, build_pull_list_with_bq_public, BucketPuller)
 
@@ -129,6 +132,64 @@ def create_tsv_with_final_headers(tsv_file, headers, data_start_idx):
             tsv_fh.write(f"{line}\n")
 
 
+def validate_program_params(program_params: dict[str, Union[str, int, list[str, str]]], program: str):
+    logger = logging.getLogger('base_script')
+
+    # check to make sure required variables exist in yaml config
+    if 'filters' not in program_params:
+        logger.critical(f"'filters' not in programs section of yaml for {program}")
+        sys.exit(-1)
+    if 'header_row_idx' not in program_params:
+        logger.critical(f"'header_row_idx' not in programs section of yaml for {program}")
+        sys.exit(-1)
+    if 'data_start_idx' not in program_params:
+        logger.critical(f"'data_start_idx' not in programs section of yaml for {program}")
+        sys.exit(-1)
+    if 'file_suffix' not in program_params:
+        logger.critical(f"'file_suffix' not in programs section of yaml for {program}")
+        sys.exit(-1)
+
+
+def make_file_pull_list(program: str, filters: dict[str, str]):
+    def make_file_pull_list_query() -> str:
+        logger = logging.getLogger('base_script')
+        if not filters:
+            logger.critical(f"No filters provided for {program}, exiting")
+            sys.exit(-1)
+
+        where_clause = "WHERE "
+
+        where_clause_strs = list()
+
+        for column_name, column_value in filters.items():
+            where_clause_strs.append(f"{column_name} = '{column_value}'")
+
+        where_clause += " AND ".join(where_clause_strs)
+
+        return f"""
+            SELECT f.file_gdc_id,
+               f.file_name,
+               f.md5sum,
+               f.file_size,
+               f.file_state,
+               gs.file_gdc_url
+            FROM `isb-project-zero.GDC_metadata.rel36_fileData_current` f
+            LEFT JOIN `isb-project-zero.GDC_manifests.rel36_GDCfileID_to_GCSurl` gs
+               ON f.file_gdc_id = gs.file_gdc_id 
+            {where_clause}
+        """
+
+    file_result = query_and_retrieve_result(make_file_pull_list_query())
+
+    file_list = list()
+
+    for row in file_result:
+
+        file_list.append(dict(row))
+
+    return file_list
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -155,19 +216,7 @@ def main(args):
     # I tried to create an automated step for this, but it's complicated to do in Python
     # todo no it isn't, past self. do eet.
     for program in programs:
-        # check to make sure required variables exist in yaml config
-        if 'filters' not in programs[program]:
-            logger.critical(f"'filters' not in programs section of yaml for {program}")
-            sys.exit(-1)
-        if 'header_row_idx' not in programs[program]:
-            logger.critical(f"'header_row_idx' not in programs section of yaml for {program}")
-            sys.exit(-1)
-        if 'data_start_idx' not in programs[program]:
-            logger.critical(f"'data_start_idx' not in programs section of yaml for {program}")
-            sys.exit(-1)
-        if 'file_suffix' not in programs[program]:
-            logger.critical(f"'file_suffix' not in programs section of yaml for {program}")
-            sys.exit(-1)
+        validate_program_params(programs[program], program)
 
         logger.info(f"Running script for {program}")
         local_program_dir = get_scratch_fp(PARAMS, program)
@@ -178,20 +227,12 @@ def main(args):
         if not os.path.exists(local_program_dir):
             logger.info(f"Creating directory {local_program_dir}")
             os.makedirs(local_program_dir)
-        else:
-            logger.info(f"Directory {local_program_dir} already exists, didn't create.")
-
         if not os.path.exists(local_files_dir):
             logger.info(f"Creating directory {local_files_dir}")
             os.makedirs(local_files_dir)
-        else:
-            logger.info(f"Directory {local_files_dir} already exists, didn't create.")
-
         if not os.path.exists(local_schemas_dir):
             logger.info(f"Creating directory {local_schemas_dir}")
             os.makedirs(local_schemas_dir)
-        else:
-            logger.info(f"Directory {local_schemas_dir} already exists, didn't create.")
 
         local_pull_list = f"{local_program_dir}/{base_file_name}_pull_list_{program}.tsv"
         file_traversal_list = f"{local_program_dir}/{base_file_name}_traversal_list_{program}.txt"
@@ -203,6 +244,44 @@ def main(args):
 
         manifest_table_name = f"{PARAMS['RELEASE']}_{program}_manifest"
         manifest_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{manifest_table_name}"
+
+        if 'build_file_pull_list' in steps:
+            logger.info('build_file_pull_list')
+
+            file_pull_list = make_file_pull_list()
+
+            storage_client = storage.Client()
+
+            for file_data in file_pull_list:
+                file_name = file_data['file_name']
+                gs_uri = file_data['file_gdc_url']
+                md5sum = file_data['md5sum']
+                file_size = file_data['file_size']
+
+                file_path = f"{local_files_dir}/{file_name}"
+
+                file_obj = open(file_path, 'wb')
+
+                try:
+                    print(gs_uri)
+                    storage_client.download_blob_to_file(blob_or_uri=gs_uri, file_obj=file_obj)
+                    file_obj.close()
+
+                    md5sum_actual = calculate_md5sum(file_path)
+
+                    if md5sum != md5sum_actual:
+                        logger.error(f"md5sum mismatch for {gs_uri}.")
+                        logger.error(f"expected {md5sum}, actual {md5sum_actual}")
+                        sys.exit(-1)
+
+                except InvalidResponse:
+                    print(f"{gs_uri} request failed")
+                    file_obj.close()
+                    os.remove(file_path)
+                except Forbidden:
+                    print(f"{gs_uri} request failed")
+                    file_obj.close()
+                    os.remove(file_path)
 
         # final_target_table = f"{PARAMS['RELEASE']}_{program}_clin_files"
         if 'build_manifest_from_filters' in steps:

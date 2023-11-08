@@ -28,6 +28,7 @@ import time
 import re
 from typing import Optional, Union, Any
 import yaml
+import hashlib
 
 Params = dict[str, Union[str, dict, int]]
 
@@ -298,3 +299,11 @@ def input_with_timeout(seconds: int) -> Union[str, None]:
         for fileno, event in events:
             if fileno == sys.stdin.fileno():
                 return input()
+
+
+def calculate_md5sum(file_path: str) -> str:
+    md5_hash = hashlib.md5()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            md5_hash.update(chunk)
+    return md5_hash.hexdigest()

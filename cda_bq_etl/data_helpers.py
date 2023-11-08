@@ -39,6 +39,39 @@ JSONList = list[RowDict]
 Params = dict[str, Union[str, dict, int]]
 
 
+def write_list_to_tsv(fp: str, tsv_list: list[str]):
+    """
+    todo
+    :param fp:
+    :param tsv_list:
+    :return:
+    """
+    def create_tsv_row(row_list, null_marker="None"):
+        """
+        Convert list of row values into a tab-delimited string.
+        :param row_list: list of row values for conversion
+        :param null_marker: Value to write to string for nulls
+        :return: tab-delimited string representation of row_list
+        """
+        print_str = ''
+        last_idx = len(row_list) - 1
+
+        for i, column in enumerate(row_list):
+            if not column:
+                column = null_marker
+
+            delimiter = "\t" if i < last_idx else "\n"
+            print_str += column + delimiter
+
+        return print_str
+
+    with open(fp, "w") as tsv_file:
+        for row in tsv_list:
+            tsv_file.write(create_tsv_row(row))
+
+    print(f"{len(tsv_list)} rows written to {fp}!")
+
+
 def write_list_to_jsonl(jsonl_fp: str, json_obj_list: JSONList, mode: str = 'w'):
     """
     Create a jsonl file for uploading data into BigQuery from a list<dict> obj.
