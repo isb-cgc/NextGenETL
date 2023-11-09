@@ -206,10 +206,6 @@ def main(args):
 
     base_file_name = PARAMS['BASE_FILE_NAME']
 
-    # run steps in order for each program.
-    # NOTE: if step fails part way though, you need to manually empty the scratch directory on the VM.
-    # I tried to create an automated step for this, but it's complicated to do in Python
-    # todo no it isn't, past self. do eet.
     for program in programs:
         validate_program_params(programs[program], program)
 
@@ -280,22 +276,6 @@ def main(args):
                     file_obj.close()
                     os.remove(file_path)
 
-        """
-        if 'build_file_list' in steps:
-            # build list of files in local scratch directories
-            logger.info('build_file_list')
-            all_files = build_file_list(local_files_dir)
-
-            with open(file_traversal_list, mode='w') as traversal_list:
-                for line in all_files:
-                    # this is a field description file with very weird formatting (newlines/special formatting
-                    # within cells). Doesn't seem like it's worth the trouble to load it.
-                    # Will glean the field descriptions from there, however.
-                    if program == 'TARGET':
-                        if '_CDE_' in line:
-                            continue
-                    traversal_list.write(f"{line}\n")
-        """
         if 'convert_excel_to_csv' in steps:
             # If file suffix is xlsx or xls, convert to tsv.
             # Then modify traversal list file to point to the newly created tsv files.
@@ -303,19 +283,22 @@ def main(args):
 
             file_names = os.listdir(local_files_dir)
 
-            print(file_names)
-            exit()
+            all_files = list()
+
+            for file_name in file_names:
+                all_files.append(f"{local_files_dir}/{file_name}")
 
             if programs[program]['file_suffix'] == 'xlsx' or programs[program]['file_suffix'] == 'xls':
-                with open(file_traversal_list, mode='r') as traversal_list_file:
-                    all_files = traversal_list_file.read().splitlines()
-                    for excel_file in all_files:
-                        upload_to_bucket(PARAMS, scratch_fp=excel_file, delete_local=False)
-                    all_files = convert_excel_to_tsv(all_files=all_files,
-                                                     header_idx=programs[program]['header_row_idx'])
+                for excel_file_path in all_files:
+                    upload_to_bucket(PARAMS, scratch_fp=excel_file_path, delete_local=False)
+
+                all_tsv_files = convert_excel_to_tsv(all_files=all_files,
+                                                 header_idx=programs[program]['header_row_idx'])
                 with open(file_traversal_list, mode='w') as traversal_list_file:
-                    for line in all_files:
-                        traversal_list_file.write(f"{line}\n")
+                    for tsv_file in all_tsv_files:
+                        print(tsv_file)
+
+            exit()
 
         if 'upload_tsv_file_and_schema_to_bucket' in steps:
             logger.info(f"upload_tsv_file_and_schema_to_bucket")
