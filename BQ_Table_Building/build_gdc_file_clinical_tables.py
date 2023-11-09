@@ -30,7 +30,7 @@ from google.cloud import storage
 from google.resumable_media import InvalidResponse
 
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
-                                   create_and_load_table_from_tsv, query_and_retrieve_result)
+                                   create_and_load_table_from_tsv, query_and_retrieve_result, list_tables_in_dataset)
 from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket, download_from_external_bucket
 from cda_bq_etl.data_helpers import initialize_logging, make_string_bq_friendly, write_list_to_tsv, \
     create_normalized_tsv
@@ -326,11 +326,17 @@ def main(args):
                 for tsv_file in all_tsv_files:
                     traversal_list_file.write(f"{tsv_file}\n")
 
-        if 'normalize_tsv_and_create_schema' in steps:
-            logger.info(f"upload_tsv_file_and_schema_to_bucket")
+        if 'concat_files' in steps:
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
-                header_row_idx = programs[program]['header_row_idx']
+
+        if 'normalize_tsv_and_create_schema' in steps:
+            logger.info(f"upload_tsv_file_and_schema_to_bucket")
+
+            with open(file_traversal_list, mode='r') as traversal_list_file:
+                all_files = traversal_list_file.read().splitlines()
+
+            header_row_idx = programs[program]['header_row_idx']
 
             for tsv_file_path in all_files:
                 # The TCGA files have a different encoding--so if a file can't be decoded in Unicode format,
@@ -408,6 +414,23 @@ def main(args):
             for table in table_list:
                 logger.info(table)
             logger.info("")
+
+        if 'analyze_tables' in steps:
+            print(program)
+            if program == "TARGET":
+                prefix = "r36_TARGET"
+            elif program == "TCGA":
+                prefix = "r36_nationwidechildrens_org"
+            else:
+                logger.critical("Not set up for this program, exiting.")
+                sys.exit()
+
+            table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clin_from_files_raw",
+                                                filter_terms=prefix)
+
+            print(table_list)
+
+
 
         """
         TODO:
