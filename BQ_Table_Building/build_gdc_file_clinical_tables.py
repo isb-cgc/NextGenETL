@@ -94,7 +94,9 @@ def create_bq_column_names(tsv_file, header_row_idx):
     except UnicodeDecodeError:
         with open(tsv_file, 'r', encoding="ISO-8859-1") as tsv_fh:
             header_row = tsv_fh.readlines()[header_row_idx].strip().split('\t')
+
     final_headers = []
+
     for i in range(0, len(header_row)):
         column_name = header_row[i].strip()
         column_name = make_string_bq_friendly(column_name)
@@ -331,6 +333,7 @@ def main(args):
                 bq_column_names = create_bq_column_names(tsv_file=tsv_file_path, header_row_idx=header_row_idx)
 
                 print(bq_column_names)
+                exit()
 
                 create_tsv_with_final_headers(tsv_file=tsv_file_path,
                                               headers=bq_column_names,
