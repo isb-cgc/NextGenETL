@@ -220,6 +220,9 @@ def main(args):
     logger.info(f"GDC clinical file script started at {time.strftime('%x %X', time.localtime())}")
 
     for program in programs:
+        if program == "TARGET":
+            continue
+
         logger.info(f"Running script for {program}")
 
         validate_program_params(programs[program], program)
