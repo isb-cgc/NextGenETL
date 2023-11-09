@@ -445,10 +445,32 @@ def main(args):
                 project_tables[project].append(table)
 
             for project, table_list in project_tables.items():
-                print(project)
+                id_key_set = set()
+
                 for table in table_list:
-                    print(table)
-                print("")
+                    id_key = programs[program]['id_key']
+                    table_id = f"isb-project-zero.clinical_from_files_raw.{table}"
+                    sql = f"""
+                            SELECT {id_key} 
+                            FROM `{table_id}`
+                        """
+
+                    prev_len = len(id_key_set)
+
+                    res = query_and_retrieve_result(sql)
+
+                    new_len = res.total_rows
+
+                    for row in res:
+                        id_key_set.add(row[0])
+
+                    if prev_len + new_len > len(id_key_set):
+                        logger.info("Duplicate id found")
+                    else:
+                        logger.info("No duplicate ids")
+
+
+
 
 
         """
