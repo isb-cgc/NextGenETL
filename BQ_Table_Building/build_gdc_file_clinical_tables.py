@@ -425,7 +425,7 @@ def main(args):
                 logger.critical("Not set up for this program, exiting.")
                 sys.exit()
 
-            table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clin_from_files_raw",
+            table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
                                                 filter_terms=prefix)
 
             print(table_list)
