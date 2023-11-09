@@ -445,6 +445,7 @@ def main(args):
                 project_tables[project].append(table)
 
             for project, table_list in project_tables.items():
+                print(project)
                 id_key_set = set()
 
                 for table in table_list:
