@@ -124,6 +124,7 @@ def create_tsv_with_final_headers(tsv_file, headers, data_start_idx):
     except UnicodeDecodeError:
         with open(tsv_file, 'r', encoding="ISO-8859-1") as tsv_fh:
             lines = tsv_fh.readlines()
+
     with open(tsv_file, 'w') as tsv_fh:
         header_row = "\t".join(headers)
         tsv_fh.write(f"{header_row}\n")
@@ -302,7 +303,19 @@ def main(args):
                 all_tsv_files = convert_excel_to_tsv(all_files=all_files,
                                                      header_idx=programs[program]['header_row_idx'])
             elif programs[program]['file_suffix'] == 'txt':
-                all_tsv_files = all_files
+                all_tsv_files = list()
+                for file_path in all_files:
+                    tsv_filepath = '.'.join(file_path.split('.')[0:-1])
+                    tsv_filepath = f"{tsv_filepath}_raw.tsv"
+
+                    with open(file_path, 'r', encoding="ISO-8859-1") as tsv_fh:
+                        lines = tsv_fh.readlines()
+
+                    with open(tsv_filepath, 'w') as tsv_fh:
+                        for line in lines:
+                            tsv_fh.write(f"{line.strip()}\n")
+
+                    all_tsv_files.append(tsv_filepath)
             else:
                 logger.critical(f"File extension {programs[program]['file_suffix']} not currently supported, exiting.")
                 sys.exit(-1)
@@ -331,9 +344,6 @@ def main(args):
                     logger.warning(f"*** probably an issue: row count is {row_count} for {tsv_file_path}")
 
                 bq_column_names = create_bq_column_names(tsv_file=tsv_file_path, header_row_idx=header_row_idx)
-
-                print(bq_column_names)
-                exit()
 
                 create_tsv_with_final_headers(tsv_file=tsv_file_path,
                                               headers=bq_column_names,
