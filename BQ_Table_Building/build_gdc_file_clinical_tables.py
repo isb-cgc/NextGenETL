@@ -32,8 +32,10 @@ from google.resumable_media import InvalidResponse
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
                                    create_and_load_table_from_tsv, query_and_retrieve_result)
 from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket, download_from_external_bucket
-from cda_bq_etl.data_helpers import initialize_logging, make_string_bq_friendly, write_list_to_tsv
-from cda_bq_etl.utils import format_seconds, get_filepath, load_config, get_scratch_fp, calculate_md5sum
+from cda_bq_etl.data_helpers import initialize_logging, make_string_bq_friendly, write_list_to_tsv, \
+    create_normalized_tsv
+from cda_bq_etl.utils import format_seconds, get_filepath, load_config, get_scratch_fp, calculate_md5sum, \
+    create_dev_table_id
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'programs', 'steps')
@@ -51,7 +53,7 @@ def convert_excel_to_tsv(all_files, header_idx):
     for file_path in all_files:
         logger.info(file_path)
         tsv_filepath = '.'.join(file_path.split('.')[0:-1])
-        tsv_filepath = f"{tsv_filepath}.tsv"
+        tsv_filepath = f"{tsv_filepath}_raw.tsv"
         excel_data = pd.read_excel(io=file_path,
                                    index_col=None,
                                    header=header_idx,
@@ -188,6 +190,15 @@ def make_file_pull_list(program: str, filters: dict[str, str]):
     return file_list
 
 
+def create_table_name_from_file_name(file_path: str) -> str:
+    file_name = file_path.split("/")[-1]
+    table_base_name = "_".join(file_name.split('.')[0:-1])
+    table_id = create_dev_table_id(PARAMS, table_base_name)
+    table_name = table_id.split('.')[-1]
+
+    return table_name
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -214,7 +225,7 @@ def main(args):
         file_traversal_list = f"{local_program_dir}/{PARAMS['BASE_FILE_NAME']}_traversal_list_{program}.txt"
         tables_file = f"{local_program_dir}/{PARAMS['RELEASE']}_tables_{program}.txt"
 
-        if 'build_file_pull_list' in steps:
+        if 'build_file_list_and_download' in steps:
             # create needed directories if they don't already exist
             logger.info('build_file_pull_list')
 
@@ -313,28 +324,41 @@ def main(args):
                 create_tsv_with_final_headers(tsv_file=tsv_file_path,
                                               headers=bq_column_names,
                                               data_start_idx=programs[program]['data_start_idx'])
-                file_name = tsv_file_path.split("/")[-1]
-                table_base_name = "_".join(file_name.split('.')[0:-1])
-                table_name = f"{PARAMS['RELEASE']}_{table_base_name}"
+
+                normalized_tsv_file_path = tsv_file_path.replace("_raw.tsv", ".tsv")
+
+                create_normalized_tsv(tsv_file_path, normalized_tsv_file_path)
+
+                table_name = create_table_name_from_file_name(normalized_tsv_file_path)
                 schema_file_name = f"schema_{table_name}.json"
                 schema_file_path = f"{local_schemas_dir}/{schema_file_name}"
-                create_and_upload_schema_for_tsv(PARAMS, 
-                                                 tsv_fp=tsv_file_path, 
+
+                create_and_upload_schema_for_tsv(PARAMS,
+                                                 tsv_fp=normalized_tsv_file_path,
                                                  header_row=0, 
                                                  skip_rows=1, 
-                                                 schema_fp=schema_file_path)
-                upload_to_bucket(PARAMS, tsv_file_path, delete_local=True)
+                                                 schema_fp=schema_file_path,
+                                                 delete_local=True)
+
+                # upload raw and normalized tsv files to google cloud storage
+                upload_to_bucket(PARAMS, tsv_file_path, delete_local=True, verbose=False)
+                upload_to_bucket(PARAMS, normalized_tsv_file_path, delete_local=True, verbose=False)
 
         if 'build_raw_tables' in steps:
             with open(file_traversal_list, mode='r') as traversal_list_file:
                 all_files = traversal_list_file.read().splitlines()
+
             table_list = []
+
             for tsv_file_path in all_files:
-                file_name = tsv_file_path.split("/")[-1]
-                table_base_name = "_".join(file_name.split('.')[0:-1])
-                table_name = f"{PARAMS['RELEASE']}_{table_base_name}"
+                normalized_tsv_file_path = tsv_file_path.replace("_raw.tsv", ".tsv")
+                file_name = normalized_tsv_file_path.split("/")[-1]
+
+                table_name = create_table_name_from_file_name(normalized_tsv_file_path)
                 table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}_raw.{table_name}"
+
                 schema_file_name = f"schema_{table_name}.json"
+
                 bq_schema = retrieve_bq_schema_object(PARAMS,
                                                       table_name=table_name,
                                                       schema_filename=schema_file_name,
