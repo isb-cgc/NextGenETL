@@ -355,7 +355,7 @@ def main(args):
                 file_name = normalized_tsv_file_path.split("/")[-1]
 
                 table_name = create_table_name_from_file_name(normalized_tsv_file_path)
-                table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}_raw.{table_name}"
+                table_id = create_dev_table_id(PARAMS, table_name)
 
                 schema_file_name = f"schema_{table_name}.json"
 
