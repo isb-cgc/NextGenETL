@@ -303,7 +303,12 @@ def main(args):
                 with open(file_traversal_list, mode='w') as traversal_list_file:
                     for tsv_file in all_tsv_files:
                         traversal_list_file.write(f"{tsv_file}\n")
-
+            elif programs[program]['file_suffix'] == 'txt':
+                for tsv_file in all_files:
+                    traversal_list_file.write(f"{tsv_file}\n")
+            else:
+                logger.critical(f"File extension {programs[program]['file_suffix']} not currently supported, exiting.")
+                sys.exit(-1)
         if 'normalize_tsv_and_create_schema' in steps:
             logger.info(f"upload_tsv_file_and_schema_to_bucket")
             with open(file_traversal_list, mode='r') as traversal_list_file:
