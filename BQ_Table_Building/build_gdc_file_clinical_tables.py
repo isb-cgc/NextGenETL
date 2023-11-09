@@ -299,16 +299,15 @@ def main(args):
 
                 all_tsv_files = convert_excel_to_tsv(all_files=all_files,
                                                      header_idx=programs[program]['header_row_idx'])
-
-                with open(file_traversal_list, mode='w') as traversal_list_file:
-                    for tsv_file in all_tsv_files:
-                        traversal_list_file.write(f"{tsv_file}\n")
             elif programs[program]['file_suffix'] == 'txt':
-                for tsv_file in all_files:
-                    traversal_list_file.write(f"{tsv_file}\n")
+                all_tsv_files = all_files
             else:
                 logger.critical(f"File extension {programs[program]['file_suffix']} not currently supported, exiting.")
                 sys.exit(-1)
+
+            with open(file_traversal_list, mode='w') as traversal_list_file:
+                for tsv_file in all_tsv_files:
+                    traversal_list_file.write(f"{tsv_file}\n")
         if 'normalize_tsv_and_create_schema' in steps:
             logger.info(f"upload_tsv_file_and_schema_to_bucket")
             with open(file_traversal_list, mode='r') as traversal_list_file:
