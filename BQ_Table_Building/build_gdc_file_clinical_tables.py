@@ -445,6 +445,7 @@ def main(args):
                 project_tables[project].append(table)
 
             for project, table_list in project_tables.items():
+
                 print(project)
                 id_key_set = set()
 
@@ -452,23 +453,20 @@ def main(args):
                     id_key = programs[program]['id_key']
                     table_id = f"isb-project-zero.clinical_from_files_raw.{table}"
                     sql = f"""
-                            SELECT {id_key} 
+                            SELECT COUNT({id_key}) as total_count,
+                                COUNT(DISTINCT {id_key}) as distinct_count
                             FROM `{table_id}`
                         """
 
-                    prev_len = len(id_key_set)
-
                     res = query_and_retrieve_result(sql)
 
-                    new_len = res.total_rows
-
                     for row in res:
-                        id_key_set.add(row[0])
+                        print(f"total_count: {row['total_count']}")
+                        print(f"distinct_count: {row['distinct_count']}")
+                        # id_key_set.add(row[0])
 
-                    if prev_len + new_len > len(id_key_set):
-                        logger.info("Duplicate id found")
-                    else:
-                        logger.info("No duplicate ids")
+
+
 
 
 
