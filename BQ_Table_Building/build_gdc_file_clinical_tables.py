@@ -461,8 +461,8 @@ def main(args):
                     res = query_and_retrieve_result(sql)
 
                     for row in res:
-                        print(f"total_count: {row['total_count']}")
-                        print(f"distinct_count: {row['distinct_count']}")
+                        total_repeated = int(row['total_count']) - int(row['distinct_count'])
+                        print(f"{table}: {total_repeated}")
                         # id_key_set.add(row[0])
 
 
