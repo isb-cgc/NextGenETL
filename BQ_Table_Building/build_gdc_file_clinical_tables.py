@@ -298,7 +298,8 @@ def main(args):
                     for tsv_file in all_tsv_files:
                         print(tsv_file)
 
-            exit()
+        exit()
+        # todo working up to here, woot!
 
         if 'upload_tsv_file_and_schema_to_bucket' in steps:
             logger.info(f"upload_tsv_file_and_schema_to_bucket")
