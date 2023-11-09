@@ -35,15 +35,13 @@ from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket, downl
 from cda_bq_etl.data_helpers import initialize_logging, make_string_bq_friendly, write_list_to_tsv
 from cda_bq_etl.utils import format_seconds, get_filepath, load_config, get_scratch_fp, calculate_md5sum
 
-from common_etl.support import (get_the_bq_manifest, build_file_list, build_pull_list_with_bq_public, BucketPuller)
-
 PARAMS = dict()
 YAML_HEADERS = ('params', 'programs', 'steps')
 
 
 def convert_excel_to_tsv(all_files, header_idx):
     """
-    Convert excel files to CSV files.
+    Convert Excel files to CSV files.
     :param all_files: list of all filepaths
     :param header_idx: header row idx
     :return: list of tsv files
@@ -60,7 +58,7 @@ def convert_excel_to_tsv(all_files, header_idx):
                                    engine='openpyxl')
 
         # get rid of funky newline formatting in headers
-        excel_data.columns = excel_data.columns.map(lambda x: x.replace('\r','').replace('\n', ''))
+        excel_data.columns = excel_data.columns.map(lambda x: x.replace('\r', '').replace('\n', ''))
         # get rid of funky newline formatting in cells
         excel_data = excel_data.replace(to_replace=[r"\\t|\\n|\\r", "\t|\n|\r"], value=["", ""], regex=True)
 
@@ -202,26 +200,19 @@ def main(args):
     log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
+
     logger.info(f"GDC clinical file script started at {time.strftime('%x %X', time.localtime())}")
 
-    base_file_name = PARAMS['BASE_FILE_NAME']
-
     for program in programs:
+        logger.info(f"Running script for {program}")
+
         validate_program_params(programs[program], program)
 
-        logger.info(f"Running script for {program}")
         local_program_dir = get_scratch_fp(PARAMS, program)
         local_files_dir = f"{local_program_dir}/files"
         local_schemas_dir = f"{local_program_dir}/schemas"
-        file_traversal_list = f"{local_program_dir}/{base_file_name}_traversal_list_{program}.txt"
+        file_traversal_list = f"{local_program_dir}/{PARAMS['BASE_FILE_NAME']}_traversal_list_{program}.txt"
         tables_file = f"{local_program_dir}/{PARAMS['RELEASE']}_tables_{program}.txt"
-
-        # the source metadata files have a different release notation (relXX vs rXX)
-        rel_no_prefix = PARAMS['RELEASE'].replace('r', '')
-        src_table_release = f"{PARAMS['SRC_TABLE_PREFIX']}{rel_no_prefix}"
-
-        manifest_table_name = f"{PARAMS['RELEASE']}_{program}_manifest"
-        manifest_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{manifest_table_name}"
 
         if 'build_file_pull_list' in steps:
             # create needed directories if they don't already exist
@@ -293,13 +284,11 @@ def main(args):
                     upload_to_bucket(PARAMS, scratch_fp=excel_file_path, delete_local=False)
 
                 all_tsv_files = convert_excel_to_tsv(all_files=all_files,
-                                                 header_idx=programs[program]['header_row_idx'])
+                                                     header_idx=programs[program]['header_row_idx'])
+
                 with open(file_traversal_list, mode='w') as traversal_list_file:
                     for tsv_file in all_tsv_files:
-                        print(tsv_file)
-
-        exit()
-        # todo working up to here, woot!
+                        traversal_list_file.write(f"{tsv_file}\n")
 
         if 'upload_tsv_file_and_schema_to_bucket' in steps:
             logger.info(f"upload_tsv_file_and_schema_to_bucket")
@@ -316,8 +305,10 @@ def main(args):
                 except UnicodeDecodeError:
                     with open(tsv_file_path, 'r', encoding="ISO-8859-1") as tsv_fh:
                         row_count = len(tsv_fh.readlines())
+
                 if row_count <= 1:
-                    logger.info(f"*** probably an issue: row count is {row_count} for {tsv_file_path}")
+                    logger.warning(f"*** probably an issue: row count is {row_count} for {tsv_file_path}")
+
                 bq_column_names = create_bq_column_names(tsv_file=tsv_file_path, header_row_idx=header_row_idx)
                 create_tsv_with_final_headers(tsv_file=tsv_file_path,
                                               headers=bq_column_names,
