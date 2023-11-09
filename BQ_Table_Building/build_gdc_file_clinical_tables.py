@@ -360,6 +360,10 @@ def main(args):
                 table_name = create_table_name_from_file_name(normalized_tsv_file_path)
                 table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}"
 
+                if program == "TCGA":
+                    renamed_table = table_name.replace("nationwidechildrens.org", "TCGA")
+                    table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{renamed_table}"
+
                 schema_file_name = f"schema_{table_name}.json"
 
                 bq_schema = retrieve_bq_schema_object(PARAMS,
