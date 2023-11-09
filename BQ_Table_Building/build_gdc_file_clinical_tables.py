@@ -328,6 +328,9 @@ def main(args):
                     logger.warning(f"*** probably an issue: row count is {row_count} for {tsv_file_path}")
 
                 bq_column_names = create_bq_column_names(tsv_file=tsv_file_path, header_row_idx=header_row_idx)
+
+                print(bq_column_names)
+
                 create_tsv_with_final_headers(tsv_file=tsv_file_path,
                                               headers=bq_column_names,
                                               data_start_idx=programs[program]['data_start_idx'])
