@@ -196,8 +196,10 @@ def make_file_pull_list(program: str, filters: dict[str, str]):
 def create_table_name_from_file_name(file_path: str) -> str:
     file_name = file_path.split("/")[-1]
     table_base_name = "_".join(file_name.split('.')[0:-1])
+    table_base_name = table_base_name.replace("-", "_").replace(".", "_")
     table_id = create_dev_table_id(PARAMS, table_base_name)
     table_name = table_id.split('.')[-1]
+    table_name = table_name.replace("-", "_").replace(".", "_")
 
     return table_name
 
@@ -218,9 +220,6 @@ def main(args):
     logger.info(f"GDC clinical file script started at {time.strftime('%x %X', time.localtime())}")
 
     for program in programs:
-        if program == 'TARGET':
-            continue
-
         logger.info(f"Running script for {program}")
 
         validate_program_params(programs[program], program)
@@ -384,6 +383,7 @@ def main(args):
                 if program == "TCGA":
                     renamed_table = table_name.replace("nationwidechildrens.org", "TCGA")
                     table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{renamed_table}"
+                    print(f"table renamed to: {table_id}")
 
                 schema_file_name = f"schema_{table_name}.json"
 
