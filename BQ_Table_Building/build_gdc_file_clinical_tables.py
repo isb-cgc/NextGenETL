@@ -220,9 +220,6 @@ def main(args):
     logger.info(f"GDC clinical file script started at {time.strftime('%x %X', time.localtime())}")
 
     for program in programs:
-        if program == "TARGET":
-            continue
-
         logger.info(f"Running script for {program}")
 
         validate_program_params(programs[program], program)
@@ -423,13 +420,35 @@ def main(args):
                 prefix = "r36_nationwidechildrens_org"
             else:
                 logger.critical("Not set up for this program, exiting.")
-                sys.exit()
+                sys.exit(-1)
 
             table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
                                                 filter_terms=prefix)
 
-            print(table_list)
+            project_tables = dict()
 
+            for table in table_list:
+                if "_CDE_" in table:
+                    continue
+
+                if program == "TCGA":
+                    project = table.split("_")[-1]
+                elif program == "TARGET":
+                    project = table.split("_")[2]
+                else:
+                    logger.critical("Not set up for this program, exiting.")
+                    sys.exit(-1)
+
+                if project not in project_tables:
+                    project_tables[project] = list()
+
+                project_tables[project].append(table)
+
+            for project, table_list in project_tables.items():
+                print(project)
+                for table in table_list:
+                    print(table)
+                print("")
 
 
         """
