@@ -445,8 +445,8 @@ def main(args):
                 project_tables[project].append(table)
 
             for project, table_list in project_tables.items():
-
                 print(project)
+                column_set = set()
                 id_key_set = set()
 
                 for table in table_list:
@@ -463,7 +463,21 @@ def main(args):
                     for row in res:
                         total_repeated = int(row['total_count']) - int(row['distinct_count'])
                         print(f"{table}: {total_repeated}")
-                        # id_key_set.add(row[0])
+                        id_key_set.add(row[0])
+
+                    table_name = table_id.split(".")[-1]
+                    dataset_id = ".".join(table_id.split(".")[0:-1])
+
+                    column_sql = f"""
+                        SELECT column_name
+                        FROM {dataset_id}.INFORMATION_SCHEMA.COLUMNS
+                        WHERE table_name = '{table_name}' 
+                    """
+
+                    res = query_and_retrieve_result(column_sql)
+
+                    for row in res:
+                        column_set.add(row[0])
 
 
 
