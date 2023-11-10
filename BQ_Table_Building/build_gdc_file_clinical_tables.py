@@ -387,7 +387,7 @@ def main(args):
                 table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}"
 
                 if program == "TCGA":
-                    renamed_table = table_name.replace("nationwidechildrens.org", "TCGA")
+                    renamed_table = table_name.replace("nationwidechildrens_org", "TCGA")
                     table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{renamed_table}"
                     print(f"table renamed to: {table_id}")
 
@@ -417,7 +417,7 @@ def main(args):
             if program == "TARGET":
                 prefix = "r36_TARGET"
             elif program == "TCGA":
-                prefix = "r36_nationwidechildrens_org"
+                prefix = "r36_TCGA"
             else:
                 logger.critical("Not set up for this program, exiting.")
                 sys.exit(-1)
