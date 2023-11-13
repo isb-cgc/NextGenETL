@@ -109,6 +109,10 @@ def main(args):
                                 if str(old_value).title() == value.title():
                                     continue
 
+                            if isinstance(value, float) or isinstance(old_value, float):
+                                if float(old_value) == float(value):
+                                    continue
+
                             print(f"{target_usi} different value for {column}: "
                                   f"{records_dict[target_usi][column]} || {value}")
 
