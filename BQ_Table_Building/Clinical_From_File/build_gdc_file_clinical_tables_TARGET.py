@@ -104,6 +104,11 @@ def main(args):
                         records_dict[target_usi][column] = value
                     else:
                         if records_dict[target_usi][column] != value:
+                            old_value = records_dict[target_usi][column]
+                            if isinstance(value, str):
+                                if str(old_value).title() == value.title():
+                                    continue
+
                             print(f"{target_usi} different value for {column}: "
                                   f"{records_dict[target_usi][column]}, {value}")
 
