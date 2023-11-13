@@ -93,6 +93,7 @@ def main(args):
                         tables_by_type[table_type].append(table_name)
                         continue
 
+        """
         for table_type, table_list in tables_by_type.items():
             table_type_column_counts = dict()
             print(table_type)
@@ -109,50 +110,47 @@ def main(args):
 
             for column, count in sorted(table_type_column_counts.items(), key=lambda x: x[1], reverse=True):
                 print(f"{column}\t{table_type}\t{count}")
+        """
 
-        exit()
-
-        records_dict = dict()
         # target_usi: {column: value, ...}
 
-        for table in table_list:
+        for table_type, table_list in tables_by_type.items():
+            records_dict = dict()
 
-            print(table)
+            for table in table_list:
+                table_id = f"isb-project-zero.clinical_from_files_raw.{table}"
 
-            table_id = f"isb-project-zero.clinical_from_files_raw.{table}"
-            project = table.split("_")[2]
+                sql = f"""
+                    SELECT DISTINCT * 
+                    FROM `{table_id}`
+                """
 
-            sql = f"""
-                SELECT DISTINCT * 
-                FROM `{table_id}`
-            """
+                result = query_and_retrieve_result(sql)
 
-            result = query_and_retrieve_result(sql)
+                for row in result:
+                    record_dict = dict(row)
+                    bcr_patient_uuid = record_dict.pop('bcr_patient_uuid')
 
-            for row in result:
-                record_dict = dict(row)
-                target_usi = record_dict.pop('target_usi')
+                    if bcr_patient_uuid not in records_dict:
+                        records_dict[bcr_patient_uuid] = dict()
 
-                if target_usi not in records_dict:
-                    records_dict[target_usi] = dict()
+                    for column, value in record_dict.items():
+                        if value is None:
+                            continue
+                        if column not in records_dict[bcr_patient_uuid]:
+                            records_dict[bcr_patient_uuid][column] = value
+                        else:
+                            if records_dict[bcr_patient_uuid][column] != value:
+                                old_value = records_dict[bcr_patient_uuid][column]
+                                if isinstance(value, str):
+                                    if str(old_value).title() == value.title():
+                                        continue
 
-                for column, value in record_dict.items():
-                    if value is None:
-                        continue
-                    if column not in records_dict[target_usi]:
-                        records_dict[target_usi][column] = value
-                    else:
-                        if records_dict[target_usi][column] != value:
-                            old_value = records_dict[target_usi][column]
-                            if isinstance(value, str):
-                                if str(old_value).title() == value.title():
-                                    continue
+                                if isinstance(value, float) or isinstance(old_value, float):
+                                    if float(old_value) == float(value):
+                                        continue
 
-                            if isinstance(value, float) or isinstance(old_value, float):
-                                if float(old_value) == float(value):
-                                    continue
-
-                            print(f"{target_usi}\t{project}\t{column}\t{records_dict[target_usi][column]}\t{value}")
+                                print(f"{bcr_patient_uuid}\t{column}\t{old_value}\t{value}")
 
 
 
