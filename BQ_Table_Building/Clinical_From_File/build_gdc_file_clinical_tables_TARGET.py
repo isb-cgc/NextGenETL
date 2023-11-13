@@ -110,7 +110,7 @@ def main(args):
                                     continue
 
                             print(f"{target_usi} different value for {column}: "
-                                  f"{records_dict[target_usi][column]}, {value}")
+                                  f"{records_dict[target_usi][column]} || {value}")
 
 
 
