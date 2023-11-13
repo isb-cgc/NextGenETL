@@ -74,7 +74,7 @@ def main(args):
         table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
                                             filter_terms=f"{PARAMS['RELEASE']}_TARGET")
 
-        record_dict = dict()
+        records_dict = dict()
         # target_usi: {column: value, ...}
 
         for table in table_list:
@@ -91,8 +91,21 @@ def main(args):
             result = query_and_retrieve_result(sql)
 
             for row in result:
-                print(dict(row))
-                exit()
+                record_dict = dict(row)
+                target_usi = record_dict.pop('target_usi')
+
+                if target_usi not in records_dict:
+                    records_dict[target_usi] = dict()
+
+                for column, value in record_dict.items():
+                    if value is None:
+                        continue
+                    if column not in records_dict[target_usi]:
+                        records_dict[target_usi][column] = value
+                    else:
+                        if records_dict[target_usi][column] != value:
+                            print(f"{target_usi} different value for {column}: "
+                                  f"{records_dict[target_usi][column]}, {value}")
 
 
 
