@@ -155,7 +155,13 @@ def main(args):
             new_table_name = f"{PARAMS['RELEASE']}_TCGA_{table_type}"
 
             record_json_list = list(records_dict.values())
-            write_list_to_jsonl_and_upload(PARAMS, new_table_name, record_json_list)
+
+            jsonl_filename = f"{new_table_name}.jsonl"
+
+            write_list_to_jsonl_and_upload(PARAMS,
+                                           new_table_name,
+                                           record_json_list,
+                                           local_filepath=get_scratch_fp(PARAMS, jsonl_filename))
 
             create_and_upload_schema_for_json(PARAMS,
                                               record_list=record_json_list,
