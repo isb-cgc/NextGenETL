@@ -21,10 +21,11 @@ import time
 
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
                                    create_and_load_table_from_tsv, query_and_retrieve_result, list_tables_in_dataset,
-                                   get_columns_in_table)
+                                   get_columns_in_table, create_and_upload_schema_for_json,
+                                   create_and_load_table_from_jsonl)
 from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket, download_from_external_bucket
 from cda_bq_etl.data_helpers import initialize_logging, make_string_bq_friendly, write_list_to_tsv, \
-    create_normalized_tsv
+    create_normalized_tsv, write_list_to_jsonl_and_upload
 from cda_bq_etl.utils import format_seconds, get_filepath, load_config, get_scratch_fp, calculate_md5sum, \
     create_dev_table_id
 
@@ -148,17 +149,29 @@ def main(args):
                         else:
                             if records_dict[id_key_value][column] != value:
                                 old_value = records_dict[id_key_value][column]
-                                if isinstance(value, str):
-                                    if str(old_value).title() == value.title():
-                                        continue
-
-                                if isinstance(value, float) or isinstance(old_value, float):
-                                    if float(old_value) == float(value):
-                                        continue
 
                                 print(f"{id_key_value}\t{column}\t{old_value}\t{value}")
 
+            new_table_name = f"{PARAMS['RELEASE']}_TCGA_{table_type}"
 
+            record_json_list = list(records_dict.values())
+            write_list_to_jsonl_and_upload(PARAMS, new_table_name, record_json_list)
+
+            create_and_upload_schema_for_json(PARAMS,
+                                              record_list=record_json_list,
+                                              table_name=new_table_name,
+                                              include_release=True)
+
+            # Download schema file from Google Cloud bucket
+            table_schema = retrieve_bq_schema_object(PARAMS, table_name=new_table_name, include_release=True)
+
+            table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{new_table_name}"
+
+            # Load jsonl data into BigQuery table
+            create_and_load_table_from_jsonl(PARAMS,
+                                             jsonl_file=f"file_{PARAMS['RELEASE']}.jsonl",
+                                             table_id=table_id,
+                                             schema=table_schema)
 
         """
         TODO:
