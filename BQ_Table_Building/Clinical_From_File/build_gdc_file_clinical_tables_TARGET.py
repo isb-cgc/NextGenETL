@@ -74,10 +74,18 @@ def main(args):
         table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
                                             filter_terms=f"{PARAMS['RELEASE']}_TARGET")
 
+        table_list = [
+            "r36_TARGET_AML_ClinicalData_AML1031_20211201",
+            "r36_TARGET_AML_ClinicalData_Discovery_20211201",
+            "r36_TARGET_AML_ClinicalData_Validation_20211201",
+            "r36_TARGET_AML_ClinicalData_LowDepthRNAseq_20220331",
+            "r36_TARGET_AML_ClinicalData_AAML1031_AAML0631_additionalCasesForSortedCellsAndCBExperiment_20220330",
+        ]
+
         records_dict = dict()
         # target_usi: {column: value, ...}
 
-        for table in sorted(table_list):
+        for table in table_list:
             if 'Supplement' in table or 'CDE' in table:
                 continue
 
