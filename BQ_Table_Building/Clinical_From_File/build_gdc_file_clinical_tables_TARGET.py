@@ -113,8 +113,7 @@ def main(args):
                                 if float(old_value) == float(value):
                                     continue
 
-                            print(f"{target_usi} different value for {column}: "
-                                  f"{records_dict[target_usi][column]} || {value}")
+                            print(f"{target_usi}\t{column}\t{records_dict[target_usi][column]}\t{value}")
 
 
 
