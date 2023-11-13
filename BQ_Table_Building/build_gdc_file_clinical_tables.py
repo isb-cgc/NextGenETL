@@ -446,17 +446,19 @@ def main(args):
 
             for project, table_list in project_tables.items():
                 print(project)
-                column_set = set()
-                id_key_set = set()
+                column_dict = dict()
 
                 for table in table_list:
-                    id_key = programs[program]['id_key']
                     table_id = f"isb-project-zero.clinical_from_files_raw.{table}"
-                    sql = f"""
+
+                    """
+                    id_key = programs[program]['id_key']
+
+                    sql = f'''
                             SELECT COUNT({id_key}) as total_count,
                                 COUNT(DISTINCT {id_key}) as distinct_count
                             FROM `{table_id}`
-                        """
+                        '''
 
                     res = query_and_retrieve_result(sql)
 
@@ -464,6 +466,7 @@ def main(args):
                         total_repeated = int(row['total_count']) - int(row['distinct_count'])
                         print(f"{table}: {total_repeated}")
                         id_key_set.add(row[0])
+                    """
 
                     table_name = table_id.split(".")[-1]
                     dataset_id = ".".join(table_id.split(".")[0:-1])
@@ -477,13 +480,13 @@ def main(args):
                     res = query_and_retrieve_result(column_sql)
 
                     for row in res:
-                        column_set.add(row[0])
+                        if row[0] not in column_dict:
+                            column_dict[row[0]] = 1
+                        else:
+                            column_dict[row[0]] += 1
 
-
-
-
-
-
+                    for column, count in column_dict.items():
+                        print(f"{column}\t{count}")
 
 
         """
