@@ -171,7 +171,7 @@ def main(args):
             # Download schema file from Google Cloud bucket
             table_schema = retrieve_bq_schema_object(PARAMS, table_name=new_table_name, include_release=False)
 
-            print(table_schema)
+            print(record_json_list)
 
             table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{new_table_name}"
 
