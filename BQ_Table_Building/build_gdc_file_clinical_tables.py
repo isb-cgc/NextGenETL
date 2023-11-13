@@ -486,8 +486,8 @@ def main(args):
                         else:
                             column_dict[row[0]] += 1
 
-                for column, count in sorted(column_dict.items(), key=lambda x:x[1]):
-                    print(f"{column}\t{count}")
+            for column, count in sorted(column_dict.items(), key=lambda x:x[1]):
+                print(f"{column}\t{count}")
 
 
         """
