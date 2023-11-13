@@ -78,9 +78,10 @@ def main(args):
         # target_usi: {column: value, ...}
 
         for table in sorted(table_list):
-            print(table)
             if 'Supplement' in table or 'CDE' in table:
                 continue
+
+            print(table)
 
             table_id = f"isb-project-zero.clinical_from_files_raw.{table}"
 
