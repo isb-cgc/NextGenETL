@@ -74,7 +74,9 @@ def main(args):
         table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
                                             filter_terms=f"{PARAMS['RELEASE']}_TCGA")
 
-        print(table_list)
+        for table in table_list:
+            table = table.replace("r36_TCGA_")
+            print(table)
         exit()
 
         records_dict = dict()
