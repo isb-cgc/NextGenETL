@@ -444,9 +444,10 @@ def main(args):
 
                 project_tables[project].append(table)
 
+            column_dict = dict()
+
             for project, table_list in project_tables.items():
                 print(project)
-                column_dict = dict()
 
                 for table in table_list:
                     table_id = f"isb-project-zero.clinical_from_files_raw.{table}"
@@ -485,8 +486,8 @@ def main(args):
                         else:
                             column_dict[row[0]] += 1
 
-                    for column, count in column_dict.items():
-                        print(f"{column}\t{count}")
+                for column, count in sorted(column_dict.items(), key=lambda x:x[1]):
+                    print(f"{column}\t{count}")
 
 
         """
