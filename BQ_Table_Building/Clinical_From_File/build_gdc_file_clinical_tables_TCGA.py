@@ -81,10 +81,14 @@ def main(args):
             tables_by_type[table_type] = list()
 
         for table_name in table_list:
-            for table_type in table_types:
-                if table_type in table_name:
-                    tables_by_type[table_type].append(table_name)
-                    continue
+            if 'nte' in table_name:
+                tables_by_type['nte'].append(table_name)
+                continue
+            else:
+                for table_type in table_types:
+                    if table_type in table_name:
+                        tables_by_type[table_type].append(table_name)
+                        continue
 
         for table_type, table_list in tables_by_type.items():
             print(table_type)
