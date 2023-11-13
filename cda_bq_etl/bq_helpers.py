@@ -389,6 +389,27 @@ def list_tables_in_dataset(project_dataset_id: str, filter_terms: Union[str, lis
     return table_list
 
 
+def get_columns_in_table(table_id: str) -> list[str]:
+    dataset_id = ".".join(table_id.split(".")[0:-1])
+    table_name = table_id.split(".")[-1]
+
+    sql = f"""
+        SELECT column_name
+        FROM `{dataset_id}`.INFORMATION_SCHEMA.COLUMNS
+        WHERE table_name = '{table_name}'
+    """
+
+    result = query_and_retrieve_result(sql)
+
+    column_list = list()
+
+    for row in result:
+        column_list.append(row[0])
+
+    return column_list
+
+
+
 def delete_bq_table(table_id: str):
     """
     Permanently delete BigQuery table located by table_id.

@@ -20,7 +20,8 @@ import sys
 import time
 
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
-                                   create_and_load_table_from_tsv, query_and_retrieve_result, list_tables_in_dataset)
+                                   create_and_load_table_from_tsv, query_and_retrieve_result, list_tables_in_dataset,
+                                   get_columns_in_table)
 from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket, download_from_external_bucket
 from cda_bq_etl.data_helpers import initialize_logging, make_string_bq_friendly, write_list_to_tsv, \
     create_normalized_tsv
@@ -91,9 +92,20 @@ def main(args):
                         continue
 
         for table_type, table_list in tables_by_type.items():
+            table_type_column_counts = dict()
             print(table_type)
-            for table in table_list:
-                print(table)
+
+            for table_id in table_list:
+                column_list = get_columns_in_table(table_id=table_id)
+
+                for column in column_list:
+                    if column not in table_type_column_counts:
+                        table_type_column_counts[column] = 1
+                    else:
+                        table_type_column_counts[column] += 1
+
+            for column, count in sorted(table_type_column_counts.items(), key=lambda x: x[1], reverse=True):
+                print(f"{column}\t{count}")
 
         exit()
 
