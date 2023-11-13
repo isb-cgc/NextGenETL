@@ -77,7 +77,7 @@ def main(args):
         records_dict = dict()
         # target_usi: {column: value, ...}
 
-        for table in table_list:
+        for table in sorted(table_list):
             print(table)
             if 'Supplement' in table or 'CDE' in table:
                 continue
