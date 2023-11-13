@@ -24,18 +24,16 @@ import os
 from typing import Union
 
 import pandas as pd
-from google.api_core.exceptions import Forbidden
 
+from google.api_core.exceptions import Forbidden
 from google.cloud import storage
 from google.resumable_media import InvalidResponse
 
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
-                                   create_and_load_table_from_tsv, query_and_retrieve_result, list_tables_in_dataset)
-from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket, download_from_external_bucket
-from cda_bq_etl.data_helpers import initialize_logging, make_string_bq_friendly, write_list_to_tsv, \
-    create_normalized_tsv
-from cda_bq_etl.utils import format_seconds, get_filepath, load_config, get_scratch_fp, calculate_md5sum, \
-    create_dev_table_id
+                                   create_and_load_table_from_tsv, query_and_retrieve_result)
+from cda_bq_etl.gcs_helpers import upload_to_bucket
+from cda_bq_etl.data_helpers import initialize_logging, make_string_bq_friendly, create_normalized_tsv
+from cda_bq_etl.utils import format_seconds, load_config, get_scratch_fp, calculate_md5sum, create_dev_table_id
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'programs', 'steps')
@@ -411,87 +409,6 @@ def main(args):
             for table in table_list:
                 logger.info(table)
             logger.info("")
-
-        if 'analyze_tables' in steps:
-            print(program)
-            if program == "TARGET":
-                prefix = "r36_TARGET"
-            elif program == "TCGA":
-                prefix = "r36_TCGA"
-            else:
-                logger.critical("Not set up for this program, exiting.")
-                sys.exit(-1)
-
-            table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
-                                                filter_terms=prefix)
-
-            project_tables = dict()
-
-            for table in table_list:
-                if "_CDE_" in table:
-                    continue
-
-                if program == "TCGA":
-                    project = table.split("_")[-1]
-                elif program == "TARGET":
-                    project = table.split("_")[2]
-                else:
-                    logger.critical("Not set up for this program, exiting.")
-                    sys.exit(-1)
-
-                if project not in project_tables:
-                    project_tables[project] = list()
-
-                project_tables[project].append(table)
-
-            column_dict = dict()
-
-            for project, table_list in project_tables.items():
-                print(project)
-
-                for table in table_list:
-                    table_id = f"isb-project-zero.clinical_from_files_raw.{table}"
-
-                    """
-                    id_key = programs[program]['id_key']
-
-                    sql = f'''
-                            SELECT COUNT({id_key}) as total_count,
-                                COUNT(DISTINCT {id_key}) as distinct_count
-                            FROM `{table_id}`
-                        '''
-
-                    res = query_and_retrieve_result(sql)
-
-                    for row in res:
-                        total_repeated = int(row['total_count']) - int(row['distinct_count'])
-                        print(f"{table}: {total_repeated}")
-                        id_key_set.add(row[0])
-                    """
-
-                    table_name = table_id.split(".")[-1]
-                    dataset_id = ".".join(table_id.split(".")[0:-1])
-
-                    if 'Supplement' in table_name:
-                        continue
-
-                    column_sql = f"""
-                        SELECT column_name
-                        FROM {dataset_id}.INFORMATION_SCHEMA.COLUMNS
-                        WHERE table_name = '{table_name}' 
-                    """
-
-                    res = query_and_retrieve_result(column_sql)
-
-                    for row in res:
-                        if row[0] not in column_dict:
-                            column_dict[row[0]] = 1
-                        else:
-                            column_dict[row[0]] += 1
-
-            for column, count in sorted(column_dict.items(), key=lambda x: x[1], reverse=True):
-                print(f"{column}\t{count}")
-
 
         """
         TODO:
