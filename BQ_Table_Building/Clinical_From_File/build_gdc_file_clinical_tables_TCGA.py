@@ -75,7 +75,7 @@ def main(args):
                                             filter_terms=f"{PARAMS['RELEASE']}_TCGA")
 
         for table in table_list:
-            table = table.replace("r36_TCGA_")
+            table = table.replace("r36_TCGA_", "")
             print(table)
         exit()
 
