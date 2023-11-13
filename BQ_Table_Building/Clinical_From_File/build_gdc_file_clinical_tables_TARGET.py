@@ -78,6 +78,7 @@ def main(args):
         # target_usi: {column: value, ...}
 
         for table in table_list:
+            print(table)
             if 'Supplement' in table or 'CDE' in table:
                 continue
 
