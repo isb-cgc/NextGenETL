@@ -115,10 +115,12 @@ def main(args):
         # target_usi: {column: value, ...}
 
         for table_type, table_list in tables_by_type.items():
+            print(table_type)
             id_key = PARAMS['TABLE_TYPES'][table_type]['id_key']
             records_dict = dict()
 
             for table in table_list:
+                print(table)
                 table_id = f"isb-project-zero.clinical_from_files_raw.{table}"
 
                 sql = f"""
