@@ -74,17 +74,29 @@ def main(args):
         table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
                                             filter_terms=f"{PARAMS['RELEASE']}_TCGA")
 
-        for table in table_list:
-            table = table.replace("r36_TCGA_", "")
-            print(table)
+        tables_by_type = dict()
+        table_types = PARAMS['TABLE_TYPES'].keys()
+
+        for table_type in table_types:
+            tables_by_type[table_type] = list()
+
+        for table_name in table_list:
+            for table_type in table_types:
+                if table_type in table_name:
+                    tables_by_type[table_type].append(table_name)
+                    continue
+
+        for table_type, table_list in tables_by_type.items():
+            print(table_type)
+            for table in table_list:
+                print(table)
+
         exit()
 
         records_dict = dict()
         # target_usi: {column: value, ...}
 
         for table in table_list:
-            if 'Supplement' in table or 'CDE' in table:
-                continue
 
             print(table)
 
