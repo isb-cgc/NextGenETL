@@ -119,6 +119,9 @@ def main(args):
             id_key = PARAMS['TABLE_TYPES'][table_type]['id_key']
             records_dict = dict()
 
+            if table_type == "nte":
+                continue
+
             for table in table_list:
                 print(table)
                 table_id = f"isb-project-zero.clinical_from_files_raw.{table}"
