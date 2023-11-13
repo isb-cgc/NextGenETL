@@ -84,6 +84,7 @@ def main(args):
             print(table)
 
             table_id = f"isb-project-zero.clinical_from_files_raw.{table}"
+            project = table.split("_")[2]
 
             sql = f"""
                 SELECT DISTINCT * 
@@ -115,7 +116,7 @@ def main(args):
                                 if float(old_value) == float(value):
                                     continue
 
-                            print(f"{target_usi}\t{column}\t{records_dict[target_usi][column]}\t{value}")
+                            print(f"{target_usi}\t{project}\t{column}\t{records_dict[target_usi][column]}\t{value}")
 
 
 
