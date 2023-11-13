@@ -472,6 +472,9 @@ def main(args):
                     table_name = table_id.split(".")[-1]
                     dataset_id = ".".join(table_id.split(".")[0:-1])
 
+                    if 'Supplement' in table_name:
+                        continue
+
                     column_sql = f"""
                         SELECT column_name
                         FROM {dataset_id}.INFORMATION_SCHEMA.COLUMNS
