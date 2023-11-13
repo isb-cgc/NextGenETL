@@ -115,6 +115,7 @@ def main(args):
         # target_usi: {column: value, ...}
 
         for table_type, table_list in tables_by_type.items():
+            id_key = PARAMS['TABLE_TYPES'][table_type]['id_key']
             records_dict = dict()
 
             for table in table_list:
@@ -129,19 +130,19 @@ def main(args):
 
                 for row in result:
                     record_dict = dict(row)
-                    bcr_patient_uuid = record_dict.pop('bcr_patient_uuid')
+                    id_key_value = record_dict.pop(id_key)
 
-                    if bcr_patient_uuid not in records_dict:
-                        records_dict[bcr_patient_uuid] = dict()
+                    if id_key_value not in records_dict:
+                        records_dict[id_key_value] = dict()
 
                     for column, value in record_dict.items():
                         if value is None:
                             continue
-                        if column not in records_dict[bcr_patient_uuid]:
-                            records_dict[bcr_patient_uuid][column] = value
+                        if column not in records_dict[id_key_value]:
+                            records_dict[id_key_value][column] = value
                         else:
-                            if records_dict[bcr_patient_uuid][column] != value:
-                                old_value = records_dict[bcr_patient_uuid][column]
+                            if records_dict[id_key_value][column] != value:
+                                old_value = records_dict[id_key_value][column]
                                 if isinstance(value, str):
                                     if str(old_value).title() == value.title():
                                         continue
@@ -150,7 +151,7 @@ def main(args):
                                     if float(old_value) == float(value):
                                         continue
 
-                                print(f"{bcr_patient_uuid}\t{column}\t{old_value}\t{value}")
+                                print(f"{id_key_value}\t{column}\t{old_value}\t{value}")
 
 
 
