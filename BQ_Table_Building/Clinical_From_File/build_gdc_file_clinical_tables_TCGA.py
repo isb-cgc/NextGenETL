@@ -108,7 +108,7 @@ def main(args):
                         table_type_column_counts[column] += 1
 
             for column, count in sorted(table_type_column_counts.items(), key=lambda x: x[1], reverse=True):
-                print(f"{column}\t{count}")
+                print(f"{column}\t{table_type}\t{count}")
 
         exit()
 
