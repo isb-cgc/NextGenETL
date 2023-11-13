@@ -58,7 +58,7 @@ def main(args):
         start_time = time.time()
 
         global PARAMS
-        PARAMS, programs, steps = load_config(args, YAML_HEADERS)
+        PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         sys.exit(err)
 
