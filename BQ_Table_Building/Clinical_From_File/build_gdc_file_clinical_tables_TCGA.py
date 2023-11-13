@@ -72,7 +72,9 @@ def main(args):
     if 'analyze_tables' in steps:
         column_dict = dict()
 
-        table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
+        project_dataset_id = "isb-project-zero.clinical_from_files_raw"
+
+        table_list = list_tables_in_dataset(project_dataset_id=project_dataset_id,
                                             filter_terms=f"{PARAMS['RELEASE']}_TCGA")
 
         tables_by_type = dict()
@@ -95,7 +97,8 @@ def main(args):
             table_type_column_counts = dict()
             print(table_type)
 
-            for table_id in table_list:
+            for table_name in table_list:
+                table_id = f"{project_dataset_id}.{table_name}"
                 column_list = get_columns_in_table(table_id=table_id)
 
                 for column in column_list:
