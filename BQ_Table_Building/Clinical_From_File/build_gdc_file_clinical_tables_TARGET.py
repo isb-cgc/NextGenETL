@@ -91,7 +91,8 @@ def main(args):
             result = query_and_retrieve_result(sql)
 
             for row in result:
-                print(row)
+                print(dict(row))
+                exit()
 
 
 
