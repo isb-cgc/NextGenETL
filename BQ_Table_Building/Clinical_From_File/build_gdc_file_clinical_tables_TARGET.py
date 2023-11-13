@@ -28,7 +28,7 @@ from cda_bq_etl.utils import format_seconds, get_filepath, load_config, get_scra
     create_dev_table_id
 
 PARAMS = dict()
-YAML_HEADERS = ('params', 'programs', 'steps')
+YAML_HEADERS = ('params', 'steps')
 
 
 def create_program_tables_dict() -> dict[str, list[str]]:
