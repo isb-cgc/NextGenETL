@@ -31,6 +31,28 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'programs', 'steps')
 
 
+def create_program_tables_dict() -> dict[str, list[str]]:
+    prefix = f"{PARAMS['RELEASE']}_TARGET"
+
+    table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
+                                        filter_terms=prefix)
+
+    project_tables = dict()
+
+    for table in table_list:
+        if "_CDE_" in table:
+            continue
+
+        project = table.split("_")[2]
+
+        if project not in project_tables:
+            project_tables[project] = list()
+
+        project_tables[project].append(table)
+
+    return project_tables
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -47,54 +69,31 @@ def main(args):
     logger.info(f"GDC clinical file script started at {time.strftime('%x %X', time.localtime())}")
 
     if 'analyze_tables' in steps:
-        prefix = f"{PARAMS['RELEASE']}_TARGET"
-
-        table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
-                                            filter_terms=prefix)
-
-        project_tables = dict()
-
-        for table in table_list:
-            if "_CDE_" in table:
-                continue
-
-            project = table.split("_")[2]
-
-            if project not in project_tables:
-                project_tables[project] = list()
-
-            project_tables[project].append(table)
-
         column_dict = dict()
 
-        for project, table_list in project_tables.items():
-            print(project)
+        table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
+                                            filter_terms=f"{PARAMS['RELEASE']}_TARGET")
 
-            for table in table_list:
-                table_id = f"isb-project-zero.clinical_from_files_raw.{table}"
+        record_dict = dict()
+        # target_usi: {column: value, ...}
 
-                table_name = table_id.split(".")[-1]
-                dataset_id = ".".join(table_id.split(".")[0:-1])
+        for table in table_list:
+            if 'Supplement' in table or 'CDE' in table:
+                continue
 
-                if 'Supplement' in table_name or 'CDE' in table_name:
-                    continue
+            table_id = f"isb-project-zero.clinical_from_files_raw.{table}"
 
-                column_sql = f"""
-                    SELECT column_name
-                    FROM {dataset_id}.INFORMATION_SCHEMA.COLUMNS
-                    WHERE table_name = '{table_name}' 
-                """
+            sql = f"""
+                SELECT DISTINCT * 
+                FROM `{table_id}`
+            """
 
-                res = query_and_retrieve_result(column_sql)
+            result = query_and_retrieve_result(sql)
 
-                for row in res:
-                    if row[0] not in column_dict:
-                        column_dict[row[0]] = 1
-                    else:
-                        column_dict[row[0]] += 1
+            for row in result:
+                print(row)
 
-        for column, count in sorted(column_dict.items(), key=lambda x: x[1], reverse=True):
-            print(f"{column}\t{count}")
+
 
         """
         TODO:
