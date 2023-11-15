@@ -172,9 +172,10 @@ def create_program_tables_dict() -> dict[str, list[str]]:
 
 
 def build_a_header(all_files: list[str]):
+    header_values = set()
+
     for filename in all_files:
         with open(filename, 'r', encoding="ISO-8859-1") as readfile:
-            header_lines = []
             row_idx = 0
 
             for line in readfile:
@@ -183,11 +184,11 @@ def build_a_header(all_files: list[str]):
                     continue
                 else:
                     # if we run into one field that is a pure number, it is no longer a header line
-                    split_line = line.rstrip('\n').split("\t")
-                    header_lines.append(split_line)
+                    header_row = set(line.rstrip('\n').split("\t"))
+                    header_values = header_values & header_row
                     break
 
-    return header_lines
+    return header_values
 
 
 def main(args):
