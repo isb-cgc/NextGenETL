@@ -148,6 +148,9 @@ def recursively_detect_object_structures(nested_obj: Union[JSONList, RowDict]) -
                 _obj[k] = normalize_value(_obj[k])
                 val_type = check_value_type(_obj[k])
 
+                if k == 'ablation_performed_indicator':
+                    print(val_type)
+
                 if val_type:
                     _data_types_dict[k].add(val_type)
 

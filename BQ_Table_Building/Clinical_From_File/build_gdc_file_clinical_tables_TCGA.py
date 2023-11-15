@@ -166,10 +166,6 @@ def main(args):
                                            record_json_list,
                                            local_filepath=get_scratch_fp(PARAMS, jsonl_filename))
 
-            for record in record_json_list:
-                print(record['ablation_performed_indicator'])
-
-
             create_and_upload_schema_for_json(PARAMS,
                                               record_list=record_json_list,
                                               table_name=new_table_name,
