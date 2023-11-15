@@ -135,6 +135,7 @@ def main(args):
                 result = query_and_retrieve_result(sql)
 
                 for row in result:
+                    print(row)
                     record_dict = dict(row)
                     id_key_value = record_dict.pop(id_key)
 
@@ -158,11 +159,6 @@ def main(args):
 
             jsonl_filename = f"{new_table_name}.jsonl"
 
-            for record in record_json_list:
-                print(record)
-
-            print("****")
-
             write_list_to_jsonl_and_upload(PARAMS,
                                            new_table_name,
                                            record_json_list,
@@ -175,8 +171,6 @@ def main(args):
 
             # Download schema file from Google Cloud bucket
             table_schema = retrieve_bq_schema_object(PARAMS, table_name=new_table_name, include_release=False)
-
-            print(record_json_list)
 
             table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{new_table_name}"
 
