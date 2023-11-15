@@ -212,6 +212,7 @@ def main(args):
 
     local_program_dir = get_scratch_fp(PARAMS, program)
     local_files_dir = f"{local_program_dir}/files"
+    local_concat_dir = f"{local_program_dir}/concat_files"
     local_schemas_dir = f"{local_program_dir}/schemas"
     file_traversal_list = f"{local_program_dir}/{PARAMS['BASE_FILE_NAME']}_traversal_list_{program}.txt"
     tables_file = f"{local_program_dir}/{PARAMS['RELEASE']}_tables_{program}.txt"
@@ -298,7 +299,7 @@ def main(args):
 
             concat_header_row_list = build_a_header(files)
 
-            new_file_path = f"{local_files_dir}/{PARAMS['RELEASE']}_TCGA_{data_type}_raw.tsv"
+            new_file_path = f"{local_concat_dir}/{PARAMS['RELEASE']}_TCGA_{data_type}_raw.tsv"
             concat_file_paths.append(new_file_path)
 
             with open(new_file_path, 'w', encoding="ISO-8859-1") as big_tsv_fh:
