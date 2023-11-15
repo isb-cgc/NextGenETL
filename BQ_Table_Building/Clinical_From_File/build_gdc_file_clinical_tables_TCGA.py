@@ -158,6 +158,11 @@ def main(args):
 
             jsonl_filename = f"{new_table_name}.jsonl"
 
+            for record in record_json_list:
+                print(record)
+
+            print("****")
+
             write_list_to_jsonl_and_upload(PARAMS,
                                            new_table_name,
                                            record_json_list,
