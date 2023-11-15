@@ -141,7 +141,7 @@ def make_file_pull_list(program: str, filters: dict[str, str]):
 def create_table_name_from_file_name(file_path: str) -> str:
     file_name = file_path.split("/")[-1]
     table_base_name = "_".join(file_name.split('.')[0:-1])
-    table_base_name = table_base_name.replace("-", "_").replace(".", "_")
+    table_base_name = table_base_name.replace("-", "_").replace(".", "_").replace(f"{PARAMS['RELEASE']}_", "")
     table_id = create_dev_table_id(PARAMS, table_base_name)
     table_name = table_id.split('.')[-1]
     table_name = table_name.replace("-", "_").replace(".", "_")
@@ -417,104 +417,6 @@ def main(args):
         for table in table_list:
             logger.info(table)
         logger.info("")
-
-    if 'analyze_tables' in steps:
-        column_dict = dict()
-
-        project_dataset_id = "isb-project-zero.clinical_from_files_raw"
-
-        table_list = list_tables_in_dataset(project_dataset_id=project_dataset_id,
-                                            filter_terms=f"{PARAMS['RELEASE']}_TCGA")
-
-
-
-        """
-        for table_type, table_list in tables_by_type.items():
-            table_type_column_counts = dict()
-            print(table_type)
-
-            for table_name in table_list:
-                table_id = f"{project_dataset_id}.{table_name}"
-                column_list = get_columns_in_table(table_id=table_id)
-
-                for column in column_list:
-                    if column not in table_type_column_counts:
-                        table_type_column_counts[column] = 1
-                    else:
-                        table_type_column_counts[column] += 1
-
-            for column, count in sorted(table_type_column_counts.items(), key=lambda x: x[1], reverse=True):
-                print(f"{column}\t{table_type}\t{count}")
-        """
-
-        # target_usi: {column: value, ...}
-
-        for table_type, table_list in files_by_type.items():
-            #if table_type == 'ablation':
-            #    continue
-
-            print(table_type)
-            id_key = PARAMS['TABLE_TYPES'][table_type]['id_key']
-            records_dict = dict()
-
-            if table_type == "nte":
-                continue
-
-            for table in table_list:
-                print(table)
-                table_id = f"isb-project-zero.clinical_from_files_raw.{table}"
-
-                sql = f"""
-                    SELECT DISTINCT * 
-                    FROM `{table_id}`
-                """
-
-                result = query_and_retrieve_result(sql)
-
-                for row in result:
-                    record_dict = dict(row)
-                    id_key_value = record_dict.pop(id_key)
-
-                    if id_key_value not in records_dict:
-                        records_dict[id_key_value] = dict()
-
-                    for column, value in record_dict.items():
-                        if value is None:
-                            continue
-                        if column not in records_dict[id_key_value]:
-                            records_dict[id_key_value][column] = value
-                        else:
-                            if records_dict[id_key_value][column] != value:
-                                old_value = records_dict[id_key_value][column]
-
-                                print(f"{id_key_value}\t{column}\t{old_value}\t{value}")
-
-            new_table_name = f"{PARAMS['RELEASE']}_TCGA_{table_type}"
-
-            record_json_list = list(records_dict.values())
-
-            jsonl_filename = f"{new_table_name}.jsonl"
-
-            write_list_to_jsonl_and_upload(PARAMS,
-                                           new_table_name,
-                                           record_json_list,
-                                           local_filepath=get_scratch_fp(PARAMS, jsonl_filename))
-
-            create_and_upload_schema_for_json(PARAMS,
-                                              record_list=record_json_list,
-                                              table_name=new_table_name,
-                                              include_release=False)
-
-            # Download schema file from Google Cloud bucket
-            table_schema = retrieve_bq_schema_object(PARAMS, table_name=new_table_name, include_release=False)
-
-            table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{new_table_name}"
-
-            # Load jsonl data into BigQuery table
-            create_and_load_table_from_jsonl(PARAMS,
-                                             jsonl_file=f"{new_table_name}.jsonl",
-                                             table_id=table_id,
-                                             schema=table_schema)
 
         """
         TODO:
