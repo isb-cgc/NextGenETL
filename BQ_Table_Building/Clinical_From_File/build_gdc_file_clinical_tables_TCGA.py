@@ -185,7 +185,7 @@ def build_a_header(all_files: list[str]):
                 else:
                     # if we run into one field that is a pure number, it is no longer a header line
                     header_row = set(line.rstrip('\n').split("\t"))
-                    header_values = header_values & header_row
+                    header_values = header_values | header_row
                     break
 
     return header_values
