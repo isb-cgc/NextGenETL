@@ -116,6 +116,9 @@ def main(args):
         # target_usi: {column: value, ...}
 
         for table_type, table_list in tables_by_type.items():
+            if table_type == 'ablation':
+                continue
+
             print(table_type)
             id_key = PARAMS['TABLE_TYPES'][table_type]['id_key']
             records_dict = dict()
@@ -135,7 +138,6 @@ def main(args):
                 result = query_and_retrieve_result(sql)
 
                 for row in result:
-                    print(row)
                     record_dict = dict(row)
                     id_key_value = record_dict.pop(id_key)
 
