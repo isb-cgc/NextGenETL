@@ -295,7 +295,6 @@ def main(args):
         all_fields, per_file = build_a_header(all_files)
 
         print(all_fields)
-        print(per_file)
         exit()
 
 
