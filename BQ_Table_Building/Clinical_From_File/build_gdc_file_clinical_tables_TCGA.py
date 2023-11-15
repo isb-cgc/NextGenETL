@@ -297,7 +297,6 @@ def main(args):
             print(data_type)
 
             concat_header_row_list = build_a_header(files)
-            print(concat_header_row_list)
 
             new_file_path = f"{local_files_dir}/{PARAMS['RELEASE']}_TCGA_{data_type}_raw.tsv"
             concat_file_paths.append(new_file_path)
