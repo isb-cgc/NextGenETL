@@ -230,6 +230,7 @@ def aggregate_column_data_types_tsv(tsv_fp: str,
     :return dict of column keys, with value sets representing all data types found for that column
     :rtype dict[str, set]
     """
+    logger = logging.getLogger("data_helpers")
     data_types_dict = dict()
 
     for column in column_headers:
@@ -251,11 +252,12 @@ def aggregate_column_data_types_tsv(tsv_fp: str,
                 row_list = row.split('\t')
 
                 if len(row_list) != len(column_headers):
-                    print(f"len row_list: {len(row_list)}")
-                    print(f"row_list: {row_list}")
-                    print(f"len column_headers: {len(column_headers)}")
-                    print(f"column_headers: {column_headers}")
-                    exit()
+                    logger.critical("Cannot aggregate column types, lengths don't match")
+                    logger.critical(f"len row_list: {len(row_list)}")
+                    logger.critical(f"row_list: {row_list}")
+                    logger.critical(f"len column_headers: {len(column_headers)}")
+                    logger.critical(f"column_headers: {column_headers}")
+                    sys.exit(-1)
 
                 for idx, value in enumerate(row_list):
                     value = value.strip()

@@ -331,7 +331,7 @@ def main(args):
                                     value_idx = header_row_list.index(column)
                                     big_tsv_fh.write(f"{record[value_idx]}\t")
                                 else:
-                                    big_tsv_fh.write("\t")
+                                    big_tsv_fh.write("NA\t")
 
                             big_tsv_fh.write("\n")
 
