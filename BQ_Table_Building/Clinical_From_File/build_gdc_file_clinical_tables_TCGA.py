@@ -171,7 +171,7 @@ def create_program_tables_dict() -> dict[str, list[str]]:
     return project_tables
 
 
-def build_a_header(all_files: list[str]):
+def build_a_header(all_files: list[str]) -> list[str]:
     header_values = set()
 
     for filename in all_files:
@@ -188,7 +188,9 @@ def build_a_header(all_files: list[str]):
                     header_values = header_values | header_row
                     break
 
-    return header_values
+    header_values_list = sorted(list(header_values))
+
+    return header_values_list
 
 
 def main(args):
@@ -288,7 +290,6 @@ def main(args):
                     if table_type in file_name:
                         files_by_type[table_type].append(file_path)
                         continue
-
 
         for type, files in files_by_type.items():
             print(type)
