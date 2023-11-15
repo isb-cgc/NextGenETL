@@ -116,8 +116,8 @@ def main(args):
         # target_usi: {column: value, ...}
 
         for table_type, table_list in tables_by_type.items():
-            if table_type == 'ablation':
-                continue
+            #if table_type == 'ablation':
+            #    continue
 
             print(table_type)
             id_key = PARAMS['TABLE_TYPES'][table_type]['id_key']
