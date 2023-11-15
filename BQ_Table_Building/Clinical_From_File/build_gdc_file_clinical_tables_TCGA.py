@@ -231,6 +231,9 @@ def main(args):
         if not os.path.exists(local_files_dir):
             logger.info(f"Creating directory {local_files_dir}")
             os.makedirs(local_files_dir)
+        if not os.path.exists(local_concat_dir):
+            logger.info(f"Creating directory {local_concat_dir}")
+            os.makedirs(local_concat_dir)
         if not os.path.exists(local_schemas_dir):
             logger.info(f"Creating directory {local_schemas_dir}")
             os.makedirs(local_schemas_dir)
