@@ -291,33 +291,49 @@ def main(args):
                         files_by_type[table_type].append(file_path)
                         continue
 
-        for type, files in files_by_type.items():
-            print(type)
+        concat_file_paths = list()
 
-            header_line = build_a_header(files)
-            print(header_line)
+        for data_type, files in files_by_type.items():
+            print(data_type)
 
-        exit()
+            concat_header_row_list = build_a_header(files)
+            print(concat_header_row_list)
 
+            new_file_path = f"{local_files_dir}/{PARAMS['RELEASE']}_TCGA_{data_type}_raw.tsv"
+            concat_file_paths.append(new_file_path)
 
+            with open(new_file_path, 'w', encoding="ISO-8859-1") as big_tsv_fh:
+                header_line = "\t".join(concat_header_row_list)
+                big_tsv_fh.write(f"{header_line}\n")
 
-        all_tsv_files = list()
+                for file_path in files:
+                    with open(file_path, 'r', encoding="ISO-8859-1") as tsv_fh:
+                        lines = tsv_fh.readlines()
 
-        for file_path in all_files:
-            tsv_filepath = '.'.join(file_path.split('.')[0:-1])
-            tsv_filepath = f"{tsv_filepath}_raw.tsv"
+                        line_cnt = 0
 
-            with open(file_path, 'r', encoding="ISO-8859-1") as tsv_fh:
-                lines = tsv_fh.readlines()
+                        for line in lines:
+                            if line == PARAMS['HEADER_ROW_IDX']:
+                                header_row_list = line.rstrip('\n').split("\t")
+                                line_cnt += 1
+                                continue
+                            elif line_cnt < PARAMS['DATA_START_IDX']:
+                                line_cnt += 1
+                                continue
 
-            with open(tsv_filepath, 'w') as tsv_fh:
-                for line in lines:
-                    tsv_fh.write(f"{line.strip()}\n")
+                            record = line.rstrip('\n').split("\t")
 
-            all_tsv_files.append(tsv_filepath)
+                            for column in concat_header_row_list:
+                                if column in header_row_list:
+                                    value_idx = header_row_list.index(column)
+                                    big_tsv_fh.write(f"{record[value_idx]}\t")
+                                else:
+                                    big_tsv_fh.write("\t")
+
+                            big_tsv_fh.write("\n")
 
         with open(file_traversal_list, mode='w') as traversal_list_file:
-            for tsv_file in all_tsv_files:
+            for tsv_file in concat_file_paths:
                 traversal_list_file.write(f"{tsv_file}\n")
 
     if 'normalize_tsv_and_create_schema' in steps:
@@ -339,11 +355,11 @@ def main(args):
             if row_count <= 1:
                 logger.warning(f"*** probably an issue: row count is {row_count} for {tsv_file_path}")
 
-            bq_column_names = create_bq_column_names(tsv_file=tsv_file_path, header_row_idx=PARAMS['HEADER_ROW_IDX'])
+            bq_column_names = create_bq_column_names(tsv_file=tsv_file_path, header_row_idx=0)
 
             create_tsv_with_final_headers(tsv_file=tsv_file_path,
                                           headers=bq_column_names,
-                                          data_start_idx=PARAMS['DATA_START_IDX'])
+                                          data_start_idx=1)
 
             normalized_tsv_file_path = tsv_file_path.replace("_raw.tsv", ".tsv")
 
@@ -377,11 +393,6 @@ def main(args):
             table_name = create_table_name_from_file_name(normalized_tsv_file_path)
             table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}"
 
-            if program == "TCGA":
-                renamed_table = table_name.replace("nationwidechildrens_org", "TCGA")
-                table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{renamed_table}"
-                print(f"table renamed to: {table_id}")
-
             schema_file_name = f"schema_{table_name}.json"
 
             bq_schema = retrieve_bq_schema_object(PARAMS,
@@ -394,6 +405,7 @@ def main(args):
                                            num_header_rows=1,
                                            schema=bq_schema)
             table_list.append(table_id)
+
         with open(tables_file, 'w') as tables_fh:
             for table_name in table_list:
                 tables_fh.write(f"{table_name}\n")
