@@ -240,8 +240,6 @@ def create_and_upload_schema_for_json(params: Params,
 
         schema_fp = get_scratch_fp(params, schema_filename)
 
-    print(schema_obj)
-
     with open(schema_fp, 'w') as schema_json_file:
         json.dump(schema_obj, schema_json_file, indent=4)
 
