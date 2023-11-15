@@ -311,13 +311,9 @@ def main(args):
                         lines = tsv_fh.readlines()
 
                         line_cnt = 0
-                        header_row_list = list()
 
                         for line in lines:
-                            if line < PARAMS['HEADER_ROW_IDX']:
-                                line_cnt += 1
-                                continue
-                            elif line == PARAMS['HEADER_ROW_IDX']:
+                            if line_cnt == PARAMS['HEADER_ROW_IDX']:
                                 header_row_list = line.rstrip('\n').split("\t")
                                 line_cnt += 1
                                 continue
