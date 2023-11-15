@@ -180,8 +180,6 @@ def build_a_header(all_files: list[str]):
         with open(filename, 'r', encoding="ISO-8859-1") as readfile:
             header_lines = []
 
-            PARAMS["HEADER_ROW_IDX"]
-
             row_idx = 0
 
             for line in readfile:
@@ -191,15 +189,11 @@ def build_a_header(all_files: list[str]):
                 else:
                     # if we run into one field that is a pure number, it is no longer a header line
                     split_line = line.rstrip('\n').split("\t")
+                    print(split_line)
                     header_lines.append(split_line)
-                    if split_line[0].startswith("CDE_ID"):
-                        for i in range(len(split_line)):
-                            per_file[filename].append(split_line[i])
+                    break
 
-                        all_fields.update(per_file[filename])
-                        break
-
-    return all_fields, per_file
+    return header_lines
 
 
 def main(args):
@@ -279,23 +273,36 @@ def main(args):
                 os.remove(file_path)
 
     if 'combine_project_tsvs' in steps:
-
-
-        # If file suffix is xlsx or xls, convert to tsv.
-        # Then modify traversal list file to point to the newly created tsv files.
-        logger.info('convert_excel_to_tsv')
+        logger.info('combine_project_tsvs')
 
         file_names = os.listdir(local_files_dir)
+        files_by_type = dict()
+        table_types = PARAMS['TABLE_TYPES'].keys()
 
-        all_files = list()
+        for table_type in table_types:
+            files_by_type[table_type] = list()
 
         for file_name in file_names:
-            all_files.append(f"{local_files_dir}/{file_name}")
+            file_path = f"{local_files_dir}/{file_name}"
 
-        all_fields, per_file = build_a_header(all_files)
+            if 'nte' in file_name:
+                files_by_type['nte'].append(file_path)
+                continue
+            else:
+                for table_type in table_types:
+                    if table_type in file_name:
+                        files_by_type[table_type].append(file_path)
+                        continue
 
-        print(all_fields)
+
+        for type, files in files_by_type.items():
+            print(type)
+
+            header_line = build_a_header(files)
+            print(header_line)
+
         exit()
+
 
 
         all_tsv_files = list()
@@ -408,21 +415,7 @@ def main(args):
         table_list = list_tables_in_dataset(project_dataset_id=project_dataset_id,
                                             filter_terms=f"{PARAMS['RELEASE']}_TCGA")
 
-        tables_by_type = dict()
-        table_types = PARAMS['TABLE_TYPES'].keys()
 
-        for table_type in table_types:
-            tables_by_type[table_type] = list()
-
-        for table_name in table_list:
-            if 'nte' in table_name:
-                tables_by_type['nte'].append(table_name)
-                continue
-            else:
-                for table_type in table_types:
-                    if table_type in table_name:
-                        tables_by_type[table_type].append(table_name)
-                        continue
 
         """
         for table_type, table_list in tables_by_type.items():
@@ -445,7 +438,7 @@ def main(args):
 
         # target_usi: {column: value, ...}
 
-        for table_type, table_list in tables_by_type.items():
+        for table_type, table_list in files_by_type.items():
             #if table_type == 'ablation':
             #    continue
 
