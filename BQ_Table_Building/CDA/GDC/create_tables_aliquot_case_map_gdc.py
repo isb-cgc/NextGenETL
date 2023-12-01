@@ -95,10 +95,10 @@ def make_aliquot_case_table_sql() -> str:
             FROM aliquot_records 
             WHERE portion_gdc_id IN (
                 SELECT portion_id 
-                FROM `isb-project-zero.cda_gdc_raw.r37_aliquot_from_portion`
+                FROM `{create_dev_table_id(PARAMS, 'slide_from_portion')}`
             ) AND portion_gdc_id NOT IN (
                 SELECT portion_id
-                FROM `isb-project-zero.cda_gdc_raw.r37_analyte_from_portion`
+                FROM `{create_dev_table_id(PARAMS, 'analyte_from_portion')}`
             )
         )
         
