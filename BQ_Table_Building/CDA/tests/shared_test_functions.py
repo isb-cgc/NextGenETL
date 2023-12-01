@@ -174,7 +174,7 @@ def compare_table_columns(left_table_id: str,
                 if secondary_key is not None:
                     secondary_key_value = row.get(secondary_key)
 
-                    print(f"{primary_key_value:40} {secondary_key_value:40} {column_value}")
+                    print(f"{str(primary_key_value):40} {str(secondary_key_value):40} {str(column_value)}")
                 else:
                     print(f"{primary_key_value:40} {column_value}")
 
