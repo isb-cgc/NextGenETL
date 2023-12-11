@@ -36,28 +36,26 @@ YAML_HEADERS = ('params', 'steps')
 ParamsDict = dict[str, Union[str, int, dict, list]]
 
 
-def retrieve_dataset_columns(version: str, program_name: str) -> list[list[str]]:
+def retrieve_dataset_columns(version: str, program: str) -> list[list[str]]:
     """
     Retrieve list of columns and tables in a given set, optionally filtering by data version.
-    :param program_name: todo
+    :param program: todo
     :param str version: version release number to by which to filter
     :rtype: list[list[str]]
     """
     table_column_query = f"""
         SELECT table_name, column_name
         FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}`.INFORMATION_SCHEMA.COLUMNS
-        WHERE '{program_name}' IN table_name 
-            AND '{version}' IN table_name
     """
-
-    print(table_column_query)
 
     table_columns = query_and_retrieve_result(sql=table_column_query)
 
     filtered_table_columns = list()
 
     for column_data in table_columns:
-        filtered_table_columns.append(column_data)
+        version_program = f"{version}_{program}"
+        if column_data[0].startswith(version_program):
+            filtered_table_columns.append(column_data)
 
     return filtered_table_columns
 
