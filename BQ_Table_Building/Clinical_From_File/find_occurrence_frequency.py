@@ -31,7 +31,7 @@ from cda_bq_etl.bq_helpers import query_and_retrieve_result
 
 
 PARAMS = dict()
-YAML_HEADERS = ('PARAMS', 'steps')
+YAML_HEADERS = ('params', 'steps')
 
 ParamsDict = dict[str, Union[str, int, dict, list]]
 
@@ -118,7 +118,7 @@ def main(args):
         start_time = time.time()
 
         global PARAMS
-        params, steps = load_config(args, YAML_HEADERS)
+        PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         sys.exit(err)
 
