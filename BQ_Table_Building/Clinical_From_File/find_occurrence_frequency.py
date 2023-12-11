@@ -45,7 +45,7 @@ def retrieve_dataset_columns(version: str, program_name: str) -> list[list[str]]
     """
     table_column_query = f"""
         SELECT table_name, column_name
-        FROM `{PARAMS['DEV_PROJECT']}`.{PARAMS['DEV_RAW_DATASET']}.INFORMATION_SCHEMA.COLUMNS
+        FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}`.INFORMATION_SCHEMA.COLUMNS
         WHERE '{program_name}' IN table_name 
             AND '{version}' IN table_name
     """
