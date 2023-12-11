@@ -50,6 +50,8 @@ def retrieve_dataset_columns(version: str, program_name: str) -> list[list[str]]
             AND '{version}' IN table_name
     """
 
+    print(table_column_query)
+
     table_columns = query_and_retrieve_result(sql=table_column_query)
 
     filtered_table_columns = list()
