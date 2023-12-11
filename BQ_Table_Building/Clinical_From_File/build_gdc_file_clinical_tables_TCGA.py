@@ -40,7 +40,6 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
-
 def create_tsv_with_final_headers(tsv_file, headers, data_start_idx):
     """
     Creates modified tsv with bq-compatible column names.
