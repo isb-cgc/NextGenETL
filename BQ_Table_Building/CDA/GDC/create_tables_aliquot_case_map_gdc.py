@@ -128,8 +128,6 @@ def main(args):
     if 'create_table_from_query' in steps:
         logger.info("Entering create_table_from_query")
 
-        print(make_aliquot_case_table_sql())
-
         create_table_from_query(params=PARAMS,
                                 table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']),
                                 query=make_aliquot_case_table_sql())

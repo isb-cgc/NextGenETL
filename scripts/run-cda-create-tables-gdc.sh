@@ -50,7 +50,7 @@ elif [[ ${SCRIPT_NAME} = ${DISEASE_ARG} ]] ; then
     CONFIG_FILE="CDACreateTablesProjectDiseaseTypeGDC.yaml"
     SCRIPT_FILE="create_tables_project_disease_type_gdc.py"
 else
-    echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, per_sample_file, aliquot_case_map, slide_case_map"
+    echo "Error: incorrect or missing script data type argument. Accepted values: project_disease_type, case, clinical, file, per_sample_file, aliquot_case_map, slide_case_map"
     exit 1
 fi
 
