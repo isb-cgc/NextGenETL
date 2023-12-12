@@ -109,8 +109,14 @@ def output_column_frequencies(table_columns: list[list[str]]):
 
     print(f"{'Table':50} {'Column':50} {'Non-Null Row Count':25} {'Total Row Count':25} {'% Non-Null Rows':25}")
 
+    count = 0
+
     for table_name, column_name, non_null_count, total_count, percentage in columns_list:
         print(f"{table_name:50} {column_name:50} {non_null_count:25} {total_count:25} {percentage:25}")
+        count += 1
+
+        if count % 100 == 0:
+            time.sleep(5)
 
 
 def main(args):
@@ -139,9 +145,6 @@ def main(args):
                 continue
 
             column_name_set.add(column_name)
-
-        for column_name in sorted(column_name_set):
-            print(column_name)
 
         output_column_frequencies(table_columns)
 
