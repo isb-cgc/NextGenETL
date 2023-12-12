@@ -19,14 +19,16 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-
+import logging
 import sys
 import time
+import csv
 
 from typing import Union
 
 from cda_bq_etl.data_helpers import initialize_logging
-from cda_bq_etl.utils import load_config, format_seconds
+from cda_bq_etl.gcs_helpers import upload_to_bucket
+from cda_bq_etl.utils import load_config, format_seconds, get_scratch_fp
 from cda_bq_etl.bq_helpers import query_and_retrieve_result
 
 
@@ -43,6 +45,8 @@ def retrieve_dataset_columns(version: str, program: str) -> list[list[str]]:
     :param str version: version release number to by which to filter
     :rtype: list[list[str]]
     """
+    logger = logging.getLogger("base_script")
+
     table_column_query = f"""
         SELECT table_name, column_name
         FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}`.INFORMATION_SCHEMA.COLUMNS
@@ -52,10 +56,16 @@ def retrieve_dataset_columns(version: str, program: str) -> list[list[str]]:
 
     filtered_table_columns = list()
 
+    count = 0
+
     for column_data in table_columns:
         version_program = f"{version}_{program}"
         if column_data[0].startswith(version_program):
             filtered_table_columns.append(column_data)
+        count += 1
+
+        if count % 100 == 0:
+            logger.info(f"Retrieved {count} columns.")
 
     return filtered_table_columns
 
@@ -67,6 +77,8 @@ def count_non_null_column_values(table_columns: list[list, str]) -> list[tuple[s
     :return: List of tuples containing (table name, column name, non-null count, total count, percentage non-null)
     :rtype: list[tuple[str, str, int, int, float]]
     """
+    logger = logging.getLogger("base_script")
+
     columns_list = list()
 
     count = 0
@@ -89,12 +101,12 @@ def count_non_null_column_values(table_columns: list[list, str]) -> list[tuple[s
         count += 1
 
         if count % 100 == 0:
-            print(f"Retrieved {count} counts.")
+            logger.info(f"Retrieved {count} column statistics.")
 
     return columns_list
 
 
-def output_column_frequencies(table_columns: list[list[str]]):
+def write_frequencies_to_tsv(table_columns: list[list[str]]):
     """
     Build tsv print output for analysis spreadsheet, composed of the following columns:
         - table name
@@ -105,18 +117,28 @@ def output_column_frequencies(table_columns: list[list[str]]):
         - column name included in current workflow?
     :param list[list[str]] table_columns: Table and column names
     """
+    logger = logging.getLogger("base_script")
+
     columns_list = count_non_null_column_values(table_columns)
 
-    print(f"{'Table':50} {'Column':50} {'Non-Null Row Count':25} {'Total Row Count':25} {'% Non-Null Rows':25}")
+    local_program_dir = get_scratch_fp(PARAMS, PARAMS['PROGRAM'])
+    tsv_path = f"{local_program_dir}/{PARAMS['TSV_FILE']}"
 
-    count = 0
+    with open(tsv_path, "w") as tsv_fh:
+        # write header
+        tsv_fh.write(f"Table\tColumn\tNon-Null Row Count\tTotal Row Count\t% Non-Null Rows\n")
 
-    for table_name, column_name, non_null_count, total_count, percentage in columns_list:
-        print(f"{table_name:50} {column_name:50} {non_null_count:25} {total_count:25} {percentage:25}")
-        count += 1
+        count = 0
 
-        if count % 100 == 0:
-            time.sleep(5)
+        for table_name, column_name, non_null_count, total_count, percentage in columns_list:
+            tsv_fh.write(f"{table_name}\t{column_name}\t{non_null_count}\t{total_count}\t{percentage}\n")
+
+            count += 1
+
+            if count % 100 == 0:
+                logger.info(f"Wrote {count} lines to tsv.")
+
+    upload_to_bucket(PARAMS, scratch_fp=tsv_path)
 
 
 def main(args):
@@ -146,7 +168,7 @@ def main(args):
 
             column_name_set.add(column_name)
 
-        output_column_frequencies(table_columns)
+        write_frequencies_to_tsv(table_columns)
 
     end_time = time.time()
 
