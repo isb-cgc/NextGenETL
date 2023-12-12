@@ -709,9 +709,9 @@ def update_friendly_name(params: Params, table_id: str, custom_name: Optional[st
     else:
         if params['NODE'].lower() == 'gdc':
             release = params['RELEASE'].replace('r', '')
-            friendly_name = f"{table.friendly_name} REL{release} versioned"
+            friendly_name = f"{table.friendly_name} REL{release} VERSIONED"
         else:
-            friendly_name = f"{table.friendly_name} {params['RELEASE']} versioned"
+            friendly_name = f"{table.friendly_name} {params['RELEASE']} VERSIONED"
 
     table.friendly_name = friendly_name
     client.update_table(table, ["friendly_name"])
