@@ -441,7 +441,7 @@ def main(args):
                 for row in distinct_result:
                     print(row[0])
 
-                time.sleep(7)
+                time.sleep(4)
 
         """
         TODO:
