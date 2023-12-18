@@ -424,9 +424,21 @@ def main(args):
             table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_{table_suffix}"
             table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}"
 
-            columns = get_columns_in_table(table_id)
+            sql = f"""
+                SELECT column_name
+                FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}`.INFORMATION_SCHEMA.COLUMNS
+                WHERE table_name = '{table_name}'
+                AND data_type = 'STRING'
+            """
 
-            for column in columns:
+            result = query_and_retrieve_result(sql)
+
+            column_list = list()
+
+            for row in result:
+                column_list.append(row[0])
+
+            for column in column_list:
                 distinct_query = f"""
                 SELECT distinct {column}
                 FROM {table_id}
@@ -441,7 +453,7 @@ def main(args):
                 for row in distinct_result:
                     print(row[0])
 
-                time.sleep(4)
+                time.sleep(3)
 
         """
         TODO:
