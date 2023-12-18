@@ -429,7 +429,19 @@ def main(args):
             columns = get_columns_in_table(table_id)
 
             for column in columns:
+                distinct_query = f"""
+                SELECT distinct {column}
+                FROM {table_id}
+                """
+
+                distinct_result = query_and_retrieve_result(distinct_query)
+
                 print(column)
+
+                for row in distinct_result:
+                    print(row[0])
+
+                time.sleep(10)
 
         """
         TODO:
