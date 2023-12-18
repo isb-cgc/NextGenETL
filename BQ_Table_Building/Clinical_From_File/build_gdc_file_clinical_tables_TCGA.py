@@ -424,10 +424,6 @@ def main(args):
             table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_{table_suffix}"
             table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}"
 
-            print()
-            print(table_id)
-            print()
-
             columns = get_columns_in_table(table_id)
 
             for column in columns:
@@ -438,7 +434,9 @@ def main(args):
 
                 distinct_result = query_and_retrieve_result(distinct_query)
 
+                print()
                 print(column)
+                print()
 
                 for row in distinct_result:
                     print(row[0])
