@@ -170,6 +170,12 @@ def main(args):
 
         write_frequencies_to_tsv(table_columns)
 
+    if 'output_distinct_values' in steps:
+        table_columns = retrieve_dataset_columns(PARAMS['RELEASE'], PARAMS['PROGRAM'])
+
+
+
+
     end_time = time.time()
 
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
