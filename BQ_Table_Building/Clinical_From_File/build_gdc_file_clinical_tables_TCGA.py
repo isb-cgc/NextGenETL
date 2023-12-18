@@ -421,8 +421,7 @@ def main(args):
         table_suffixes = ['patient']
 
         for table_suffix in table_suffixes:
-            lower_program = PARAMS['PROGRAM'].lower()
-            table_name = f"{PARAMS['RELEASE']}_{lower_program}_{table_suffix}"
+            table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_{table_suffix}"
             table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}"
 
             print(table_id)
