@@ -428,7 +428,8 @@ def main(args):
 
             columns = get_columns_in_table(table_id)
 
-            print(columns)
+            for column in columns:
+                print(column)
 
         """
         TODO:
