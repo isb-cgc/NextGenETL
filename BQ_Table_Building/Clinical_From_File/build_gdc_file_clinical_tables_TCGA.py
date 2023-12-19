@@ -454,6 +454,25 @@ def main(args):
                     print(row[0])
 
                 time.sleep(3)
+        if 'print_non_null_values' in steps:
+            sql = f"""
+            SELECT *
+            FROM `isb-project-zero.clinical_from_files_raw.r36_TCGA_patient`
+            WHERE bcr_patient_barcode = 'TCGA-BF-AAP1'
+            """
+
+            result = query_and_retrieve_result(sql)
+            record = dict()
+
+            for row in result:
+                record = dict(row)
+                break
+
+            for key, value in record.items():
+                if value:
+                    print(f"{key}: {value}")
+
+
 
         """
         TODO:
