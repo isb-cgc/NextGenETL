@@ -459,7 +459,7 @@ def main(args):
         sql = f"""
         SELECT *
         FROM `isb-project-zero.clinical_from_files_raw.r36_TCGA_patient`
-        WHERE bcr_patient_barcode = 'TCGA-BF-AAP1'
+        WHERE bcr_patient_barcode = 'TCGA-FC-A8O0'
         """
 
         result = query_and_retrieve_result(sql)
