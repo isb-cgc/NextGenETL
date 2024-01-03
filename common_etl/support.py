@@ -22,6 +22,7 @@ from google.cloud import exceptions
 from google.cloud.exceptions import NotFound
 import shutil
 import os
+import sys
 import requests
 import copy
 import urllib.parse as up
@@ -30,33 +31,36 @@ import zipfile
 import gzip
 import threading
 from json import loads as json_loads, dumps as json_dumps
+from git import Repo
+
+from common_etl.utils import aggregate_column_data_types_tsv, resolve_type_conflicts
 
 
 def checkToken(aToken):
     """
     Used by pickColumns, below:
     """
-    if ( aToken.find(';') >= 0 ):
+    if (aToken.find(';') >= 0):
         aList = aToken.split(';')
         aList.sort()
         newT = ''
         for bToken in aList:
             newT += bToken
-            if ( len(newT) > 0 ): newT += ';'
-        if ( newT[-1] == ';' ): newT = newT[:-1]
-        return ( newT )
+            if (len(newT) > 0): newT += ';'
+        if (newT[-1] == ';'): newT = newT[:-1]
+        return (newT)
 
-    elif ( aToken.find(',') >= 0 ):
+    elif (aToken.find(',') >= 0):
         aList = aToken.split(',')
         aList.sort()
         newT = ''
         for bToken in aList:
             newT += bToken
-            if ( len(newT) > 0 ): newT += ','
-        if ( newT[-1] == ',' ): newT = newT[:-1]
-        return ( newT )
+            if (len(newT) > 0): newT += ','
+        if (newT[-1] == ','): newT = newT[:-1]
+        return (newT)
 
-    return ( aToken )
+    return (aToken)
 
 
 def pickColumns(tokenList):
@@ -67,30 +71,30 @@ def pickColumns(tokenList):
     """
 
     ## original lists from Nov 2016 ...
-    skipCols = [ 14, 17, 18, 21, 22, 23, 24, 26, 27, 29, 30, 43, 44, 57, 88, 89, 90, 91, 107 ]
-    sortCols = [ 2, 28, 31 ]
+    skipCols = [14, 17, 18, 21, 22, 23, 24, 26, 27, 29, 30, 43, 44, 57, 88, 89, 90, 91, 107]
+    sortCols = [2, 28, 31]
 
     ## new lists from May 2017 ...
-    skipCols = [ 17, 18, 21, 22, 23, 24, 25, 26, 27, 29, 30, 43, 44, 57, 88, 89, 90, 91, 96, 108 ]
+    skipCols = [17, 18, 21, 22, 23, 24, 25, 26, 27, 29, 30, 43, 44, 57, 88, 89, 90, 91, 96, 108]
     ## maybe we don't skip anything?
-    skipCols = [ ]
+    skipCols = []
 
     ## information that should be sorted for consistency, eg column #2 = Center,
     ## #14 = dbSNP_Val_Status, #28 = Validation_Method, #31 = Sequencer, #50 = Consequence, etc...
-    sortCols = [ 2, 14, 28, 31, 50, 75, 85, 87, 109, 115, 116 ]
+    sortCols = [2, 14, 28, 31, 50, 75, 85, 87, 109, 115, 116]
     ## new for June MAFs
-    sortCols = [ 2, 14, 28, 31, 50, 51, 76, 86, 88, 110, 116, 117 ]
+    sortCols = [2, 14, 28, 31, 50, 51, 76, 86, 88, 110, 116, 117]
     ## new in Jan 2018 ... in some of the fields, the ORDER MATTERS!
-    sortCols = [ ]
+    sortCols = []
 
     newList = []
 
     for ii in range(len(tokenList)):
         if ii not in skipCols:
             if ii in sortCols:
-                newList += [ checkToken(tokenList[ii]) ]
+                newList += [checkToken(tokenList[ii])]
             else:
-                newList += [ tokenList[ii] ]
+                newList += [tokenList[ii]]
 
     return newList
 
@@ -235,7 +239,8 @@ def read_MAFs(tumor_type, maf_list, program_prefix, extra_cols, col_count,
                             tokenList = aLine.split('\t')
                             if len(tokenList) != len(hdrTokens):
                                 print(
-                                "ERROR: incorrect number of tokens! {} vs {}".format(len(tokenList), len(hdrTokens)))
+                                    "ERROR: incorrect number of tokens! {} vs {}".format(len(tokenList),
+                                                                                         len(hdrTokens)))
                                 raise Exception()
 
                             # This creates a key for a dictionary for each mutation belonging to a tumor sample:
@@ -355,6 +360,7 @@ def pull_list_builder_sql(manifest_table, indexd_table):
     SELECT b.gs_url
     FROM `{0}` as a JOIN `{1}` as b ON a.id = b.id
     '''.format(manifest_table, indexd_table)
+
 
 #
 # Like the above function, but uses the final public mapping table instead:
@@ -493,7 +499,6 @@ def bucket_to_bucket(source_bucket_name, bucket_file, target_bucket_name, target
     return
 
 
-
 def build_manifest_filter(filter_dict_list):
     """
     Build a manifest filter using the list of filter items you can get from a GDC search
@@ -624,7 +629,7 @@ def build_pull_list_with_indexd(manifest_file, indexd_max, indexd_url, local_fil
             request_url = '{}{}'.format(indexd_url, ','.join(uuid_list))
             resp = requests.request("GET", request_url)
             call_count += 1
-            print ("completed {} of {} calls to IndexD".format(call_count, all_calls))
+            print("completed {} of {} calls to IndexD".format(call_count, all_calls))
             file_dict = json_loads(resp.text)
             for i in range(0, list_len):
                 call_id = uuid_list[i]
@@ -633,8 +638,8 @@ def build_pull_list_with_indexd(manifest_file, indexd_max, indexd_url, local_fil
                 manifest_record = manifest_vals[curr_id]
                 indexd_results[curr_id] = curr_record
                 if curr_record['did'] != curr_id or \
-                                curr_record['hashes']['md5'] != manifest_record['md5'] or \
-                                curr_record['size'] != manifest_record['size']:
+                        curr_record['hashes']['md5'] != manifest_record['md5'] or \
+                        curr_record['size'] != manifest_record['size']:
                     raise Exception(
                         "Expected data mismatch! {} vs. {}".format(str(curr_record), str(manifest_record)))
             uuid_list.clear()
@@ -654,6 +659,7 @@ def build_pull_list_with_indexd(manifest_file, indexd_max, indexd_url, local_fil
 
 class BucketPuller(object):
     """Multithreaded  bucket puller"""
+
     def __init__(self, thread_count):
         self._lock = threading.Lock()
         self._threads = []
@@ -1023,6 +1029,137 @@ def concat_all_files(all_files, one_big_tsv, program_prefix, extra_cols, file_in
     return
 
 
+def update_dir_from_git(local_repo, repo_url, repo_branch):
+    """
+    This function deletes the old directory and replaces it with the most current from GitHub
+    :param local_repo: Where the local directory for the repository is
+    :type local_repo: str
+    :param repo_url: The URL for the directory to clone
+    :type repo_url: str
+    :param repo_branch: The branch to use for the repository
+    :type repo_branch: str
+    :return: Whether the function worked or not
+    :rtype: bool
+    """
+    try:
+        create_clean_target(local_repo)
+        repo = Repo.clone_from(repo_url, local_repo)
+        repo.git.checkout(repo_branch)
+        return True
+    except Exception as ex:
+        print(f"pull_table_info_from_git failed: {str(ex)}")
+        return False
+
+
+def update_schema_tags(metadata_mapping_fp, params, program=None):  # todo docstring
+    with open(metadata_mapping_fp, mode='r') as metadata_mapping:
+        mappings = json_loads(metadata_mapping.read())
+
+    schema = dict()
+
+    if params['RELEASE']:
+        schema['---tag-release---'] = str(params['RELEASE'])
+
+    if params['RELEASE_ANCHOR']:
+        schema['---tag-release-url-anchor---'] = str(params['RELEASE_ANCHOR'])
+
+    if params['DATE']:
+        schema['---tag-extracted-month-year---'] = params['DATE']
+
+    if program is not None:
+        schema['---tag-program---'] = program
+        if 'program_label' in mappings[program]:
+            schema['---tag-program-name-lower---'] = mappings[program]['program_label']
+        else:
+            schema['---tag-program-name-lower---'] = None
+
+        if 'program_label_0' in mappings[program]:
+            schema['---tag-program-name-lower-0---'] = mappings[program]['program_label_0']
+        else:
+            schema['---tag-program-name-lower-0---'] = None
+
+        if 'program_label_1' in mappings[program]:
+            schema['---tag-program-name-lower-1---'] = mappings[program]['program_label_1']
+        else:
+            schema['---tag-program-name-lower-1---'] = None
+
+    return schema
+
+
+def write_table_schema_with_generic(table_id, schema_tags=None, metadata_fp=None,
+                                    field_desc_fp=None):  # todo fill in docstring
+    """
+    Create table metadata schema using generic schema files in BQEcosystem and schema tags defined in yaml config files.
+    :param table_id: Table id for which metadata will be added
+    :type table_id:
+    :param schema_tags: dict of tags to substitute into generic schema file (used for customization)
+    :type schema_tags:
+    :param metadata_fp:
+    :type metadata_fp:
+    :param field_desc_fp:
+    :type field_desc_fp:
+    :return:
+    :rtype:
+    """
+
+    if metadata_fp is not None:
+        write_table_metadata_with_generic(metadata_fp, table_id, schema_tags)
+
+    if field_desc_fp is not None:
+        with open(field_desc_fp, mode='r') as field_desc:
+            field_desc_dict = json_loads(field_desc.read())
+        install_table_field_desc(table_id, field_desc_dict)
+
+    return True
+
+
+def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags):  # todo fill in docstring
+    """
+    Updates the tags in the generic schema file then writes the schema to the table metadata in BigQuery.
+    This function is an adaption of the add_generic_table_metadata function in utils.py
+    :param metadata_fp:
+    :type metadata_fp:
+    :param table_id:
+    :type table_id:
+    :param schema_tags:
+    :type schema_tags:
+    """
+    final_table_metadata = {}
+
+    with open(metadata_fp, mode='r') as metadata_dict_file:
+        metadata_dict = json_loads(metadata_dict_file.read())
+
+        for main_key, main_value in metadata_dict.items():
+            if type(main_value) is dict:
+                final_table_metadata[main_key] = {}
+                for sub_key, sub_value in metadata_dict[main_key].items():
+                    if sub_value[1:4] == "---":
+                        if schema_tags[sub_value.strip("{}")]:
+                            final_table_metadata[main_key][sub_key] = sub_value.format(**schema_tags)
+                        else:
+                            print(f"{sub_key} skipped")
+                    else:
+                        print("no tags")
+                        final_table_metadata[main_key][sub_key] = sub_value
+            else:
+                final_table_metadata[main_key] = main_value.format(**schema_tags)
+
+    install_table_metadata(table_id, final_table_metadata)
+
+
+def cluster_table(input_table_id, output_table_id, cluster_fields, do_batch):
+    cluster_sql = cluster_sql_table(input_table_id, output_table_id, cluster_fields)
+    return bq_harness_with_result(cluster_sql, do_batch, True)
+
+def cluster_sql_table(input_table, output_table, cluster_fields):
+    cluster_string = ', '.join(cluster_fields)
+    sql = f'''
+          CREATE TABLE `{output_table}` 
+          CLUSTER BY {cluster_string} 
+          AS SELECT * FROM `{input_table}`
+    '''
+    return sql
+
 def build_combined_schema(scraped, augmented, typing_tups, holding_list, holding_dict):
     """
     Merge schema descriptions (if any) and ISB-added descriptions with inferred type data
@@ -1111,6 +1248,49 @@ def typing_tups_to_schema_list(typing_tups, holding_list):
     return True
 
 
+def create_schema_hold_list(typing_tups, field_schema, holding_list, static=True):  # todo docstrings
+
+    with open(field_schema, mode='r') as field_schema_file:
+        all_field_schema = json_loads(field_schema_file.read())
+
+    typed_schema = []
+    for tup in typing_tups:
+        print(tup)
+        field_dict = all_field_schema[tup[0]]
+        if tup[1][0:4] != field_dict["type"][0:4]:
+            print(f"{tup[0]} types do not match.")
+            print(f"Dynamic type ({tup[1]}) does not equal static type ({field_dict['type']})")
+
+        if field_dict["exception"] == "":
+            if static:
+                print(f"\tsetting type to static type {field_dict['type']}")
+                tup = (tup[0], field_dict["type"])
+                # tup[1] = str(field_dict["type"])
+            else:
+                print(f"\tsetting type to dynamic type ({tup[1]})")
+
+        if field_dict["description"]:
+            full_field_dict = {
+                "name": tup[0],
+                "type": tup[1],
+                "description": field_dict["description"]
+            }
+            typed_schema.append(full_field_dict)
+        else:
+            print(f"{tup[0]} field description needs to be updated separately.")
+            no_desc = {
+                "name": tup[0],
+                "type": tup[1],
+                "description": "No description"
+            }
+            typed_schema.append(no_desc)
+
+    with open(holding_list, mode='w') as schema_hold_list:
+        schema_hold_list.write(json_dumps(typed_schema))
+
+    return True
+
+
 def update_schema(target_dataset, dest_table, schema_dict_loc):
     """
     Update the Schema of a Table
@@ -1133,6 +1313,27 @@ def update_schema(target_dataset, dest_table, schema_dict_loc):
         if not success:
             return False
         return True
+    except Exception as ex:
+        print(ex)
+        return False
+
+def retrieve_table_properties(target_dataset, dest_table, project=None):
+    """
+    retrieves BQ table metadata
+    :param target_dataset:
+    :type target_dataset:
+    :param dest_table:
+    :type dest_table:
+    :param project:
+    :type project:
+    :return:
+    :rtype:
+    """
+    try:
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
+        table_ref = client.dataset(target_dataset).table(dest_table)
+        table_metadata = client.get_table(table_ref)
+        return table_metadata
     except Exception as ex:
         print(ex)
         return False
@@ -1283,11 +1484,11 @@ def update_status_tag(target_dataset, dest_table, status, project=None):
     return True
 
 
-def bq_table_exists(target_dataset, dest_table):
+def bq_table_exists(target_dataset, dest_table, project=None):
     """
     Does table exist?
     """
-    client = bigquery.Client()
+    client = bigquery.Client() if project is None else bigquery.Client(project=project)
     table_ref = client.dataset(target_dataset).table(dest_table)
     try:
         client.get_table(table_ref)
@@ -1306,8 +1507,7 @@ def bq_table_is_empty(target_dataset, dest_table):
     return table.num_rows == 0
 
 
-def delete_table_bq_job(target_dataset, delete_table, project = None):
-
+def delete_table_bq_job(target_dataset, delete_table, project=None):
     client = bigquery.Client() if project is None else bigquery.Client(project=project)
     table_ref = client.dataset(target_dataset).table(delete_table)
     try:
@@ -1339,7 +1539,7 @@ def confirm_google_vm():
         return False
 
 
-def print_progress_bar(iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█'):
+def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):
     """
     Ripped from Stack Overflow.
     https://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
@@ -1411,7 +1611,6 @@ def transfer_schema(target_dataset, dest_table, source_dataset, source_table):
     client.update_table(trg_table, ["schema"])
     return True
 
-
 def list_schema(source_dataset, source_table):
     """
     List schema
@@ -1432,6 +1631,28 @@ def list_schema(source_dataset, source_table):
         print(src_sf.name, src_sf.field_type, src_sf.description)
     return True
 
+def find_types(file, sample_interval):
+    """
+    Finds the field type for each column in the file
+    :param file: file name
+    :type file: basestring
+    :param sample_interval:sampling interval, used to skip rows in large datasets; defaults to checking every row
+        example: sample_interval == 10 will sample every 10th row
+    :type sample_interval: int
+    :return: a tuple with a list of [field, field type]
+    :rtype: tuple ([field, field_type])
+    """
+    column_list = get_column_list_tsv(tsv_fp=file, header_row_index=0)
+    field_types = aggregate_column_data_types_tsv(file, column_list,
+                                                  sample_interval=sample_interval,
+                                                  skip_rows=1)
+    final_field_types = resolve_type_conflicts(field_types)
+    typing_tups = []
+    for column in column_list:
+        tup = (column, final_field_types[column])
+        typing_tups.append(tup)
+
+    return typing_tups
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -1441,7 +1662,6 @@ be arguments to the bq command used to create the table.
 
 
 def generate_table_detail_files(dict_file, file_tag):
-
     #
     # Read in the chunks and write them out into pieces the bq command can use
     #
@@ -1455,7 +1675,8 @@ def generate_table_detail_files(dict_file, file_tag):
             label_file.write(json_dumps(bqt_dict['labels'], sort_keys=True, indent=4, separators=(',', ': ')))
             label_file.write('\n')
         with open("{}_schema.json".format(file_tag), mode='w+') as schema_file:
-            schema_file.write(json_dumps(bqt_dict['schema']['fields'], sort_keys=True, indent=4, separators=(',', ': ')))
+            schema_file.write(
+                json_dumps(bqt_dict['schema']['fields'], sort_keys=True, indent=4, separators=(',', ': ')))
             schema_file.write('\n')
         with open("{}_friendly.txt".format(file_tag), mode='w+') as friendly_file:
             friendly_file.write(bqt_dict['friendlyName'])
@@ -1465,6 +1686,7 @@ def generate_table_detail_files(dict_file, file_tag):
         return False
 
     return True
+
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -1516,6 +1738,7 @@ def customize_labels_and_desc(file_tag, tag_map_list):
         return False
 
     return True
+
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -1580,6 +1803,57 @@ def install_labels_and_desc(dataset, table_name, file_tag, project=None):
     return True
 
 
+def install_table_metadata(table_id, metadata):
+    """
+    Modify an existing BigQuery table's metadata (labels, friendly name, description) using metadata dict argument
+    Function was adapted from update_table_metadata function in utils.py
+    :param table_id: table id in standard SQL format
+    :param metadata: metadata containing new field and table attributes
+    """
+    client = bigquery.Client()
+    table = client.get_table(table_id)
+
+    table.labels = metadata['labels']
+    table.friendly_name = metadata['friendlyName']
+    table.description = metadata['description']
+    client.update_table(table, ["labels", "friendly_name", "description"])
+
+    assert table.labels == metadata['labels']
+    assert table.friendly_name == metadata['friendlyName']
+    assert table.description == metadata['description']
+
+
+def install_table_field_desc(table_id, new_descriptions):
+    """
+    Modify an existing table's field descriptions. Based on a function from utils.py called update_schema
+    Function adapted from update_schema in utils.py
+    :param table_id: table id in standard SQL format
+    :param new_descriptions: dict of field names and new description strings
+    """
+    client = bigquery.Client()
+    table = client.get_table(table_id)
+
+    new_schema = []
+
+    for schema_field in table.schema:
+        field = schema_field.to_api_repr()
+        name = field['name']
+
+        if name in new_descriptions.keys() and new_descriptions[name]['exception'] == '':
+            field['description'] = new_descriptions[name]['description']
+        elif name in new_descriptions.keys() and new_descriptions[name]['exception'] is not None:
+            print(f"Field {name} has an exception listed: {new_descriptions[name]['exception']}")
+        else:
+            print(f"{name} field is not listed in json")
+
+        mod_field = bigquery.SchemaField.from_api_repr(field)
+        new_schema.append(mod_field)
+
+    table.schema = new_schema
+
+    client.update_table(table, ['schema'])
+
+
 def find_most_recent_release(dataset, base_table, project=None):
     """
 
@@ -1616,6 +1890,7 @@ def find_most_recent_release(dataset, base_table, project=None):
 
     return release
 
+
 '''
 ----------------------------------------------------------------------------------------------
 Take the BQ Ecosystem json file for a dataset and break out the pieces into chunks that will
@@ -1624,7 +1899,6 @@ be arguments to the bq command used to update the dataset.
 
 
 def generate_dataset_desc_file(dict_file, file_tag):
-
     """
     Read in the chunks and write them out into pieces the bq command can use
     :param dict_file: Schema Json file
@@ -1646,6 +1920,7 @@ def generate_dataset_desc_file(dict_file, file_tag):
         return False
 
     return True
+
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -1689,7 +1964,6 @@ Create a new BQ dataset
 
 
 def create_bq_dataset(dataset_id, file_tag, project=None, make_public=False):
-
     try:
         with open("{}_desc.txt".format(file_tag), mode='r') as desc_file:
             desc = desc_file.read()
@@ -1702,7 +1976,6 @@ def create_bq_dataset(dataset_id, file_tag, project=None, make_public=False):
         dataset.location = "US"
         dataset.description = desc
 
-
         if make_public:
             entry = bigquery.AccessEntry(
                 role="READER",
@@ -1714,8 +1987,6 @@ def create_bq_dataset(dataset_id, file_tag, project=None, make_public=False):
             entries.append(entry)
             dataset.access_entries = entries
 
-
-
         client.create_dataset(dataset)
 
     except Exception as ex:
@@ -1723,6 +1994,7 @@ def create_bq_dataset(dataset_id, file_tag, project=None, make_public=False):
         return False
 
     return True
+
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -1749,10 +2021,15 @@ def publish_table(source_table, target_table, overwrite=False):
         trg_tab = trg_toks[2]
 
         src_client = bigquery.Client(src_proj)
-        job_config = bigquery.CopyJobConfig()
-        if overwrite == True: job_config.write_disposition = "WRITE_TRUNCATE"
-        job = src_client.copy_table(source_table, target_table, job_config=job_config)
-        job.result()
+
+        if overwrite:
+            job_config = bigquery.CopyJobConfig()
+            job_config.write_disposition = "WRITE_TRUNCATE"
+            job = src_client.copy_table(source_table, target_table, job_config=job_config)
+            job.result()
+        else:
+            job = src_client.copy_table(source_table, target_table)
+            job.result()
 
         src_table_ref = src_client.dataset(src_dset).table(src_tab)
         s_table = src_client.get_table(src_table_ref)
@@ -1765,7 +2042,6 @@ def publish_table(source_table, target_table, overwrite=False):
 
         trg_client.update_table(t_table, ['friendlyName'])
 
-
     except Exception as ex:
         print(ex)
         return False
@@ -1777,9 +2053,10 @@ def publish_table(source_table, target_table, overwrite=False):
 Are two tables exactly the same?
 '''
 
+
 def compare_two_tables(old_table, new_table, do_batch):
     old_table_spl, new_table_spl = old_table.split('.'), new_table.split('.')
-    
+
     old_schema = retrieve_table_schema(old_table_spl[1], old_table_spl[2], old_table_spl[0])
     new_schema = retrieve_table_schema(new_table_spl[1], new_table_spl[2], new_table_spl[0])
 
@@ -1788,10 +2065,12 @@ def compare_two_tables(old_table, new_table, do_batch):
     sql = compare_two_tables_sql(old_table, new_table)
     return bq_harness_with_result(sql, do_batch)
 
+
 '''
 ----------------------------------------------------------------------------------------------
 SQL for the compare_two_tables function
 '''
+
 
 def compare_two_tables_sql(old_table, new_table):
     return '''
@@ -1810,7 +2089,7 @@ def compare_two_tables_sql(old_table, new_table):
 
 
 def evaluate_table_union(bq_results):
-    """Evaluate whether two tables are identical by 
+    """Evaluate whether two tables are identical by
     using the count of distinct rows in their union
     return True/False"""
     if not bq_results:
@@ -1859,3 +2138,43 @@ def remove_old_current_tables(old_current_table, previous_ver_table, table_temp,
         return False
 
     return True
+
+
+def publish_tables_and_update_schema(scratch_table_id, versioned_table_id, current_table_id, release_friendly_name,
+                                     base_table=None):
+
+    # publish current and update old versioned
+    if base_table:
+        project, dataset, curr_table = current_table_id.split('.')
+
+        # find the most recent table
+        most_recent_release = find_most_recent_release(f"{dataset}_versioned", base_table, project)
+        if most_recent_release:
+            update_status_tag(f"{dataset}_versioned", f"{base_table}{most_recent_release}", "archived", project)
+            # create or update current table and update older versioned tables
+            if bq_table_exists(dataset, f"{curr_table}", project):
+                print(f"Deleting old table: {current_table_id}")
+                if not delete_table_bq_job(dataset, f"{curr_table}", project):
+                    sys.exit(f'deleting old current table called {current_table_id} failed')
+
+        print("Creating new current table")
+        if not publish_table(scratch_table_id, current_table_id):
+            sys.exit(f'creating a new current table called {current_table_id} failed')
+
+
+
+    # publish versioned
+    print(f"publishing {versioned_table_id}")
+    if publish_table(scratch_table_id, versioned_table_id):
+        print("Updating friendly name")
+        client = bigquery.Client()
+        table = client.get_table(versioned_table_id)
+        friendly_name = table.friendly_name
+        table.friendly_name = f"{friendly_name} {release_friendly_name} VERSIONED"
+        client.update_table(table, ["friendly_name"])
+    else:
+        sys.exit(f'versioned publication failed for {versioned_table_id}')
+
+    return True
+
+
