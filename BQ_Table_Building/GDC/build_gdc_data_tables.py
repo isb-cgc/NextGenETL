@@ -71,7 +71,7 @@ def create_file_list(params, program, datatype, local_location, prefix, file_lis
         sys.exit( "Create file list bq table failed" )
 
     if not bq_to_bucket_tsv(f"{prefix}_file_list", params.DEV_PROJECT, params.DEV_DATASET,
-                            bucket_location, params.DO_BATCH, False):
+                            bucket_location, params.DO_BATCH, False): # todo double batch?
         sys.exit("bq to bucket failed")
 
     if not bucket_to_local(bucket_location, file_list, f"{local_location}/{file_list}"):
@@ -223,7 +223,7 @@ def build_bq_tables_steps(params, workflow_run_ver, steps, program_datatype):
         bucket_src_url = f'gs://{params.WORKING_BUCKET}/{raw_data}'
         with open(field_list, mode='r') as schema_list:
             typed_schema = json_loads(schema_list.read())
-        csv_to_bq(typed_schema, bucket_src_url, params.SCRATCH_DATASET, raw_data, params.BQ_AS_BATCH, True)
+        csv_to_bq(typed_schema, bucket_src_url, params.DEV_DATASET, raw_data, params.BQ_AS_BATCH, True)
 
     if 'transform_bq_data' in steps:  # todo currently working on
         logging.info("Running transform_bq_data Step")
@@ -241,7 +241,7 @@ def build_bq_tables_steps(params, workflow_run_ver, steps, program_datatype):
             updated_schema_tags = update_schema_tags(datatype_mappings, params.RELEASE, params.REL_DATE, program) # todo is this correct?
 
             write_table_schema_with_generic(
-                f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}",
+                f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{draft_table}",
                 updated_schema_tags,
                 f"{home}/schemaRepo/GenericSchemas/{program}_{datatype}.json",
                 f"{home}/schemaRepo/TableFieldUpdates/gdc_{program}_{datatype}_desc.json")
@@ -289,7 +289,7 @@ def main(args):
     workflow_run_ver = f"_{params.WORKFLOW_RUN_VER}" if 'WORKFLOW_RUN_VER' in params_dict else ''
 
     log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
-    log_filepath = f"{params.LOGFILE_PATH}_{log_file_time}.log"
+    log_filepath = f"{params.LOGFILE_DIR}/gdc_data_files_{params.RELEASE}{workflow_run_ver}.log"
     logger = initialize_logging(log_filepath)
 
     logger.info(f"GDC derived data script started at {time.strftime('%x %X', time.localtime())}")
