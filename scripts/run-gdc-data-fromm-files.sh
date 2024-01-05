@@ -28,5 +28,5 @@ pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 cd ..
-python3 ./BQ_Table_Building/build_gdc_data_tables.py ~/config/gdc_file_data_tables.yaml
+python3 ./BQ_Table_Building/GDC/build_gdc_data_tables.py ~/config/gdc_file_data_tables.yaml
 deactivate
