@@ -68,7 +68,7 @@ def create_file_list(params, program, datatype, local_location, prefix, file_lis
                                          params.FILE_TABLE, params.GSC_URL_TABLE, max_files)
 
     if query_bq(file_list_sql, f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{prefix}_file_list") != 'DONE':
-        sys.exit( "Create file list bq table failed" )
+        sys.exit("Create file list bq table failed")
 
     if not bq_to_bucket_tsv(f"{prefix}_file_list", params.DEV_PROJECT, params.DEV_DATASET,
                             bucket_location, params.DO_BATCH, False): # todo double batch?
@@ -216,11 +216,11 @@ def build_bq_tables_steps(params, workflow_run_ver, steps, program_datatype):
 
     if 'upload_to_bucket' in steps:
         logging.info("Running upload_to_bucket Step")
-        local_to_bucket(params.WORKING_BUCKET, raw_data, f"{local_location}/{raw_data}")
+        local_to_bucket(f"{params.WORKING_BUCKET}/{params.RELEASE}/", raw_data, f"{local_location}/{raw_data}")
 
     if 'create_bq_from_tsv' in steps:
         logging.info("Running create_bq_from_tsv Step")
-        bucket_src_url = f'gs://{params.WORKING_BUCKET}/{raw_data}'
+        bucket_src_url = f'gs://{params.WORKING_BUCKET}/{params.RELEASE}/{raw_data}'
         with open(field_list, mode='r') as schema_list:
             typed_schema = json_loads(schema_list.read())
         csv_to_bq(typed_schema, bucket_src_url, params.DEV_DATASET, raw_data, params.BQ_AS_BATCH, True)
