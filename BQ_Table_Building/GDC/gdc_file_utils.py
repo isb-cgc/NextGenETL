@@ -171,6 +171,27 @@ def local_to_bucket(bucket, bucket_file, local_file):
     util_logger.info(f"{local_file} copied to {bucket_file}")
 
 
+# Google VM Utils #
+
+def confirm_google_vm():
+    # todo
+    # from support.py
+    metadata_url = "http://metadata.google.internal/computeMetadata/v1/instance/id"
+    meta_header = {"Metadata-Flavor": "Google"}
+
+    try:
+        resp = requests.request("GET", metadata_url, headers=meta_header)
+    except Exception as ex:
+        print("Not a Google VM: {}".format(ex))
+        return False
+
+    if resp.status_code == 200:
+        return True
+    else:
+        print("Not a Google VM: {}".format(resp.status_code))
+        return False
+
+
 # BQ Utils #
 
 def bq_table_exists(table_id, project=None):

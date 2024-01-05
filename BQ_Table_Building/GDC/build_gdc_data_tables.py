@@ -20,7 +20,6 @@ import os
 import time
 import sys
 from os.path import expanduser
-from common_etl.support import confirm_google_vm
 import yaml
 import io
 from json import loads as json_loads
@@ -29,7 +28,7 @@ import shutil
 import zipfile
 import gzip
 
-from gdc_file_utils import (format_seconds, update_dir_from_git, query_bq, bq_to_bucket_tsv, bucket_to_local, find_types,
+from gdc_file_utils import (confirm_google_vm, format_seconds, update_dir_from_git, query_bq, bq_to_bucket_tsv, bucket_to_local, find_types,
                             create_schema_hold_list, local_to_bucket, update_schema_tags, write_table_schema_with_generic,
                             csv_to_bq, initialize_logging, bq_table_exists)
 
