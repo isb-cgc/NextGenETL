@@ -206,9 +206,9 @@ def main(args):
     # todo add find missing fields
 
     if 'find_missing_fields' in steps:
-        # logger.info("Finding missing fields")
-        # find_missing_fields()
-        logger.info("Passing missing fields")
+        logger.info("Finding missing fields")
+        find_missing_fields()
+        # logger.info("Passing missing fields")
     if 'create_project_tables' in steps:
         logger.info("Entering create_project_tables")
 
