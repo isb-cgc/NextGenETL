@@ -130,6 +130,8 @@ def has_supplemental_diagnosis_table(project_id: str) -> bool:
         HAVING case_id_count > 1
         """
 
+    print(make_multiple_diagnosis_count_sql())
+
     result = query_and_retrieve_result(make_multiple_diagnosis_count_sql())
 
     if result.total_rows == 0:
@@ -301,6 +303,8 @@ def main(args):
 
             if not has_diagnosis_table:
                 clinical_table_sql = make_clinical_table_sql(project, non_null_column_dict)
+
+                print(clinical_table_sql)
 
                 create_table_from_query(params=PARAMS,
                                         table_id=clinical_table_id,
