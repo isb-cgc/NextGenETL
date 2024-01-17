@@ -145,7 +145,7 @@ def has_supplemental_diagnosis_table(project_submitter_id: str) -> bool:
         return True
 
 
-def filter_null_columns(project_id: str, table_type: str, columns: list[str]) -> list[str]:
+def filter_null_columns(project_dict: dict[str, str], table_type: str, columns: list[str]) -> list[str]:
     def make_count_column_sql() -> str:
         count_sql_str = ''
 
@@ -156,6 +156,12 @@ def filter_null_columns(project_id: str, table_type: str, columns: list[str]) ->
         count_sql_str = count_sql_str[:-2]
 
         make_filter_null_columns_sql = f"""
+            WITH project_ids AS (
+                SELECT distinct s.project_id
+                FROM `{create_metadata_table_id(PARAMS, 'studies')}` s
+                WHERE s.project_submitter_id = '{project_dict['project_submitter_id']}'
+            )
+            
             SELECT {count_sql_str}
             FROM `{create_dev_table_id(PARAMS, table_type)}` this_table 
         """
@@ -164,18 +170,17 @@ def filter_null_columns(project_id: str, table_type: str, columns: list[str]) ->
             make_filter_null_columns_sql += f"""
                 JOIN `{create_dev_table_id(PARAMS, 'case_project_id')}` cp
                     ON this_table.case_id = cp.case_id
-                WHERE cp.project_id = '{project_id}'
+                JOIN project_ids pid
+                    ON cp.project_id = pid.project_id
             """
         elif table_type == 'demographic' or table_type == 'diagnosis':
-            table_type_id = f"{table_type}_id"
-            table_type_project_id = f"{table_type}_project_id"
-
             make_filter_null_columns_sql += f"""
-                JOIN `{create_dev_table_id(PARAMS, table_type_project_id)}` dp
-                    ON this_table.{table_type_id} = dp.{table_type_id}
+                JOIN `{create_dev_table_id(PARAMS, f"{table_type}_project_id")}` dp
+                    ON this_table.{table_type}_id = dp.{table_type}_id
+                JOIN project_ids pid
+                    ON dp.project_id = pid.project_id
                 JOIN `{create_dev_table_id(PARAMS, table_type)}` d
-                    ON dp.{table_type_id} = d.{table_type_id}
-                WHERE dp.project_id = '{project_id}'
+                    ON dp.{table_type}_id = d.{table_type}_id
             """
 
         return make_filter_null_columns_sql
@@ -276,7 +281,6 @@ def make_diagnosis_table_sql(project: dict[str], diagnosis_columns) -> str:
             ON `case`.case_id = cdiag.case_id
         LEFT JOIN {create_dev_table_id(PARAMS, 'diagnosis')} diagnosis
             ON cdiag.diagnosis_id = diagnosis.diagnosis_id
-        WHERE cp.project_id = '{project['project_id']}'
     """
 
 
@@ -304,10 +308,10 @@ def main(args):
         logger.info("Entering create_project_tables")
 
         for project in projects_list:
-
             clinical_table_base_name = f"{project['project_short_name']}_{PARAMS['TABLE_NAME']}"
             clinical_table_id = create_clinical_table_id(PARAMS, clinical_table_base_name)
 
+            # only used for some projects
             diagnosis_table_base_name = f"{clinical_table_base_name}_diagnosis"
             diagnosis_table_id = create_clinical_table_id(PARAMS, diagnosis_table_base_name)
             has_diagnosis_table = has_supplemental_diagnosis_table(project['project_submitter_id'])
@@ -315,33 +319,35 @@ def main(args):
             non_null_column_dict = dict()
 
             for table_type, table_metadata in PARAMS['TABLE_PARAMS'].items():
+                # create a dict of non-null columns for each project and clinical data type (case, demo, diag)
                 columns = table_metadata['column_order']
-                non_null_columns = filter_null_columns(project_id=project['project_id'],
+                non_null_columns = filter_null_columns(project_dict=project,
                                                        table_type=table_type,
                                                        columns=columns)
                 non_null_column_dict[table_type] = non_null_columns
 
+            # does this project require a supplementary diagnosis table (multiple diagnoses for single case)?
+            # if not, create table combining case, demographic and diagnosis records
+            # otherwise, create two tables:
+            #   - one combining case and demographic records,
+            #   - one containing diagnosis records, with columns added for mapping to main clinical table
             if not has_diagnosis_table:
-                clinical_table_sql = make_clinical_table_sql(project, non_null_column_dict)
-
                 create_table_from_query(params=PARAMS,
                                         table_id=clinical_table_id,
-                                        query=clinical_table_sql)
-
+                                        query=make_clinical_table_sql(project, non_null_column_dict))
             else:
+                # pop off the diagnosis columns -- these will be included in supplementary table
                 diagnosis_columns = non_null_column_dict.pop('diagnosis')
 
-                clinical_table_sql = make_clinical_table_sql(project, non_null_column_dict)
-
+                # create main clinical table
                 create_table_from_query(params=PARAMS,
                                         table_id=clinical_table_id,
-                                        query=clinical_table_sql)
+                                        query=make_clinical_table_sql(project, non_null_column_dict))
 
-                diagnosis_table_sql = make_diagnosis_table_sql(project, diagnosis_columns)
-
+                # create supplementary diagnosis table
                 create_table_from_query(PARAMS,
                                         table_id=diagnosis_table_id,
-                                        query=diagnosis_table_sql)
+                                        query=make_diagnosis_table_sql(project, diagnosis_columns))
 
             schema_tags = get_project_level_schema_tags(PARAMS, project['project_submitter_id'])
 
