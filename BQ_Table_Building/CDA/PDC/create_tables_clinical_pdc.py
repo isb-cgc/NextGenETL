@@ -132,7 +132,7 @@ def has_supplemental_diagnosis_table(project_id: str) -> bool:
 
     result = query_and_retrieve_result(make_multiple_diagnosis_count_sql())
 
-    if not result or result.num_results == 0:
+    if not result:
         return False
     else:
         return True
