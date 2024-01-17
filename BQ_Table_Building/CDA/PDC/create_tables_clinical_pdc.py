@@ -114,23 +114,28 @@ def find_missing_fields(include_trivial_columns: bool = False):
         logger.info("No missing fields!")
 
 
-def has_supplemental_diagnosis_table(project_id: str) -> bool:
+def has_supplemental_diagnosis_table(project_submitter_id: str) -> bool:
     def make_multiple_diagnosis_count_sql() -> str:
         return f"""
+            WITH project_ids AS (
+                SELECT distinct s.project_id
+                FROM `{create_dev_table_id(PARAMS, 'studies')}` s
+                WHERE s.project_submitter_id = '{project_submitter_id}'
+            )
+
         SELECT c.case_id, COUNT(c.case_id) as case_id_count 
         FROM `{create_dev_table_id(PARAMS, 'case_project_id')}` cp
+        JOIN project_ids pid
+          ON cp.project_id = pid.project_id
         JOIN `{create_dev_table_id(PARAMS, 'case')}` c
           ON cp.case_id = c.case_id
         LEFT JOIN `{create_dev_table_id(PARAMS, 'case_diagnosis_id')}` cdiag
           ON cp.case_id = cdiag.case_id
         LEFT JOIN `{create_dev_table_id(PARAMS, 'diagnosis')}` diag
           ON cdiag.diagnosis_id = diag.diagnosis_id
-        WHERE cp.project_id = '{project_id}'
         GROUP BY case_id
         HAVING case_id_count > 1
         """
-
-    print(make_multiple_diagnosis_count_sql())
 
     result = query_and_retrieve_result(make_multiple_diagnosis_count_sql())
 
@@ -290,7 +295,7 @@ def main(args):
 
             diagnosis_table_base_name = f"{clinical_table_base_name}_diagnosis"
             diagnosis_table_id = create_clinical_table_id(PARAMS, diagnosis_table_base_name)
-            has_diagnosis_table = has_supplemental_diagnosis_table(project['project_id'])
+            has_diagnosis_table = has_supplemental_diagnosis_table(project['project_submitter_id'])
 
             non_null_column_dict = dict()
 
