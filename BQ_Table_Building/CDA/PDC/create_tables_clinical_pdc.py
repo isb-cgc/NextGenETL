@@ -203,6 +203,8 @@ def main(args):
 
     projects_list = get_pdc_projects_metadata(PARAMS)
 
+    print(projects_list)
+
     if 'find_missing_fields' in steps:
         # logger.info("Finding missing fields")
         logger.info("Skipping missing fields--uncomment before handing off")
