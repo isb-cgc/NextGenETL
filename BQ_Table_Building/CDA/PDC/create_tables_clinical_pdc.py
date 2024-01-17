@@ -203,8 +203,6 @@ def main(args):
 
     projects_list = get_pdc_projects_metadata(PARAMS)
 
-    print(has_supplemental_diagnosis_table("edb4ca56-f1e8-11e9-9a07-0a80fada099c"))
-
     if 'find_missing_fields' in steps:
         # logger.info("Finding missing fields")
         logger.info("Skipping missing fields--uncomment before handing off")
@@ -236,7 +234,7 @@ def main(args):
                 # todo need to insert project_submitter_id
 
             else:
-                print(f"\n{project['project_short_name']} columns: ")
+                print(f"\n{project['program_short_name']} - {project['project_short_name']} columns: ")
                 print("This table has a diagnosis supplemental table, skipping.")
                 diagnosis_table_base_name = f"{clinical_table_base_name}_diagnosis"
                 # make clinical and supplemental diagnosis table
