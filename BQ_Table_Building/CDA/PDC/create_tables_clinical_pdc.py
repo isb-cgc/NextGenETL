@@ -225,7 +225,7 @@ def main(args):
                                                            columns=columns)
                     non_null_column_list.extend(non_null_columns)
 
-                print(f"{project['project_short_name']} columns: ")
+                print(f"\n{project['project_short_name']} columns: ")
 
                 for column in non_null_column_list:
                     print(column)
@@ -234,7 +234,7 @@ def main(args):
                 # todo need to insert project_submitter_id
 
             else:
-                print(f"{project['project_short_name']} columns: ")
+                print(f"\n{project['project_short_name']} columns: ")
                 print("This table has a diagnosis supplemental table, skipping.")
                 diagnosis_table_base_name = f"{clinical_table_base_name}_diagnosis"
                 # make clinical and supplemental diagnosis table
