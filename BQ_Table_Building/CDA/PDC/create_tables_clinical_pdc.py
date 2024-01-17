@@ -203,7 +203,7 @@ def main(args):
 
     projects_list = get_pdc_projects_metadata(PARAMS)
 
-    print(projects_list)
+    print(has_supplemental_diagnosis_table("edb4ca56-f1e8-11e9-9a07-0a80fada099c"))
 
     if 'find_missing_fields' in steps:
         # logger.info("Finding missing fields")
