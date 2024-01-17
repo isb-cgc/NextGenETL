@@ -225,7 +225,7 @@ def main(args):
                                                            columns=columns)
                     non_null_column_list.extend(non_null_columns)
 
-                print(f"\n{project['project_short_name']} columns: ")
+                print(f"\n{project['program_short_name']} - {project['project_short_name']} columns: ")
 
                 for column in non_null_column_list:
                     print(column)
