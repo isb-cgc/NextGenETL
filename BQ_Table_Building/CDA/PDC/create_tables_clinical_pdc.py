@@ -40,6 +40,7 @@ def find_missing_fields(include_trivial_columns: bool = False):
     :param include_trivial_columns: Optional; if True, will list columns that are not found in yaml config even if they
                                     have only null values in the dataset
     """
+
     def make_column_query():
         full_table_name = create_dev_table_id(PARAMS, table_name).split('.')[2]
 
@@ -113,79 +114,78 @@ def find_missing_fields(include_trivial_columns: bool = False):
         logger.info("No missing fields!")
 
 
-def find_project_tables(projects_list: list[dict[str, str]]) -> dict[str, set[str]]:
-    """
-    Creates per-program dict of tables to be created.
-    :return: dict in the form { <program-name>: {set of standalone tables} }
-    """
-    def make_projects_with_multiple_ids_per_case_sql() -> str:
+def has_supplemental_diagnosis_table(project_id: str) -> bool:
+    def make_multiple_diagnosis_count_sql() -> str:
         return f"""
-            WITH projects AS (
-                SELECT DISTINCT proj.project_short_name
-                FROM `{create_dev_table_id(PARAMS, table_metadata['mapping_table'])}` base_mapping_table
-                JOIN `{create_dev_table_id(PARAMS, 'case_project_id')}` case_proj
-                    ON base_mapping_table.case_id = case_proj.case_id
-                JOIN `{create_metadata_table_id(PARAMS, 'studies')}` proj
-                    ON case_proj.project_id = proj.project_id
-                GROUP BY base_mapping_table.case_id, case_proj.project_id, proj.project_short_name
-                HAVING COUNT(base_mapping_table.case_id) > 1
-            )
+        SELECT c.case_id, COUNT(c.case_id) as case_id_count 
+        FROM `{create_dev_table_id(PARAMS, 'case_project_id')}` cp
+        JOIN `{create_dev_table_id(PARAMS, 'case')}` c
+          ON cp.case_id = c.case_id
+        LEFT JOIN `{create_dev_table_id(PARAMS, 'case_diagnosis_id')}` cdiag
+          ON cp.case_id = cdiag.case_id
+        LEFT JOIN `{create_dev_table_id(PARAMS, 'case_diagnosis')}` diag
+          ON cdiag.diagnosis_id = diag.diagnosis_id
+        WHERE cp.project_id = '{project_id}'
+        GROUP BY case_id
+        HAVING case_id_count > 1
+        """
 
-            SELECT DISTINCT project_short_name
-            FROM projects
+    result = query_and_retrieve_result(make_multiple_diagnosis_count_sql())
+
+    if result.num_results > 0:
+        return True
+    else:
+        return False
+
+
+def filter_null_columns(project_id: str, table_type: str, columns: list[str]) -> list[str]:
+    def make_count_column_sql() -> str:
+        count_sql_str = ''
+
+        for col in columns:
+            count_sql_str += f'\nSUM(CASE WHEN this_table.{col} is null THEN 0 ELSE 1 END) AS {col}_count, '
+
+        # remove extra comma (due to looping) from end of string
+        count_sql_str = count_sql_str[:-2]
+
+        make_filter_null_columns_sql = f"""
+            SELECT {count_sql_str}
+            FROM `{create_dev_table_id(PARAMS, table_type)}` this_table 
+        """
+
+        if table_type == 'case':
+            make_filter_null_columns_sql += f"""
+                JOIN `{create_dev_table_id(PARAMS, 'case_project_id')}` cp
+                    ON this_table.case_id = cp.case_id
+                WHERE cp.project_id = '{project_id}'
+            """
+        elif table_type == 'demographic' or table_type == 'diagnosis':
+            table_type_id = f"{table_type}_id"
+            table_type_project_id = f"{table_type}_project_id"
+
+            make_filter_null_columns_sql += f"""
+                JOIN `{create_dev_table_id(PARAMS, table_type_project_id)}` dp
+                    ON this_table.{table_type_id} = dp.{table_type_id}
+                JOIN `{create_dev_table_id(PARAMS, table_type)}` d
+                    ON dp.{table_type_id} = d.{table_type_id}
+                WHERE dp.project_id = '{project_id}'
             """
 
-    table_dict = PARAMS['TABLE_PARAMS']
+        return make_filter_null_columns_sql
 
-    logger = logging.getLogger('base_script')
-    # Create program set for base clinical tables -- will include every program with clinical cases
-    tables_per_project_dict = dict()
+    column_count_result = query_and_retrieve_result(sql=make_count_column_sql())
 
-    if projects_list is None:
-        logger.critical("No programs found, exiting.")
-        sys.exit(-1)
+    non_null_columns = list()
 
-    for base_project in projects_list:
-        tables_per_project_dict[base_project['project_short_name']] = {'case'}
+    for row in column_count_result:
+        # get columns for field group
+        for column in columns:
+            count = row.get(f"{column}_count")
 
-    # Create set of programs for each mapping table type,
-    # required when a single case has multiple rows for a given field group (e.g. multiple diagnoses or follow-ups)
-    for table_name, table_metadata in table_dict.items():
-        if table_name == 'case':
-            continue
+            if count is not None and count > 0:
+                non_null_columns.append(column)
 
-        # create the query and retrieve results
-        result = query_and_retrieve_result(sql=make_projects_with_multiple_ids_per_case_sql())
-
-        if result is None:
-            logger.error("SQL result is none for query: ")
-            logger.debug(make_projects_with_multiple_ids_per_case_sql())
-            sys.exit(-1)
-
-        for project_row in result:
-            tables_per_project_dict[project_row[0]].add(table_name)
-
-    return tables_per_project_dict
-
-
-def make_clinical_table_query(project_submitter_id: str) -> str:
-    # get all cases for project submitter id
-    # get clinical data, demographics and diagnoses
-    #
-    return f"""
-        SELECT c.case_id,
-            c.case_submitter_id,
-            study.project_short_name,
-            study.project_submitter_id,
-            study.program_short_name,
-            study.program_name
-        FROM `{create_dev_table_id(PARAMS, 'case')}` c
-        JOIN `{create_dev_table_id(PARAMS, 'case_study_id')}` cs
-            ON c.case_id = cs.case_id
-        JOIN `{create_metadata_table_id(PARAMS, "studies")}` study
-            ON cs.study_id = study.study_id
-        WHERE study.project_submitter_id = '{project_submitter_id}'
-    """
+    return non_null_columns
 
 
 def main(args):
@@ -203,26 +203,49 @@ def main(args):
 
     projects_list = get_pdc_projects_metadata(PARAMS)
 
-    # todo add find missing fields
-
     if 'find_missing_fields' in steps:
-        logger.info("Finding missing fields")
-        find_missing_fields()
-        # logger.info("Passing missing fields")
+        # logger.info("Finding missing fields")
+        logger.info("Skipping missing fields--uncomment before handing off")
+        # todo is this definitely working for PDC? seems to be, double check
+        # find_missing_fields()
     if 'create_project_tables' in steps:
         logger.info("Entering create_project_tables")
 
-        tables_per_project_dict = find_project_tables(projects_list)
-        logger.debug(tables_per_project_dict)
-
         for project in projects_list:
-            project_table_base_name = f"{project['project_short_name']}_{PARAMS['TABLE_NAME']}"
-            project_table_id = create_clinical_table_id(PARAMS, project_table_base_name)
+            clinical_table_base_name = f"{project['project_short_name']}_{PARAMS['TABLE_NAME']}"
+            clinical_table_id = create_clinical_table_id(PARAMS, clinical_table_base_name)
 
-            create_table_from_query(params=PARAMS,
-                                    table_id=project_table_id,
-                                    query=make_clinical_table_query(project['project_submitter_id']))
+            if not has_supplemental_diagnosis_table(project['project_id']):
+                non_null_column_list = list()
 
+                for table_type, table_metadata in PARAMS['TABLE_PARAMS'].items():
+                    columns = table_metadata['column_order']
+                    non_null_columns = filter_null_columns(project_id=project['project_id'],
+                                                           table_type=table_type,
+                                                           columns=columns)
+                    non_null_column_list.extend(non_null_columns)
+
+                print(f"{project['project_short_name']} columns: ")
+
+                for column in non_null_column_list:
+                    print(column)
+
+                # make one clinical table, containing case, diagnosis and demographic fields
+
+            else:
+                print(f"{project['project_short_name']} columns: ")
+                print("This table has a diagnosis supplemental table, skipping.")
+                diagnosis_table_base_name = f"{clinical_table_base_name}_diagnosis"
+                # make clinical and supplemental diagnosis table
+
+                # clinical table contains demographic fields
+                # clinical table should contain diagnosis_count_column?
+
+                # diagnosis table contains case_id and diagnosis fields
+
+                # find non-null columns in table
+
+            """
             schema_tags = get_project_level_schema_tags(PARAMS, project['project_submitter_id'])
 
             if 'program-name-1-lower' in schema_tags:
@@ -234,6 +257,8 @@ def main(args):
                                              table_id=project_table_id,
                                              schema_tags=schema_tags,
                                              metadata_file=generic_table_metadata_file)
+            """
+
     end_time = time.time()
 
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")

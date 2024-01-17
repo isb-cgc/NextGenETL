@@ -947,7 +947,8 @@ def get_pdc_projects_metadata(params: Params, project_submitter_id: str = None) 
                 project_name, 
                 project_friendly_name, 
                 program_labels, 
-                project_submitter_id
+                project_submitter_id,
+                project_id
             FROM {create_metadata_table_id(params, "studies")}
             {where_clause}
         """
