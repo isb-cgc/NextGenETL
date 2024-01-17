@@ -119,22 +119,22 @@ def has_supplemental_diagnosis_table(project_submitter_id: str) -> bool:
         return f"""
             WITH project_ids AS (
                 SELECT distinct s.project_id
-                FROM `{create_dev_table_id(PARAMS, 'studies')}` s
+                FROM `{create_metadata_table_id(PARAMS, 'studies')}` s
                 WHERE s.project_submitter_id = '{project_submitter_id}'
             )
 
-        SELECT c.case_id, COUNT(c.case_id) as case_id_count 
-        FROM `{create_dev_table_id(PARAMS, 'case_project_id')}` cp
-        JOIN project_ids pid
-          ON cp.project_id = pid.project_id
-        JOIN `{create_dev_table_id(PARAMS, 'case')}` c
-          ON cp.case_id = c.case_id
-        LEFT JOIN `{create_dev_table_id(PARAMS, 'case_diagnosis_id')}` cdiag
-          ON cp.case_id = cdiag.case_id
-        LEFT JOIN `{create_dev_table_id(PARAMS, 'diagnosis')}` diag
-          ON cdiag.diagnosis_id = diag.diagnosis_id
-        GROUP BY case_id
-        HAVING case_id_count > 1
+            SELECT c.case_id, COUNT(c.case_id) as case_id_count 
+            FROM `{create_dev_table_id(PARAMS, 'case_project_id')}` cp
+            JOIN project_ids pid
+              ON cp.project_id = pid.project_id
+            JOIN `{create_dev_table_id(PARAMS, 'case')}` c
+              ON cp.case_id = c.case_id
+            LEFT JOIN `{create_dev_table_id(PARAMS, 'case_diagnosis_id')}` cdiag
+              ON cp.case_id = cdiag.case_id
+            LEFT JOIN `{create_dev_table_id(PARAMS, 'diagnosis')}` diag
+              ON cdiag.diagnosis_id = diag.diagnosis_id
+            GROUP BY case_id
+            HAVING case_id_count > 1
         """
 
     result = query_and_retrieve_result(make_multiple_diagnosis_count_sql())
@@ -223,8 +223,16 @@ def make_clinical_table_sql(project: dict[str], non_null_column_dict: dict[str, 
         diagnosis_sql = ''
 
     return f"""
+        WITH project_ids AS (
+            SELECT distinct s.project_id
+            FROM `{create_metadata_table_id(PARAMS, 'studies')}` s
+            WHERE s.project_submitter_id = '{project['project_submitter_id']}'
+        )
+
         SELECT {select_str}
         FROM {create_dev_table_id(PARAMS, 'case_project_id')} cp
+        JOIN project_ids pid
+            ON cp.project_id = pid.project_id
         JOIN {create_dev_table_id(PARAMS, 'case')} `case`
             ON cp.case_id = `case`.case_id
         JOIN {create_dev_table_id(PARAMS, 'project')} project
@@ -234,7 +242,6 @@ def make_clinical_table_sql(project: dict[str], non_null_column_dict: dict[str, 
         LEFT JOIN {create_dev_table_id(PARAMS, 'demographic')} demographic
             ON cdemo.demographic_id = demographic.demographic_id
         {diagnosis_sql}
-        WHERE cp.project_id = '{project['project_id']}'
     """
 
 
@@ -250,9 +257,17 @@ def make_diagnosis_table_sql(project: dict[str], diagnosis_columns) -> str:
 
     select_str = select_str[:-2]
 
-    return f"""    
+    return f"""
+        WITH project_ids AS (
+            SELECT distinct s.project_id
+            FROM `{create_metadata_table_id(PARAMS, 'studies')}` s
+            WHERE s.project_submitter_id = '{project['project_submitter_id']}'
+        )
+
         SELECT {select_str}
         FROM {create_dev_table_id(PARAMS, 'case_project_id')} cp
+        JOIN project_ids pid
+            ON cp.project_id = pid.project_id
         JOIN {create_dev_table_id(PARAMS, 'case')} `case`
             ON cp.case_id = `case`.case_id
         JOIN {create_dev_table_id(PARAMS, 'project')} project
