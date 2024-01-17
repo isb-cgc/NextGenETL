@@ -130,14 +130,12 @@ def has_supplemental_diagnosis_table(project_id: str) -> bool:
         HAVING case_id_count > 1
         """
 
-    print(make_multiple_diagnosis_count_sql())
-
     result = query_and_retrieve_result(make_multiple_diagnosis_count_sql())
 
-    if result.num_results > 0:
-        return True
-    else:
+    if not result or result.num_results == 0:
         return False
+    else:
+        return True
 
 
 def filter_null_columns(project_id: str, table_type: str, columns: list[str]) -> list[str]:
