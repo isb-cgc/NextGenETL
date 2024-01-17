@@ -231,6 +231,7 @@ def main(args):
                     print(column)
 
                 # make one clinical table, containing case, diagnosis and demographic fields
+                # todo need to insert project_submitter_id
 
             else:
                 print(f"{project['project_short_name']} columns: ")
@@ -244,6 +245,8 @@ def main(args):
                 # diagnosis table contains case_id and diagnosis fields
 
                 # find non-null columns in table
+
+                # todo need to insert project_submitter_id
 
             """
             schema_tags = get_project_level_schema_tags(PARAMS, project['project_submitter_id'])
