@@ -188,6 +188,76 @@ def filter_null_columns(project_id: str, table_type: str, columns: list[str]) ->
     return non_null_columns
 
 
+def make_clinical_table_sql(project: dict[str], non_null_column_dict: dict[str, list[str]]) -> str:
+    select_list = list()
+    for table_type, column_list in non_null_column_dict.items():
+        for column in column_list:
+            select_list.append(f"`{table_type}`.{column}")
+
+    # insert project_submitter_id
+    select_list.insert(2, "project.project_submitter_id")
+
+    select_str = ''
+
+    for column in select_list:
+        select_str += f"{column}, "
+
+    # remove last comma
+    select_str = select_str[:-2]
+
+    if 'diagnosis' in non_null_column_dict:
+        diagnosis_sql = f"""
+            LEFT JOIN {create_dev_table_id(PARAMS, 'case_diagnosis_id')} cdiag
+                ON `case`.case_id = cdiag.case_id
+            LEFT JOIN {create_dev_table_id(PARAMS, 'diagnosis')} diagnosis
+                ON cdiag.diagnosis_id = diagnosis.diagnosis_id
+        """
+    else:
+        diagnosis_sql = ''
+
+    return f"""
+        SELECT {select_str}
+        FROM {create_dev_table_id(PARAMS, 'case_project_id')} cp
+        JOIN {create_dev_table_id(PARAMS, 'case')} `case`
+            ON cp.case_id = `case`.case_id
+        JOIN {create_dev_table_id(PARAMS, 'project')} project
+            ON cp.project_id = project.project_id
+        LEFT JOIN {create_dev_table_id(PARAMS, 'case_demographic_id')} cdemo
+            ON `case`.case_id = cdemo.case_id
+        LEFT JOIN {create_dev_table_id(PARAMS, 'demographic')} demographic
+            ON cdemo.demographic_id = demographic.demographic_id
+        {diagnosis_sql}
+        WHERE cp.project_id = '{project['project_id']}'
+    """
+
+
+def make_diagnosis_table_sql(project: dict[str], diagnosis_columns) -> str:
+    select_str = """
+        `case`.case_id,
+        `case`.case_submitter_id,
+        project.project_submitter_id,
+    """
+
+    for column in diagnosis_columns:
+        select_str += f"diagnosis.{column}, "
+
+    select_str = select_str[:-2]
+
+    return f"""    
+        SELECT {select_str}
+        FROM {create_dev_table_id(PARAMS, 'case_project_id')} cp
+        JOIN {create_dev_table_id(PARAMS, 'case')} `case`
+            ON cp.case_id = `case`.case_id
+        JOIN {create_dev_table_id(PARAMS, 'project')} project
+            ON cp.project_id = project.project_id
+        LEFT JOIN {create_dev_table_id(PARAMS, 'case_diagnosis_id')} cdiag
+            ON `case`.case_id = cdiag.case_id
+        LEFT JOIN {create_dev_table_id(PARAMS, 'diagnosis')} diagnosis
+            ON cdiag.diagnosis_id = diagnosis.diagnosis_id
+        WHERE cp.project_id = '{project['project_id']}'
+    """
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -212,43 +282,45 @@ def main(args):
         logger.info("Entering create_project_tables")
 
         for project in projects_list:
+
             clinical_table_base_name = f"{project['project_short_name']}_{PARAMS['TABLE_NAME']}"
             clinical_table_id = create_clinical_table_id(PARAMS, clinical_table_base_name)
 
-            if not has_supplemental_diagnosis_table(project['project_id']):
-                non_null_column_list = list()
+            diagnosis_table_base_name = f"{clinical_table_base_name}_diagnosis"
+            diagnosis_table_id = create_clinical_table_id(PARAMS, diagnosis_table_base_name)
+            has_diagnosis_table = has_supplemental_diagnosis_table(project['project_id'])
 
-                for table_type, table_metadata in PARAMS['TABLE_PARAMS'].items():
-                    columns = table_metadata['column_order']
-                    non_null_columns = filter_null_columns(project_id=project['project_id'],
-                                                           table_type=table_type,
-                                                           columns=columns)
-                    non_null_column_list.extend(non_null_columns)
+            non_null_column_dict = dict()
 
-                print(f"\n{project['program_short_name']} - {project['project_short_name']} columns: ")
+            for table_type, table_metadata in PARAMS['TABLE_PARAMS'].items():
+                columns = table_metadata['column_order']
+                non_null_columns = filter_null_columns(project_id=project['project_id'],
+                                                       table_type=table_type,
+                                                       columns=columns)
+                non_null_column_dict[table_type] = non_null_columns
 
-                for column in non_null_column_list:
-                    print(column)
+            if not has_diagnosis_table:
+                clinical_table_sql = make_clinical_table_sql(project, non_null_column_dict)
 
-                # make one clinical table, containing case, diagnosis and demographic fields
-                # todo need to insert project_submitter_id
+                create_table_from_query(params=PARAMS,
+                                        table_id=clinical_table_id,
+                                        query=clinical_table_sql)
 
             else:
-                print(f"\n{project['program_short_name']} - {project['project_short_name']} columns: ")
-                print("This table has a diagnosis supplemental table, skipping.")
-                diagnosis_table_base_name = f"{clinical_table_base_name}_diagnosis"
-                # make clinical and supplemental diagnosis table
+                diagnosis_columns = non_null_column_dict.pop('diagnosis')
 
-                # clinical table contains demographic fields
-                # clinical table should contain diagnosis_count_column?
+                clinical_table_sql = make_clinical_table_sql(project, non_null_column_dict)
 
-                # diagnosis table contains case_id and diagnosis fields
+                create_table_from_query(params=PARAMS,
+                                        table_id=clinical_table_id,
+                                        query=clinical_table_sql)
 
-                # find non-null columns in table
+                diagnosis_table_sql = make_diagnosis_table_sql(project, diagnosis_columns)
 
-                # todo need to insert project_submitter_id
+                create_table_from_query(PARAMS,
+                                        table_id=diagnosis_table_id,
+                                        query=diagnosis_table_sql)
 
-            """
             schema_tags = get_project_level_schema_tags(PARAMS, project['project_submitter_id'])
 
             if 'program-name-1-lower' in schema_tags:
@@ -257,10 +329,15 @@ def main(args):
                 generic_table_metadata_file = PARAMS['GENERIC_TABLE_METADATA_FILE']
 
             update_table_schema_from_generic(params=PARAMS,
-                                             table_id=project_table_id,
+                                             table_id=clinical_table_id,
                                              schema_tags=schema_tags,
                                              metadata_file=generic_table_metadata_file)
-            """
+
+            if has_diagnosis_table:
+                update_table_schema_from_generic(params=PARAMS,
+                                                 table_id=diagnosis_table_id,
+                                                 schema_tags=schema_tags,
+                                                 metadata_file=generic_table_metadata_file)
 
     end_time = time.time()
 
