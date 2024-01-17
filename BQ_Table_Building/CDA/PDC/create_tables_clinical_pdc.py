@@ -324,8 +324,6 @@ def main(args):
             if not has_diagnosis_table:
                 clinical_table_sql = make_clinical_table_sql(project, non_null_column_dict)
 
-                print(clinical_table_sql)
-
                 create_table_from_query(params=PARAMS,
                                         table_id=clinical_table_id,
                                         query=clinical_table_sql)
