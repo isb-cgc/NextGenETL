@@ -123,7 +123,7 @@ def has_supplemental_diagnosis_table(project_id: str) -> bool:
           ON cp.case_id = c.case_id
         LEFT JOIN `{create_dev_table_id(PARAMS, 'case_diagnosis_id')}` cdiag
           ON cp.case_id = cdiag.case_id
-        LEFT JOIN `{create_dev_table_id(PARAMS, 'case_diagnosis')}` diag
+        LEFT JOIN `{create_dev_table_id(PARAMS, 'diagnosis')}` diag
           ON cdiag.diagnosis_id = diag.diagnosis_id
         WHERE cp.project_id = '{project_id}'
         GROUP BY case_id
