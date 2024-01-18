@@ -21,11 +21,10 @@ SOFTWARE.
 """
 import sys
 import time
-import logging
 
 from cda_bq_etl.data_helpers import initialize_logging
-from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds, create_clinical_table_id, \
-    create_metadata_table_id
+from cda_bq_etl.utils import (load_config, create_dev_table_id, format_seconds, create_clinical_table_id,
+                              create_metadata_table_id)
 from cda_bq_etl.bq_helpers import (create_table_from_query, get_pdc_projects_metadata, get_project_level_schema_tags,
                                    update_table_schema_from_generic, query_and_retrieve_result, find_missing_columns)
 
@@ -243,9 +242,8 @@ def main(args):
     projects_list = get_pdc_projects_metadata(PARAMS)
 
     if 'find_missing_fields' in steps:
-        # logger.info("Finding missing columns")
-        logger.info("Skipping missing columns--uncomment before handing off")
-        # find_missing_columns(PARAMS)
+        logger.info("Finding missing columns")
+        find_missing_columns(PARAMS)
     if 'create_project_tables' in steps:
         logger.info("Entering create_project_tables")
 
@@ -268,7 +266,6 @@ def main(args):
                 non_null_column_dict[table_type] = non_null_columns
 
             # does this project require a supplementary diagnosis table (multiple diagnoses for single case)?
-            # if not,
             if not has_diagnosis_table:
                 # no cases have multiple diagnoses, so create combined clinical table
                 create_table_from_query(params=PARAMS,
