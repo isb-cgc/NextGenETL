@@ -941,7 +941,10 @@ def get_pdc_projects_metadata(params: Params, project_submitter_id: str = None) 
             where_clause = f"WHERE project_submitter_id = '{project_submitter_id}'"
 
         return f"""
-            SELECT DISTINCT project_short_name, project_submitter_id, program_labels
+            SELECT DISTINCT project_short_name, 
+                project_submitter_id, 
+                program_labels, 
+                project_friendly_name
             FROM {create_metadata_table_id(params, "studies")}
             {where_clause}
         """
