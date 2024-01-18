@@ -241,11 +241,6 @@ def main(args):
 
     projects_list = get_pdc_projects_metadata(PARAMS)
 
-    project_submitter_id_set = set()
-
-    for project in projects_list:
-        project_submitter_id_set.add(project['project_submitter_id'])
-
     if 'find_missing_fields' in steps:
         logger.info("Finding missing columns")
         find_missing_columns(PARAMS)
