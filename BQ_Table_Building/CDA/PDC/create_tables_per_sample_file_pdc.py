@@ -115,28 +115,6 @@ def main(args):
                                              table_id=project_table_id,
                                              schema_tags=schema_tags,
                                              metadata_file=generic_table_metadata_file)
-    """
-    if 'publish_tables' in steps:
-        logger.info("Entering publish_tables")
-
-        for project in projects_list:
-            project_name = project['project_short_name']
-            program_name = project['program_short_name']
-
-            project_table_name = f"{PARAMS['TABLE_NAME']}_{project_name}_{PARAMS['RELEASE']}"
-            project_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SAMPLE_DATASET']}.{project_table_name}"
-
-            current_table_name = f"{PARAMS['TABLE_NAME']}_{project_name}_{PARAMS['NODE']}_current"
-            current_table_id = f"{PARAMS['PROD_PROJECT']}.{program_name}.{current_table_name}"
-
-            versioned_table_name = f"{PARAMS['TABLE_NAME']}_{project_name}_{PARAMS['NODE']}_{PARAMS['RELEASE']}"
-            versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{program_name}_versioned.{versioned_table_name}"
-
-            publish_table(params=PARAMS,
-                          source_table_id=project_table_id,
-                          current_table_id=current_table_id,
-                          versioned_table_id=versioned_table_id)
-    """
 
     end_time = time.time()
 
