@@ -62,8 +62,8 @@ python3.9 ./BQ_Table_Building/CDA/PDC/create_tables_file_metadata_pdc.py ~/confi
 echo "*** Building file associated entity mapping dev table"
 python3.9 ./BQ_Table_Building/CDA/PDC/create_tables_file_associated_entity_mapping_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${FILE_ENTITY_CONFIG_FILE}
 echo "*** Building per_sample_file_metadata dev tables"
-python3.9 ./BQ_Table_Building/CDA/PDC/create_tables_per_sample_file_gdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${PER_SAMPLE_CONFIG_FILE}
+python3.9 ./BQ_Table_Building/CDA/PDC/create_tables_per_sample_file_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${PER_SAMPLE_CONFIG_FILE}
 echo "*** Building clinical dev tables"
-python3.9 ./BQ_Table_Building/CDA/PDC/create_tables_clinical_gdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${CLINICAL_CONFIG_FILE}
+python3.9 ./BQ_Table_Building/CDA/PDC/create_tables_clinical_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${CLINICAL_CONFIG_FILE}
 echo "*** Load complete. Please run run-cda-compare-publish-tables.sh to test and publish."
 deactivate
