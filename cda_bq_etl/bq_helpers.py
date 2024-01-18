@@ -1153,8 +1153,12 @@ def find_missing_columns(params: Params, include_trivial_columns: bool = False):
             cda_columns_set.add(row[0])
 
         if 'first' not in params['TABLE_PARAMS'][table_name]['column_order']:
-            # pdc doesn't use the more complex sorting currently
-            all_columns_set = set(params['TABLE_PARAMS'][table_name]['column_order'])
+            if params['TABLE_PARAMS'][table_name]['excluded_columns'] is not None:
+                excluded_columns_set = set(params['TABLE_PARAMS'][table_name]['excluded_columns'])
+
+            # pdc doesn't use the more granular column order params currently
+            columns_set = set(params['TABLE_PARAMS'][table_name]['column_order'])
+            all_columns_set = columns_set | excluded_columns_set
         else:
             first_columns_set = set()
             middle_columns_set = set()
