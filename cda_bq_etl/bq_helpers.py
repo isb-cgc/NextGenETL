@@ -409,7 +409,6 @@ def get_columns_in_table(table_id: str) -> list[str]:
     return column_list
 
 
-
 def delete_bq_table(table_id: str):
     """
     Permanently delete BigQuery table located by table_id.
@@ -1090,6 +1089,7 @@ def get_program_list(params: Params, rename_programs: bool = True) -> list[str]:
 def get_pdc_projects_metadata_list(params: Params) -> list[dict[str, str]]:
     """
     Return current list of PDC projects (pulled from study metadata table in BQEcosystem repo).
+    :param params: params defined in yaml config
     """
     def make_all_studies_query() -> str:
         studies_table_id = f"{params['DEV_PROJECT']}.{params['DEV_METADATA_DATASET']}.studies_{params['RELEASE']}"
@@ -1111,3 +1111,99 @@ def get_pdc_projects_metadata_list(params: Params) -> list[dict[str, str]]:
         projects_list.append(dict(project))
 
     return projects_list
+
+
+def find_missing_columns(params: Params, include_trivial_columns: bool = False):
+    """
+    Get list of columns from CDA table, compare to column order and excluded column lists in yaml config (TABLE_PARAMS),
+    output any missing columns in either location.
+    :param params: params defined in yaml config
+    :param include_trivial_columns: Optional; if True, will list columns that are not found in yaml config even if they
+                                    have only null values in the dataset
+    """
+
+    def make_column_query():
+        full_table_name = create_dev_table_id(params, table_name).split('.')[2]
+
+        return f"""
+            SELECT column_name
+            FROM {params['DEV_PROJECT']}.{params['DEV_RAW_DATASET']}.INFORMATION_SCHEMA.COLUMNS
+            WHERE table_name = '{full_table_name}' 
+        """
+
+    def make_column_values_query():
+        return f"""
+            SELECT DISTINCT {column}
+            FROM {create_dev_table_id(params, table_name)}
+            WHERE {column} IS NOT NULL
+        """
+
+    logger = logging.getLogger('base_script')
+    logger.info("Scanning for missing fields in config yaml!")
+
+    has_missing_columns = False
+
+    for table_name in params['TABLE_PARAMS'].keys():
+        # get list of columns from raw CDA tables
+        result = query_and_retrieve_result(make_column_query())
+
+        cda_columns_set = set()
+
+        for row in result:
+            cda_columns_set.add(row[0])
+
+        if 'first' not in params['TABLE_PARAMS'][table_name]['column_order']:
+            # pdc doesn't use the more complex sorting currently
+            all_columns_set = set(params['TABLE_PARAMS'][table_name]['column_order'])
+        else:
+            first_columns_set = set()
+            middle_columns_set = set()
+            last_columns_set = set()
+            excluded_columns_set = set()
+
+            # columns should either be listed in column order lists or excluded column list in TABLE_PARAMS
+            if params['TABLE_PARAMS'][table_name]['column_order']['first'] is not None:
+                first_columns_set = set(params['TABLE_PARAMS'][table_name]['column_order']['first'])
+            if params['TABLE_PARAMS'][table_name]['column_order']['middle'] is not None:
+                middle_columns_set = set(params['TABLE_PARAMS'][table_name]['column_order']['middle'])
+            if params['TABLE_PARAMS'][table_name]['column_order']['last'] is not None:
+                last_columns_set = set(params['TABLE_PARAMS'][table_name]['column_order']['last'])
+            if params['TABLE_PARAMS'][table_name]['excluded_columns'] is not None:
+                excluded_columns_set = set(params['TABLE_PARAMS'][table_name]['excluded_columns'])
+
+            # join into one set
+            all_columns_set = first_columns_set | middle_columns_set | last_columns_set | excluded_columns_set
+
+        deprecated_columns = all_columns_set - cda_columns_set
+        missing_columns = cda_columns_set - all_columns_set
+
+        non_trivial_columns = set()
+
+        for column in missing_columns:
+            result = query_and_retrieve_result(make_column_values_query())
+            result_list = list(result)
+
+            if len(result_list) > 0:
+                non_trivial_columns.add(column)
+
+        trivial_columns = missing_columns - non_trivial_columns
+
+        if len(deprecated_columns) > 0 or len(non_trivial_columns) > 0 \
+                or (len(trivial_columns) > 0 and include_trivial_columns):
+            logger.info(f"For {table_name}:")
+
+            if len(deprecated_columns) > 0:
+                logger.info(f"Columns no longer found in CDA: {deprecated_columns}")
+            if len(trivial_columns) > 0 and include_trivial_columns:
+                logger.info(f"Trivial (only null) columns missing from TABLE_PARAMS: {trivial_columns}")
+            if len(non_trivial_columns) > 0:
+                logger.error(f"Non-trivial columns missing from TABLE_PARAMS: {non_trivial_columns}")
+                has_missing_columns = True
+
+    if has_missing_columns:
+        logger.critical("Missing columns found (see above output). Please take the following steps, then restart:")
+        logger.critical(" - add columns to TABLE_PARAMS in yaml config")
+        logger.critical(" - confirm column description is provided in BQEcosystem/TableFieldUpdates.")
+        sys.exit(-1)
+    else:
+        logger.info("No missing fields!")

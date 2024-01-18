@@ -27,94 +27,18 @@ from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds, create_clinical_table_id, \
     create_metadata_table_id
 from cda_bq_etl.bq_helpers import (create_table_from_query, get_pdc_projects_metadata, get_project_level_schema_tags,
-                                   update_table_schema_from_generic, query_and_retrieve_result)
+                                   update_table_schema_from_generic, query_and_retrieve_result, find_missing_columns)
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
-def find_missing_fields(include_trivial_columns: bool = False):
+def project_needs_supplemental_diagnosis_table(project_submitter_id: str) -> bool:
     """
-    Get list of columns from CDA table, compare to column order and excluded column lists in yaml config (TABLE_PARAMS),
-    output any missing columns in either location.
-    :param include_trivial_columns: Optional; if True, will list columns that are not found in yaml config even if they
-                                    have only null values in the dataset
+    Tests within a given project: does any case record have > 1 associated diagnosis records?
+    :param project_submitter_id: PDC project submitter id
+    :return: True if project requires a supplemental diagnosis table; False otherwise
     """
-
-    def make_column_query():
-        full_table_name = create_dev_table_id(PARAMS, table_name).split('.')[2]
-
-        return f"""
-            SELECT column_name
-            FROM {PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.INFORMATION_SCHEMA.COLUMNS
-            WHERE table_name = '{full_table_name}' 
-        """
-
-    def make_column_values_query():
-        return f"""
-            SELECT DISTINCT {column}
-            FROM {create_dev_table_id(PARAMS, table_name)}
-            WHERE {column} IS NOT NULL
-        """
-
-    logger = logging.getLogger('base_script')
-    logger.info("Scanning for missing fields in config yaml!")
-
-    has_missing_columns = False
-
-    for table_name in PARAMS['TABLE_PARAMS'].keys():
-        result = query_and_retrieve_result(make_column_query())
-
-        cda_columns_set = set()
-
-        for row in result:
-            cda_columns_set.add(row[0])
-
-        columns_set = set(PARAMS['TABLE_PARAMS'][table_name]['column_order'])
-        excluded_columns_set = set()
-
-        if PARAMS['TABLE_PARAMS'][table_name]['excluded_columns'] is not None:
-            excluded_columns_set = set(PARAMS['TABLE_PARAMS'][table_name]['excluded_columns'])
-
-        # join into one set
-        all_columns_set = columns_set | excluded_columns_set
-
-        deprecated_columns = all_columns_set - cda_columns_set
-        missing_columns = cda_columns_set - all_columns_set
-
-        non_trivial_columns = set()
-
-        for column in missing_columns:
-            result = query_and_retrieve_result(make_column_values_query())
-            result_list = list(result)
-
-            if len(result_list) > 0:
-                non_trivial_columns.add(column)
-
-        trivial_columns = missing_columns - non_trivial_columns
-
-        if len(deprecated_columns) > 0 or len(non_trivial_columns) > 0 \
-                or (len(trivial_columns) > 0 and include_trivial_columns):
-            logger.info(f"For {table_name}:")
-
-            if len(deprecated_columns) > 0:
-                logger.info(f"Columns no longer found in CDA: {sorted(deprecated_columns)}")
-            if len(trivial_columns) > 0 and include_trivial_columns:
-                logger.info(f"Trivial (only null) columns missing from TABLE_PARAMS: {sorted(trivial_columns)}")
-            if len(non_trivial_columns) > 0:
-                logger.error(f"Non-trivial columns missing from TABLE_PARAMS: {sorted(non_trivial_columns)}")
-                has_missing_columns = True
-
-    if has_missing_columns:
-        logger.critical("Missing columns found (see above output). Please take the following steps, then restart:")
-        logger.critical(" - add columns to TABLE_PARAMS in yaml config")
-        logger.critical(" - confirm column description is provided in BQEcosystem/TableFieldUpdates.")
-        sys.exit(-1)
-    else:
-        logger.info("No missing fields!")
-
-
-def has_supplemental_diagnosis_table(project_submitter_id: str) -> bool:
     def make_multiple_diagnosis_count_sql() -> str:
         return f"""
             WITH project_ids AS (
@@ -146,6 +70,13 @@ def has_supplemental_diagnosis_table(project_submitter_id: str) -> bool:
 
 
 def filter_null_columns(project_dict: dict[str, str], table_type: str, columns: list[str]) -> list[str]:
+    """
+    Filter out columns with only null values.
+    :param project_dict: dict containing project metadata
+    :param table_type: type of clinical table (case, demographic, diagnosis)
+    :param columns: full column list from yaml config
+    :return: list of non-null columns
+    """
     def make_count_column_sql() -> str:
         count_sql_str = ''
 
@@ -200,7 +131,13 @@ def filter_null_columns(project_dict: dict[str, str], table_type: str, columns: 
     return non_null_columns
 
 
-def make_clinical_table_sql(project: dict[str], non_null_column_dict: dict[str, list[str]]) -> str:
+def make_clinical_table_sql(project: dict[str, str], non_null_column_dict: dict[str, list[str]]) -> str:
+    """
+    Output sql used to create project clinical table
+    :param project: project metadata dict
+    :param non_null_column_dict: set of columns with non-trivial values (to include in table)
+    :return: sql string used to create clinical table
+    """
     select_list = list()
     for table_type, column_list in non_null_column_dict.items():
         for column in column_list:
@@ -251,6 +188,12 @@ def make_clinical_table_sql(project: dict[str], non_null_column_dict: dict[str, 
 
 
 def make_diagnosis_table_sql(project: dict[str], diagnosis_columns) -> str:
+    """
+    Output sql used to create project supplemental diagnosis table.
+    :param project: project metadata dict
+    :param diagnosis_columns: diagnosis columns with non-trivial values (to include in table)
+    :return: sql string used to create supplemental diagnosis table
+    """
     select_str = """
         `case`.case_id,
         `case`.case_submitter_id,
@@ -300,10 +243,9 @@ def main(args):
     projects_list = get_pdc_projects_metadata(PARAMS)
 
     if 'find_missing_fields' in steps:
-        # logger.info("Finding missing fields")
-        logger.info("Skipping missing fields--uncomment before handing off")
-        # todo is this definitely working for PDC? seems to be, double check
-        # find_missing_fields()
+        # logger.info("Finding missing columns")
+        logger.info("Skipping missing columns--uncomment before handing off")
+        # find_missing_columns(PARAMS)
     if 'create_project_tables' in steps:
         logger.info("Entering create_project_tables")
 
@@ -314,28 +256,27 @@ def main(args):
             # only used for some projects
             diagnosis_table_base_name = f"{clinical_table_base_name}_diagnosis"
             diagnosis_table_id = create_clinical_table_id(PARAMS, diagnosis_table_base_name)
-            has_diagnosis_table = has_supplemental_diagnosis_table(project['project_submitter_id'])
+            has_diagnosis_table = project_needs_supplemental_diagnosis_table(project['project_submitter_id'])
 
             non_null_column_dict = dict()
 
             for table_type, table_metadata in PARAMS['TABLE_PARAMS'].items():
                 # create a dict of non-null columns for each project and clinical data type (case, demo, diag)
-                columns = table_metadata['column_order']
                 non_null_columns = filter_null_columns(project_dict=project,
                                                        table_type=table_type,
-                                                       columns=columns)
+                                                       columns=table_metadata['column_order'])
                 non_null_column_dict[table_type] = non_null_columns
 
             # does this project require a supplementary diagnosis table (multiple diagnoses for single case)?
-            # if not, create table combining case, demographic and diagnosis records
-            # otherwise, create two tables:
-            #   - one combining case and demographic records,
-            #   - one containing diagnosis records, with columns added for mapping to main clinical table
+            # if not,
             if not has_diagnosis_table:
+                # no cases have multiple diagnoses, so create combined clinical table
                 create_table_from_query(params=PARAMS,
                                         table_id=clinical_table_id,
                                         query=make_clinical_table_sql(project, non_null_column_dict))
             else:
+                # case(s) in this project have multiple diagnoses, so make clinical and diagnosis tables
+
                 # pop off the diagnosis columns -- these will be included in supplementary table
                 diagnosis_columns = non_null_column_dict.pop('diagnosis')
 

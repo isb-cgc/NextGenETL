@@ -26,101 +26,11 @@ from typing import Any
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import create_dev_table_id, load_config, format_seconds, create_clinical_table_id
-from cda_bq_etl.bq_helpers import query_and_retrieve_result, get_program_list, create_table_from_query, \
-    get_program_schema_tags_gdc, update_table_schema_from_generic
+from cda_bq_etl.bq_helpers import (query_and_retrieve_result, get_program_list, create_table_from_query,
+                                   get_program_schema_tags_gdc, update_table_schema_from_generic, find_missing_columns)
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
-
-
-def find_missing_fields(include_trivial_columns: bool = False):
-    """
-    Get list of columns from CDA table, compare to column order and excluded column lists in yaml config (TABLE_PARAMS),
-    output any missing columns in either location.
-    :param include_trivial_columns: Optional; if True, will list columns that are not found in yaml config even if they
-                                    have only null values in the dataset
-    """
-    def make_column_query():
-        full_table_name = create_dev_table_id(PARAMS, table_name).split('.')[2]
-
-        return f"""
-            SELECT column_name
-            FROM {PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.INFORMATION_SCHEMA.COLUMNS
-            WHERE table_name = '{full_table_name}' 
-        """
-
-    def make_column_values_query():
-        return f"""
-            SELECT DISTINCT {column}
-            FROM {create_dev_table_id(PARAMS, table_name)}
-            WHERE {column} IS NOT NULL
-        """
-
-    logger = logging.getLogger('base_script')
-    logger.info("Scanning for missing fields in config yaml!")
-
-    has_missing_columns = False
-
-    for table_name in PARAMS['TABLE_PARAMS'].keys():
-        result = query_and_retrieve_result(make_column_query())
-
-        cda_columns_set = set()
-
-        for row in result:
-            cda_columns_set.add(row[0])
-
-        first_columns_set = set()
-        middle_columns_set = set()
-        last_columns_set = set()
-        excluded_columns_set = set()
-
-        # columns should either be listed in column order lists or excluded column list in TABLE_PARAMS
-        if PARAMS['TABLE_PARAMS'][table_name]['column_order']['first'] is not None:
-            first_columns_set = set(PARAMS['TABLE_PARAMS'][table_name]['column_order']['first'])
-        if PARAMS['TABLE_PARAMS'][table_name]['column_order']['middle'] is not None:
-            middle_columns_set = set(PARAMS['TABLE_PARAMS'][table_name]['column_order']['middle'])
-        if PARAMS['TABLE_PARAMS'][table_name]['column_order']['last'] is not None:
-            last_columns_set = set(PARAMS['TABLE_PARAMS'][table_name]['column_order']['last'])
-        if PARAMS['TABLE_PARAMS'][table_name]['excluded_columns'] is not None:
-            excluded_columns_set = set(PARAMS['TABLE_PARAMS'][table_name]['excluded_columns'])
-
-        # join into one set
-        all_columns_set = first_columns_set | middle_columns_set | last_columns_set | excluded_columns_set
-
-        deprecated_columns = all_columns_set - cda_columns_set
-        missing_columns = cda_columns_set - all_columns_set
-
-        non_trivial_columns = set()
-
-        for column in missing_columns:
-            result = query_and_retrieve_result(make_column_values_query())
-            result_list = list(result)
-
-            if len(result_list) > 0:
-                non_trivial_columns.add(column)
-
-        trivial_columns = missing_columns - non_trivial_columns
-
-        if len(deprecated_columns) > 0 \
-                or (len(trivial_columns) > 0 and include_trivial_columns) \
-                or len(non_trivial_columns) > 0:
-            logger.info(f"For {table_name}:")
-
-            if len(deprecated_columns) > 0:
-                logger.info(f"Columns no longer found in CDA: {deprecated_columns}")
-            if len(trivial_columns) > 0 and include_trivial_columns:
-                logger.info(f"Trivial (only null) columns missing from TABLE_PARAMS: {trivial_columns}")
-            if len(non_trivial_columns) > 0:
-                logger.error(f"Non-trivial columns missing from TABLE_PARAMS: {non_trivial_columns}")
-                has_missing_columns = True
-
-    if has_missing_columns:
-        logger.critical("Missing columns found (see above output). Please take the following steps, then restart:")
-        logger.critical(" - add columns to TABLE_PARAMS in yaml config")
-        logger.critical(" - confirm column description is provided in BQEcosystem/TableFieldUpdates.")
-        sys.exit(-1)
-    else:
-        logger.info("No missing fields!")
 
 
 def find_program_tables() -> dict[str, set[str]]:
@@ -629,128 +539,10 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
                                          metadata_file=metadata_file)
 
 
-'''
-def find_table_column_frequency():
-    def find_program_non_null_columns_by_table():
-        def make_count_column_sql() -> str:
-            mapping_table = PARAMS['TABLE_PARAMS'][_table]['mapping_table']
-            id_key = f"{_table}_id"
-            _parent_table = PARAMS['TABLE_PARAMS'][_table]['child_of']
-
-            count_sql_str = ''
-
-            for col in columns:
-                count_sql_str += f'\nSUM(CASE WHEN this_table.{col} is null THEN 0 ELSE 1 END) AS {col}_count, '
-
-            # remove extra comma (due to looping) from end of string
-            count_sql_str = count_sql_str[:-2]
-
-            sql_str = f"""
-                SELECT {count_sql_str}
-                FROM `{create_dev_table_id(PARAMS, _table)}` this_table 
-            """
-
-            if _table == 'case':
-                sql_str += f"""
-                    JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-                        ON this_table.case_id = cpp.case_id
-                    WHERE cpp.program_name = '{program}'
-                """
-            elif _table == 'project':
-                sql_str += f"""
-                    JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-                        ON this_table.{id_key} = cpp.{id_key}
-                    WHERE cpp.program_name = '{program}'
-                """
-            elif _parent_table == 'case':
-                sql_str += f"""
-                    JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
-                        ON mapping_table.{id_key} = this_table.{id_key}
-                    JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-                        ON mapping_table.case_id = cpp.case_id
-                    WHERE cpp.program_name = '{program}'
-                """
-            elif _parent_table:
-                parent_mapping_table = PARAMS['TABLE_PARAMS'][_parent_table]['mapping_table']
-                parent_id_key = f"{_parent_table}_id"
-
-                sql_str += f"""
-                    JOIN `{create_dev_table_id(PARAMS, mapping_table)}` mapping_table
-                        ON mapping_table.{id_key} = this_table.{id_key}
-                    JOIN `{create_dev_table_id(PARAMS, _parent_table)}` parent_table
-                        ON parent_table.{parent_id_key} = mapping_table.{parent_id_key}
-                    JOIN `{create_dev_table_id(PARAMS, parent_mapping_table)}` parent_mapping_table
-                        ON parent_mapping_table.{parent_id_key} = parent_table.{parent_id_key}
-                    JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
-                        ON parent_mapping_table.case_id = cpp.case_id
-                    WHERE cpp.program_name = '{program}'
-                """
-            else:
-                logger.critical(f"No parent assigned for {_table} in yaml config, exiting.")
-                sys.exit(-1)
-
-            return sql_str
-
-        logger = logging.getLogger('base_script')
-
-        non_null_columns_dict = dict()
-
-        for _table in PARAMS['TABLE_PARAMS'].keys():
-            _first_columns = PARAMS['TABLE_PARAMS'][_table]['column_order']['first']
-            _middle_columns = PARAMS['TABLE_PARAMS'][_table]['column_order']['middle']
-            _last_columns = PARAMS['TABLE_PARAMS'][_table]['column_order']['last']
-
-            columns = list()
-
-            if _first_columns:
-                columns.extend(_first_columns)
-            if _middle_columns:
-                columns.extend(_middle_columns)
-            if _last_columns:
-                columns.extend(_last_columns)
-
-            column_count_result = query_and_retrieve_result(sql=make_count_column_sql())
-
-            non_null_columns = list()
-
-            for row in column_count_result:
-                # get columns for field group
-                table_total = row.get(f"{_table}_id_count")
-                for _column in columns:
-                    count = row.get(f"{_column}_count")
-
-                    if count is not None and count > 0:
-                        if _column not in table_column_counts_by_program[_table]:
-                            table_column_counts_by_program[_table][_column] = dict()
-
-                        table_column_counts_by_program[_table][_column][program] = {
-                            'count': count,
-                            'total_rows': table_total
-                        }
-
-                        print(f"{program}\t{_table}\t{_column}\t{count}\t{table_total}")
-
-                    if count is not None and count > 0:
-                        non_null_columns.append(_column)
-
-            non_null_columns_dict[_table] = non_null_columns
-
-        return non_null_columns_dict
-
-    columns_by_program_dict = dict()
-    table_column_counts_by_program = dict()
-
-    for table in PARAMS['TABLE_PARAMS'].keys():
-        table_column_counts_by_program[table] = dict()
-
-    for program in find_program_tables().keys():
-        columns_by_program_dict[program] = find_program_non_null_columns_by_table()
-'''
-
-
 def main(args):
     try:
         start_time = time.time()
+
         global PARAMS
         PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
@@ -761,9 +553,8 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     if 'find_missing_fields' in steps:
-        # logger.debug("Passing find_missing_fields")
         # Find discrepancies in field lists in yaml config and CDA data
-        find_missing_fields()
+        find_missing_columns(PARAMS)
 
     if 'create_tables' in steps:
         # create dict of programs : base/supplemental tables to be created
