@@ -19,7 +19,8 @@ import logging
 import sys
 import time
 from git import Repo
-from google.cloud import bigquery, NotFound, storage
+from google.api_core.exceptions import NotFound, BadRequest
+from google.cloud import bigquery, storage
 import re
 from distutils import util
 from json import loads as json_loads, dumps as json_dumps
