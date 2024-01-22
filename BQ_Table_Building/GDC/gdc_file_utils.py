@@ -19,6 +19,7 @@ import logging
 import sys
 import time
 from git import Repo
+import requests
 from google.api_core.exceptions import NotFound, BadRequest
 from google.cloud import bigquery, storage
 import re
