@@ -23,19 +23,23 @@ import logging
 import sys
 import time
 import re
+from typing import Any
+
 import requests
 
 from requests.adapters import HTTPAdapter, Retry
 
 from cda_bq_etl.utils import load_config, format_seconds, create_dev_table_id, create_metadata_table_id
-from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic
-from cda_bq_etl.data_helpers import initialize_logging
+from cda_bq_etl.bq_helpers import (create_table_from_query, update_table_schema_from_generic,
+                                   create_and_upload_schema_for_json, retrieve_bq_schema_object,
+                                   create_and_load_table_from_jsonl)
+from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
-def retrieve_uniprot_kb_genes():
+def query_uniprot_kb_and_create_jsonl_list():
     """
     Retrieve UniProt id, review status, primary gene name and RefSeq ID from UniProt REST API.
     Modified from example found at https://www.uniprot.org/help/api_queries. Hat tip :)
@@ -70,34 +74,54 @@ def retrieve_uniprot_kb_genes():
 
     url = f'https://rest.uniprot.org/uniprotkb/search?fields={fields}&format={return_format}&query={query}&size={size}'
 
-    record_list = list()
+    refseq_id_jsonl_list = list()
 
-    logger.info("Retrieving records from UniProtKB")
+    record_count = 0
 
     for records, total_records in get_batch(url):
-        for line in records.text.splitlines()[1:]:
-            print(line)
-            record_list.append(line)
-        logger.info(f'{len(record_list)} / {total_records}')
+        for uniprot_row in records.text.splitlines()[1:]:
+            record_count += 1
 
-    return record_list
+            uniprot_record = uniprot_row.split('\t')
 
+            uniprot_id = uniprot_record[0]
+            status = uniprot_record[1]
+            gene_symbol = uniprot_record[2]
+            refseq_str = uniprot_record[3]
 
-'''
-def retrieve_uniprot_kb_genes():
-    """
-    Retrieve Swiss-Prot ids and gene names from UniProtKB REST API.
-    :return: REST API response text (tsv)
-    """
-    query = 'organism_id:9606'
-    data_format = 'tsv'
-    columns = 'id,reviewed,gene_primary,xref_refseq'
+            refseq_list = refseq_str.strip(';').split(';')
 
-    request_url = f'https://rest.uniprot.org/uniprotkb/search?query={query}&format={data_format}&fields={columns}'
+            if not refseq_list:
+                logger.info(f"No refseq info from UniProt for {uniprot_id}, skipping")
+                continue
 
-    response = requests.get(request_url)
-    return response.text
-'''
+            for refseq_item in refseq_list:
+                if not refseq_item:
+                    logger.info(f"No refseq info from UniProt for {uniprot_id}, skipping")
+                    continue
+                elif '[' in refseq_item:
+                    # sometimes these items are pairs in the following format: "refseq_id [uniprot_id]"
+                    # in this case, we replace the original uniprot_id with the one provided in brackets
+                    paired_refseq_id_list = refseq_item.strip("]").split(" [")
+                    refseq_id = paired_refseq_id_list[0]
+                    uniprot_id = paired_refseq_id_list[1]
+                else:
+                    refseq_id = refseq_item
+
+                refseq_row_dict = {
+                    "uniprot_id": uniprot_id,
+                    "uniprot_review_status": status,
+                    "gene_symbol": gene_symbol,
+                    "refseq_id": refseq_id
+                }
+
+                refseq_id_jsonl_list.append(refseq_row_dict)
+
+        logger.info(f'{record_count} / {total_records}')
+        # todo remove break for full api pull -- this is only the first page
+        break
+
+    return refseq_id_jsonl_list
 
 
 def make_refseq_filtered_status_mapping_query(refseq_table_id):
@@ -128,6 +152,25 @@ def make_refseq_filtered_status_mapping_query(refseq_table_id):
     """
 
 
+def get_study_list() -> list[str, Any]:
+    def make_pdc_study_query() -> str:
+        return f"""
+            SELECT DISTINCT pdc_study_id, 
+                submitter_id_name AS study_name, 
+                project_submitter_id, 
+                analytical_fraction, 
+                program_short_name, 
+                project_short_name, 
+                project_friendly_name, 
+                study_friendly_name, 
+                program_labels
+            FROM  `{create_metadata_table_id(PARAMS, 'studies')}`
+        """
+
+    # todo finish this
+    pass
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -141,135 +184,42 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    '''
-    # get PDC study list -- occurs outside of steps because used in multiple places
-    # studies_list
-    return f"""
-    SELECT distinct pdc_study_id, submitter_id_name AS study_name, embargo_date, project_submitter_id, 
-    analytical_fraction, program_short_name, project_short_name, project_friendly_name, study_friendly_name,
-    program_labels
-    FROM  `{table_id}`
-    """
-    '''
-    # create uniprot file name based on settings in yaml config
-    # uniprot_file_name
-    
-    # steps
-    if 'build_uniprot_tsv' in steps:
-        uniprot_data = retrieve_uniprot_kb_genes()
+    studies_list = get_study_list()
 
-        print(uniprot_data)
-        exit(0)
+    if 'build_and_upload_refseq_uniprot_jsonl' in steps:
+        logger.info("Retrieving RefSeq records from UniProtKB")
+        refseq_jsonl_list = query_uniprot_kb_and_create_jsonl_list()
 
-        # split tsv into rows and remove newline file terminator
-        uniprot_row_list = uniprot_data.strip("\n").split("\n")
+        for count, record in enumerate(refseq_jsonl_list):
+            print(record)
+            if count == 10:
+                break
 
-        # we don't actually need these, but these are the headers we get back from uniprot:
-        # values: Entry Name, Gene Names (primary), RefSeq, Reviewed
-        uniprot_row_list.pop(0)
+        write_list_to_jsonl_and_upload(params=PARAMS,
+                                       prefix=PARAMS['REFSEQ_TABLE_NAME'],
+                                       record_list=refseq_jsonl_list,
+                                       release=PARAMS['UNIPROT_RELEASE'])
 
-        refseq_id_list = list(['uniprot_id', 'status', 'gene_symbol', 'refseq_id'])
+        create_and_upload_schema_for_json(params=PARAMS,
+                                          record_list=refseq_jsonl_list,
+                                          table_name=PARAMS['REFSEQ_TABLE_NAME'],
+                                          release=PARAMS['UNIPROT_RELEASE'])
 
-        for uniprot_row in uniprot_row_list:
-            # split the row into columns
-            uniprot_record = uniprot_row.split('\t')
-            uniprot_id = uniprot_record[0]
-            status = uniprot_record[1]
-            gene_symbol = uniprot_record[2]
-            refseq_str = uniprot_record[3]
+    if 'create_refseq_uniprot_table' in steps:
+        logger.info("Building RefSeq -> UniProt mapping table")
 
-            # print(f"""0: {uniprot_id}\n1: {status}\n2: {gene_names}\n3: {refseq_str}\n""")
-            # strip trailing semicolon from RefSeq id list
-            refseq_list = refseq_str.strip(';').split(';')
+        refseq_table_id = create_metadata_table_id(PARAMS, PARAMS['REFSEQ_TABLE_NAME'])
+        refseq_jsonl_filename = f"{PARAMS['REFSEQ_TABLE_NAME']}_{PARAMS['UNIPROT_RELEASE']}.jsonl"
 
-            if not refseq_list:
-                logger.info(f"No refseq info from UniProt for {uniprot_id}, skipping")
-                continue
-
-            for refseq_item in refseq_list:
-                if not refseq_item:
-                    logger.info(f"No refseq info from UniProt for {uniprot_id}, skipping")
-                    continue
-                elif '[' in refseq_item:
-                    # sometimes these items are pairs in the following format: "refseq_id [uniprot_id]"
-                    # in this case, we replace the original uniprot_id with the one provided in brackets
-                    paired_refseq_id_list = refseq_item.strip("]").split(" [")
-                    refseq_id = paired_refseq_id_list[0]
-                    uniprot_id = paired_refseq_id_list[1]
-                else:
-                    refseq_id = refseq_item
-
-                refseq_id_list.append([uniprot_id, status, gene_symbol, refseq_id])
-
-        for row in refseq_id_list:
-            print(row)
-
-        # uniprot_fp = get_scratch_fp(PARAMS, uniprot_file_name)
-                
-        # with open(uniprot_fp, 'w') as uniprot_file:
-        #     uniprot_file.write(uniprot_data)
-
-        # print("Creating schema for UniProt mapping table")
-        # create_and_upload_schema_for_tsv(...)
-
-        # upload_to_bucket(PARAMS, uniprot_fp, delete_local=True)
+        refseq_table_schema = retrieve_bq_schema_object(PARAMS,
+                                                        table_name=PARAMS['REFSEQ_TABLE_NAME'],
+                                                        release=PARAMS['UNIPROT_RELEASE'])
+        create_and_load_table_from_jsonl(PARAMS,
+                                         jsonl_file=refseq_jsonl_filename,
+                                         table_id=refseq_table_id,
+                                         schema=refseq_table_schema)
 
     '''
-    # note the step name change    
-    if 'create_uniprot_table' in steps:
-        # create uniprot_table_name & uniprot_table_id
-
-        # might need to be adjusted        
-        uniprot_schema = retrieve_bq_schema_object(PARAMS,
-                                                   table_name=PARAMS['UNIPROT_TABLE'],
-                                                   release=PARAMS['UNIPROT_RELEASE'])
-        # might need to be adjusted/added
-        create_and_load_table_from_tsv(PARAMS,
-                                       tsv_file=uniprot_file_name,
-                                       table_id=uniprot_table_id,
-                                       num_header_rows=1,
-                                       schema=uniprot_schema)
-        print("UniProt table built!")
-
-    if 'create_refseq_table' in steps:
-        # todo it'd be nice to clean this up some--it works, but we tacked stuff on; could be simplified
-        print("Building RefSeq mapping table!")
-
-        refseq_id_list = list()
-        # add the header row here rather than during schema creation? ['uniprot_id', 'uniprot_review_status', 'gene_symbol', 'refseq_id']
-        
-        # get uniprot table records (columns: Entry_Name, Reviewed, Gene_Names_primary, RefSeq)
-        
-        # loop through: 
-            - set the following variables:
-                uniprot_id = row['Entry_Name']
-                status = row['Reviewed']
-                gene_symbol = row['Gene_Names_primary']
-            - split RefSeq string into a list (ref_seq_str.strip(';').split(';'))
-            - if ref seq list is empty, continue to next record
-            - for item in refseq list:
-                - if '[' in item:
-                    - create a new list, further splitting the list (refseq_id_paired.strip("]").split(" ["))
-                    - length should always be two, else fatal error
-                    - new list idx 0 is refseq_id, idx 1 is uniprot_id
-                - else, item is refseq_id
-                
-                - if refseq_id is found, append this list to refseq_id_list: 
-                    - [uniprot_id, status, gene_symbol, refseq_id]
-        
-        # write refseq_id_list to tsv 
-        # upload to bucket
-        # create schema object
-        # create intermediate table from tsv
-        
-        # create final filtered refseq table using this query: make_refseq_filtered_status_mapping_query(refseq_table_id)
-        
-        # can this be added to generic schema?
-        add to schema_tags = { "uniprot-version": API_PARAMS['UNIPROT_RELEASE'] }
-        
-        # update table schema 
-        # delete intermediate table
-        
     if 'build_gene_jsonl' in steps:
         gene_record_list = build_obj_from_pdc_api(PARAMS,
                                                   endpoint=PARAMS['GENE_ENDPOINT'],

@@ -90,16 +90,22 @@ def write_list_to_jsonl(jsonl_fp: str, json_obj_list: JSONList, mode: str = 'w')
 def write_list_to_jsonl_and_upload(params: Params,
                                    prefix: str,
                                    record_list: JSONList,
+                                   release: str = None,
                                    local_filepath: Optional[str] = None):
     """
     Write joined_record_list to file name specified by prefix and uploads to scratch Google Cloud bucket.
     :param params: params supplied in yaml config
     :param prefix: string representing base file name (release string is appended to generate filename)
     :param record_list: list of record objects to insert into jsonl file
+    :param release: Optional custom release, if different from what is provided in shared config yaml
     :param local_filepath: VM path where jsonl file is stored prior to upload
     """
     if not local_filepath:
-        jsonl_filename = f"{sanitize_file_prefix(prefix)}_{params['RELEASE']}.jsonl"
+        if not release:
+            jsonl_filename = f"{sanitize_file_prefix(prefix)}_{params['RELEASE']}.jsonl"
+        else:
+            jsonl_filename = f"{sanitize_file_prefix(prefix)}_{release}.jsonl"
+
         local_filepath = get_scratch_fp(params, jsonl_filename)
 
     write_list_to_jsonl(local_filepath, record_list)

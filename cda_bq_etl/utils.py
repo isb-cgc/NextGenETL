@@ -188,7 +188,6 @@ def construct_table_name(params: Params,
     return sanitize_file_prefix(table_name)
 
 
-# todo candidate for removal
 def get_filename(params: Params,
                  file_extension: str,
                  prefix: str,

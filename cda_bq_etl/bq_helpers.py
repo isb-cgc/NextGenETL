@@ -211,6 +211,7 @@ def create_and_upload_schema_for_json(params: Params,
                                       record_list: JSONList,
                                       table_name: str,
                                       include_release: bool = False,
+                                      release: str = None,
                                       schema_fp: Optional[str] = None,
                                       delete_local: bool = True):
     """
@@ -220,6 +221,7 @@ def create_and_upload_schema_for_json(params: Params,
     :param record_list: list of records to analyze (used to determine schema)
     :param table_name: table for which the schema is being generated
     :param include_release: if true, includes release in schema file name
+    :param release: provide custom release value
     :param schema_fp: path to schema location on local vm
     :param delete_local: delete local file after uploading to cloud bucket
     :return:
@@ -236,7 +238,8 @@ def create_and_upload_schema_for_json(params: Params,
                                        file_extension='json',
                                        prefix="schema",
                                        suffix=table_name,
-                                       include_release=include_release)
+                                       include_release=include_release,
+                                       release=release)
 
         schema_fp = get_scratch_fp(params, schema_filename)
 
