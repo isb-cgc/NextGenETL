@@ -25,6 +25,7 @@ FILE_ENTITY_ARG="file_entity"
 PER_SAMPLE_FILE_ARG="per_sample_file"
 ALIQUOT_ARG="aliquot_case_map"
 STUDIES_ARG="study"
+QUANT_ARG="quant"
 
 SHARED_CONFIG_FILE="CDASharedConfigPDC.yaml"
 
@@ -52,8 +53,11 @@ elif [[ ${SCRIPT_NAME} = ${PER_SAMPLE_FILE_ARG} ]] ; then
 elif [[ ${SCRIPT_NAME} = ${STUDIES_ARG} ]] ; then
     CONFIG_FILE="CDACreateTablesStudiesPDC.yaml"
     SCRIPT_FILE="create_tables_studies_pdc.py"
+elif [[ ${SCRIPT_NAME} = ${QUANT_ARG} ]] ; then
+    CONFIG_FILE="CDACreateTablesQuantPDC.yaml"
+    SCRIPT_FILE="create_tables_quant_data_matrix_pdc.py"
 else
-    echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, per_sample_file, aliquot_case_map, slide_case_map"
+    echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, per_sample_file, aliquot_case_map, slide_case_map, quant"
     exit 1
 fi
 

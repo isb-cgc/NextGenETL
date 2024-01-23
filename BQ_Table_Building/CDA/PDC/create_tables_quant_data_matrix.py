@@ -96,25 +96,29 @@ def main(args):
     program_labels
     FROM  `{table_id}`
     """
-    
+    '''
     # create uniprot file name based on settings in yaml config
     # uniprot_file_name
     
     ### steps
+
     if 'build_uniprot_tsv' in steps:
         print("Retrieving data from UniProtKB")
         uniprot_data = retrieve_uniprot_kb_genes()
 
-        uniprot_fp = get_scratch_fp(PARAMS, uniprot_file_name)
+        print(uniprot_data)
+
+        # uniprot_fp = get_scratch_fp(PARAMS, uniprot_file_name)
                 
-        with open(uniprot_fp, 'w') as uniprot_file:
-            uniprot_file.write(uniprot_data)
+        # with open(uniprot_fp, 'w') as uniprot_file:
+        #     uniprot_file.write(uniprot_data)
 
-        print("Creating schema for UniProt mapping table")
-        create_and_upload_schema_for_tsv(...)
+        # print("Creating schema for UniProt mapping table")
+        # create_and_upload_schema_for_tsv(...)
 
-        upload_to_bucket(PARAMS, uniprot_fp, delete_local=True)
-    
+        # upload_to_bucket(PARAMS, uniprot_fp, delete_local=True)
+
+    '''
     # note the step name change    
     if 'create_uniprot_table' in steps:
         # create uniprot_table_name & uniprot_table_id
@@ -171,6 +175,19 @@ def main(args):
         # delete intermediate table
         
     if 'build_gene_jsonl' in steps:
+        gene_record_list = build_obj_from_pdc_api(PARAMS,
+                                                  endpoint=PARAMS['GENE_ENDPOINT'],
+                                                  request_function=make_paginated_gene_query,
+                                                  alter_json_function=alter_paginated_gene_list)
+
+        create_and_upload_schema_for_json(PARAMS,
+                                          record_list=gene_record_list,
+                                          table_name=get_prefix(PARAMS, PARAMS['GENE_ENDPOINT']),
+                                          include_release=True)
+
+        write_list_to_jsonl_and_upload(PARAMS,
+                                       prefix=get_prefix(PARAMS, PARAMS['GENE_ENDPOINT']),
+                                       record_list=gene_record_list)
     
     
     '''
