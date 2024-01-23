@@ -131,7 +131,10 @@ def main(args):
                 continue
 
             for refseq_item in refseq_list:
-                if '[' in refseq_item:
+                if not refseq_item:
+                    logger.info(f"No refseq info from UniProt for {uniprot_id}, skipping")
+                    continue
+                elif '[' in refseq_item:
                     # sometimes these items are pairs in the following format: "refseq_id [uniprot_id]"
                     # in this case, we replace the original uniprot_id with the one provided in brackets
                     paired_refseq_id_list = refseq_item.strip("]").split(" [")
