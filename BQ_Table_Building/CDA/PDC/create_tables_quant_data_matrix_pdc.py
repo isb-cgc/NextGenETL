@@ -32,7 +32,7 @@ from requests.adapters import HTTPAdapter, Retry
 from cda_bq_etl.utils import load_config, format_seconds, create_dev_table_id, create_metadata_table_id
 from cda_bq_etl.bq_helpers import (create_table_from_query, update_table_schema_from_generic,
                                    create_and_upload_schema_for_json, retrieve_bq_schema_object,
-                                   create_and_load_table_from_jsonl)
+                                   create_and_load_table_from_jsonl, exists_bq_table, delete_bq_table)
 from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload
 
 PARAMS = dict()
@@ -196,28 +196,49 @@ def main(args):
                 break
 
         write_list_to_jsonl_and_upload(params=PARAMS,
-                                       prefix=PARAMS['REFSEQ_TABLE_NAME'],
+                                       prefix=PARAMS['UNFILTERED_REFSEQ_TABLE_NAME'],
                                        record_list=refseq_jsonl_list,
                                        release=PARAMS['UNIPROT_RELEASE'])
 
         create_and_upload_schema_for_json(params=PARAMS,
                                           record_list=refseq_jsonl_list,
-                                          table_name=PARAMS['REFSEQ_TABLE_NAME'],
+                                          table_name=PARAMS['UNFILTERED_REFSEQ_TABLE_NAME'],
                                           release=PARAMS['UNIPROT_RELEASE'])
 
-    if 'create_refseq_uniprot_table' in steps:
+    if 'create_unfiltered_refseq_uniprot_table' in steps:
         logger.info("Building RefSeq -> UniProt mapping table")
 
-        refseq_table_id = create_metadata_table_id(PARAMS, PARAMS['REFSEQ_TABLE_NAME'])
-        refseq_jsonl_filename = f"{PARAMS['REFSEQ_TABLE_NAME']}_{PARAMS['UNIPROT_RELEASE']}.jsonl"
+        refseq_table_id = create_metadata_table_id(PARAMS, PARAMS['UNFILTERED_REFSEQ_TABLE_NAME'])
+        refseq_jsonl_filename = f"{PARAMS['UNFILTERED_REFSEQ_TABLE_NAME']}_{PARAMS['UNIPROT_RELEASE']}.jsonl"
 
         refseq_table_schema = retrieve_bq_schema_object(PARAMS,
-                                                        table_name=PARAMS['REFSEQ_TABLE_NAME'],
+                                                        table_name=PARAMS['UNFILTERED_REFSEQ_TABLE_NAME'],
                                                         release=PARAMS['UNIPROT_RELEASE'])
         create_and_load_table_from_jsonl(PARAMS,
                                          jsonl_file=refseq_jsonl_filename,
                                          table_id=refseq_table_id,
                                          schema=refseq_table_schema)
+
+    if 'create_filtered_refseq_uniprot_table' in steps:
+        refseq_uniprot_table_id = create_metadata_table_id(PARAMS, table_name=PARAMS['FILTERED_REFSEQ_TABLE_NAME'])
+
+        create_table_from_query(PARAMS,
+                                table_id=refseq_uniprot_table_id,
+                                query=make_refseq_filtered_status_mapping_query(refseq_uniprot_table_id))
+
+        schema_tags = {
+            "uniprot-version": PARAMS['UNIPROT_RELEASE']
+        }
+
+        update_table_schema_from_generic(PARAMS,
+                                         table_id=refseq_uniprot_table_id,
+                                         schema_tags=schema_tags)
+
+        if exists_bq_table(refseq_uniprot_table_id):
+            # delete the unfiltered intermediate table
+            #delete_bq_table(create_metadata_table_id(PARAMS, PARAMS['UNFILTERED_REFSEQ_TABLE_NAME']))
+            # todo delete unfiltered intermediate table
+            pass
 
     '''
     if 'build_gene_jsonl' in steps:
