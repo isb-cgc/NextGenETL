@@ -38,7 +38,7 @@ def retrieve_uniprot_kb_genes():
     """
     query = 'organism_id:9606'
     data_format = 'tsv'
-    columns = 'id,gene_primary,xref_refseq,reviewed'
+    columns = 'id,reviewed,gene_primary,xref_refseq'
 
     request_url = f'https://rest.uniprot.org/uniprotkb/search?query={query}&format={data_format}&fields={columns}'
 
@@ -106,7 +106,11 @@ def main(args):
         print("Retrieving data from UniProtKB")
         uniprot_data = retrieve_uniprot_kb_genes()
 
-        print(uniprot_data)
+        uniprot_row_list = uniprot_data.split("\n")
+
+        for uniprot_row in uniprot_row_list:
+            print(uniprot_row)
+            print()
 
         # uniprot_fp = get_scratch_fp(PARAMS, uniprot_file_name)
                 
