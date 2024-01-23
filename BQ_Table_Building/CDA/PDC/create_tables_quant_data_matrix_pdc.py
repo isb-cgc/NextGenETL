@@ -92,12 +92,12 @@ def query_uniprot_kb_and_create_jsonl_list():
             refseq_list = refseq_str.strip(';').split(';')
 
             if not refseq_list:
-                logger.info(f"No refseq info from UniProt for {uniprot_id}, skipping")
+                # No refseq info from UniProt for uniprot_id, skipping
                 continue
 
             for refseq_item in refseq_list:
                 if not refseq_item:
-                    logger.info(f"No refseq info from UniProt for {uniprot_id}, skipping")
+                    # No refseq info from UniProt for uniprot_id, skipping
                     continue
                 elif '[' in refseq_item:
                     # sometimes these items are pairs in the following format: "refseq_id [uniprot_id]"
@@ -117,7 +117,8 @@ def query_uniprot_kb_and_create_jsonl_list():
 
                 refseq_id_jsonl_list.append(refseq_row_dict)
 
-        logger.info(f'{record_count} / {total_records}')
+        if record_count % 5000:
+            logger.info(f'{record_count} / {total_records}')
 
     return refseq_id_jsonl_list
 
