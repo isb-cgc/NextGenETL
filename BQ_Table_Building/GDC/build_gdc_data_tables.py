@@ -287,7 +287,11 @@ def main(args):
     # Set the workflow run count from yaml
     workflow_run_ver = f"_{params.WORKFLOW_RUN_VER}" if 'WORKFLOW_RUN_VER' in params_dict else ''
 
-    log_filepath = f"{params.LOGFILE_DIR}/gdc_data_files_{params.RELEASE}{workflow_run_ver}.log"
+    # Make all local paths absolute:
+    home = expanduser("~")
+    local_dir = f"{home}/{params.LOCAL_DIR}"
+
+    log_filepath = f"{local_dir}/{params.LOGFILE_DIR}/gdc_data_files_{params.RELEASE}{workflow_run_ver}.log"
     logger = initialize_logging(log_filepath)
 
     logger.info(f"GDC derived data script started at {time.strftime('%x %X', time.localtime())}")
