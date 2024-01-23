@@ -118,8 +118,6 @@ def query_uniprot_kb_and_create_jsonl_list():
                 refseq_id_jsonl_list.append(refseq_row_dict)
 
         logger.info(f'{record_count} / {total_records}')
-        # todo remove break for full api pull -- this is only the first page
-        break
 
     return refseq_id_jsonl_list
 
@@ -190,11 +188,6 @@ def main(args):
         logger.info("Retrieving RefSeq records from UniProtKB")
         refseq_jsonl_list = query_uniprot_kb_and_create_jsonl_list()
 
-        for count, record in enumerate(refseq_jsonl_list):
-            print(record)
-            if count == 10:
-                break
-
         write_list_to_jsonl_and_upload(params=PARAMS,
                                        prefix=PARAMS['UNFILTERED_REFSEQ_TABLE_NAME'],
                                        record_list=refseq_jsonl_list,
@@ -205,10 +198,10 @@ def main(args):
                                           table_name=PARAMS['UNFILTERED_REFSEQ_TABLE_NAME'],
                                           release=PARAMS['UNIPROT_RELEASE'])
 
-    if 'create_unfiltered_refseq_uniprot_table' in steps:
+    if 'create_refseq_uniprot_table' in steps:
         logger.info("Building RefSeq -> UniProt mapping table")
 
-        refseq_table_id = create_metadata_table_id(PARAMS, PARAMS['UNFILTERED_REFSEQ_TABLE_NAME'])
+        unfiltered_refseq_table_id = create_metadata_table_id(PARAMS, PARAMS['UNFILTERED_REFSEQ_TABLE_NAME'])
         refseq_jsonl_filename = f"{PARAMS['UNFILTERED_REFSEQ_TABLE_NAME']}_{PARAMS['UNIPROT_RELEASE']}.jsonl"
 
         refseq_table_schema = retrieve_bq_schema_object(PARAMS,
@@ -216,27 +209,30 @@ def main(args):
                                                         release=PARAMS['UNIPROT_RELEASE'])
         create_and_load_table_from_jsonl(PARAMS,
                                          jsonl_file=refseq_jsonl_filename,
-                                         table_id=refseq_table_id,
+                                         table_id=unfiltered_refseq_table_id,
                                          schema=refseq_table_schema)
 
-    if 'create_filtered_refseq_uniprot_table' in steps:
-        refseq_uniprot_table_id = create_metadata_table_id(PARAMS, table_name=PARAMS['FILTERED_REFSEQ_TABLE_NAME'])
+        # where both reviewed and unreviewed records exist for a RefSeq id, drop the unreviewed record
+        logger.info("Creating filtered RefSeq -> UniProt mapping table")
+
+        filtered_refseq_table_id = create_metadata_table_id(PARAMS, table_name=PARAMS['FILTERED_REFSEQ_TABLE_NAME'])
 
         create_table_from_query(PARAMS,
-                                table_id=refseq_uniprot_table_id,
-                                query=make_refseq_filtered_status_mapping_query(refseq_uniprot_table_id))
+                                table_id=filtered_refseq_table_id,
+                                query=make_refseq_filtered_status_mapping_query(filtered_refseq_table_id))
 
-        schema_tags = {
-            "uniprot-version": PARAMS['UNIPROT_RELEASE']
-        }
+        schema_tags = {"uniprot-version": PARAMS['UNIPROT_RELEASE']}
 
         update_table_schema_from_generic(PARAMS,
-                                         table_id=refseq_uniprot_table_id,
+                                         table_id=filtered_refseq_table_id,
                                          schema_tags=schema_tags)
 
-        if exists_bq_table(refseq_uniprot_table_id):
+        if exists_bq_table(filtered_refseq_table_id):
             # delete the unfiltered intermediate table
-            #delete_bq_table(create_metadata_table_id(PARAMS, PARAMS['UNFILTERED_REFSEQ_TABLE_NAME']))
+            '''
+            logger.info("Deleting unfiltered RefSeq -> UniProt mapping table")
+            # delete_bq_table(unfiltered_refseq_table_id)
+            '''
             # todo delete unfiltered intermediate table
             pass
 
