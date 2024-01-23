@@ -106,11 +106,11 @@ def main(args):
         print("Retrieving data from UniProtKB")
         uniprot_data = retrieve_uniprot_kb_genes()
 
-        uniprot_row_list = uniprot_data.split("\n").strip(';')
+        uniprot_row_list = uniprot_data.split("\n")
+        uniprot_headers = uniprot_row_list.pop(0)
 
         for uniprot_row in uniprot_row_list:
             print(uniprot_row)
-            print()
 
         # uniprot_fp = get_scratch_fp(PARAMS, uniprot_file_name)
                 
