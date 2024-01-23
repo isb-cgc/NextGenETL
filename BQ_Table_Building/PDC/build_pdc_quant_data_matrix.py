@@ -53,7 +53,7 @@ def retrieve_uniprot_kb_genes():
     data_format = 'tsv'
     columns = 'id,gene_primary,xref_refseq,reviewed'
 
-    request_url = f'https://rest.uniprot.org/uniprotkb/search?query={query}&format={data_format}&fields={columns}'
+    request_url = f'https://rest.uniprot.org/uniprotkb/search?query={query}&format={data_format}&fields={columns}&size=500'
 
     response = requests.get(request_url)
     return response.text

@@ -19,9 +19,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import logging
 import sys
 import time
+import re
 import requests
+
+from requests.adapters import HTTPAdapter, Retry
 
 from cda_bq_etl.utils import load_config, format_seconds, create_dev_table_id, create_metadata_table_id
 from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic
@@ -31,6 +35,54 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
+def retrieve_uniprot_kb_genes():
+    """
+    Retrieve UniProt id, review status, primary gene name and RefSeq ID from UniProt REST API.
+    Modified from example found at https://www.uniprot.org/help/api_queries. Hat tip :)
+    :return: List of records returned by UniProt REST API
+    """
+    def get_next_link(headers):
+        if "Link" in headers:
+            match = re_next_link.match(headers["Link"])
+            if match:
+                return match.group(1)
+
+    def get_batch(batch_url):
+        while batch_url:
+            response = session.get(batch_url)
+            response.raise_for_status()
+            total = response.headers["x-total-results"]
+            yield response, total
+            batch_url = get_next_link(response.headers)
+
+    logger = logging.getLogger("base_script")
+
+    re_next_link = re.compile(r'<(.+)>; rel="next"')
+    retries = Retry(total=5, backoff_factor=0.25, status_forcelist=[500, 502, 503, 504])
+    session = requests.Session()
+    session.mount("https://", HTTPAdapter(max_retries=retries))
+
+    query = 'organism_id:9606'
+    return_format = 'tsv'
+    size = '500'
+    field_list = ['id', 'reviewed', 'gene_primary', 'xref_refseq']
+    fields = "%2C".join(field_list)
+
+    url = f'https://rest.uniprot.org/uniprotkb/search?fields={fields}&format={return_format}&query={query}&size={size}'
+
+    record_list = list()
+
+    logger.info("Retrieving records from UniProtKB")
+
+    for records, total_records in get_batch(url):
+        for line in records.text.splitlines()[1:]:
+            record_list.append(line)
+        logger.info(f'{len(record_list)} / {total_records}')
+
+    return record_list
+
+
+'''
 def retrieve_uniprot_kb_genes():
     """
     Retrieve Swiss-Prot ids and gene names from UniProtKB REST API.
@@ -44,6 +96,7 @@ def retrieve_uniprot_kb_genes():
 
     response = requests.get(request_url)
     return response.text
+'''
 
 
 def make_refseq_filtered_status_mapping_query(refseq_table_id):
@@ -104,6 +157,9 @@ def main(args):
     if 'build_uniprot_tsv' in steps:
         logger.info("Retrieving data from UniProtKB")
         uniprot_data = retrieve_uniprot_kb_genes()
+
+        print(uniprot_data)
+        exit(0)
 
         # split tsv into rows and remove newline file terminator
         uniprot_row_list = uniprot_data.strip("\n").split("\n")
