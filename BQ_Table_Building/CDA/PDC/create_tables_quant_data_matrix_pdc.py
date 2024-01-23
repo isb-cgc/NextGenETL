@@ -100,23 +100,50 @@ def main(args):
     # create uniprot file name based on settings in yaml config
     # uniprot_file_name
     
-    ### steps
-
+    # steps
     if 'build_uniprot_tsv' in steps:
-        print("Retrieving data from UniProtKB")
+        logger.info("Retrieving data from UniProtKB")
         uniprot_data = retrieve_uniprot_kb_genes()
 
+        # split tsv into rows and remove newline file terminator
         uniprot_row_list = uniprot_data.strip("\n").split("\n")
-        uniprot_headers = uniprot_row_list.pop(0)
+
+        # we don't actually need these, but these are the headers we get back from uniprot:
+        # values: Entry Name, Gene Names (primary), RefSeq, Reviewed
+        uniprot_row_list.pop(0)
+
+        refseq_id_list = list(['uniprot_id', 'status', 'gene_symbol', 'refseq_id'])
 
         for uniprot_row in uniprot_row_list:
-            uniprot_record = uniprot_row.strip(';').split('\t')
+            # split the row into columns
+            uniprot_record = uniprot_row.split('\t')
             uniprot_id = uniprot_record[0]
             status = uniprot_record[1]
-            gene_names = uniprot_record[2]
+            gene_symbol = uniprot_record[2]
             refseq_str = uniprot_record[3]
 
-            print(f"""0: {uniprot_id}\n1: {status}\n2: {gene_names}\n3: {refseq_str}\n""")
+            # print(f"""0: {uniprot_id}\n1: {status}\n2: {gene_names}\n3: {refseq_str}\n""")
+            # strip trailing semicolon from RefSeq id list
+            refseq_list = refseq_str.strip(';').split(';')
+
+            if not refseq_list:
+                logger.info(f"No refseq info from UniProt for {uniprot_id}, skipping")
+                continue
+
+            for refseq_item in refseq_list:
+                if '[' in refseq_item:
+                    # sometimes these items are pairs in the following format: "refseq_id [uniprot_id]"
+                    # in this case, we replace the original uniprot_id with the one provided in brackets
+                    paired_refseq_id_list = refseq_item.strip("]").split(" [")
+                    refseq_id = paired_refseq_id_list[0]
+                    uniprot_id = paired_refseq_id_list[1]
+                else:
+                    refseq_id = refseq_item
+
+                refseq_id_list.append([uniprot_id, status, gene_symbol, refseq_id])
+
+        for row in refseq_id_list:
+            print(row)
 
         # uniprot_fp = get_scratch_fp(PARAMS, uniprot_file_name)
                 
