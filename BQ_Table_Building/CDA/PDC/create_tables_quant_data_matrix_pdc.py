@@ -110,7 +110,13 @@ def main(args):
         uniprot_headers = uniprot_row_list.pop(0)
 
         for uniprot_row in uniprot_row_list:
-            print(uniprot_row)
+            uniprot_record = uniprot_row.strip(';').split('\t')
+            uniprot_id = uniprot_record[0]
+            status = uniprot_record[1]
+            gene_names = uniprot_record[2]
+            refseq_str = uniprot_record[3]
+
+            print(f"""0: {uniprot_id}\n1: {status}\n2: {gene_names}\n3: {refseq_str}\n""")
 
         # uniprot_fp = get_scratch_fp(PARAMS, uniprot_file_name)
                 
