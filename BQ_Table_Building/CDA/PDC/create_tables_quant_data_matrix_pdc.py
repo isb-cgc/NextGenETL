@@ -76,6 +76,7 @@ def retrieve_uniprot_kb_genes():
 
     for records, total_records in get_batch(url):
         for line in records.text.splitlines()[1:]:
+            print(line)
             record_list.append(line)
         logger.info(f'{len(record_list)} / {total_records}')
 
@@ -155,7 +156,6 @@ def main(args):
     
     # steps
     if 'build_uniprot_tsv' in steps:
-        logger.info("Retrieving data from UniProtKB")
         uniprot_data = retrieve_uniprot_kb_genes()
 
         print(uniprot_data)
