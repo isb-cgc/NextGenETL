@@ -117,7 +117,7 @@ def query_uniprot_kb_and_create_jsonl_list():
 
                 refseq_id_jsonl_list.append(refseq_row_dict)
 
-        if record_count % 5000:
+        if record_count % 5000 == 0:
             logger.info(f'{record_count} / {total_records}')
 
     return refseq_id_jsonl_list
