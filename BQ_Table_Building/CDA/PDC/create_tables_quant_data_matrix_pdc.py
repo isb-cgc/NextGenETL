@@ -106,7 +106,7 @@ def main(args):
         print("Retrieving data from UniProtKB")
         uniprot_data = retrieve_uniprot_kb_genes()
 
-        uniprot_row_list = uniprot_data.split("\n")
+        uniprot_row_list = uniprot_data.split("\n").strip(';')
 
         for uniprot_row in uniprot_row_list:
             print(uniprot_row)
