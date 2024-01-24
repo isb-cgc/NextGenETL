@@ -73,7 +73,7 @@ def query_uniprot_kb_and_create_jsonl_list():
     field_list = ['id', 'reviewed', 'gene_primary', 'xref_refseq']
     fields = "%2C".join(field_list)
 
-    url = f'https://rest.uniprot.org/uniprotkb/search?fields={fields}&format={return_format}&query={query}&size={size}'
+    url = f"{PARAMS['UNIPROT_REST_API_URL']}/search?fields={fields}&format={return_format}&query={query}&size={size}"
 
     refseq_id_jsonl_list = list()
 

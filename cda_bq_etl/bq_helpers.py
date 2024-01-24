@@ -857,19 +857,6 @@ def add_generic_table_metadata(params: Params, table_id: str, schema_tags: dict[
 
         table_metadata = json.loads(table_schema)
 
-        print(table_metadata)
-
-        """
-        {'description': 'Data was extracted from UniProtKB REST API version 2023_05, downloaded from https://www.uniprot.org/uniprot/ in {---tag-uniprot-extracted-month-year---} ', 
-        'friendlyName': 'REFSEQ UNIPROT MAPPING', 
-        'labels': {'access': 'open', 
-        'source': 'uniprot', 
-        'status': 'current', 
-        'category': 'reference_database', 
-        'data_type': 'proteome_annotation'
-        }}
-        """
-
         update_table_metadata(table_id, table_metadata)
 
 
