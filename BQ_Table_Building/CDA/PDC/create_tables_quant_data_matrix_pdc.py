@@ -35,7 +35,7 @@ from cda_bq_etl.utils import load_config, format_seconds, create_dev_table_id, c
 from cda_bq_etl.bq_helpers import (create_table_from_query, update_table_schema_from_generic,
                                    create_and_upload_schema_for_json, retrieve_bq_schema_object,
                                    create_and_load_table_from_jsonl, exists_bq_table, delete_bq_table,
-                                   get_uniprot_schema_tags, query_and_retrieve_result)
+                                   get_uniprot_schema_tags, query_and_retrieve_result, get_gene_info_schema_tags)
 from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload
 
 PARAMS = dict()
@@ -521,8 +521,11 @@ def main(args):
                                          table_id=create_metadata_table_id(PARAMS, gene_table_base_name),
                                          schema=gene_table_schema)
 
+        schema_tags = get_gene_info_schema_tags(PARAMS)
+
         update_table_schema_from_generic(params=PARAMS,
                                          table_id=create_metadata_table_id(PARAMS, gene_table_base_name),
+                                         schema_tags=schema_tags,
                                          metadata_file=PARAMS['GENERIC_GENE_TABLE_METADATA_FILE'])
 
     end_time = time.time()
