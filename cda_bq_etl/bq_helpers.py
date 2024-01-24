@@ -1033,11 +1033,16 @@ def get_program_schema_tags_gdc(params: Params, program_name: str) -> dict[str, 
 
 
 def get_uniprot_schema_tags(params: Params) -> dict[str, str]:
-    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
-
     return {
         "uniprot-version": params['UNIPROT_RELEASE'],
         "uniprot-extracted-month-year": params['UNIPROT_EXTRACTED_MONTH_YEAR']
+    }
+
+
+def get_gene_info_schema_tags(params: Params) -> dict[str, str]:
+    return {
+        "version": params['RELEASE'],
+        "extracted-month-year": params['EXTRACTED_MONTH_YEAR']
     }
 
 

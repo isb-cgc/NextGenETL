@@ -522,7 +522,8 @@ def main(args):
                                          schema=gene_table_schema)
 
         update_table_schema_from_generic(params=PARAMS,
-                                         table_id=create_metadata_table_id(PARAMS, gene_table_base_name))
+                                         table_id=create_metadata_table_id(PARAMS, gene_table_base_name),
+                                         metadata_file=PARAMS['GENERIC_GENE_TABLE_METADATA_FILE'])
 
     end_time = time.time()
 
