@@ -856,6 +856,9 @@ def add_generic_table_metadata(params: Params, table_id: str, schema_tags: dict[
             table_schema = table_schema.replace(tag, tag_value)
 
         table_metadata = json.loads(table_schema)
+
+        print(table_metadata)
+
         update_table_metadata(table_id, table_metadata)
 
 
@@ -871,8 +874,6 @@ def update_table_metadata(table_id: str, metadata: dict[str, str]):
     table.labels = metadata['labels']
     table.friendly_name = metadata['friendlyName']
     table.description = metadata['description']
-
-    print(table.labels)
 
     client.update_table(table, ["labels", "friendly_name", "description"])
 
