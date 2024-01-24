@@ -60,7 +60,7 @@ def get_graphql_api_response(params, query, fail_on_error=True):
     max_retries = 10
 
     headers = {'Content-Type': 'application/json'}
-    endpoint = params['ENDPOINT']
+    endpoint = params['ENDPOINT_URL']
 
     if not query:
         logger.critical("Must specify query for get_graphql_api_response.", SyntaxError)
@@ -71,17 +71,15 @@ def get_graphql_api_response(params, query, fail_on_error=True):
 
     tries = 0
 
+    # initial request failed -- try again
     while not api_res.ok and tries < max_retries:
         if api_res.status_code == 400:
             # don't try again!
-            logger.critical(f"Response status code {api_res.status_code}:")
-            logger.critical(api_res.reason)
-            logger.critical("Request body:")
-            logger.critical(req_body)
+            logger.critical(f"Response status code {api_res.status_code}:\n{api_res.reason}")
+            logger.critical(f"Request body:\n{req_body}")
             exit(-1)
 
-        logger.warning(f"Response code {api_res.status_code}: {api_res.reason}")
-        logger.info(query)
+        logger.warning(f"Response code {api_res.status_code}: {api_res.reason}. Query:\n{query}")
 
         sleep_time = 3 * tries
         logger.warning(f"Retry {tries} of {max_retries}... sleeping for {sleep_time}")
@@ -91,8 +89,8 @@ def get_graphql_api_response(params, query, fail_on_error=True):
 
         tries += 1
 
+        # Failed up to max retry value, stop making requests
         if tries > max_retries:
-            # give up!
             api_res.raise_for_status()
 
     json_res = api_res.json()

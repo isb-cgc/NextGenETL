@@ -871,6 +871,9 @@ def update_table_metadata(table_id: str, metadata: dict[str, str]):
     table.labels = metadata['labels']
     table.friendly_name = metadata['friendlyName']
     table.description = metadata['description']
+
+    print(table.labels)
+
     client.update_table(table, ["labels", "friendly_name", "description"])
 
     assert table.labels == metadata['labels']
@@ -974,10 +977,10 @@ def get_project_level_schema_tags(params: Params, project_submitter_id: str) -> 
     :param project_submitter_id: Project submitter id for which to retrieve schema tags
     :return: Dict of schema tags
     """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
     project_name_dict = get_pdc_projects_metadata(params, project_submitter_id)[0]
     program_labels_list = project_name_dict['program_labels'].split("; ")
-
-    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
 
     if len(program_labels_list) > 2:
         logger.critical("PDC clinical isn't set up to handle >2 program labels yet; support needs to be added.")
@@ -1028,6 +1031,15 @@ def get_program_schema_tags_gdc(params: Params, program_name: str) -> dict[str, 
             sys.exit(-1)
 
         return schema_tags
+
+
+def get_uniprot_schema_tags(params: Params) -> dict[str, str]:
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
+    return {
+        "uniprot-version": params['UNIPROT_RELEASE'],
+        "extracted-month-year": params['UNIPROT_EXTRACTED_MONTH_YEAR']
+    }
 
 
 def get_program_list(params: Params, rename_programs: bool = True) -> list[str]:

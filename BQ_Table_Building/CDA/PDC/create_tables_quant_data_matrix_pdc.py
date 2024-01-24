@@ -32,7 +32,8 @@ from requests.adapters import HTTPAdapter, Retry
 from cda_bq_etl.utils import load_config, format_seconds, create_dev_table_id, create_metadata_table_id
 from cda_bq_etl.bq_helpers import (create_table_from_query, update_table_schema_from_generic,
                                    create_and_upload_schema_for_json, retrieve_bq_schema_object,
-                                   create_and_load_table_from_jsonl, exists_bq_table, delete_bq_table)
+                                   create_and_load_table_from_jsonl, exists_bq_table, delete_bq_table,
+                                   get_uniprot_schema_tags)
 from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload
 
 PARAMS = dict()
@@ -220,13 +221,14 @@ def main(args):
 
         create_table_from_query(PARAMS,
                                 table_id=filtered_refseq_table_id,
-                                query=make_refseq_filtered_status_mapping_query(filtered_refseq_table_id))
+                                query=make_refseq_filtered_status_mapping_query(unfiltered_refseq_table_id))
 
-        schema_tags = {"uniprot-version": PARAMS['UNIPROT_RELEASE']}
+        schema_tags = get_uniprot_schema_tags(PARAMS)
 
         update_table_schema_from_generic(PARAMS,
                                          table_id=filtered_refseq_table_id,
-                                         schema_tags=schema_tags)
+                                         schema_tags=schema_tags,
+                                         metadata_file=PARAMS['GENERIC_REFSEQ_TABLE_METADATA_FILE'])
 
         if exists_bq_table(filtered_refseq_table_id):
             # delete the unfiltered intermediate table
