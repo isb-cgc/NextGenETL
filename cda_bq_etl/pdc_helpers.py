@@ -105,19 +105,16 @@ def get_graphql_api_response(params, query, fail_on_error=True):
 
 def request_data_from_pdc_api(params: Params,
                               endpoint: str,
-                              request_body_function: Callable,
-                              request_parameters: tuple = None):
+                              request_body_function: Callable) -> list:
     """
     Used internally by build_obj_from_pdc_api().
     :param params: params from YAML config
     :param endpoint: PDC API endpoint
     :param request_body_function: function outputting GraphQL request body (including query)
-    :param request_parameters: API request parameters
     :return: Response results list
     """
     logger = logging.getLogger("base_script.cda_bq_etl.pdc_helpers")
 
-    is_paginated = params['ENDPOINT_SETTINGS'][endpoint]['is_paginated']
     payload_key = params['ENDPOINT_SETTINGS'][endpoint]['payload_key']
 
     def append_api_response_data(_graphql_request_body):
@@ -125,7 +122,7 @@ def request_data_from_pdc_api(params: Params,
         api_response = get_graphql_api_response(params, _graphql_request_body)
 
         try:
-            response_body = api_response['data'] if not is_paginated else api_response['data'][endpoint]
+            response_body = api_response['data'][endpoint]
 
             for record in response_body[payload_key]:
                 record_list.append(record)
@@ -137,47 +134,35 @@ def request_data_from_pdc_api(params: Params,
 
     record_list = list()
 
-    if not is_paginated:
-        # * operator unpacks tuple for use as positional function args
-        graphql_request_body = request_body_function(*request_parameters)
-        total_pages = append_api_response_data(graphql_request_body)
+    limit = params['ENDPOINT_SETTINGS'][endpoint]['batch_size']
+    offset = 0
+    page = 1
 
-        # should be None, if value is returned then endpoint is actually paginated
-        if total_pages:
-            logger.critical(f"Paginated API response ({total_pages} pages), but is_paginated set to False.")
-            exit(-1)
-    else:
-        limit = params['ENDPOINT_SETTINGS'][endpoint]['batch_size']
-        offset = 0
-        page = 1
+    paginated_request_params = (offset, limit)
 
-        paginated_request_params = request_parameters + (offset, limit)
+    # * operator unpacks tuple for use as positional function args
+    graphql_request_body = request_body_function(*paginated_request_params)
+    total_pages = append_api_response_data(graphql_request_body)
 
-        # * operator unpacks tuple for use as positional function args
+    logger.info(f" - Appended page {page} of {total_pages}")
+
+    if not total_pages:
+        logger.critical("API did not return a value for total pages, but is_paginated set to True.")
+        exit(-1)
+
+    while page < total_pages:
+        offset += limit
+        page += 1
+
+        paginated_request_params = (offset, limit)
         graphql_request_body = request_body_function(*paginated_request_params)
-        total_pages = append_api_response_data(graphql_request_body)
+        new_total_pages = append_api_response_data(graphql_request_body)
 
-        # Useful for endpoints which don't access per-study data, otherwise too verbose
-        if 'Study' not in endpoint:
-            logger.info(f" - Appended page {page} of {total_pages}")
+        logger.info(f" - Appended page {page} of {total_pages}")
 
-        if not total_pages:
-            logger.critical("API did not return a value for total pages, but is_paginated set to True.")
+        if new_total_pages != total_pages:
+            logger.critical(f"Page count change mid-ingestion (from {total_pages} to {new_total_pages})")
             exit(-1)
-
-        while page < total_pages:
-            offset += limit
-            page += 1
-
-            paginated_request_params = request_parameters + (offset, limit)
-            graphql_request_body = request_body_function(*paginated_request_params)
-            new_total_pages = append_api_response_data(graphql_request_body)
-            if 'Study' not in endpoint:
-                logger.info(f" - Appended page {page} of {total_pages}")
-
-            if new_total_pages != total_pages:
-                logger.critical(f"Page count change mid-ingestion (from {total_pages} to {new_total_pages})")
-                exit(-1)
 
     return record_list
 
@@ -185,51 +170,23 @@ def request_data_from_pdc_api(params: Params,
 def build_obj_from_pdc_api(params: Params,
                            endpoint: str,
                            request_function: Callable,
-                           request_params: tuple = tuple(),
-                           alter_json_function: Callable = None,
-                           ids: list[str] = None,
-                           insert_id: bool = False,
-                           pause: int = 0):
+                           alter_json_function: Callable = None) -> list:
     """
     Create jsonl file based on results from PDC API request.
     :param params: params from YAML config
     :param endpoint: PDC API endpoint
     :param request_function: PDC API request function
-    :param request_params: API request parameters
     :param alter_json_function: Used to mutate json object prior to writing to file
-    :param ids: generically will loop over a set of ids, such as study ids or project ids, in order to merge results
-    from endpoints which require id specification
-    :param insert_id: if true, add id to json obj before writing to file; defaults to False
-    :param pause: number of seconds to wait between calls; used when iterating over ids
+    :return
     """
     logger = logging.getLogger('base_script.cda_bq_etl.pdc_helpers')
 
     logger.info(f"Sending {endpoint} API request: ")
 
-    if ids:
-        joined_record_list = list()
-        for idx, id_entry in enumerate(ids):
-            combined_request_parameters = request_params + (id_entry,)
-            record_list = request_data_from_pdc_api(params, endpoint, request_function, combined_request_parameters)
+    joined_record_list = request_data_from_pdc_api(params, endpoint, request_function)
+    logger.info(f" - collected {len(joined_record_list)} records")
 
-            if alter_json_function and insert_id:
-                alter_json_function(record_list, id_entry)
-            elif alter_json_function:
-                alter_json_function(record_list)
-
-            joined_record_list += record_list
-
-            if len(ids) < 100:
-                logger.info(f" - {len(joined_record_list):6d} current records (added {id_entry})")
-            elif len(joined_record_list) % 1000 == 0 and len(joined_record_list) != 0:
-                logger.info(f" - {len(joined_record_list)} records appended.")
-
-            time.sleep(pause)
-    else:
-        joined_record_list = request_data_from_pdc_api(params, endpoint, request_function, request_params)
-        logger.info(f" - collected {len(joined_record_list)} records")
-
-        if alter_json_function:
-            alter_json_function(joined_record_list)
+    if alter_json_function:
+        alter_json_function(joined_record_list)
 
     return joined_record_list

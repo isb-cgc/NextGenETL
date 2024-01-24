@@ -280,6 +280,17 @@ def create_clinical_table_id(params: Params, table_name: str) -> str:
     return f"{params['DEV_PROJECT']}.{params['DEV_CLINICAL_DATASET']}.{params['RELEASE']}_{table_name}"
 
 
+def create_quant_table_id(params: Params, table_name: str) -> str:
+    """
+    Create table id reference to one of the PDC quant data matrix tables.
+    :param params: params supplied in yaml config
+    :param table_name: name of the table
+    :return: table id string
+    """
+    return f"{params['DEV_PROJECT']}.{params['DEV_QUANT_DATASET']}.{params['RELEASE']}_{table_name}"
+
+
+
 def input_with_timeout(seconds: int) -> Union[str, None]:
     """
     Wait for user response. Continue automatically after n seconds.
