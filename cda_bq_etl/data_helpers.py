@@ -245,16 +245,11 @@ def aggregate_column_data_types_tsv(tsv_fp: str,
     """
     Open tsv file and aggregate data types for each column.
     :param tsv_fp: tsv dataset filepath used to analyze the data types
-    :type tsv_fp: str
     :param column_headers: list of ordered column headers
-    :type column_headers: list
     :param skip_rows: number of (header) rows to skip before starting analysis
-    :type skip_rows: int
     :param sample_interval: sampling interval, used to skip rows in large datasets; defaults to checking every row
         ex.: sample_interval == 10 will sample every 10th row
-    :type sample_interval: int
     :return dict of column keys, with value sets representing all data types found for that column
-    :rtype dict[str, set]
     """
     logger = logging.getLogger("data_helpers")
     data_types_dict = dict()
@@ -458,6 +453,10 @@ def normalize_value(value: Any, is_tsv: bool = False) -> Any:
 
     if value is None:
         return value
+    elif value == float("NaN"):
+        return value
+    # elif value == 'NaN':
+    #     return value
 
     if isinstance(value, str):
         value = value.strip()

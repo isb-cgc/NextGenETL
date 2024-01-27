@@ -776,11 +776,8 @@ def main(args):
                                 'protein_abundance_log2ratio']
 
             num_tsv_rows = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_path, raw_quant_header)
-            logger.info(f"{num_tsv_rows} lines written for {study_id_dict['study_name']}")
 
             if num_tsv_rows > 0:
-                quant_file_list.append(raw_quant_tsv_file)
-
                 create_and_upload_schema_for_tsv(params=PARAMS,
                                                  tsv_fp=quant_tsv_path,
                                                  header_row=0,
@@ -788,7 +785,9 @@ def main(args):
                                                  schema_fp=schema_fp)
 
                 upload_to_bucket(PARAMS, quant_tsv_path, delete_local=True, verbose=False)
+                logger.info(f"{num_tsv_rows} lines written for {study_id_dict['study_name']}")
                 logger.info(f"{raw_quant_tsv_file} uploaded to Google Cloud bucket!")
+                quant_file_list.append(raw_quant_tsv_file)
             else:
                 logger.warning(f"\n{num_tsv_rows} lines written for {study_id_dict['study_name']}; not uploaded.")
 
