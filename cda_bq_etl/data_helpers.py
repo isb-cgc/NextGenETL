@@ -453,7 +453,7 @@ def normalize_value(value: Any, is_tsv: bool = False) -> Any:
 
     if value is None:
         return value
-    elif value == float("NaN"):
+    elif float(value) == float("NaN"):
         return value
     elif value == 'NaN':
         return value

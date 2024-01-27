@@ -789,7 +789,7 @@ def main(args):
                 logger.info(f"{raw_quant_tsv_file} uploaded to Google Cloud bucket!")
                 quant_file_list.append(raw_quant_tsv_file)
             else:
-                logger.warning(f"\n{num_tsv_rows} lines written for {study_id_dict['study_name']}; not uploaded.")
+                logger.warning(f"{num_tsv_rows} lines written for {study_id_dict['study_name']}; not uploaded.")
 
         quant_file_list_path = write_file_list(quant_file_list)
         upload_to_bucket(PARAMS, quant_file_list_path, delete_local=True, verbose=False)
