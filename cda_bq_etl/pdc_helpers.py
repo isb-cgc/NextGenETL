@@ -46,7 +46,7 @@ BQQueryResult = Union[None, RowIterator, _EmptyRowIterator]
 SchemaFieldFormat = dict[str, list[dict[str, str]]]
 
 
-def get_graphql_api_response(params, query, fail_on_error=True):
+def get_graphql_api_response(params: Params, query: str, fail_on_error: bool = True):
     """
     Create and submit graphQL API request, returning API response serialized as json object.
     :param params: params supplied in yaml config
@@ -55,7 +55,7 @@ def get_graphql_api_response(params, query, fail_on_error=True):
     longer paginated queries, which often throw random server errors
     :return: json response object
     """
-    logger = logging.getLogger("base_script.cda_bq_etl.pdc_helpers")
+    logger = logging.getLogger('base_script.cda_bq_etl.pdc_helpers')
 
     max_retries = 10
 
@@ -71,15 +71,15 @@ def get_graphql_api_response(params, query, fail_on_error=True):
 
     tries = 0
 
-    # initial request failed -- try again
     while not api_res.ok and tries < max_retries:
         if api_res.status_code == 400:
             # don't try again!
-            logger.critical(f"Response status code {api_res.status_code}:\n{api_res.reason}")
-            logger.critical(f"Request body:\n{req_body}")
+            logger.critical(f"Request failed; exiting. Response status code {api_res.status_code}: \n{api_res.reason}.")
+            logger.critical(f"Request body: \n{req_body}")
             exit(-1)
 
-        logger.warning(f"Response code {api_res.status_code}: {api_res.reason}. Query:\n{query}")
+        logger.warning(f"Response code {api_res.status_code}: {api_res.reason}")
+        logger.warning(query)
 
         sleep_time = 3 * tries
         logger.warning(f"Retry {tries} of {max_retries}... sleeping for {sleep_time}")
@@ -97,7 +97,7 @@ def get_graphql_api_response(params, query, fail_on_error=True):
 
     if 'errors' in json_res and json_res['errors']:
         if fail_on_error:
-            logger.critical(f"Errors returned by {endpoint}.\nError json:\n{json_res['errors']}")
+            logger.critical(f"Failed, exiting. Errors returned by {endpoint}. \nError json: \n{json_res['errors']}")
             exit(-1)
 
     return json_res
@@ -165,6 +165,9 @@ def request_data_from_pdc_api(params: Params,
             exit(-1)
 
     return record_list
+
+
+
 
 
 def build_obj_from_pdc_api(params: Params,

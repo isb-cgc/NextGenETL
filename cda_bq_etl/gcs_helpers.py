@@ -121,11 +121,11 @@ def upload_to_bucket(params: Params, scratch_fp: str, delete_local: bool = False
     try:
         storage_client = storage.Client(project="")
 
-        jsonl_output_file = scratch_fp.split('/')[-1]
+        output_file = scratch_fp.split('/')[-1]
         bucket_name = params['WORKING_BUCKET']
         bucket = storage_client.bucket(bucket_name)
 
-        blob_name = f"{params['WORKING_BUCKET_DIR']}/{jsonl_output_file}"
+        blob_name = f"{params['WORKING_BUCKET_DIR']}/{output_file}"
         blob = bucket.blob(blob_name)
         blob.upload_from_filename(scratch_fp)
 

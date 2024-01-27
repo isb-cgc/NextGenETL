@@ -39,6 +39,26 @@ JSONList = list[RowDict]
 Params = dict[str, Union[str, dict, int]]
 
 
+def create_tsv_row(row_list: list[Any], null_marker: str = "None") -> str:
+    """
+    Convert list of row values into a tab-delimited string.
+    :param row_list: list of row values for conversion
+    :param null_marker: Value to write to string for nulls
+    :return: tab-delimited string representation of row_list
+    """
+    print_str = ''
+    last_idx = len(row_list) - 1
+
+    for i, column in enumerate(row_list):
+        if not column:
+            column = null_marker
+
+        delimiter = "\t" if i < last_idx else "\n"
+        print_str += column + delimiter
+
+    return print_str
+
+
 def write_list_to_tsv(fp: str, tsv_list: list[str]):
     """
     todo

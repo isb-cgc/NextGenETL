@@ -30,13 +30,16 @@ from functools import cmp_to_key
 
 from requests.adapters import HTTPAdapter, Retry
 
-from cda_bq_etl.pdc_helpers import build_obj_from_pdc_api
-from cda_bq_etl.utils import load_config, format_seconds, create_dev_table_id, create_metadata_table_id
+from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket
+from cda_bq_etl.pdc_helpers import build_obj_from_pdc_api, get_graphql_api_response
+from cda_bq_etl.utils import (load_config, format_seconds, create_dev_table_id, create_metadata_table_id,
+                              create_quant_table_id, make_string_bq_friendly, get_scratch_fp, construct_table_name)
 from cda_bq_etl.bq_helpers import (create_table_from_query, update_table_schema_from_generic,
                                    create_and_upload_schema_for_json, retrieve_bq_schema_object,
                                    create_and_load_table_from_jsonl, exists_bq_table, delete_bq_table,
-                                   get_uniprot_schema_tags, query_and_retrieve_result, get_gene_info_schema_tags)
-from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload
+                                   get_uniprot_schema_tags, query_and_retrieve_result, get_gene_info_schema_tags,
+                                   create_and_upload_schema_for_tsv, create_and_load_table_from_tsv)
+from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload, create_tsv_row
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -160,6 +163,7 @@ def get_study_list() -> list[dict[str, str]]:
     Retrieve a list of all PDC studies and their metadata.
     :return: list of study dicts
     """
+
     def make_pdc_study_query() -> str:
         return f"""
             SELECT DISTINCT pdc_study_id, 
@@ -432,6 +436,230 @@ def get_gene_record_list() -> list[dict[str, Union[None, str, float, int, bool]]
                                   alter_json_function=alter_paginated_gene_list)
 
 
+def get_quant_table_name(study: dict[str, str], is_final: bool):
+    """
+    Get quant table name for given study.
+    :param study: study metadata dict
+    :param is_final: if True, query is requesting published table name; otherwise dev table name
+    :return: if True, return published table name, otherwise return dev table name
+    """
+
+    def change_study_name_to_table_name_format(_study_name):
+        """
+        Convert study name to table name format.
+        :param _study_name: PDC study associated with table data
+        :return: table name
+        """
+        _study_name = _study_name.replace(study['analytical_fraction'], "")
+        study_name_list = _study_name.split(" ")
+        hyphen_split_study_name_list = list()
+
+        for study_name_part in study_name_list:
+            if '-' in study_name_part:
+                hyphen_study_name_part_list = study_name_part.split('-')
+
+                for name_part in hyphen_study_name_part_list:
+                    hyphen_split_study_name_list.append(name_part)
+            else:
+                hyphen_split_study_name_list.append(study_name_part)
+
+        new_study_name_list = list()
+
+        for name in hyphen_split_study_name_list:
+
+            if not name:
+                continue
+            if not name.isupper():
+                name = name.lower()
+            if name:
+                new_study_name_list.append(name)
+
+        _study_name = " ".join(new_study_name_list)
+        _study_name = make_string_bq_friendly(_study_name)
+        return _study_name
+
+    quant_prefix = PARAMS['ENDPOINT_SETTINGS']['quantDataMatrix']['output_name']
+
+    study_name = study['study_name']
+    study_name = change_study_name_to_table_name_format(study_name)
+    analytical_fraction = study['analytical_fraction'].lower()
+
+    table_name = "_".join([quant_prefix, analytical_fraction, study_name, PARAMS['DATA_SOURCE'], PARAMS['RELEASE']])
+
+    if not is_final:
+        table_name = table_name + '_raw'
+
+    # return table name in following format: quant_<analyte>_<study_name>_pdc_<version>
+    # if not final, append '_raw'
+    return table_name
+
+
+def build_quant_tsv(study_id_dict: dict[str, str], data_type: str, tsv_fp: str, header: list[str]) -> int:
+    """
+    Output quant data rows in tsv format, for future BQ ingestion.
+    :param study_id_dict: dictionary of study ids
+    :param data_type: data type of API request, e.g. log2_ratio
+    :param tsv_fp: output filepath for tsv file
+    :param header: header for quant tsv file
+    :return: count of lines written to tsv
+    """
+
+    def make_quant_data_matrix_query():
+        # Create graphQL string for querying the PDC REST API's quantDataMatrix endpoint.
+        pdc_study_id = study_id_dict['pdc_study_id']
+
+        return f'{{ quantDataMatrix(pdc_study_id: \"{pdc_study_id}\" data_type: \"{data_type}\" acceptDUA: true) }}'
+
+    logger = logging.getLogger("base_script")
+
+    lines_written = 0
+
+    res_json = get_graphql_api_response(params=PARAMS,
+                                        query=make_quant_data_matrix_query(),
+                                        fail_on_error=False)
+
+    quant_endpoint = PARAMS['QUANT_ENDPOINT']
+
+    if not res_json or not res_json['data'][quant_endpoint]:
+        return lines_written
+
+    aliquot_metadata = list()
+
+    id_row = res_json['data'][quant_endpoint].pop(0)
+    id_row.pop(0)  # remove gene column header string
+
+    # process first row, which gives us the aliquot ids and idx positions
+    for el in id_row:
+        aliquot_run_metadata_id = ""
+        aliquot_submitter_id = ""
+
+        split_el = el.split(':')
+
+        if len(split_el) != 2:
+            print(f"Quant API returns non-standard aliquot_run_metadata_id entry: {el}")
+        else:
+            if split_el[0]:
+                aliquot_run_metadata_id = split_el[0]
+            if split_el[1]:
+                aliquot_submitter_id = split_el[1]
+
+            if not aliquot_submitter_id or not aliquot_run_metadata_id:
+                logger.critical(f"Unexpected value for aliquot_run_metadata_id:aliquot_submitter_id ({el})")
+                exit(-1)
+
+        aliquot_metadata.append({
+            "aliquot_run_metadata_id": aliquot_run_metadata_id,
+            "aliquot_submitter_id": aliquot_submitter_id
+        })
+
+    study_name = study_id_dict['study_name']
+
+    # iterate over each gene row and add to the correct aliquot_run obj
+    with open(tsv_fp, 'w') as fh:
+        fh.write(create_tsv_row(header))
+
+        for row in res_json['data'][quant_endpoint]:
+            gene_symbol = row.pop(0)
+
+            for i, log2_ratio in enumerate(row):
+                tsv_row_list = [aliquot_metadata[i]['aliquot_run_metadata_id'],
+                                aliquot_metadata[i]['aliquot_submitter_id'],
+                                study_name,
+                                gene_symbol,
+                                log2_ratio]
+
+                fh.write(create_tsv_row(tsv_row_list))
+                lines_written += 1
+
+        return lines_written
+
+
+def write_file_list(file_list: list[str]) -> str:
+    file_str = "/n".join(file_list)
+    file_str = file_str + "/n"
+
+    quant_file_list_name = f"{PARAMS['QUANT_FILE_LIST_BASE_NAME']}_{PARAMS['RELEASE']}.txt"
+
+    quant_file_list_path = get_scratch_fp(PARAMS, quant_file_list_name)
+
+    with open(quant_file_list_path, "w") as fh:
+        fh.write(file_str)
+
+    return quant_file_list_path
+
+
+def get_quant_file_list(quant_file_list_path: str):
+    with open(quant_file_list_path, 'r') as fh:
+        file_contents = fh.read()
+
+    return file_contents.strip("\n").split("\n")
+
+
+def make_quant_table_query(raw_table_id: str, study_id_dict: dict[str, str]) -> str:
+    """
+    Create sql query to create proteome quant data matrix table for a given study.
+    :param raw_table_id: table id for raw quantDataMatrix output
+    :param study_id_dict: PDC study dict
+    :return: sql query string
+    """
+    analytical_fraction = study_id_dict['analytical_fraction']
+
+    if analytical_fraction == 'Proteome':
+        return f"""
+            SELECT sample_case.case_id, 
+                sample_case.sample_id, 
+                sample_aliq.aliquot_id, 
+                quant.aliquot_submitter_id, 
+                quant.aliquot_run_metadata_id, 
+                quant.study_name, 
+                quant.protein_abundance_log2ratio, 
+                gene.gene_id, 
+                gene.gene_symbol, 
+                gene.NCBI_gene_id, 
+                gene.authority, 
+                gene.authority_gene_id, 
+                gene.gene_description, 
+                gene.organism, 
+                gene.chromosome, 
+                gene.locus, 
+                gene.uniprotkb_id, 
+                gene.uniprotkb_ids, 
+                gene.proteins, 
+                gene.assays
+            FROM `{raw_table_id}` AS quant
+            JOIN `{create_dev_table_id(PARAMS, 'aliquot_aliquot_run_metadata_id')}` AS aliq_run
+                ON quant.aliquot_run_metadata_id = aliq_run.aliquot_run_metadata_id
+            JOIN `{create_dev_table_id(PARAMS, 'sample_aliquot_id')}` sample_aliq
+                ON aliq_run.aliquot_id = sample_aliq.aliquot_id
+            JOIN `{create_dev_table_id(PARAMS, 'sample_case_id')}` sample_case
+                ON sample_aliq.sample_id = sample_case.sample_id
+            JOIN `{create_metadata_table_id(PARAMS, 'gene_info')}` gene
+                ON quant.gene_symbol = gene.gene_symbol
+        """
+    else:
+        site_column_name = PARAMS['QUANT_REPLACEMENT_MAP'][analytical_fraction]['site_column_name']
+        id_column_name = PARAMS['QUANT_REPLACEMENT_MAP'][analytical_fraction]['id_column_name']
+
+        return f"""
+            SELECT sample_case.case_id, 
+                sample_case.sample_id, 
+                sample_aliq.aliquot_id,
+                quant.aliquot_submitter_id, 
+                quant.aliquot_run_metadata_id, 
+                quant.study_name, 
+                quant.protein_abundance_log2ratio, 
+                SPLIT(quant.gene_symbol, ':')[OFFSET(0)] AS `{id_column_name}`, 
+                SPLIT(quant.gene_symbol, ':')[OFFSET(1)] AS `{site_column_name}`
+            FROM `{raw_table_id}` AS quant
+            JOIN `{create_dev_table_id(PARAMS, 'aliquot_aliquot_run_metadata_id')}` AS aliq_run
+                ON quant.aliquot_run_metadata_id = aliq_run.aliquot_run_metadata_id
+            JOIN `{create_dev_table_id(PARAMS, 'sample_aliquot_id')}` sample_aliq
+                ON aliq_run.aliquot_id = sample_aliq.aliquot_id
+            JOIN `{create_dev_table_id(PARAMS, 'sample_case_id')}` sample_case
+                ON sample_aliq.sample_id = sample_case.sample_id
+        """
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -511,6 +739,7 @@ def main(args):
                                           include_release=True)
 
     if 'build_gene_table' in steps:
+        logger.info("Building gene info table!")
         gene_table_base_name = PARAMS['ENDPOINT_SETTINGS']['getPaginatedGenes']['output_name']
         gene_jsonl_filename = f"{gene_table_base_name}_{PARAMS['RELEASE']}.jsonl"
 
@@ -527,6 +756,139 @@ def main(args):
                                          table_id=create_metadata_table_id(PARAMS, gene_table_base_name),
                                          schema_tags=schema_tags,
                                          metadata_file=PARAMS['GENERIC_GENE_TABLE_METADATA_FILE'])
+
+    if 'build_and_upload_quant_tsvs' in steps:
+        logger.info("Building and uploading quant tsvs and schemas!")
+        quant_file_list = list()
+
+        for study_id_dict in studies_list:
+            raw_quant_table_name = get_quant_table_name(study_id_dict, is_final=False)
+            raw_quant_tsv_file = f'{raw_quant_table_name}.tsv'
+            schema_file = f'schema_{raw_quant_table_name}.json'
+            schema_fp = get_scratch_fp(PARAMS, schema_file)
+
+            quant_tsv_path = get_scratch_fp(PARAMS, raw_quant_tsv_file)
+
+            raw_quant_header = ['aliquot_run_metadata_id',
+                                'aliquot_submitter_id',
+                                'study_name',
+                                'gene_symbol',
+                                'protein_abundance_log2ratio']
+
+            num_tsv_rows = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_path, raw_quant_header)
+            logger.info(f"{num_tsv_rows} lines written for {study_id_dict['study_name']}")
+
+            if num_tsv_rows > 0:
+                quant_file_list.append(raw_quant_tsv_file)
+
+                create_and_upload_schema_for_tsv(params=PARAMS,
+                                                 tsv_fp=quant_tsv_path,
+                                                 header_row=0,
+                                                 skip_rows=1,
+                                                 schema_fp=schema_fp)
+
+                upload_to_bucket(PARAMS, quant_tsv_path, delete_local=True, verbose=False)
+                logger.info(f"{raw_quant_tsv_file} uploaded to Google Cloud bucket!")
+            else:
+                logger.warning(f"\n{num_tsv_rows} lines written for {study_id_dict['study_name']}; not uploaded.")
+
+        quant_file_list_path = write_file_list(quant_file_list)
+        upload_to_bucket(PARAMS, quant_file_list_path, delete_local=True, verbose=False)
+
+    if 'build_raw_quant_tables' in steps:
+        logger.info("Building raw quant tables!")
+
+        quant_file_list_name = f"{PARAMS['QUANT_FILE_LIST_BASE_NAME']}_{PARAMS['RELEASE']}.txt"
+        download_from_bucket(params=PARAMS, filename=quant_file_list_name)
+        quant_file_list_path = get_scratch_fp(PARAMS, quant_file_list_name)
+        quant_file_list = get_quant_file_list(quant_file_list_path)
+
+        built_table_counts = {
+            "Proteome": 0,
+            "Phosphoproteome": 0,
+            "Acetylome": 0,
+            "Glycoproteome": 0,
+            "Ubiquitylome": 0
+        }
+
+        for study_id_dict in studies_list:
+            raw_quant_table_name = get_quant_table_name(study_id_dict, is_final=False)
+            raw_quant_tsv_file = f'{raw_quant_table_name}.tsv'
+
+            if raw_quant_tsv_file not in quant_file_list:
+                logger.info(f'Skipping table build for {raw_quant_tsv_file} (empty file, not written to bucket)')
+                continue
+
+            logger.info(f"Building table for {raw_quant_tsv_file}")
+
+            raw_quant_table_name = get_quant_table_name(study=study_id_dict, is_final=False)
+            raw_quant_table_id = create_quant_table_id(PARAMS, raw_quant_table_name, is_final=False)
+
+            schema_file = f'schema_{raw_quant_table_name}.json'
+
+            raw_quant_schema = retrieve_bq_schema_object(params=PARAMS,
+                                                         schema_filename=schema_file)
+
+            create_and_load_table_from_tsv(params=PARAMS,
+                                           tsv_file=raw_quant_tsv_file,
+                                           table_id=raw_quant_table_id,
+                                           num_header_rows=1,
+                                           schema=raw_quant_schema)
+
+            built_table_counts[study_id_dict['analytical_fraction']] += 1
+
+        logger.info("quantDataMatrix table counts per analytical fraction:")
+
+        for analytical_fraction in built_table_counts.keys():
+            logger.info(f" - {analytical_fraction}: {built_table_counts[analytical_fraction]}")
+
+    if 'build_final_quant_tables' in steps:
+        logger.info("Building final quant tables!")
+
+        for study_id_dict in studies_list:
+            raw_quant_table_name = get_quant_table_name(study_id_dict, is_final=False)
+            raw_table_id = create_quant_table_id(PARAMS, raw_quant_table_name, is_final=False)
+
+            if not exists_bq_table(raw_table_id):
+                continue
+
+            final_quant_table_name = get_quant_table_name(study_id_dict, is_final=True)
+            final_quant_table_id = create_quant_table_id(PARAMS, final_quant_table_name, is_final=True)
+
+            create_table_from_query(params=PARAMS,
+                                    table_id=final_quant_table_id,
+                                    query=make_quant_table_query(raw_table_id, study_id_dict))
+
+            program_labels_list = study_id_dict['program_labels'].split("; ")
+
+            schema_tags = {
+                "project-name": study_id_dict['program_short_name'],
+                "study-name": study_id_dict["study_name"],
+                "pdc-study-id": study_id_dict["pdc_study_id"],
+                "study-name-upper": study_id_dict['study_friendly_name'].upper()
+            }
+
+            if len(program_labels_list) > 2:
+                logger.critical("PDC quant isn't set up to handle >2 program labels yet; needs to be added.")
+                exit(-1)
+            elif len(program_labels_list) == 0:
+                logger.critical(f"No program label for {study_id_dict['project_name']}, add to PDCStudy.yaml")
+                exit(-1)
+            elif len(program_labels_list) == 1:
+                schema_tags['program-name-lower'] = study_id_dict['program_labels'].lower()
+
+                update_table_schema_from_generic(params=PARAMS,
+                                                 table_id=final_quant_table_id,
+                                                 schema_tags=schema_tags,
+                                                 metadata_file=PARAMS['GENERIC_TABLE_METADATA_FILE'])
+            else:
+                schema_tags['program-name-0-lower'] = program_labels_list[0].lower()
+                schema_tags['program-name-1-lower'] = program_labels_list[1].lower()
+
+                update_table_schema_from_generic(params=PARAMS,
+                                                 table_id=final_quant_table_id,
+                                                 schema_tags=schema_tags,
+                                                 metadata_file=PARAMS['GENERIC_TABLE_METADATA_FILE_2_PROGRAM'])
 
     end_time = time.time()
 

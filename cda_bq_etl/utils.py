@@ -160,7 +160,6 @@ def sanitize_file_prefix(file_prefix: str) -> str:
     return re.sub('[^0-9a-zA-Z_]+', '_', file_prefix)
 
 
-# todo candidate for removal or merging into get_filename
 def construct_table_name(params: Params,
                          prefix: str,
                          suffix: Optional[str] = None,
@@ -280,15 +279,19 @@ def create_clinical_table_id(params: Params, table_name: str) -> str:
     return f"{params['DEV_PROJECT']}.{params['DEV_CLINICAL_DATASET']}.{params['RELEASE']}_{table_name}"
 
 
-def create_quant_table_id(params: Params, table_name: str) -> str:
+def create_quant_table_id(params: Params, table_name: str, is_final: bool) -> str:
     """
     Create table id reference to one of the PDC quant data matrix tables.
     :param params: params supplied in yaml config
     :param table_name: name of the table
+    :param is_final: if True, use final dataset, else use raw dataset; defaults to raw
     :return: table id string
     """
-    return f"{params['DEV_PROJECT']}.{params['DEV_QUANT_DATASET']}.{params['RELEASE']}_{table_name}"
 
+    if is_final:
+        return f"{params['DEV_PROJECT']}.{params['DEV_QUANT_FINAL_DATASET']}.{table_name}"
+    else:
+        return f"{params['DEV_PROJECT']}.{params['DEV_QUANT_RAW_DATASET']}.{table_name}"
 
 
 def input_with_timeout(seconds: int) -> Union[str, None]:
