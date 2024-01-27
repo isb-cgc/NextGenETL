@@ -430,6 +430,8 @@ def is_int_value(value: Any) -> bool:
             if math.isnan(float(value)):
                 return False
 
+            print(value)
+
             if float(value) == int(float(value)):
                 return True
         except OverflowError:
