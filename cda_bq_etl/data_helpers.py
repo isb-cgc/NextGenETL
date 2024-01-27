@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import sys
+import math
 from typing import Union, Any, Optional
 
 import json
@@ -425,6 +426,9 @@ def is_int_value(value: Any) -> bool:
         return False
 
     if is_valid_decimal(value):
+        if math.isnan(value):
+            return False
+
         try:
             if float(value) == int(float(value)):
                 return True
@@ -452,10 +456,6 @@ def normalize_value(value: Any, is_tsv: bool = False) -> Any:
     """
 
     if value is None:
-        return value
-    elif float(value) == float("NaN"):
-        return value
-    elif value == 'NaN':
         return value
 
     if isinstance(value, str):
