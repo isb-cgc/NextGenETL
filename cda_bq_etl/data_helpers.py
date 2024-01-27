@@ -426,10 +426,10 @@ def is_int_value(value: Any) -> bool:
         return False
 
     if is_valid_decimal(value):
-        if math.isnan(value):
-            return False
-
         try:
+            if math.isnan(float(value)):
+                return False
+
             if float(value) == int(float(value)):
                 return True
         except OverflowError:
