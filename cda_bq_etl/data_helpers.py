@@ -455,8 +455,8 @@ def normalize_value(value: Any, is_tsv: bool = False) -> Any:
         return value
     elif value == float("NaN"):
         return value
-    # elif value == 'NaN':
-    #     return value
+    elif value == 'NaN':
+        return value
 
     if isinstance(value, str):
         value = value.strip()
