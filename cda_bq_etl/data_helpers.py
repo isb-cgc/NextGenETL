@@ -564,7 +564,6 @@ def normalize_flat_json_values(records: JSONList) -> JSONList:
     return normalized_json_list
 
 
-# todo this works, but could it be tightened up?
 def check_value_type(value: Any):
     """
     Check value for corresponding BigQuery type. Evaluates the following BigQuery column data types:
@@ -586,7 +585,6 @@ def check_value_type(value: Any):
 
     if isinstance(value, bool):
         return "BOOL"
-    # currently not working for tsv because we don't normalize those files prior to upload yet
     if is_valid_decimal(value):
         # If you don't cast a string to float before casting to int, it will throw a TypeError
         try:

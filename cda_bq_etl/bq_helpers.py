@@ -137,7 +137,8 @@ def create_and_upload_schema_for_tsv(params: Params,
                                      header_row: Optional[int] = None,
                                      skip_rows: int = 0,
                                      schema_fp: Optional[str] = None,
-                                     delete_local: bool = True):
+                                     delete_local: bool = True,
+                                     sample_interval: int = 1):
     """
     Create and upload schema for a file in tsv format.
     :param params: params supplied in yaml config
@@ -146,6 +147,7 @@ def create_and_upload_schema_for_tsv(params: Params,
     :param skip_rows: integer representing number of non-data rows at the start of the file, defaults to 0
     :param schema_fp: path to schema location on local vm
     :param delete_local: delete local file after uploading to cloud bucket
+    :param sample_interval: how many rows to skip between column type checks
     """
     logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
 
@@ -157,7 +159,7 @@ def create_and_upload_schema_for_tsv(params: Params,
         logger.critical("Header row not excluded by skip_rows.")
         sys.exit(-1)
 
-    data_types_dict = aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows)
+    data_types_dict = aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_interval)
 
     data_type_dict = resolve_type_conflicts(data_types_dict)
 
