@@ -484,7 +484,7 @@ def get_quant_table_name(study: dict[str, str], is_final: bool):
     study_name = change_study_name_to_table_name_format(study_name)
     analytical_fraction = study['analytical_fraction'].lower()
 
-    table_name = "_".join([quant_prefix, analytical_fraction, study_name, PARAMS['DATA_SOURCE'], PARAMS['RELEASE']])
+    table_name = "_".join([quant_prefix, analytical_fraction, study_name, 'pdc', PARAMS['RELEASE']])
 
     if not is_final:
         table_name = table_name + '_raw'
