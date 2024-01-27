@@ -430,8 +430,6 @@ def is_int_value(value: Any) -> bool:
             if math.isnan(float(value)):
                 return False
 
-            print(value)
-
             if float(value) == int(float(value)):
                 return True
         except OverflowError:
@@ -597,6 +595,9 @@ def check_value_type(value: Any):
             if str_val.startswith("0") and len(str_val) > 1 and ':' not in str_val \
                     and '-' not in str_val and '.' not in str_val:
                 return "STRING"
+
+            if math.isnan(float(value)):
+                return 'FLOAT64'
 
             if float(value) == int(float(value)):
                 return "INT64"
