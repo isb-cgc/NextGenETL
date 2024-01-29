@@ -65,8 +65,6 @@ pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 
-mkdir -p ~/scratch
-mkdir -p ~/scratch/cda_pdc
 mkdir -p ~/scratch/cda_pdc/quant
 
 cd ..
