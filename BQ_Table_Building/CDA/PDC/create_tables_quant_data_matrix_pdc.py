@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import logging
+import os
 import sys
 import time
 import re
@@ -775,7 +776,7 @@ def main(args):
             num_tsv_rows = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_path, raw_quant_header)
 
             if num_tsv_rows > 0:
-                upload_to_bucket(PARAMS, quant_tsv_path, delete_local=True, verbose=False)
+                upload_to_bucket(PARAMS, quant_tsv_path, delete_local=False, verbose=False)
                 logger.info(f"{num_tsv_rows} lines written for {study_id_dict['study_name']}")
                 logger.info(f"{raw_quant_tsv_file} uploaded to Google Cloud bucket!")
                 quant_file_list.append(raw_quant_tsv_file)
@@ -786,6 +787,7 @@ def main(args):
                                                  skip_rows=1,
                                                  schema_fp=schema_fp,
                                                  sample_interval=1000)
+                os.remove(quant_tsv_path)
             else:
                 logger.info(f"{num_tsv_rows} lines written for {study_id_dict['study_name']}; not uploaded.")
 
