@@ -65,7 +65,7 @@ pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 
-mkdir -p ~/scratch/cda_pdc
+mkdir -p ~/scratch
 
 cd ..
 python3.9 ./BQ_Table_Building/CDA/tests/${SCRIPT_FILE} ~/config/${CONFIG_FILE}
