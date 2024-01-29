@@ -571,7 +571,7 @@ def build_quant_tsv(study_id_dict: dict[str, str], data_type: str, tsv_fp: str, 
                 fh.write(create_tsv_row(tsv_row_list))
                 lines_written += 1
 
-        return lines_written
+    return lines_written
 
 
 def write_file_list(file_list: list[str]) -> str:
@@ -778,17 +778,18 @@ def main(args):
             num_tsv_rows = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_path, raw_quant_header)
 
             if num_tsv_rows > 0:
+                upload_to_bucket(PARAMS, quant_tsv_path, delete_local=False, verbose=False)
+                logger.info(f"{num_tsv_rows} lines written for {study_id_dict['study_name']}")
+                logger.info(f"{raw_quant_tsv_file} uploaded to Google Cloud bucket!")
+                quant_file_list.append(raw_quant_tsv_file)
+
                 create_and_upload_schema_for_tsv(params=PARAMS,
                                                  tsv_fp=quant_tsv_path,
                                                  header_row=0,
                                                  skip_rows=1,
                                                  schema_fp=schema_fp,
                                                  sample_interval=1000)
-
-                upload_to_bucket(PARAMS, quant_tsv_path, delete_local=True, verbose=False)
-                logger.info(f"{num_tsv_rows} lines written for {study_id_dict['study_name']}")
-                logger.info(f"{raw_quant_tsv_file} uploaded to Google Cloud bucket!")
-                quant_file_list.append(raw_quant_tsv_file)
+                exit(-1)
             else:
                 logger.warning(f"{num_tsv_rows} lines written for {study_id_dict['study_name']}; not uploaded.")
 
