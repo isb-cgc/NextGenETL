@@ -79,6 +79,25 @@ def initialize_logging(log_filepath: str) -> logging.Logger:
 
 # File Utilities #
 
+
+def clean_local_file_dir(local_files_dir):
+    """
+    This routine clears the tree out if it exists. Original from support.py called 'create_clean_target'
+    """
+
+    if os.path.exists(local_files_dir):
+        util_logger.info(f"deleting {local_files_dir}")
+        try:
+            shutil.rmtree(local_files_dir)
+        except OSError as e:
+            util_logger.info(f"Error: {e.filename} - {e.strerror}.")
+
+        util_logger.info(f"done {local_files_dir}")
+
+    if not os.path.exists(local_files_dir):
+        os.makedirs(local_files_dir)
+
+
 def get_column_list_tsv(header_list=None, tsv_fp=None, header_row_index=None):
     """
     Return a list of column headers using header_list OR using a header_row index to retrieve column names from tsv_fp.
@@ -137,7 +156,7 @@ def update_dir_from_git(local_repo, repo_url, repo_branch):
     :rtype: bool
     """
     try:
-        create_clean_target(local_repo)
+        clean_local_file_dir(local_repo)
         repo = Repo.clone_from(repo_url, local_repo)
         repo.git.checkout(repo_branch)
         util_logger.info(f"{local_repo} was updated from GitHub")
