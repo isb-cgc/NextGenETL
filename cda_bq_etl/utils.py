@@ -222,14 +222,18 @@ def get_filepath(dir_path: str, filename: Optional[str] = None) -> str:
     return '/'.join(join_list)
 
 
-def get_scratch_fp(params: Params, filename: str) -> str:
+def get_scratch_fp(params: Params, filename: str, scratch_dir: str = None) -> str:
     """
     Construct filepath for VM output file.
     :param params: params supplied in yaml config
     :param filename: name of the file
+    :param scratch_dir: optional substitute scratch dir
     :return: output filepath for VM
     """
-    return get_filepath(params['SCRATCH_DIR'], filename)
+    if not scratch_dir:
+        scratch_dir = params['SCRATCH_DIR']
+
+    return get_filepath(scratch_dir, filename)
 
 
 def create_dev_table_id(params: Params, table_name: str, release_as_suffix: bool = False) -> str:
