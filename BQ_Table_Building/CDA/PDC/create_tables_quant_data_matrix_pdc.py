@@ -576,7 +576,7 @@ def build_quant_tsv(study_id_dict: dict[str, str], data_type: str, tsv_fp: str, 
 
 def write_file_list(file_list: list[str]) -> str:
     quant_file_list_name = f"{PARAMS['QUANT_FILE_LIST_BASE_NAME']}_{PARAMS['RELEASE']}.txt"
-    quant_file_list_path = get_scratch_fp(PARAMS, quant_file_list_name, PARAMS['QUANT_SCRATCH_DIR'])
+    quant_file_list_path = get_scratch_fp(PARAMS, quant_file_list_name)
 
     with open(quant_file_list_path, "w") as fh:
         for file_name in file_list:
@@ -762,9 +762,9 @@ def main(args):
             raw_quant_table_name = get_quant_table_name(study_id_dict, is_final=False)
             raw_quant_tsv_file = f'{raw_quant_table_name}.tsv'
             schema_file = f'schema_{raw_quant_table_name}.json'
-            schema_fp = get_scratch_fp(PARAMS, schema_file, PARAMS['QUANT_SCRATCH_DIR'])
+            schema_fp = get_scratch_fp(PARAMS, schema_file)
 
-            quant_tsv_path = get_scratch_fp(PARAMS, raw_quant_tsv_file, PARAMS['QUANT_SCRATCH_DIR'])
+            quant_tsv_path = get_scratch_fp(PARAMS, raw_quant_tsv_file)
 
             raw_quant_header = ['aliquot_run_metadata_id',
                                 'aliquot_submitter_id',
@@ -797,7 +797,7 @@ def main(args):
 
         quant_file_list_name = f"{PARAMS['QUANT_FILE_LIST_BASE_NAME']}_{PARAMS['RELEASE']}.txt"
         download_from_bucket(params=PARAMS, filename=quant_file_list_name)
-        quant_file_list_path = get_scratch_fp(PARAMS, quant_file_list_name, PARAMS['QUANT_SCRATCH_DIR'])
+        quant_file_list_path = get_scratch_fp(PARAMS, quant_file_list_name)
         quant_file_list = get_quant_file_list(quant_file_list_path)
 
         built_table_counts = {
