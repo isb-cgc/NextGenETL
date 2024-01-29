@@ -783,7 +783,7 @@ def main(args):
                                                  header_row=0,
                                                  skip_rows=1,
                                                  schema_fp=schema_fp,
-                                                 sample_interval=100)
+                                                 sample_interval=1000)
 
                 upload_to_bucket(PARAMS, quant_tsv_path, delete_local=True, verbose=False)
                 logger.info(f"{num_tsv_rows} lines written for {study_id_dict['study_name']}")
