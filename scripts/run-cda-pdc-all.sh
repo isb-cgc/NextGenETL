@@ -47,6 +47,8 @@ source bin/activate
 popd > /dev/null
 
 mkdir -p ~/scratch
+mkdir -p ~/scratch/cda_pdc
+mkdir -p ~/scratch/cda_pdc_quant
 
 cd ..
 echo "*** Downloading CDA files and building raw BQ tables"
