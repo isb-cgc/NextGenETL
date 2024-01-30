@@ -74,7 +74,7 @@ def initialize_logging(log_filepath: str) -> logging.Logger:
     logger.addHandler(console_handler)
 
     start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
-    logger.info(f"Logging started: {start_time}")
+    logger.info(f"\n---\nLogging started: {start_time}")
 
     return logger
 
