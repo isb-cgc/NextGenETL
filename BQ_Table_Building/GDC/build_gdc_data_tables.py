@@ -291,7 +291,7 @@ def main(args):
     log_filepath = f"{local_dir}/{params.LOGFILE_DIR}/gdc_data_files_{params.RELEASE}{workflow_run_ver}.log"
     logger = initialize_logging(log_filepath)
 
-    logger.info(f"\nGDC derived data script started at {time.strftime('%x %X', time.localtime())}")
+    logger.info(f"\n---\nGDC derived data script started at {time.strftime('%x %X', time.localtime())}")
 
     # Start of Workflow
 
