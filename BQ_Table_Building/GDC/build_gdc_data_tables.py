@@ -281,9 +281,6 @@ def main(args):
         params_dict, steps = load_config(yaml_file.read())
         params = SimpleNamespace(**params_dict)
 
-    end = time.time() - start_time
-    print(f"Finished program execution in {format_seconds(end)}!\n")
-
     # Set the workflow run count from yaml
     workflow_run_ver = f"_{params.WORKFLOW_RUN_VER}" if 'WORKFLOW_RUN_VER' in params_dict else ''
 
@@ -294,7 +291,7 @@ def main(args):
     log_filepath = f"{local_dir}/{params.LOGFILE_DIR}/gdc_data_files_{params.RELEASE}{workflow_run_ver}.log"
     logger = initialize_logging(log_filepath)
 
-    logger.info(f"GDC derived data script started at {time.strftime('%x %X', time.localtime())}")
+    logger.info(f"\nGDC derived data script started at {time.strftime('%x %X', time.localtime())}")
 
     # Start of Workflow
 
@@ -307,6 +304,8 @@ def main(args):
 
         build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, program_datatype)
 
+    end = time.time() - start_time
+    logger.info(f"Finished program execution in {format_seconds(end)}!\n")
 
 if __name__ == "__main__":
     main(sys.argv)
