@@ -25,6 +25,7 @@ FILE_CONFIG_FILE="CDACreateTablesFilePDC.yaml"
 FILE_ENTITY_CONFIG_FILE="CDACreateTablesFileAssociatedEntityMappingPDC.yaml"
 PER_SAMPLE_CONFIG_FILE="CDACreateTablesPerSampleFilePDC.yaml"
 CLINICAL_CONFIG_FILE="CDACreateTablesClinicalPDC.yaml"
+QUANT_CONFIG_FILE="CDACreateTablesQuantPDC.yaml"
 
 export MY_VENV=~/virtualEnvETL3_9
 export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
@@ -40,6 +41,7 @@ gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/${FILE_CONFIG_FILE} .
 gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/${FILE_ENTITY_CONFIG_FILE} .
 gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/${PER_SAMPLE_CONFIG_FILE} .
 gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/${CLINICAL_CONFIG_FILE} .
+gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/${QUANT_CONFIG_FILE} .
 popd > /dev/null
 
 pushd ${MY_VENV} > /dev/null
@@ -65,5 +67,7 @@ echo "*** Building per_sample_file_metadata dev tables"
 python3.9 ./BQ_Table_Building/CDA/PDC/create_tables_per_sample_file_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${PER_SAMPLE_CONFIG_FILE}
 echo "*** Building clinical dev tables"
 python3.9 ./BQ_Table_Building/CDA/PDC/create_tables_clinical_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${CLINICAL_CONFIG_FILE}
+echo "*** Building quant dev tables"
+python3.9 ./BQ_Table_Building/CDA/PDC/create_tables_quant_data_matrix_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${QUANT_CONFIG_FILE}
 echo "*** Load complete. Please run run-cda-compare-publish-tables.sh to test and publish."
 deactivate
