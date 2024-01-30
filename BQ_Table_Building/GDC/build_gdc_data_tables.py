@@ -187,7 +187,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, prog
     local_location = f"{home}/{local_dir}/{program}"
     tables_created_file = f"{home}/{params.LOCAL_DIR}/tables_created_{params.RELEASE}{workflow_run_ver}.txt"
 
-    with open(f"{home}/{SCHEMA_REPO_LOCAL}/{params.DATATYPE_MAPPINGS}", mode='r') as datatype_mappings_file:
+    with open(f"{home}/{params.SCHEMA_REPO_LOCAL}/{params.DATATYPE_MAPPINGS}", mode='r') as datatype_mappings_file:
         datatype_mappings = json_loads(datatype_mappings_file.read().rstrip())
 
     file_list = f"{prefix}_file_list.tsv"
