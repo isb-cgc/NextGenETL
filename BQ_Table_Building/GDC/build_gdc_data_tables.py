@@ -36,6 +36,7 @@ from open_somatic_mut import create_somatic_mut_table
 
 from RNA_seq import create_rna_seq_table
 
+
 def load_config(yaml_config):
     """
     The configuration reader. Parses the YAML configuration into dictionaries
@@ -177,17 +178,16 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
     return intermediate_tables
 
 
-def build_bq_tables_steps(params, workflow_run_ver, steps, program_datatype):
+def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, program_datatype):
     logger = logging.getLogger('base_script')
     program, datatype = program_datatype.split(", ")
 
     # file variables
     prefix = f"{program}_{datatype}_{params.RELEASE}{workflow_run_ver}"
-    home = expanduser("~")
-    local_location = f"{home}/{params.LOCAL_DIR}/{program}"
+    local_location = f"{home}/{local_dir}/{program}"
     tables_created_file = f"{home}/{params.LOCAL_DIR}/tables_created_{params.RELEASE}{workflow_run_ver}.txt"
 
-    with open(params.DATATYPE_MAPPINGS, mode='r') as datatype_mappings_file:
+    with open(f"{home}/{params.DATATYPE_MAPPINGS}", mode='r') as datatype_mappings_file:
         datatype_mappings = json_loads(datatype_mappings_file.read().rstrip())
 
     file_list = f"{prefix}_file_list.tsv"
@@ -300,12 +300,12 @@ def main(args):
 
     if 'update_schema_dir_from_git' in steps:
         logger.info("Running update_schema_dir_from_git Step")
-        update_dir_from_git(params.SCHEMA_REPO_LOCAL, params.SCHEMA_REPO_URL, params.SCHEMA_REPO_BRANCH)
+        update_dir_from_git(f"{home}/{params.SCHEMA_REPO_LOCAL}", params.SCHEMA_REPO_URL, params.SCHEMA_REPO_BRANCH)
 
     # Derived Data Steps
     for program_datatype in params.PROGRAMS_AND_DATASETS:
 
-        build_bq_tables_steps(params, workflow_run_ver, steps, program_datatype)
+        build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, program_datatype)
 
 
 if __name__ == "__main__":
