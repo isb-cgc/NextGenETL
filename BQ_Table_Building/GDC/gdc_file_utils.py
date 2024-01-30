@@ -17,6 +17,7 @@ limitations under the License.
 """
 import logging
 import sys
+import os
 import time
 from git import Repo
 import requests
