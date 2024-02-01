@@ -318,6 +318,7 @@ def main(args):
                         for line in lines:
                             if line_cnt == PARAMS['HEADER_ROW_IDX']:
                                 header_row_list = line.rstrip('\n').split("\t")
+                                print(header_row_list)
                                 line_cnt += 1
                                 continue
                             elif line_cnt < PARAMS['DATA_START_IDX']:
@@ -327,9 +328,6 @@ def main(args):
                             record = line.rstrip('\n').split("\t")
 
                             for column in concat_header_row_list:
-                                if column == 'days_to_last_known_alive':
-                                    value_idx = header_row_list.index(column)
-                                    print(record[value_idx])
                                 if column in header_row_list:
                                     value_idx = header_row_list.index(column)
                                     big_tsv_fh.write(f"{record[value_idx]}\t")
