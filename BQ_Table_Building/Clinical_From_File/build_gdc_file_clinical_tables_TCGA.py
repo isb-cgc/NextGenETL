@@ -96,7 +96,6 @@ def create_bq_column_names(tsv_file, header_row_idx):
     return final_headers
 
 
-
 def make_file_pull_list(program: str, filters: dict[str, str]):
     def make_file_pull_list_query() -> str:
         logger = logging.getLogger('base_script')
@@ -298,6 +297,7 @@ def main(args):
 
         for data_type, files in files_by_type.items():
             print(data_type)
+            print(files)
 
             concat_header_row_list = build_a_header(files)
 

@@ -29,8 +29,8 @@ from typing import Union
 
 from google.cloud.bigquery.table import _EmptyRowIterator
 
-from cda_bq_etl.bq_helpers import find_most_recent_published_table_id, exists_bq_table, copy_bq_table, \
-    update_friendly_name, change_status_to_archived, query_and_retrieve_result
+from cda_bq_etl.bq_helpers import (find_most_recent_published_table_id, exists_bq_table, copy_bq_table,
+                                   update_friendly_name, change_status_to_archived, query_and_retrieve_result)
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import input_with_timeout, load_config, format_seconds, get_filepath, create_metadata_table_id
 
@@ -132,6 +132,18 @@ def find_record_difference_counts(table_type: str,
                 {make_subquery(table_id_2, table_id_1)}
             )
         """
+
+    # this gets all
+    """
+    SELECT *
+    FROM `isb-project-zero.cda_gdc_metadata.r38_aliquot2caseIDmap` n
+    WHERE NOT EXISTS (
+      SELECT 1 
+      FROM `isb-project-zero.cda_gdc_metadata.r37_aliquot2caseIDmap` o 
+      WHERE o.portion_gdc_id = n.portion_gdc_id 
+        AND o.aliquot_gdc_id = n.aliquot_gdc_id
+    ) 
+    """
 
     def make_select_clause():
         if output_key_string:
@@ -276,7 +288,7 @@ def find_record_difference_counts(table_type: str,
         logger.info(f"***** {table_type.upper()} *****")
     logger.info(f"Current {table_type} count: {new_version_count}")
     logger.info(f"Previous {table_type} count: {previous_version_count}")
-    logger.info(f"Difference: {count_difference}")
+    logger.info(f"Row count change since previous version: {count_difference}")
     logger.info("")
 
     # find added records by project
@@ -344,6 +356,122 @@ def generate_column_list(table_id_list: list[str], excluded_columns: set[str]) -
     return sorted(list(column_union_set))
 
 
+def list_added_rows(table_type: str,
+                    table_ids: dict[str, str],
+                    table_metadata: dict[str, Union[str, list[str]]]):
+    def make_subquery(table_id_1, table_id_2):
+        if not table_metadata['compare_using_primary_only']:
+            select_str = f"SELECT * {excluded_column_sql_str} "
+        else:
+            select_str = f"SELECT {primary_key} "
+
+        return f"""
+            {select_str}
+            FROM `{table_id_1}`
+            EXCEPT DISTINCT
+            {select_str}
+            FROM `{table_id_2}`
+        """
+
+    def make_with_clauses(table_id_1, table_id_2):
+        return f"""
+            WITH new_rows AS (
+                {make_subquery(table_id_1, table_id_2)}
+            ), old_rows AS (
+                {make_subquery(table_id_2, table_id_1)}
+            )
+        """
+
+    def make_select_clause():
+        if output_key_string:
+            return f"SELECT COUNT({primary_key}) AS changed_count, {output_key_string}"
+        else:
+            return f"SELECT COUNT({primary_key}) AS changed_count"
+
+    def make_group_by_clause():
+        if output_key_string:
+            return f"GROUP BY {output_key_string} " \
+                   f"ORDER BY {output_key_string} "
+        else:
+            return ""
+
+    def make_added_record_count_query():
+        return f"""
+            {make_with_clauses(table_ids['source'], table_ids['previous_versioned'])}
+            {make_select_clause()}
+            FROM new_rows
+            WHERE {primary_key} NOT IN (
+                SELECT {primary_key}
+                FROM old_rows
+            )
+            {make_group_by_clause()}
+        """
+
+    def compare_records(query: str) -> tuple[int, str]:
+        # find added/removed/changed records by project
+        result = query_and_retrieve_result(query)
+
+        total_results = 0
+        num_columns = len(table_metadata['output_keys']) + 1
+        output_string = ""
+
+        if result:
+            for _row in result:
+                total_results += _row[0]
+
+                if result.total_rows > 1:
+                    # append the count, right justify
+                    row_str = f"{str(_row[0]):>10}  "
+
+                    # append the other values (e.g. project id, type) as specified in output keys
+                    for i in range(1, num_columns):
+                        row_str += f"{str(_row[i]):30}"
+
+                    output_string += '\n' + row_str
+
+        return total_results, output_string
+
+    columns_excluded_from_compare = table_metadata['columns_excluded_from_compare']
+
+    # added to sql queries if certain columns are excluded
+    excluded_column_sql_str = ''
+
+    if columns_excluded_from_compare:
+        excluded_columns = ", ".join(columns_excluded_from_compare)
+        excluded_column_sql_str = f"EXCEPT ({excluded_columns})"
+
+    logger = logging.getLogger('base_script')
+
+    if table_ids['previous_versioned'] is None:
+        logger.warning(f"No previous table found for {table_ids['versioned']}; therefore, no changes to report.")
+        return
+
+    if 'output_keys' in table_metadata and table_metadata['output_keys']:
+        output_key_string = ", ".join(table_metadata['output_keys'])
+    else:
+        output_key_string = ''
+
+    primary_key = table_metadata['primary_key']
+
+    if 'secondary_key' in table_metadata and table_metadata['secondary_key'] is not None:
+        secondary_key = table_metadata['secondary_key'] + ', '
+    else:
+        secondary_key = ''
+
+    added_count, added_str = compare_records(query=make_added_record_count_query())
+
+    logger.info(f"Added {table_type} count: {added_count}")
+    # outputs counts by project or other type, where applicable
+    if added_str and not table_metadata['compare_using_primary_only'] and added_str.strip() != added_count:
+        logger.info(added_str)
+
+
+def list_removed_rows(table_type: str,
+                    table_ids: dict[str, str],
+                    table_metadata: dict[str, Union[str, list[str]]]):
+    pass
+
+
 def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_display_rows: int = 5):
     """
     Compare column in new table and most recently published table, matching values based on primary key (and,
@@ -373,6 +501,8 @@ def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_dis
             """
             secondary_key_join_str = f"AND n.{secondary_key} = o.{secondary_key}"
 
+            secondary_key_where_str = f"OR (n.{secondary_key} IS NOT NULL AND o.{secondary_key} IS NOT NULL)"
+
         return f"""
             WITH different_in_new AS (
                 SELECT {secondary_key_with_str} {primary_key}, {column_name}
@@ -399,6 +529,9 @@ def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_dis
             FULL JOIN different_in_old o
                 ON n.{primary_key} = o.{primary_key}
                     {secondary_key_join_str}
+            WHERE (n.{primary_key} IS NOT NULL
+                    AND o.{primary_key} IS NOT NULL)
+                {secondary_key_where_str}     
         """
 
     logger = logging.getLogger('base_script')
@@ -709,6 +842,7 @@ def find_missing_tables(dataset, table_type):
     :param dataset: development dataset to search for new tables
     :param table_type: table data type, e.g. clinical, per_sample_file
     """
+
     logger = logging.getLogger('base_script')
 
     new_table_names_no_rel = list()
@@ -780,15 +914,6 @@ def publish_table(table_ids: dict[str, str]):
         else:
             logger.info(f"{table_ids['source']} not published, no changes detected")
 
-'''
-def get_gdc_clinical_primary_key(table_params: dict[str, Union[str, dict[str, str]]], table_ids: dict[str, str]) -> str:
-    current_table_name = table_ids['current'].split('.')[-1]
-    current_table_name = current_table_name.replace("_current", "")
-    base_table_name = current_table_name.replace(f"_{PARAMS['NODE']}", "")
-
-    return table_params['table_primary_keys'][base_table_name]
-'''
-
 
 def get_primary_key(table_type, table_params, table_ids):
     logger = logging.getLogger('base_script')
@@ -802,6 +927,21 @@ def get_primary_key(table_type, table_params, table_ids):
     else:
         logger.critical("Not defined for this node or type")
         sys.exit(-1)
+
+
+def generate_metadata_table_id_list(table_params):
+    prod_table_name = table_params['table_base_name']
+
+    prod_project_dataset_id = f"{PARAMS['PROD_PROJECT']}.{table_params['dev_dataset']}"
+
+    table_ids = {
+        'current': f"{prod_project_dataset_id}.{prod_table_name}_current",
+        'versioned': f"{prod_project_dataset_id}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
+        'source': create_metadata_table_id(PARAMS, table_params['table_base_name']),
+    }
+    table_ids['previous_versioned'] = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
+
+    return list(table_ids)
 
 
 def generate_table_id_list(table_type: str, table_params: dict[str, str]) -> list[dict[str, str]]:
@@ -870,35 +1010,32 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    # COMPARE AND PUBLISH METADATA TABLES
-    # """
+    # *** COMPARE AND PUBLISH METADATA TABLES
     logger.info("Processing metadata tables!")
     for table_type, table_params in PARAMS['METADATA_TABLE_TYPES'].items():
-        prod_dataset = table_params['prod_dataset']
-        prod_table_name = table_params['table_base_name']
-
-        table_ids = {
-            'current': f"{PARAMS['PROD_PROJECT']}.{prod_dataset}.{prod_table_name}_current",
-            'versioned': f"{PARAMS['PROD_PROJECT']}.{prod_dataset}_versioned.{prod_table_name}_{PARAMS['RELEASE']}",
-            'source': create_metadata_table_id(PARAMS, table_params['table_base_name']),
-        }
-        table_ids['previous_versioned'] = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
+        table_id_list = generate_metadata_table_id_list(table_params)
 
         if 'compare_tables' in steps:
             logger.info(f"Comparing tables for {table_params['table_base_name']}!")
 
-            # confirm that datasets and table ids exist, and preview whether table will be published
-            if can_compare_tables(table_ids):
-                # display compare_to_last.sh style output
-                find_record_difference_counts(table_type, table_ids, table_params)
-                compare_table_columns(table_ids=table_ids, table_params=table_params)
+            for table_ids in table_id_list:
+                # confirm that datasets and table ids exist, and preview whether table will be published
+                if can_compare_tables(table_ids):
+                    # display compare_to_last.sh style output
+                    find_record_difference_counts(table_type, table_ids, table_params)
+                    list_added_rows(table_type, table_ids, table_params)
+                    list_removed_rows(table_type, table_ids, table_params)
+                    compare_table_columns(table_ids=table_ids, table_params=table_params)
 
         if 'publish_tables' in steps:
             logger.info(f"Publishing tables for {table_params['table_base_name']}!")
-            publish_table(table_ids)
-    # """
+
+            for table_ids in table_id_list:
+                publish_table(table_ids)
+
+    # *** COMPARE AND PUBLISH CLINICAL AND PER SAMPLE FILE TABLES
     logger.info("Processing per-program and per-project tables.")
-    # COMPARE AND PUBLISH CLINICAL AND PER SAMPLE FILE TABLES
+
     for table_type, table_params in PARAMS['PER_PROJECT_TABLE_TYPES'].items():
         # look for list of last release's published tables to ensure none have disappeared before comparing
         logger.info("Searching for missing tables!")
@@ -912,11 +1049,9 @@ def main(args):
             for table_ids in table_ids_list:
                 logger.info(f"Comparing tables for {table_ids['source']}!")
                 # confirm that datasets and table ids exist, and preview whether table will be published
-                data_to_compare = can_compare_tables(table_ids)
-
                 modified_table_params = dict()
 
-                if data_to_compare:
+                if can_compare_tables(table_ids):
                     for key, value in table_params.items():
                         modified_table_params[key] = value
 
