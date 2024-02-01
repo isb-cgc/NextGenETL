@@ -263,11 +263,11 @@ def main(args):
                     logger.info(f"md5sums match! Written to {file_path}")
 
             except InvalidResponse:
-                print(f"{gs_uri} request failed")
+                logger.error(f"{gs_uri} request failed; InvalidResponse")
                 file_obj.close()
                 os.remove(file_path)
             except Forbidden:
-                print(f"{gs_uri} request failed")
+                logger.error(f"{gs_uri} request failed; Forbidden")
                 file_obj.close()
                 os.remove(file_path)
 
@@ -296,10 +296,10 @@ def main(args):
         concat_file_paths = list()
 
         for data_type, files in files_by_type.items():
-            print(data_type)
-            print(files)
-
+            logger.info(data_type)
             concat_header_row_list = build_a_header(files)
+            concat_header_row_list.append('program')
+            concat_header_row_list.append('project_short_name')
 
             new_file_path = f"{local_concat_dir}/{PARAMS['RELEASE']}_TCGA_{data_type}_raw.tsv"
             concat_file_paths.append(new_file_path)
@@ -332,6 +332,13 @@ def main(args):
                                 else:
                                     big_tsv_fh.write("NA\t")
 
+                            file_name = file_path.split('/')[-1]
+                            project_short_name_suffix = file_name.split('_')[-1].strip('.txt').upper()
+                            project_short_name = f"TCGA-{project_short_name_suffix}"
+
+                            # add program and project short name to tsv
+                            big_tsv_fh.write(f"TCGA\t")
+                            big_tsv_fh.write(f"{project_short_name}\t")
                             big_tsv_fh.write("\n")
 
         with open(file_traversal_list, mode='w') as traversal_list_file:
@@ -446,12 +453,10 @@ def main(args):
 
                 distinct_result = query_and_retrieve_result(distinct_query)
 
-                print()
-                print(column)
-                print()
+                logger.info(column)
 
                 for row in distinct_result:
-                    print(row[0])
+                    logger.info(row[0])
 
                 time.sleep(3)
 
@@ -471,7 +476,7 @@ def main(args):
 
         for key, value in record.items():
             if value:
-                print(f"{key}: {value}")
+                logger.info(f"{key}: {value}")
 
 
 
