@@ -65,7 +65,6 @@ def create_tsv_with_final_headers(tsv_file, headers, data_start_idx):
             tsv_fh.write(f"{line}\n")
 
 
-
 def create_bq_column_names(tsv_file, header_row_idx):
     """
     Create bq column names. Formats them to be bq compatible.
@@ -300,6 +299,8 @@ def main(args):
             concat_header_row_list = build_a_header(files)
             concat_header_row_list.append('program')
             concat_header_row_list.append('project_short_name')
+
+            logger.info(concat_header_row_list)
 
             new_file_path = f"{local_concat_dir}/{PARAMS['RELEASE']}_TCGA_{data_type}_raw.tsv"
             concat_file_paths.append(new_file_path)
