@@ -222,19 +222,15 @@ def main(args):
             shutil.rmtree(local_program_dir)
 
         # create needed directories if they don't already exist
-        logger.info(local_program_dir)
         if not os.path.exists(local_program_dir):
             logger.info(f"Creating directory {local_program_dir}")
             os.makedirs(local_program_dir)
-        logger.info(local_files_dir)
         if not os.path.exists(local_files_dir):
             logger.info(f"Creating directory {local_files_dir}")
             os.makedirs(local_files_dir)
-        logger.info(local_concat_dir)
         if not os.path.exists(local_concat_dir):
             logger.info(f"Creating directory {local_concat_dir}")
             os.makedirs(local_concat_dir)
-        logger.info(local_schemas_dir)
         if not os.path.exists(local_schemas_dir):
             logger.info(f"Creating directory {local_schemas_dir}")
             os.makedirs(local_schemas_dir)
