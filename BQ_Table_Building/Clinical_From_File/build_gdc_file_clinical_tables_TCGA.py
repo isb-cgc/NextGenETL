@@ -318,9 +318,6 @@ def main(args):
                         for line in lines:
                             if line_cnt == PARAMS['HEADER_ROW_IDX']:
                                 header_row_list = line.rstrip('\n').split("\t")
-                                if data_type == 'patient':
-                                    print(header_row_list)
-
                                 line_cnt += 1
                                 continue
                             elif line_cnt < PARAMS['DATA_START_IDX']:
@@ -340,7 +337,7 @@ def main(args):
                             project_short_name_suffix = file_name.split('_')[-1].strip('.txt').upper()
                             project_short_name = f"TCGA-{project_short_name_suffix}"
 
-                            # add program and project short name to tsv
+                            # add program and project short name to tsv rows
                             big_tsv_fh.write(f"TCGA\t")
                             big_tsv_fh.write(f"{project_short_name}\t")
                             big_tsv_fh.write("\n")
