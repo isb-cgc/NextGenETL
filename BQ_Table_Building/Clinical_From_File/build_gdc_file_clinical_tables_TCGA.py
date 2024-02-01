@@ -320,6 +320,7 @@ def main(args):
                                 header_row_list = line.rstrip('\n').split("\t")
                                 if data_type == 'patient':
                                     print(header_row_list)
+
                                 line_cnt += 1
                                 continue
                             elif line_cnt < PARAMS['DATA_START_IDX']:
