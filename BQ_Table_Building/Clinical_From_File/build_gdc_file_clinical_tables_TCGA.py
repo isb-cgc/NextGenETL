@@ -334,7 +334,8 @@ def main(args):
                                     big_tsv_fh.write("NA\t")
 
                             file_name = file_path.split('/')[-1]
-                            project_short_name_suffix = file_name.split('_')[-1].strip('.txt').upper()
+                            project_short_name_suffix = file_name.split('.')[-1]
+                            project_short_name_suffix = project_short_name_suffix.split('_')[-1].strip('.txt').upper()
                             project_short_name = f"TCGA-{project_short_name_suffix}"
 
                             # add program and project short name to tsv rows
