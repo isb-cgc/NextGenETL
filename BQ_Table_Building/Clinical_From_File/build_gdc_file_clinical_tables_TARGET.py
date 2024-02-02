@@ -52,6 +52,7 @@ def create_program_tables_dict() -> dict[str, list[str]]:
 
     return project_tables
 
+
 def main(args):
     try:
         start_time = time.time()
