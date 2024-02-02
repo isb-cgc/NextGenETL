@@ -52,7 +52,91 @@ def create_program_tables_dict() -> dict[str, list[str]]:
 
     return project_tables
 
+def main(args):
+    try:
+        start_time = time.time()
 
+        global PARAMS
+        PARAMS, steps = load_config(args, YAML_HEADERS)
+    except ValueError as err:
+        sys.exit(err)
+
+    log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
+    log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
+    logger = initialize_logging(log_filepath)
+
+    logger.info(f"GDC clinical file script started at {time.strftime('%x %X', time.localtime())}")
+
+    program = "TCGA"
+
+    local_program_dir = get_scratch_fp(PARAMS, program)
+    local_files_dir = f"{local_program_dir}/files"
+    local_concat_dir = f"{local_program_dir}/concat_files"
+    local_schemas_dir = f"{local_program_dir}/schemas"
+    file_traversal_list = f"{local_program_dir}/{PARAMS['BASE_FILE_NAME']}_traversal_list_{program}.txt"
+    tables_file = f"{local_program_dir}/{PARAMS['RELEASE']}_tables_{program}.txt"
+
+    if 'build_file_list_and_download' in steps:
+        # create needed directories if they don't already exist
+        logger.info('build_file_pull_list')
+
+        if os.path.exists(local_program_dir):
+            shutil.rmtree(local_program_dir)
+
+        # create needed directories if they don't already exist
+        if not os.path.exists(local_program_dir):
+            logger.info(f"Creating directory {local_program_dir}")
+            os.makedirs(local_program_dir)
+        if not os.path.exists(local_files_dir):
+            logger.info(f"Creating directory {local_files_dir}")
+            os.makedirs(local_files_dir)
+        if not os.path.exists(local_concat_dir):
+            logger.info(f"Creating directory {local_concat_dir}")
+            os.makedirs(local_concat_dir)
+        if not os.path.exists(local_schemas_dir):
+            logger.info(f"Creating directory {local_schemas_dir}")
+            os.makedirs(local_schemas_dir)
+
+        file_pull_list = make_file_pull_list(program, PARAMS['FILTERS'])
+
+        print(file_pull_list)
+        exit(0)
+
+        storage_client = storage.Client()
+
+        for file_data in file_pull_list:
+            file_name = file_data['file_name']
+            gs_uri = file_data['file_gdc_url']
+            md5sum = file_data['md5sum']
+
+            file_path = f"{local_files_dir}/{file_name}"
+
+            file_obj = open(file_path, 'wb')
+
+            try:
+                storage_client.download_blob_to_file(blob_or_uri=gs_uri, file_obj=file_obj)
+                file_obj.close()
+
+                md5sum_actual = calculate_md5sum(file_path)
+
+                if md5sum != md5sum_actual:
+                    logger.error(f"md5sum mismatch for {gs_uri}.")
+                    logger.error(f"expected {md5sum}, actual {md5sum_actual}")
+                    sys.exit(-1)
+                else:
+                    logger.info(f"md5sums match! Written to {file_path}")
+
+            except InvalidResponse:
+                logger.error(f"{gs_uri} request failed; InvalidResponse")
+                file_obj.close()
+                os.remove(file_path)
+            except Forbidden:
+                logger.error(f"{gs_uri} request failed; Forbidden")
+                file_obj.close()
+                os.remove(file_path)
+
+
+'''
 def main(args):
     try:
         start_time = time.time()
@@ -142,7 +226,7 @@ def main(args):
     end_time = time.time()
 
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
-
+'''
 
 if __name__ == '__main__':
     main(sys.argv)
