@@ -29,12 +29,13 @@ from google.cloud.exceptions import Forbidden
 from google.resumable_media import InvalidResponse
 
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
-                                   create_and_load_table_from_tsv, query_and_retrieve_result, list_tables_in_dataset)
-from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket, download_from_external_bucket
-from cda_bq_etl.data_helpers import initialize_logging, make_string_bq_friendly, write_list_to_tsv, \
-    create_normalized_tsv
-from cda_bq_etl.utils import format_seconds, get_filepath, load_config, get_scratch_fp, calculate_md5sum, \
-    create_dev_table_id
+                                   create_and_load_table_from_tsv, query_and_retrieve_result, list_tables_in_dataset,
+                                   get_columns_in_table)
+from cda_bq_etl.gcs_helpers import upload_to_bucket
+from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, write_list_to_tsv,
+                                     create_normalized_tsv)
+from cda_bq_etl.utils import (format_seconds, get_filepath, load_config, get_scratch_fp, calculate_md5sum,
+                              create_dev_table_id)
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -174,10 +175,10 @@ def create_bq_column_names(tsv_file, header_row_idx):
 def create_tsv_with_final_headers(tsv_file, headers, data_start_idx):
     """
     Creates modified tsv with bq-compatible column names.
-    Strips additional header column rows (e.g. in the case of TCGA, where three column header rows exist.)
-    :param tsv_file: raw tsv file, either downloaded from GDC or created by converting excel file to tsv.
+    Strips additional header column rows
+    :param tsv_file: raw tsv file, either downloaded from GDC or created by converting Excel file to tsv.
     :param headers: list of bq-compatible headers.
-    :param data_start_idx: starting row index for data (should be 1 for TARGET and 3 for TCGA)
+    :param data_start_idx: starting row index for data (should be 1 for TARGET)
     """
     try:
         with open(tsv_file, 'r') as tsv_fh:
@@ -320,7 +321,7 @@ def main(args):
         header_row_idx = PARAMS['HEADER_ROW_IDX']
 
         for tsv_file_path in all_files:
-            # The TCGA files have a different encoding--so if a file can't be decoded in Unicode format,
+            # Some files have a different encoding--so if a file can't be decoded in Unicode format,
             # open the file using ISO-8859-1 encoding instead.
             try:
                 with open(tsv_file_path, 'r') as tsv_fh:
@@ -370,11 +371,6 @@ def main(args):
             table_name = create_table_name_from_file_name(normalized_tsv_file_path)
             table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}"
 
-            if program == "TCGA":
-                renamed_table = table_name.replace("nationwidechildrens_org", "TCGA")
-                table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{renamed_table}"
-                print(f"table renamed to: {table_id}")
-
             schema_file_name = f"schema_{table_name}.json"
 
             bq_schema = retrieve_bq_schema_object(PARAMS,
@@ -422,6 +418,12 @@ def main(args):
             print(table)
 
             table_id = f"isb-project-zero.clinical_from_files_raw.{table}"
+
+            print(table_id)
+            print(get_columns_in_table(table_id))
+            print()
+            continue
+
             project = table.split("_")[2]
 
             sql = f"""
