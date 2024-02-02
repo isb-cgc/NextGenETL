@@ -1002,6 +1002,7 @@ def generate_table_id_list(table_type: str, table_params: dict[str, str]) -> lis
 
 def compare_tables(table_type, table_params, table_id_list):
     logger = logging.getLogger("base_script")
+    logger.info(f'Comparing tables for {table_type}')
 
     for table_ids in table_id_list:
         # table_base_name only defined for metadata tables, so otherwise we'll output the source table
@@ -1045,8 +1046,6 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    # *** COMPARE AND PUBLISH METADATA TABLES
-    logger.info("Processing metadata tables!")
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
         if table_params['table_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
