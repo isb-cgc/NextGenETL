@@ -89,9 +89,7 @@ def can_compare_tables(table_ids: dict[str, str]) -> bool:
         return False
 
     # is there a previous version to compare with new table?
-    has_new_data = table_has_new_data(table_ids['previous_versioned'], table_ids['source'])
-
-    if has_new_data:
+    if table_has_new_data(table_ids['previous_versioned'], table_ids['source']):
         logger.info(f"New data found--table will be published.")
         logger.info("")
         return True
@@ -969,21 +967,33 @@ def generate_table_id_list(table_type: str, table_params: dict[str, str]) -> lis
     table_ids_list = list()
 
     for table_name in new_table_names:
-        if PARAMS['NODE'] == 'gdc' and table_type == 'clinical':
-            dataset, prod_table = parse_gdc_clinical_table_id()
-        elif PARAMS['NODE'] == 'gdc' and table_type == 'per_sample_file':
-            dataset, prod_table = parse_gdc_per_sample_file_table_id()
+        if PARAMS['NODE'] == 'gdc':
+            if table_type == 'clinical':
+                dataset, prod_table = parse_gdc_clinical_table_id()
+            elif table_type == 'per_sample_file':
+                dataset, prod_table = parse_gdc_per_sample_file_table_id()
+            else:
+                logger.critical("Not configured for this GDC type")
+                sys.exit(-1)
+        elif PARAMS['NODE'] == 'pdc':
+            logger.critical("Not configured for this PDC type")
+            sys.exit(-1)
         else:
-            logger.critical("Not configured for this node or type")
+            logger.critical("Not configured for this node")
             sys.exit(-1)
 
+
+        current_table_id = f"{PARAMS['PROD_PROJECT']}.{dataset}.{prod_table}_current"
+        versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{dataset}_versioned.{prod_table}_{PARAMS['RELEASE']}"
+        source_table_id = f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}"
+        previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, versioned_table_id)
+
         table_ids = {
-            'current': f"{PARAMS['PROD_PROJECT']}.{dataset}.{prod_table}_current",
-            'versioned': f"{PARAMS['PROD_PROJECT']}.{dataset}_versioned.{prod_table}_{PARAMS['RELEASE']}",
-            'source': f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}",
-            'previous_versioned': ''
+            'current': current_table_id,
+            'versioned': versioned_table_id,
+            'source': source_table_id,
+            'previous_versioned': previous_versioned_table_id
         }
-        table_ids['previous_versioned'] = find_most_recent_published_table_id(PARAMS, table_ids['versioned'])
 
         table_ids_list.append(table_ids)
 
@@ -995,7 +1005,7 @@ def compare_tables(table_type, table_params, table_id_list):
 
     for table_ids in table_id_list:
         # table_base_name only defined for metadata tables, so otherwise we'll output the source table
-        if 'table_base_name' in table_params:
+        if 'table_base_name' in table_params and table_params['table_base_name']:
             logger.info(f"Comparing tables for {table_params['table_base_name']}!")
         else:
             logger.info(f"Comparing tables for {table_ids['source']}!")
@@ -1039,8 +1049,10 @@ def main(args):
     logger.info("Processing metadata tables!")
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
         if table_params['table_type'] == 'metadata':
+            # generates a list of one table id obj, but makes code cleaner to do it this way
             table_id_list = generate_metadata_table_id_list(table_params)
         else:
+            # search for missing project tables for the given table type
             find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
             table_id_list = generate_table_id_list(table_type, table_params)
 
