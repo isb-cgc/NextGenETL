@@ -1002,7 +1002,6 @@ def generate_table_id_list(table_type: str, table_params: dict[str, str]) -> lis
 
 def compare_tables(table_type, table_params, table_id_list):
     logger = logging.getLogger("base_script")
-    logger.info(f'Comparing tables for {table_type}')
 
     for table_ids in table_id_list:
         # table_base_name only defined for metadata tables, so otherwise we'll output the source table
@@ -1046,6 +1045,7 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
+    logger.info("Comparing tables!")
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
         if table_params['table_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
@@ -1054,6 +1054,9 @@ def main(args):
             # search for missing project tables for the given table type
             find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
             table_id_list = generate_table_id_list(table_type, table_params)
+
+        logger.debug(table_type)
+        logger.debug(table_id_list)
 
         if 'compare_tables' in steps:
             compare_tables(table_type, table_params, table_id_list)
