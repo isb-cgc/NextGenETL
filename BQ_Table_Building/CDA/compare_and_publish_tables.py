@@ -918,7 +918,7 @@ def get_primary_key(table_type, table_params, table_ids):
 def generate_metadata_table_id_list(table_params: dict[str, str]) -> list[dict[str, str]]:
     prod_table_name = table_params['table_base_name']
 
-    prod_project_dataset_id = f"{PARAMS['PROD_PROJECT']}.{table_params['dev_dataset']}"
+    prod_project_dataset_id = f"{PARAMS['PROD_PROJECT']}.{table_params['prod_dataset']}"
 
     current_table_id = f"{prod_project_dataset_id}.{prod_table_name}_current"
     versioned_table_id = f"{prod_project_dataset_id}_versioned.{prod_table_name}_{PARAMS['RELEASE']}"
