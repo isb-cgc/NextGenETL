@@ -16,6 +16,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import os
+import shutil
 import sys
 import time
 
@@ -29,6 +31,46 @@ from cda_bq_etl.utils import format_seconds, get_filepath, load_config, get_scra
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
+
+
+def make_file_pull_list(program: str, filters: dict[str, str]):
+    def make_file_pull_list_query() -> str:
+        logger = logging.getLogger('base_script')
+        if not filters:
+            logger.critical(f"No filters provided for {program}, exiting")
+            sys.exit(-1)
+
+        where_clause = "WHERE "
+
+        where_clause_strs = list()
+
+        for column_name, column_value in filters.items():
+            where_clause_strs.append(f"{column_name} = '{column_value}'")
+
+        where_clause += " AND ".join(where_clause_strs)
+
+        return f"""
+            SELECT f.file_gdc_id,
+               f.file_name,
+               f.md5sum,
+               f.file_size,
+               f.file_state,
+               gs.file_gdc_url
+            FROM `isb-project-zero.GDC_metadata.rel36_fileData_current` f
+            LEFT JOIN `isb-project-zero.GDC_manifests.rel36_GDCfileID_to_GCSurl` gs
+               ON f.file_gdc_id = gs.file_gdc_id 
+            {where_clause}
+        """
+
+    file_result = query_and_retrieve_result(make_file_pull_list_query())
+
+    file_list = list()
+
+    for row in file_result:
+
+        file_list.append(dict(row))
+
+    return file_list
 
 
 def create_program_tables_dict() -> dict[str, list[str]]:
@@ -68,7 +110,7 @@ def main(args):
 
     logger.info(f"GDC clinical file script started at {time.strftime('%x %X', time.localtime())}")
 
-    program = "TCGA"
+    program = "TARGET"
 
     local_program_dir = get_scratch_fp(PARAMS, program)
     local_files_dir = f"{local_program_dir}/files"
