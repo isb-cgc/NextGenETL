@@ -973,8 +973,10 @@ def generate_table_id_list(table_type: str, table_params: dict[str, str]) -> lis
         if PARAMS['NODE'] == 'gdc':
             if table_type == 'clinical':
                 dataset, prod_table = parse_gdc_clinical_table_id()
+                logger.debug(f"dataset: {dataset}, prod_table: {prod_table}")
             elif table_type == 'per_sample_file':
                 dataset, prod_table = parse_gdc_per_sample_file_table_id()
+                logger.debug(f"dataset: {dataset}, prod_table: {prod_table}")
             else:
                 logger.critical("Not configured for this GDC type")
                 sys.exit(-1)
