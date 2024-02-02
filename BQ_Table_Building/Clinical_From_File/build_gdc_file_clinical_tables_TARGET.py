@@ -403,11 +403,11 @@ def main(args):
                                             filter_terms=f"{PARAMS['RELEASE']}_TARGET")
 
         table_list = [
-            "r36_TARGET_AML_ClinicalData_AML1031_20211201",
-            "r36_TARGET_AML_ClinicalData_Discovery_20211201",
-            "r36_TARGET_AML_ClinicalData_Validation_20211201",
-            "r36_TARGET_AML_ClinicalData_AAML1031_AAML0631_additionalCasesForSortedCellsAndCBExperiment_20220330",
-            "r36_TARGET_AML_ClinicalData_LowDepthRNAseq_20220331",
+            "r38_TARGET_AML_ClinicalData_AML1031_20211201",
+            "r38_TARGET_AML_ClinicalData_Discovery_20211201",
+            "r38_TARGET_AML_ClinicalData_Validation_20211201",
+            "r38_TARGET_AML_ClinicalData_AAML1031_AAML0631_additionalCasesForSortedCellsAndCBExperiment_20220330",
+            "r38_TARGET_AML_ClinicalData_LowDepthRNAseq_20220331",
         ]
 
         records_dict = dict()
