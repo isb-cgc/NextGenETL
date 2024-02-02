@@ -396,30 +396,11 @@ def main(args):
             logger.info(table)
         logger.info("")
 
-'''
-def main(args):
-    try:
-        start_time = time.time()
-
-        global PARAMS
-        PARAMS, steps = load_config(args, YAML_HEADERS)
-    except ValueError as err:
-        sys.exit(err)
-
-    log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
-    log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
-    logger = initialize_logging(log_filepath)
-
-    logger.info(f"GDC clinical file script started at {time.strftime('%x %X', time.localtime())}")
-
     if 'analyze_tables' in steps:
         column_dict = dict()
 
         table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
                                             filter_terms=f"{PARAMS['RELEASE']}_TARGET")
-
-        print(table_list)
-        exit(0)
 
         table_list = [
             "r36_TARGET_AML_ClinicalData_AML1031_20211201",
@@ -473,8 +454,6 @@ def main(args):
 
                             print(f"{target_usi}\t{project}\t{column}\t{records_dict[target_usi][column]}\t{value}")
 
-
-
         """
         TODO:
         Create merged table.
@@ -486,7 +465,7 @@ def main(args):
     end_time = time.time()
 
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
-'''
+
 
 if __name__ == '__main__':
     main(sys.argv)
