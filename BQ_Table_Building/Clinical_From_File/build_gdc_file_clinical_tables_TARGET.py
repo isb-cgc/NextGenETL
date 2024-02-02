@@ -22,6 +22,8 @@ import logging
 import sys
 import time
 
+import pandas as pd
+
 from google.cloud import storage
 from google.cloud.exceptions import Forbidden
 from google.resumable_media import InvalidResponse
