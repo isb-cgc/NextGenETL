@@ -965,6 +965,8 @@ def generate_table_id_list(table_type: str, table_params: dict[str, str]) -> lis
     logger.info("Generating table id list")
     new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
 
+    logger.debug(new_table_names)
+
     table_ids_list = list()
 
     for table_name in new_table_names:
