@@ -402,6 +402,7 @@ def main(args):
         table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
                                             filter_terms=f"{PARAMS['RELEASE']}_TARGET")
 
+        '''
         table_list = [
             "r38_TARGET_AML_ClinicalData_AML1031_20211201",
             "r38_TARGET_AML_ClinicalData_Discovery_20211201",
@@ -409,6 +410,7 @@ def main(args):
             "r38_TARGET_AML_ClinicalData_AAML1031_AAML0631_additionalCasesForSortedCellsAndCBExperiment_20220330",
             "r38_TARGET_AML_ClinicalData_LowDepthRNAseq_20220331",
         ]
+        '''
 
         records_dict = dict()
         # target_usi: {column: value, ...}
@@ -452,7 +454,10 @@ def main(args):
                                 if float(old_value) == float(value):
                                     continue
 
-                            print(f"{target_usi}\t{project}\t{column}\t{records_dict[target_usi][column]}\t{value}")
+                            # print(f"{target_usi}\t{project}\t{column}\t{records_dict[target_usi][column]}\t{value}")
+
+        for record in records_dict:
+            print(record)
 
         """
         TODO:
