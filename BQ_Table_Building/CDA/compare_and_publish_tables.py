@@ -479,6 +479,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_dis
             secondary_key_with_str = ''
             secondary_key_select_str = ''
             secondary_key_join_str = ''
+            secondary_key_where_str = ''
         else:
             secondary_key_with_str = f"{secondary_key},"
             secondary_key_select_str = f"""
