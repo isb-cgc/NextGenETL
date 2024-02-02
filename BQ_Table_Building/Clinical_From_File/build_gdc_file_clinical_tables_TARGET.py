@@ -74,6 +74,9 @@ def main(args):
         table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
                                             filter_terms=f"{PARAMS['RELEASE']}_TARGET")
 
+        print(table_list)
+        exit(0)
+
         table_list = [
             "r36_TARGET_AML_ClinicalData_AML1031_20211201",
             "r36_TARGET_AML_ClinicalData_Discovery_20211201",
