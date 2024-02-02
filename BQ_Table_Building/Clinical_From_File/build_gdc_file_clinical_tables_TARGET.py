@@ -100,6 +100,45 @@ def create_program_tables_dict() -> dict[str, list[str]]:
     return project_tables
 
 
+def convert_excel_to_tsv(all_files, header_idx):
+    """
+    Convert Excel files to CSV files.
+    :param all_files: list of all filepaths
+    :param header_idx: header row idx
+    :return: list of tsv files
+    """
+    logger = logging.getLogger('base_script')
+    tsv_files = []
+    for file_path in all_files:
+        logger.info(file_path)
+        tsv_filepath = '.'.join(file_path.split('.')[0:-1])
+        tsv_filepath = f"{tsv_filepath}_raw.tsv"
+        excel_data = pd.read_excel(io=file_path,
+                                   index_col=None,
+                                   header=header_idx,
+                                   engine='openpyxl')
+
+        # get rid of funky newline formatting in headers
+        excel_data.columns = excel_data.columns.map(lambda x: x.replace('\r', '').replace('\n', ''))
+        # get rid of funky newline formatting in cells
+        excel_data = excel_data.replace(to_replace=[r"\\t|\\n|\\r", "\t|\n|\r"], value=["", ""], regex=True)
+
+        if excel_data.size == 0:
+            logger.info(f"*** no rows found in excel file: {file_path}; skipping")
+            continue
+        df_rows = len(excel_data)
+        excel_data.to_csv(tsv_filepath,
+                          sep='\t',
+                          index=False,
+                          na_rep="None")
+        with open(tsv_filepath, 'r') as tsv_fh:
+            tsv_rows = len(tsv_fh.readlines()) - 1
+        if df_rows != tsv_rows:
+            logger.info(f"df_rows: {df_rows}, tsv_rows: {tsv_rows}")
+        tsv_files.append(tsv_filepath)
+    return tsv_files
+
+
 def main(args):
     try:
         start_time = time.time()
