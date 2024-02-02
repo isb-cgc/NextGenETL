@@ -179,6 +179,45 @@ def main(args):
                 file_obj.close()
                 os.remove(file_path)
 
+    if 'convert_excel_to_csv' in steps:
+        # If file suffix is xlsx or xls, convert to tsv.
+        # Then modify traversal list file to point to the newly created tsv files.
+        logger.info('convert_excel_to_tsv')
+
+        file_names = os.listdir(local_files_dir)
+
+        all_files = list()
+
+        for file_name in file_names:
+            all_files.append(f"{local_files_dir}/{file_name}")
+
+        if programs[program]['file_suffix'] == 'xlsx' or programs[program]['file_suffix'] == 'xls':
+            for excel_file_path in all_files:
+                upload_to_bucket(PARAMS, scratch_fp=excel_file_path, delete_local=False)
+
+            all_tsv_files = convert_excel_to_tsv(all_files=all_files,
+                                                 header_idx=programs[program]['header_row_idx'])
+        elif programs[program]['file_suffix'] == 'txt':
+            all_tsv_files = list()
+            for file_path in all_files:
+                tsv_filepath = '.'.join(file_path.split('.')[0:-1])
+                tsv_filepath = f"{tsv_filepath}_raw.tsv"
+
+                with open(file_path, 'r', encoding="ISO-8859-1") as tsv_fh:
+                    lines = tsv_fh.readlines()
+
+                with open(tsv_filepath, 'w') as tsv_fh:
+                    for line in lines:
+                        tsv_fh.write(f"{line.strip()}\n")
+
+                all_tsv_files.append(tsv_filepath)
+        else:
+            logger.critical(f"File extension {programs[program]['file_suffix']} not currently supported, exiting.")
+            sys.exit(-1)
+
+        with open(file_traversal_list, mode='w') as traversal_list_file:
+            for tsv_file in all_tsv_files:
+                traversal_list_file.write(f"{tsv_file}\n")
 
 '''
 def main(args):
