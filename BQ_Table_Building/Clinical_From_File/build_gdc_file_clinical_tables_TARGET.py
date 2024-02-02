@@ -18,6 +18,7 @@ SOFTWARE.
 """
 import os
 import shutil
+import logging
 import sys
 import time
 
