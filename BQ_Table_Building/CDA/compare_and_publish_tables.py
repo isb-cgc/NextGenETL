@@ -1054,7 +1054,8 @@ def main(args):
             table_id_list = generate_metadata_table_id_list(table_params)
         else:
             # search for missing project tables for the given table type
-            find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
+            # todo remove
+            # find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
             table_id_list = generate_table_id_list(table_type, table_params)
             print(table_id_list)
 
