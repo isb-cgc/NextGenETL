@@ -234,29 +234,10 @@ def main(args):
         for file_name in file_names:
             all_files.append(f"{local_files_dir}/{file_name}")
 
-        if PARAMS['FILTERS']['file_suffix'] == 'xlsx' or PARAMS['FILTERS']['file_suffix'] == 'xls':
-            for excel_file_path in all_files:
-                upload_to_bucket(PARAMS, scratch_fp=excel_file_path, delete_local=False)
+        for excel_file_path in all_files:
+            upload_to_bucket(PARAMS, scratch_fp=excel_file_path, delete_local=False)
 
-            all_tsv_files = convert_excel_to_tsv(all_files=all_files,
-                                                 header_idx=PARAMS['FILTERS']['header_row_idx'])
-        elif PARAMS['FILTERS']['file_suffix'] == 'txt':
-            all_tsv_files = list()
-            for file_path in all_files:
-                tsv_filepath = '.'.join(file_path.split('.')[0:-1])
-                tsv_filepath = f"{tsv_filepath}_raw.tsv"
-
-                with open(file_path, 'r', encoding="ISO-8859-1") as tsv_fh:
-                    lines = tsv_fh.readlines()
-
-                with open(tsv_filepath, 'w') as tsv_fh:
-                    for line in lines:
-                        tsv_fh.write(f"{line.strip()}\n")
-
-                all_tsv_files.append(tsv_filepath)
-        else:
-            logger.critical(f"File extension {PARAMS['FILTERS']['file_suffix']} not currently supported, exiting.")
-            sys.exit(-1)
+        all_tsv_files = convert_excel_to_tsv(all_files=all_files, header_idx=PARAMS['HEADER_ROW_IDX'])
 
         with open(file_traversal_list, mode='w') as traversal_list_file:
             for tsv_file in all_tsv_files:
