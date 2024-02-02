@@ -22,6 +22,10 @@ import logging
 import sys
 import time
 
+from google.cloud import storage
+from google.cloud.exceptions import Forbidden
+from google.resumable_media import InvalidResponse
+
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
                                    create_and_load_table_from_tsv, query_and_retrieve_result, list_tables_in_dataset)
 from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket, download_from_external_bucket
@@ -143,8 +147,8 @@ def main(args):
 
         file_pull_list = make_file_pull_list(program, PARAMS['FILTERS'])
 
-        print(file_pull_list)
-        exit(0)
+        for file_obj in file_pull_list:
+            print(file_obj['file_name'])
 
         storage_client = storage.Client()
 
@@ -191,13 +195,13 @@ def main(args):
         for file_name in file_names:
             all_files.append(f"{local_files_dir}/{file_name}")
 
-        if programs[program]['file_suffix'] == 'xlsx' or programs[program]['file_suffix'] == 'xls':
+        if PARAMS['FILTERS']['file_suffix'] == 'xlsx' or PARAMS['FILTERS']['file_suffix'] == 'xls':
             for excel_file_path in all_files:
                 upload_to_bucket(PARAMS, scratch_fp=excel_file_path, delete_local=False)
 
             all_tsv_files = convert_excel_to_tsv(all_files=all_files,
-                                                 header_idx=programs[program]['header_row_idx'])
-        elif programs[program]['file_suffix'] == 'txt':
+                                                 header_idx=PARAMS['FILTERS']['header_row_idx'])
+        elif PARAMS['FILTERS']['file_suffix'] == 'txt':
             all_tsv_files = list()
             for file_path in all_files:
                 tsv_filepath = '.'.join(file_path.split('.')[0:-1])
@@ -212,7 +216,7 @@ def main(args):
 
                 all_tsv_files.append(tsv_filepath)
         else:
-            logger.critical(f"File extension {programs[program]['file_suffix']} not currently supported, exiting.")
+            logger.critical(f"File extension {PARAMS['FILTERS']['file_suffix']} not currently supported, exiting.")
             sys.exit(-1)
 
         with open(file_traversal_list, mode='w') as traversal_list_file:
