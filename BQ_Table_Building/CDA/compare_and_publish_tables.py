@@ -983,7 +983,6 @@ def generate_table_id_list(table_type: str, table_params: dict[str, str]) -> lis
             logger.critical("Not configured for this node")
             sys.exit(-1)
 
-
         current_table_id = f"{PARAMS['PROD_PROJECT']}.{dataset}.{prod_table}_current"
         versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{dataset}_versioned.{prod_table}_{PARAMS['RELEASE']}"
         source_table_id = f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}"
@@ -1049,12 +1048,15 @@ def main(args):
     logger.info("Comparing tables!")
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
         if table_params['table_type'] == 'metadata':
+            # todo remove
+            continue
             # generates a list of one table id obj, but makes code cleaner to do it this way
             table_id_list = generate_metadata_table_id_list(table_params)
         else:
             # search for missing project tables for the given table type
             find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
             table_id_list = generate_table_id_list(table_type, table_params)
+            print(table_id_list)
 
         logger.debug(table_type)
         logger.debug(table_id_list)
