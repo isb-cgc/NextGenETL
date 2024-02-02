@@ -1027,8 +1027,8 @@ def compare_tables(table_type, table_params, table_id_list):
 
             # display compare_to_last.sh style output
             find_record_difference_counts(table_type, table_ids, modified_table_params)
-            list_added_rows(table_type, table_ids, modified_table_params)
-            list_removed_rows(table_type, table_ids, modified_table_params)
+            # list_added_rows(table_type, table_ids, modified_table_params)
+            # list_removed_rows(table_type, table_ids, modified_table_params)
             compare_table_columns(table_ids, modified_table_params)
 
 
