@@ -300,10 +300,13 @@ def main(args):
         update_dir_from_git(f"{home}/{params.SCHEMA_REPO_LOCAL}", params.SCHEMA_REPO_URL, params.SCHEMA_REPO_BRANCH)
 
     # Derived Data Steps
-    for data_type, programs in data_to_gather:
+    for data_type in data_to_gather:
+        if data_type is not None:
+            for program in data_type:
+                build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data_type, program)
 
-        for program in programs:
-            build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data_type, program)
+        else:
+            logger.info(f"{data_type} will not run")
 
     end = time.time() - start_time
     logger.info(f"Finished program execution in {format_seconds(end)}!\n")
