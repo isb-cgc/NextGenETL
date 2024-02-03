@@ -965,18 +965,14 @@ def generate_table_id_list(table_type: str, table_params: dict[str, str]) -> lis
     logger.info("Generating table id list")
     new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
 
-    logger.debug(new_table_names)
-
     table_ids_list = list()
 
     for table_name in new_table_names:
         if PARAMS['NODE'] == 'gdc':
             if table_type == 'clinical':
                 dataset, prod_table = parse_gdc_clinical_table_id()
-                logger.debug(f"dataset: {dataset}, prod_table: {prod_table}")
             elif table_type == 'per_sample_file':
                 dataset, prod_table = parse_gdc_per_sample_file_table_id()
-                logger.debug(f"dataset: {dataset}, prod_table: {prod_table}")
             else:
                 logger.critical("Not configured for this GDC type")
                 sys.exit(-1)
@@ -999,6 +995,7 @@ def generate_table_id_list(table_type: str, table_params: dict[str, str]) -> lis
             'previous_versioned': previous_versioned_table_id
         }
 
+        logger.debug(f"appending: {table_ids}")
         table_ids_list.append(table_ids)
 
     return table_ids_list
