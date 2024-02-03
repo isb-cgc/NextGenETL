@@ -301,7 +301,7 @@ def main(args):
 
     # Derived Data Steps
     for data_type in data_to_gather:
-        if data_type is not None:
+        if data_type:
             for program in data_type:
                 build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data_type, program)
 
