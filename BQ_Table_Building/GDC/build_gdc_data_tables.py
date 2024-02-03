@@ -54,9 +54,10 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None
+        print("Could not parse YAML")
+        return None, None, None
 
-    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps']
+    return yaml_dict['data_to_gather'], yaml_dict['steps'], yaml_dict['parameters']
 
 
 def create_file_list(params, program, datatype, local_location, prefix, file_list, datatype_mappings):
@@ -178,12 +179,11 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
     return intermediate_tables
 
 
-def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, program_datatype):
+def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data_type, program):
     logger = logging.getLogger('base_script')
-    program, datatype = program_datatype.split(", ")
 
     # file variables
-    prefix = f"{program}_{datatype}_{params.RELEASE}{workflow_run_ver}"
+    prefix = f"{program}_{data_type}_{params.RELEASE}{workflow_run_ver}"
     local_location = f"{home}/{local_dir}/{program}"
     tables_created_file = f"{home}/{params.LOCAL_DIR}/tables_created_{params.RELEASE}{workflow_run_ver}.txt"
 
@@ -197,7 +197,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, prog
 
     if 'create_file_list' in steps:
         logger.info("Running create_file_list Step")
-        create_file_list(params, program, datatype, local_location, prefix, file_list, datatype_mappings)
+        create_file_list(params, program, data_type, local_location, prefix, file_list, datatype_mappings)
 
     if 'create_files' in steps:
         logging.info("Running create_files Step")
@@ -278,7 +278,7 @@ def main(args):
 
     # Get the YAML config loaded:
     with open(args[1], mode='r') as yaml_file:
-        params_dict, steps = load_config(yaml_file.read())
+        data_to_gather, steps, params_dict = load_config(yaml_file.read())
         params = SimpleNamespace(**params_dict)
 
     # Set the workflow run count from yaml
@@ -300,9 +300,10 @@ def main(args):
         update_dir_from_git(f"{home}/{params.SCHEMA_REPO_LOCAL}", params.SCHEMA_REPO_URL, params.SCHEMA_REPO_BRANCH)
 
     # Derived Data Steps
-    for program_datatype in params.PROGRAMS_AND_DATASETS:
+    for data_type, programs in data_to_gather:
 
-        build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, program_datatype)
+        for program in programs:
+            build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data_type, program)
 
     end = time.time() - start_time
     logger.info(f"Finished program execution in {format_seconds(end)}!\n")
