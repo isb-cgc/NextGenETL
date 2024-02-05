@@ -210,7 +210,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         typing_tups = find_types(raw_data, params.SCHEMA_SAMPLE_SKIPS)
 
         create_schema_hold_list(typing_tups,
-                                f"{home}/schemaRepo/TableFieldUpdates/gdc_{datatype}_desc.json",
+                                f"{home}/schemaRepo/TableFieldUpdates/gdc_{data_type}_desc.json",
                                 field_list, True)
 
     if 'upload_to_bucket' in steps:
@@ -226,7 +226,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
 
     if 'transform_bq_data' in steps:  # todo currently working on
         logging.info("Running transform_bq_data Step")
-        created_tables = transform_bq_data(datatype, raw_data, draft_table, params.ALIQUOT_TABLE, params.CASE_TABLE,
+        created_tables = transform_bq_data(data_type, raw_data, draft_table, params.ALIQUOT_TABLE, params.CASE_TABLE,
                                            params.FILE_TABLE, params.GENE_NAMES_TABLE)
         with open(tables_created_file, 'w') as outfile:
             for table in created_tables:
@@ -242,8 +242,8 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
             write_table_schema_with_generic(
                 f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{draft_table}",
                 updated_schema_tags,
-                f"{home}/schemaRepo/GenericSchemas/{program}_{datatype}.json",
-                f"{home}/schemaRepo/TableFieldUpdates/gdc_{program}_{datatype}_desc.json")
+                f"{home}/schemaRepo/GenericSchemas/{program}_{data_type}.json",
+                f"{home}/schemaRepo/TableFieldUpdates/gdc_{program}_{data_type}_desc.json")
 
     if 'qc_tables' in steps:
         # todo
@@ -301,10 +301,9 @@ def main(args):
 
     # Derived Data Steps
     for data_type in data_to_gather:
-        if data_type:
+        if data_to_gather[data_type]:
             for program in data_type:
                 build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data_type, program)
-
         else:
             logger.info(f"{data_type} will not run")
 
