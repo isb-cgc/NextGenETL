@@ -72,7 +72,7 @@ def create_file_list(params, program, datatype, local_location, prefix, file_lis
         sys.exit("Create file list bq table failed")
 
     if not bq_to_bucket_tsv(f"{prefix}_file_list", params.DEV_PROJECT, params.DEV_DATASET,
-                            bucket_location, f"{prefix}_file_list",params.DO_BATCH, False):
+                            bucket_location, f"{prefix}_file_list", params.DO_BATCH, False):
         sys.exit("bq to bucket failed")
 
     if not bucket_to_local(bucket_location, file_list, f"{local_location}/{file_list}"):
@@ -94,7 +94,7 @@ def create_file_list_sql(program, filters, file_table, gcs_url_table, max_files)
         SELECT b.file_gdc_url
         FROM  `{file_table}` as a
         JOIN `{gcs_url_table}` as b
-        ON a.file_gdc_id = b.file_gdc_id
+        ON a.file_gdc_id = b.id
         WHERE {joined_filters} AND a.`access` = "open" AND a.program_name = {program}
         {file_limit}
         """
