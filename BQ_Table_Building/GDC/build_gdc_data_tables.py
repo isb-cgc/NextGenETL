@@ -82,11 +82,10 @@ def create_file_list_sql(program, filters, file_table, gcs_url_table, max_files)
 
     formatted_filters = []
 
-    for key, val in filters:
+    for key, val in filters.items():
         formatted_filters.append(f"a.{key} = '{val}'")
 
     joined_filters = " AND ".join(formatted_filters)
-    all_filters = f"WHERE {joined_filters}"
 
     file_limit = "" if max_files is None else f"LIMIT {max_files}"
 
@@ -95,7 +94,7 @@ def create_file_list_sql(program, filters, file_table, gcs_url_table, max_files)
         FROM  `{file_table}` as a
         JOIN `{gcs_url_table}` as b
         ON a.file_gdc_id = b.file_gdc_id
-        WHERE {all_filters} AND a.`access` = "open" AND a.program_name = {program}
+        WHERE {joined_filters} AND a.`access` = "open" AND a.program_name = {program}
         {file_limit}
         """
 
