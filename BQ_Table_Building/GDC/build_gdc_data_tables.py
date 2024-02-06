@@ -28,8 +28,10 @@ import shutil
 import zipfile
 import gzip
 
-from gdc_file_utils import (confirm_google_vm, format_seconds, update_dir_from_git, query_bq, bq_to_bucket_tsv, bucket_to_local, find_types,
-                            create_schema_hold_list, local_to_bucket, update_schema_tags, write_table_schema_with_generic,
+from gdc_file_utils import (confirm_google_vm, format_seconds, update_dir_from_git, query_bq, bq_to_bucket_tsv,
+                            bucket_to_local, find_types,
+                            create_schema_hold_list, local_to_bucket, update_schema_tags,
+                            write_table_schema_with_generic,
                             csv_to_bq, initialize_logging, bq_table_exists)
 
 from open_somatic_mut import create_somatic_mut_table
@@ -66,7 +68,7 @@ def create_file_list(params, program, datatype, local_location, prefix, file_lis
 
     file_list_sql = create_file_list_sql(program, datatype_mappings[datatype]['filters'],
                                          f"{params.FILE_TABLE}_{params.RELEASE}",
-                                        params.GSC_URL_TABLE.format(params.RELEASE), max_files)
+                                         f"{params.GSC_URL_TABLE}_{params.RELEASE}", max_files)
 
     if query_bq(file_list_sql, f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{prefix}_file_list") != 'DONE':
         sys.exit("Create file list bq table failed")
@@ -80,7 +82,6 @@ def create_file_list(params, program, datatype, local_location, prefix, file_lis
 
 
 def create_file_list_sql(program, filters, file_table, gcs_url_table, max_files):
-
     formatted_filters = []
 
     for key, val in filters.items():
@@ -94,7 +95,7 @@ def create_file_list_sql(program, filters, file_table, gcs_url_table, max_files)
         SELECT b.file_gdc_url
         FROM  `{file_table}` as a
         JOIN `{gcs_url_table}` as b
-        ON a.file_gdc_id = b.id
+        ON a.file_gdc_id = b.file_gdc_id
         WHERE {joined_filters} AND a.`access` = "open" AND a.program_name = '{program}'
         {file_limit}
         """
@@ -191,7 +192,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
 
     file_list = f"{prefix}_file_list.tsv"
     raw_data = f"{prefix}_raw"
-    draft_table = f"{prefix}_draft_table" # todo find out where needs the table name and where it should be table id
+    draft_table = f"{prefix}_draft_table"  # todo find out where needs the table name and where it should be table id
     field_list = f"{local_location}/{prefix}_field_schema.json"
 
     if 'create_file_list' in steps:
@@ -236,7 +237,8 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         logging.info("Running update_table_schema Step")
 
         if bq_table_exists(draft_table):
-            updated_schema_tags = update_schema_tags(datatype_mappings, params.RELEASE, params.REL_DATE, program) # todo is this correct?
+            updated_schema_tags = update_schema_tags(datatype_mappings, params.RELEASE, params.REL_DATE,
+                                                     program)  # todo is this correct?
 
             write_table_schema_with_generic(
                 f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{draft_table}",
@@ -308,6 +310,7 @@ def main(args):
 
     end = time.time() - start_time
     logger.info(f"Finished program execution in {format_seconds(end)}!\n")
+
 
 if __name__ == "__main__":
     main(sys.argv)
