@@ -74,7 +74,7 @@ def create_file_list(params, program, datatype, local_location, prefix, file_lis
         sys.exit("Create file list bq table failed")
 
     if not bq_to_bucket_tsv(f"{prefix}_file_list", params.DEV_PROJECT, params.DEV_DATASET,
-                            bucket_location, f"{prefix}_file_list", params.DO_BATCH, False):
+                            bucket_location, f"{prefix}_file_list", params.BQ_AS_BATCH, False):
         sys.exit("bq to bucket failed")
 
     if not bucket_to_local(bucket_location, file_list, f"{local_location}/{file_list}"):
