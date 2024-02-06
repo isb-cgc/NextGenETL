@@ -61,9 +61,8 @@ def load_config(yaml_config):
 
 
 def create_file_list(params, program, datatype, local_location, prefix, file_list, datatype_mappings):
-
-    max_files = params.MAX_FILES if 'MAX_FILES' in params else None
-    bucket_location = f"{params.BUCKET}/gdc_{params.RELEASE}"
+    max_files = params.MAX_FILES if 'MAX_FILES' in vars(params) else None
+    bucket_location = f"{params.DEV_BUCKET}/gdc_{params.RELEASE}"
 
     file_list_sql = create_file_list_sql(program, datatype_mappings[datatype]['filters'],
                                          params.FILE_TABLE, params.GSC_URL_TABLE, max_files)
@@ -215,11 +214,11 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
 
     if 'upload_to_bucket' in steps:
         logging.info("Running upload_to_bucket Step")
-        local_to_bucket(f"{params.WORKING_BUCKET}/{params.RELEASE}/", raw_data, f"{local_location}/{raw_data}")
+        local_to_bucket(f"{params.DEV_BUCKET}/{params.RELEASE}/", raw_data, f"{local_location}/{raw_data}")
 
     if 'create_bq_from_tsv' in steps:
         logging.info("Running create_bq_from_tsv Step")
-        bucket_src_url = f'gs://{params.WORKING_BUCKET}/{params.RELEASE}/{raw_data}'
+        bucket_src_url = f'gs://{params.DEV_BUCKET}/{params.RELEASE}/{raw_data}'
         with open(field_list, mode='r') as schema_list:
             typed_schema = json_loads(schema_list.read())
         csv_to_bq(typed_schema, bucket_src_url, params.DEV_DATASET, raw_data, params.BQ_AS_BATCH, True)
