@@ -286,7 +286,7 @@ def query_bq(sql, dest_table_id=None, project=None):
     if dest_table_id is None:
         return query_job.result()
     else:
-        return query_job
+        return query_job.state
 
 
 def bq_to_bucket_tsv(src_table, project, dataset, bucket_name, bucket_file, do_batch, do_header):
