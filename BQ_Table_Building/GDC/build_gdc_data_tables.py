@@ -66,7 +66,7 @@ def create_file_list(params, program, datatype, local_location, prefix, file_lis
 
     file_list_sql = create_file_list_sql(program, datatype_mappings[datatype]['filters'],
                                          f"{params.FILE_TABLE}_{params.RELEASE}",
-                                        f"{params.GSC_URL_TABLE}_{params.RELEASE}", max_files)
+                                        params.GSC_URL_TABLE.format(params.RELEASE), max_files)
 
     if query_bq(file_list_sql, f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{prefix}_file_list") != 'DONE':
         sys.exit("Create file list bq table failed")
