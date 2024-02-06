@@ -65,13 +65,14 @@ def create_file_list(params, program, datatype, local_location, prefix, file_lis
     bucket_location = f"{params.DEV_BUCKET}/gdc_{params.RELEASE}"
 
     file_list_sql = create_file_list_sql(program, datatype_mappings[datatype]['filters'],
-                                         params.FILE_TABLE, params.GSC_URL_TABLE, max_files)
+                                         f"{params.FILE_TABLE}_{params.RELEASE}",
+                                        f"{params.GSC_URL_TABLE}_{params.RELEASE}", max_files)
 
     if query_bq(file_list_sql, f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{prefix}_file_list") != 'DONE':
         sys.exit("Create file list bq table failed")
 
     if not bq_to_bucket_tsv(f"{prefix}_file_list", params.DEV_PROJECT, params.DEV_DATASET,
-                            bucket_location, params.DO_BATCH, False): # todo double batch?
+                            bucket_location, f"{prefix}_file_list",params.DO_BATCH, False):
         sys.exit("bq to bucket failed")
 
     if not bucket_to_local(bucket_location, file_list, f"{local_location}/{file_list}"):
@@ -91,7 +92,7 @@ def create_file_list_sql(program, filters, file_table, gcs_url_table, max_files)
 
     return f"""
         SELECT b.file_gdc_url
-        FROM  `{file_table}` as a
+        FROM  `{file_table}_{release}` as a
         JOIN `{gcs_url_table}` as b
         ON a.file_gdc_id = b.file_gdc_id
         WHERE {joined_filters} AND a.`access` = "open" AND a.program_name = {program}
