@@ -92,7 +92,7 @@ def create_file_list_sql(program, filters, file_table, gcs_url_table, max_files)
 
     return f"""
         SELECT b.file_gdc_url
-        FROM  `{file_table}_{release}` as a
+        FROM  `{file_table}` as a
         JOIN `{gcs_url_table}` as b
         ON a.file_gdc_id = b.file_gdc_id
         WHERE {joined_filters} AND a.`access` = "open" AND a.program_name = {program}
