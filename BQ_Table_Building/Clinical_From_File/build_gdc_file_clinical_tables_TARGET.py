@@ -57,6 +57,8 @@ def make_file_pull_list(program: str, filters: dict[str, str]):
 
         where_clause += " AND ".join(where_clause_strs)
 
+        rel_number = PARAMS['RELEASE'].strip('r')
+
         return f"""
             SELECT f.file_gdc_id,
                f.file_name,
@@ -64,8 +66,8 @@ def make_file_pull_list(program: str, filters: dict[str, str]):
                f.file_size,
                f.file_state,
                gs.file_gdc_url
-            FROM `isb-project-zero.GDC_metadata.rel36_fileData_current` f
-            LEFT JOIN `isb-project-zero.GDC_manifests.rel36_GDCfileID_to_GCSurl` gs
+            FROM `isb-project-zero.GDC_metadata.rel{rel_number}_fileData_current` f
+            LEFT JOIN `isb-project-zero.GDC_manifests.rel{rel_number}_GDCfileID_to_GCSurl` gs
                ON f.file_gdc_id = gs.file_gdc_id 
             {where_clause}
         """
