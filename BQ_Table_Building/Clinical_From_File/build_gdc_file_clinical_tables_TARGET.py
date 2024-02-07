@@ -77,7 +77,6 @@ def make_file_pull_list(program: str, filters: dict[str, str]):
     file_list = list()
 
     for row in file_result:
-
         file_list.append(dict(row))
 
     return file_list
@@ -257,18 +256,17 @@ def main(args):
 
         file_pull_list = make_file_pull_list(program, PARAMS['FILTERS'])
 
-        for file_obj in file_pull_list:
-            print(file_obj['file_name'])
-        exit(0)
-
         storage_client = storage.Client()
 
         for file_data in file_pull_list:
             file_name = file_data['file_name']
+            file_id = file_data['file_gdc_id']
             gs_uri = file_data['file_gdc_url']
             md5sum = file_data['md5sum']
 
-            file_path = f"{local_files_dir}/{file_name}"
+            file_path = f"{local_files_dir}/{file_id}__{file_name}"
+
+            logger.info(file_path)
 
             file_obj = open(file_path, 'wb')
 
@@ -395,13 +393,15 @@ def main(args):
             logger.info(table)
         logger.info("")
 
+    '''
+
     if 'analyze_tables' in steps:
         column_dict = dict()
 
         table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
                                             filter_terms=f"{PARAMS['RELEASE']}_TARGET")
 
-        '''
+        """
         table_list = [
             "r38_TARGET_AML_ClinicalData_AML1031_20211201",
             "r38_TARGET_AML_ClinicalData_Discovery_20211201",
@@ -409,7 +409,7 @@ def main(args):
             "r38_TARGET_AML_ClinicalData_AAML1031_AAML0631_additionalCasesForSortedCellsAndCBExperiment_20220330",
             "r38_TARGET_AML_ClinicalData_LowDepthRNAseq_20220331",
         ]
-        '''
+        """
 
         records_dict = dict()
         mismatched_records_dict = dict()
@@ -461,15 +461,7 @@ def main(args):
 
         for record in records_dict:
             print(record)
-
-        """
-        TODO:
-        Create merged table.
-        Merge in aliquot fields.
-        Update field/table metadata.
-        Publish.
-        Delete working tables.
-        """
+    '''
     end_time = time.time()
 
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
