@@ -255,6 +255,9 @@ def main(args):
 
         file_pull_list = make_file_pull_list(program, PARAMS['FILTERS'])
 
+        print(file_pull_list)
+        exit(0)
+
         for file_obj in file_pull_list:
             print(file_obj['file_name'])
 
@@ -409,22 +412,16 @@ def main(args):
         '''
 
         records_dict = dict()
+        mismatched_records_dict = dict()
         # target_usi: {column: value, ...}
 
         for table in sorted(table_list):
             if 'Supplement' in table or 'CDE' in table:
                 continue
 
-            print(table)
-
             table_id = f"isb-project-zero.clinical_from_files_raw.{table}"
 
-            print(table_id)
-            print(get_columns_in_table(table_id))
-            print()
-            continue
-
-            project = table.split("_")[2]
+            disease_code = table.split("_")[2]
 
             sql = f"""
                 SELECT DISTINCT * 
@@ -435,28 +432,32 @@ def main(args):
 
             for row in result:
                 record_dict = dict(row)
+                record_dict['disease_code'] = disease_code
                 target_usi = record_dict.pop('target_usi')
+
+                overwrite_existing_value = True
 
                 if target_usi not in records_dict:
                     records_dict[target_usi] = dict()
+                else:
+                    # if a former file populated year_of_last_follow_up, and this file contains the field as well,
+                    # compare and favor values from the newer version.
+                    if 'year_of_last_follow_up' in records_dict[target_usi] \
+                            and 'year_of_last_follow_up' in record_dict \
+                            and record_dict['year_of_last_follow_up'] is not None:
+
+                        existing_year_of_last_follow_up = int(records_dict[target_usi]['year_of_last_follow_up'])
+                        additional_year_of_last_follow_up = int(record_dict['year_of_last_follow_up'])
+
+                        if additional_year_of_last_follow_up > existing_year_of_last_follow_up:
+                            overwrite_existing_value = False
 
                 for column, value in record_dict.items():
                     if value is None:
                         continue
-                    if column not in records_dict[target_usi]:
+                    if column not in records_dict[target_usi] or overwrite_existing_value:
+                        # column doesn't exist yet, so add it and its value
                         records_dict[target_usi][column] = value
-                    else:
-                        if records_dict[target_usi][column] != value:
-                            old_value = records_dict[target_usi][column]
-                            if isinstance(value, str):
-                                if str(old_value).title() == value.title():
-                                    continue
-
-                            if isinstance(value, float) or isinstance(old_value, float):
-                                if float(old_value) == float(value):
-                                    continue
-
-                            # print(f"{target_usi}\t{project}\t{column}\t{records_dict[target_usi][column]}\t{value}")
 
         for record in records_dict:
             print(record)

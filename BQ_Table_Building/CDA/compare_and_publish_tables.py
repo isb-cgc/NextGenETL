@@ -1049,19 +1049,14 @@ def main(args):
     logger.info("Comparing tables!")
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
         if table_params['table_type'] == 'metadata':
-            # todo remove
-            continue
             # generates a list of one table id obj, but makes code cleaner to do it this way
             table_id_list = generate_metadata_table_id_list(table_params)
         else:
             # search for missing project tables for the given table type
             # todo remove
-            # find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
+            continue
+            # this is slow when comparing version 38 -> 37 because a lot of the clinical names changed.
             table_id_list = generate_table_id_list(table_type, table_params)
-            print(table_id_list)
-
-        logger.debug(table_type)
-        logger.debug(table_id_list)
 
         if 'compare_tables' in steps:
             compare_tables(table_type, table_params, table_id_list)
