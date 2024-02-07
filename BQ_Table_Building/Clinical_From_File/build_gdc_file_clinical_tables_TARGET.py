@@ -255,11 +255,9 @@ def main(args):
 
         file_pull_list = make_file_pull_list(program, PARAMS['FILTERS'])
 
-        print(file_pull_list)
-        exit(0)
-
         for file_obj in file_pull_list:
             print(file_obj['file_name'])
+        exit(0)
 
         storage_client = storage.Client()
 
