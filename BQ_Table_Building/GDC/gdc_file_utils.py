@@ -179,6 +179,7 @@ def bucket_to_local(bucket_name, bucket_file, local_file):
     blob = bucket.blob(bucket_file)  # no leading / in blob name!!
     blob.download_to_filename(local_file)
     util_logger.info(f"{bucket_file} copied to {local_file}")
+    return
 
 
 def local_to_bucket(bucket, bucket_file, local_file):

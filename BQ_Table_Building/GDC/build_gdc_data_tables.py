@@ -77,7 +77,7 @@ def create_file_list(params, program, datatype, local_location, prefix, file_lis
                             bucket_location, f"{prefix}_file_list", params.BQ_AS_BATCH, False):
         sys.exit("bq to bucket failed")
 
-    if not bucket_to_local(bucket_location, file_list, f"{local_location}/{file_list}"):
+    if not bucket_to_local(bucket_location, file_list, file_list):
         sys.exit("bucket to local failed")
 
 
@@ -184,7 +184,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
 
     # file variables
     prefix = f"{program}_{data_type}_{params.RELEASE}{workflow_run_ver}"
-    local_location = f"{home}/{local_dir}/{program}"
+    local_location = f"{local_dir}/{program}"
     tables_created_file = f"{home}/{params.LOCAL_DIR}/tables_created_{params.RELEASE}{workflow_run_ver}.txt"
 
     with open(f"{home}/{params.SCHEMA_REPO_LOCAL}/{params.DATATYPE_MAPPINGS}", mode='r') as datatype_mappings_file:
