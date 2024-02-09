@@ -340,6 +340,7 @@ def main(args):
 
                             # get project_short_name from file path
                             project_short_name = file_path.split('__')[0].split('/')[-1]
+                            logger.debug(project_short_name)
                             # add program and project short name to tsv rows
                             big_tsv_fh.write(f"{PARAMS['PROGRAM']}\t")
                             big_tsv_fh.write(f"{project_short_name}\t")
@@ -350,7 +351,7 @@ def main(args):
                 traversal_list_file.write(f"{tsv_file}\n")
 
     if 'normalize_tsv_and_create_schema' in steps:
-        logger.info(f"upload_tsv_file_and_schema_to_bucket")
+        logger.info(f"normalize_tsv_and_create_schema")
 
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
