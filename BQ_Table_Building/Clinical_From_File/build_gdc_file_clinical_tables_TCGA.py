@@ -305,8 +305,6 @@ def main(args):
             concat_header_row_list.append('program')
             concat_header_row_list.append('project_short_name')
 
-            logger.info(concat_header_row_list)
-
             new_file_path = f"{local_concat_dir}/{PARAMS['RELEASE']}_TCGA_{data_type}_raw.tsv"
             concat_file_paths.append(new_file_path)
 
@@ -322,10 +320,12 @@ def main(args):
 
                         for line in lines:
                             if line_cnt == PARAMS['HEADER_ROW_IDX']:
+                                # create header row list from tsv file
                                 header_row_list = line.rstrip('\n').split("\t")
                                 line_cnt += 1
                                 continue
                             elif line_cnt < PARAMS['DATA_START_IDX']:
+                                # skip extra header rows
                                 line_cnt += 1
                                 continue
 
@@ -340,11 +340,9 @@ def main(args):
 
                             # get project_short_name from file path
                             project_short_name = file_path.split('__')[0].split('/')[-1]
-                            logger.debug(project_short_name)
                             # add program and project short name to tsv rows
                             big_tsv_fh.write(f"{PARAMS['PROGRAM']}\t")
-                            big_tsv_fh.write(f"{project_short_name}\t")
-                            big_tsv_fh.write("\n")
+                            big_tsv_fh.write(f"{project_short_name}\n")
 
         with open(file_traversal_list, mode='w') as traversal_list_file:
             for tsv_file in concat_file_paths:
@@ -354,7 +352,7 @@ def main(args):
         logger.info(f"normalize_tsv_and_create_schema")
 
         with open(file_traversal_list, mode='r') as traversal_list_file:
-            all_files = traversal_list_file.read().splitlines()
+            all_files = traversal_list_file.read().rstrip('\n').splitlines()
 
         for tsv_file_path in all_files:
             # The TCGA files have a different encoding--so if a file can't be decoded in Unicode format,
