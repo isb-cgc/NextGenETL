@@ -221,7 +221,7 @@ def get_column_list_tsv(header_list: Optional[list[str]] = None,
                 for index in range(header_row_index):
                     tsv_file.readline()
 
-            column_row = tsv_file.readline()
+            column_row = tsv_file.readline().strip()
             columns = column_row.split('\t')
 
             if len(columns) == 0:

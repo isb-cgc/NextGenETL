@@ -355,6 +355,7 @@ def main(args):
             all_files = traversal_list_file.read().rstrip('\n').splitlines()
 
         for tsv_file_path in all_files:
+            logger.debug(tsv_file_path)
             # The TCGA files have a different encoding--so if a file can't be decoded in Unicode format,
             # open the file using ISO-8859-1 encoding instead.
             try:
