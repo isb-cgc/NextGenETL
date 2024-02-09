@@ -177,8 +177,7 @@ def bucket_to_local(bucket_name, bucket_file, local_file):
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(bucket_file)  # no leading / in blob name!!
-    with open(local_file, 'wb') as file_obj:
-        blob.download_to_filename(file_obj)
+    blob.download_to_filename(local_file)
     util_logger.info(f"{bucket_file} copied to {local_file}")
     return
 
