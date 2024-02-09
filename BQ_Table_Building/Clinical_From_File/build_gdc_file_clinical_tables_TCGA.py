@@ -426,6 +426,10 @@ def main(args):
             logger.info(table)
         logger.info("")
 
+    if 'create_cohort_builder_view' in steps:
+        pass
+
+    '''
     if 'output_distinct_values' in steps:
         table_suffixes = ['patient']
 
@@ -479,17 +483,8 @@ def main(args):
         for key, value in record.items():
             if value:
                 logger.info(f"{key}: {value}")
+    '''
 
-
-
-        """
-        TODO:
-        Create merged table.
-        Merge in aliquot fields.
-        Update field/table metadata.
-        Publish.
-        Delete working tables.
-        """
     end_time = time.time()
 
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
