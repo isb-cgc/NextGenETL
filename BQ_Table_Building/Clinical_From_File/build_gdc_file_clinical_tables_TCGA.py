@@ -95,21 +95,24 @@ def create_bq_column_names(tsv_file, header_row_idx):
     return final_headers
 
 
-def make_file_pull_list(program: str, filters: dict[str, str]):
-    def make_file_pull_list_query() -> str:
+def make_file_pull_list():
+    def make_file_info_query():
         logger = logging.getLogger('base_script')
-        if not filters:
-            logger.critical(f"No filters provided for {program}, exiting")
+
+        if 'FILTERS' not in PARAMS:
+            logger.critical(f"No filters provided for {PARAMS['PROGRAM']}, exiting")
             sys.exit(-1)
 
         where_clause = "WHERE "
 
         where_clause_strs = list()
 
-        for column_name, column_value in filters.items():
+        for column_name, column_value in PARAMS['FILTERS'].items():
             where_clause_strs.append(f"{column_name} = '{column_value}'")
 
         where_clause += " AND ".join(where_clause_strs)
+
+        rel_number = PARAMS['RELEASE'].strip('r')
 
         return f"""
             SELECT f.file_gdc_id,
@@ -117,14 +120,15 @@ def make_file_pull_list(program: str, filters: dict[str, str]):
                f.md5sum,
                f.file_size,
                f.file_state,
-               gs.file_gdc_url
-            FROM `isb-project-zero.GDC_metadata.rel36_fileData_current` f
-            LEFT JOIN `isb-project-zero.GDC_manifests.rel36_GDCfileID_to_GCSurl` gs
+               gs.file_gdc_url,
+               f.project_short_name
+            FROM `isb-project-zero.GDC_metadata.rel{rel_number}_fileData_current` f
+            LEFT JOIN `isb-project-zero.GDC_manifests.rel{rel_number}_GDCfileID_to_GCSurl` gs
                ON f.file_gdc_id = gs.file_gdc_id 
             {where_clause}
         """
 
-    file_result = query_and_retrieve_result(make_file_pull_list_query())
+    file_result = query_and_retrieve_result(make_file_info_query())
 
     file_list = list()
 
@@ -205,7 +209,7 @@ def main(args):
 
     logger.info(f"GDC clinical file script started at {time.strftime('%x %X', time.localtime())}")
 
-    program = "TCGA"
+    program = PARAMS['PROGRAM']
 
     local_program_dir = get_scratch_fp(PARAMS, program)
     local_files_dir = f"{local_program_dir}/files"
@@ -235,7 +239,7 @@ def main(args):
             logger.info(f"Creating directory {local_schemas_dir}")
             os.makedirs(local_schemas_dir)
 
-        file_pull_list = make_file_pull_list(program, PARAMS['FILTERS'])
+        file_pull_list = make_file_pull_list()
 
         storage_client = storage.Client()
 
@@ -243,8 +247,9 @@ def main(args):
             file_name = file_data['file_name']
             gs_uri = file_data['file_gdc_url']
             md5sum = file_data['md5sum']
+            project_short_name = file_data['project_short_name']
 
-            file_path = f"{local_files_dir}/{file_name}"
+            file_path = f"{local_files_dir}/{project_short_name}__{file_name}"
 
             file_obj = open(file_path, 'wb')
 
@@ -333,13 +338,10 @@ def main(args):
                                 else:
                                     big_tsv_fh.write("NA\t")
 
-                            file_name = file_path.split('/')[-1]
-                            project_short_name_suffix = file_name.split('.')[-1]
-                            project_short_name_suffix = project_short_name_suffix.split('_')[-1].strip('.txt').upper()
-                            project_short_name = f"TCGA-{project_short_name_suffix}"
-
+                            # get project_short_name from file path
+                            project_short_name = file_path.split('__')[0].split('/')[-1]
                             # add program and project short name to tsv rows
-                            big_tsv_fh.write(f"TCGA\t")
+                            big_tsv_fh.write(f"{PARAMS['PROGRAM']}\t")
                             big_tsv_fh.write(f"{project_short_name}\t")
                             big_tsv_fh.write("\n")
 
@@ -467,6 +469,7 @@ def main(args):
                 time.sleep(3)
 
     if 'print_non_null_values' in steps:
+        # todo if we use this, should not be hardcoded. Likely candidate for removal.
         sql = f"""
         SELECT *
         FROM `isb-project-zero.clinical_from_files_raw.r36_TCGA_patient`
