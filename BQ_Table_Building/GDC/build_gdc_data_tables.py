@@ -64,7 +64,7 @@ def load_config(yaml_config):
 
 def create_file_list(params, program, datatype, local_location, prefix, file_list, datatype_mappings):
     max_files = params.MAX_FILES if 'MAX_FILES' in vars(params) else None
-    bucket_location = f"{params.DEV_BUCKET}/gdc_{params.RELEASE}"
+    bucket_location = f"{params.DEV_BUCKET_DIR}/gdc_{params.RELEASE}"
 
     file_list_sql = create_file_list_sql(program, datatype_mappings[datatype]['filters'],
                                          f"{params.FILE_TABLE}_{params.RELEASE}",
@@ -73,12 +73,11 @@ def create_file_list(params, program, datatype, local_location, prefix, file_lis
     if query_bq(file_list_sql, f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{prefix}_file_list") != 'DONE':
         sys.exit("Create file list bq table failed")
 
-    if not bq_to_bucket_tsv(f"{prefix}_file_list", params.DEV_PROJECT, params.DEV_DATASET,
-                            bucket_location, f"{prefix}_file_list", params.BQ_AS_BATCH, False):
-        sys.exit("bq to bucket failed")
+    bq_to_bucket_tsv(f"{prefix}_file_list", params.DEV_PROJECT, params.DEV_DATASET,
+                     params.DEV_BUCKET, f"{bucket_location}/{file_list}", params.BQ_AS_BATCH, False)
 
-    if not bucket_to_local(bucket_location, file_list, file_list):
-        sys.exit("bucket to local failed")
+    bucket_to_local(params.DEV_BUCKET, f"{bucket_location}/{file_list}",
+                    f"{local_location}/{file_list}")
 
 
 def create_file_list_sql(program, filters, file_table, gcs_url_table, max_files):
