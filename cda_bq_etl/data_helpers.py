@@ -522,6 +522,7 @@ def create_normalized_tsv(raw_tsv_fp: str, normalized_tsv_fp: str):
 
                 if raw_row_count == 0:
                     header_row = normalize_header_row(row)
+                    print(header_row)
                     tsv_writer.writerow(header_row)
                     raw_row_count += 1
                     continue
