@@ -512,7 +512,7 @@ def create_normalized_tsv(raw_tsv_fp: str, normalized_tsv_fp: str):
     with open(normalized_tsv_fp, mode="w", newline="") as normalized_tsv_file:
         tsv_writer = csv.writer(normalized_tsv_file, delimiter="\t")
 
-        with open(raw_tsv_fp, mode="r", newline="") as tsv_file:
+        with open(raw_tsv_fp) as tsv_file:
             tsv_reader = csv.reader(tsv_file, delimiter="\t")
 
             raw_row_count = 0
