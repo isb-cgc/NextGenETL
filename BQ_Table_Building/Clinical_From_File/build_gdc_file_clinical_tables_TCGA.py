@@ -50,8 +50,8 @@ def create_tsv_with_final_headers(tsv_file, headers, data_start_idx):
     :param data_start_idx: starting row index for data (should be 1 for TARGET and 3 for TCGA)
     """
     def write_to_tsv():
-        with open(tsv_file, 'w', newline='') as tsv_fh:
-            tsv_writer = csv.writer(tsv_fh, delimiter="\t")
+        with open(tsv_file, 'w', newline='') as write_fh:
+            tsv_writer = csv.writer(write_fh, delimiter="\t")
 
             tsv_writer.writerow(headers)
 
