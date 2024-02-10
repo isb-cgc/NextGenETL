@@ -338,11 +338,11 @@ def main(args):
                                 if column in header_row_list:
                                     value_idx = header_row_list.index(column)
                                     big_tsv_fh.write(f"{record[value_idx]}\t")
+                                elif column == 'program':
+                                    big_tsv_fh.write(f"{PARAMS['PROGRAM']}\t")
                                 elif column == 'project_short_name':
                                     project_short_name = file_path.split('__')[0].split('/')[-1]
-                                    big_tsv_fh.write(f"{project_short_name}\t")
-                                elif column == 'program':
-                                    big_tsv_fh.write(f"{PARAMS['PROGRAM']}\n")
+                                    big_tsv_fh.write(f"{project_short_name}\n")
                                 else:
                                     big_tsv_fh.write("NA\t")
 
