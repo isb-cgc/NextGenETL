@@ -61,11 +61,11 @@ def create_tsv_with_final_headers(tsv_file, headers, data_start_idx):
         for i in range(data_start_idx, len(lines)):
             line_list = lines[i].strip().split('\t')
 
-            print(line_list)
-
             if not line_list:
                 break
-            tsv_fh.write(f"{line_list}\n")
+
+            line = "\t".join(line_list)
+            tsv_fh.write(f"{line}\n")
 
 
 def create_bq_column_names(tsv_file, header_row_idx):

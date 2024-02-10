@@ -509,7 +509,7 @@ def create_normalized_tsv(raw_tsv_fp: str, normalized_tsv_fp: str):
 
     logger = logging.getLogger('base_script.cda_bq_etl.data_helpers')
 
-    with open(normalized_tsv_fp, mode="w", newline="") as normalized_tsv_file:
+    with open(normalized_tsv_fp) as normalized_tsv_file:
         tsv_writer = csv.writer(normalized_tsv_file, delimiter="\t")
 
         with open(raw_tsv_fp) as tsv_file:
