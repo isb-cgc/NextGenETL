@@ -526,7 +526,7 @@ def create_normalized_tsv(raw_tsv_fp: str, normalized_tsv_fp: str):
                     raw_row_count += 1
                     continue
 
-                    print(row)
+                print(row)
 
                 for value in row:
                     new_value = normalize_value(value, is_tsv=True)
