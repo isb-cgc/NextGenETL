@@ -267,6 +267,8 @@ def aggregate_column_data_types_tsv(tsv_fp: str,
         while True:
             row = tsv_file.readline()
 
+            print(row)
+
             if not row:
                 break
 
