@@ -16,7 +16,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-import csv
 import logging
 import os
 import shutil
@@ -49,29 +48,24 @@ def create_tsv_with_final_headers(tsv_file, headers, data_start_idx):
     :param headers: list of bq-compatible headers.
     :param data_start_idx: starting row index for data (should be 1 for TARGET and 3 for TCGA)
     """
-    def write_to_tsv():
-        with open(tsv_file, 'w', newline='') as write_fh:
-            tsv_writer = csv.writer(write_fh, delimiter="\t")
-
-            tsv_writer.writerow(headers)
-
-            count = 0
-
-            for line in lines:
-                if count < data_start_idx:
-                    count += 1
-                    continue
-
-                tsv_writer.writerow(line)
-
     try:
         with open(tsv_file, 'r') as tsv_fh:
-            lines = csv.reader(tsv_fh, delimiter="\t")
-            write_to_tsv()
+            lines = tsv_fh.readlines()
     except UnicodeDecodeError:
         with open(tsv_file, 'r', encoding="ISO-8859-1") as tsv_fh:
-            lines = csv.reader(tsv_fh, delimiter="\t")
-            write_to_tsv()
+            lines = tsv_fh.readlines()
+
+    with open(tsv_file, 'w') as tsv_fh:
+        header_row = "\t".join(headers)
+        tsv_fh.write(f"{header_row}\n")
+        for i in range(data_start_idx, len(lines)):
+            line_list = lines[i].strip().split('\t')
+
+            print(line_list)
+
+            if not line_list:
+                break
+            tsv_fh.write(f"{line_list}\n")
 
 
 def create_bq_column_names(tsv_file, header_row_idx):
