@@ -322,8 +322,6 @@ def main(args):
                             if line_cnt == PARAMS['HEADER_ROW_IDX']:
                                 # create header row list from tsv file
                                 header_row_list = line.rstrip('\n').split("\t")
-                                for item in header_row_list:
-                                    print(item)
                                 line_cnt += 1
                                 continue
                             elif line_cnt < PARAMS['DATA_START_IDX']:
