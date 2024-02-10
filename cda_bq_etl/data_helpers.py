@@ -86,11 +86,13 @@ def write_list_to_tsv(fp: str, tsv_list: list[str]):
 
         return print_str
 
+    logger = logging.getLogger('base_script.cda_bq_etl.data_helpers')
+
     with open(fp, "w") as tsv_file:
         for row in tsv_list:
             tsv_file.write(create_tsv_row(row))
 
-    print(f"{len(tsv_list)} rows written to {fp}!")
+    logger.info(f"{len(tsv_list)} rows written to {fp}!")
 
 
 def write_list_to_jsonl(jsonl_fp: str, json_obj_list: JSONList, mode: str = 'w'):
@@ -522,12 +524,9 @@ def create_normalized_tsv(raw_tsv_fp: str, normalized_tsv_fp: str):
 
                 if raw_row_count == 0:
                     header_row = normalize_header_row(row)
-                    print(header_row)
                     tsv_writer.writerow(header_row)
                     raw_row_count += 1
                     continue
-
-                print(row)
 
                 for value in row:
                     new_value = normalize_value(value, is_tsv=True)
