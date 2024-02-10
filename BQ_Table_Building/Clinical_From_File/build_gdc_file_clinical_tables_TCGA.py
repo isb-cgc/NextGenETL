@@ -49,26 +49,29 @@ def create_tsv_with_final_headers(tsv_file, headers, data_start_idx):
     :param headers: list of bq-compatible headers.
     :param data_start_idx: starting row index for data (should be 1 for TARGET and 3 for TCGA)
     """
+    def write_to_tsv():
+        with open(tsv_file, 'w', newline='') as tsv_fh:
+            tsv_writer = csv.writer(tsv_fh, delimiter="\t")
+
+            tsv_writer.writerow(headers)
+
+            count = 0
+
+            for line in lines:
+                if count < data_start_idx:
+                    count += 1
+                    continue
+
+                tsv_writer.writerow(line)
+
     try:
         with open(tsv_file, 'r') as tsv_fh:
             lines = csv.reader(tsv_fh, delimiter="\t")
+            write_to_tsv()
     except UnicodeDecodeError:
         with open(tsv_file, 'r', encoding="ISO-8859-1") as tsv_fh:
             lines = csv.reader(tsv_fh, delimiter="\t")
-
-    with open(tsv_file, 'w', newline='') as tsv_fh:
-        tsv_writer = csv.writer(tsv_fh, delimiter="\t")
-
-        tsv_writer.writerow(headers)
-
-        count = 0
-
-        for line in lines:
-            if count < data_start_idx:
-                count += 1
-                continue
-
-            tsv_writer.writerow(line)
+            write_to_tsv()
 
 
 def create_bq_column_names(tsv_file, header_row_idx):
