@@ -258,23 +258,17 @@ def aggregate_column_data_types_tsv(tsv_fp: str,
     for column in column_headers:
         data_types_dict[column] = set()
 
-    with open(tsv_fp, 'r') as tsv_file:
-        for i in range(skip_rows):
-            tsv_file.readline()
+    with open(tsv_fp, 'r') as fh:
+        tsv_file = csv.reader(fh, delimiter='\t')
 
         count = 0
 
-        while True:
-            row = tsv_file.readline()
-
-            print(row)
-
-            if not row:
-                break
+        for row_list in tsv_file:
+            while count < skip_rows:
+                count += 1
+                continue
 
             if count % sample_interval == 0:
-                row_list = row.split('\t')
-
                 if len(row_list) != len(column_headers):
                     logger.critical("Cannot aggregate column types, lengths don't match")
                     logger.critical(f"len row_list: {len(row_list)}")
