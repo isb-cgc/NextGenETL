@@ -338,14 +338,17 @@ def main(args):
                                 if column in header_row_list:
                                     value_idx = header_row_list.index(column)
                                     big_tsv_fh.write(f"{record[value_idx]}\t")
+                                elif column == 'project_short_name':
+                                    project_short_name = file_path.split('__')[0].split('/')[-1]
+                                    big_tsv_fh.write(f"{project_short_name}\t")
+                                elif column == 'program':
+                                    big_tsv_fh.write(f"{PARAMS['PROGRAM']}\n")
                                 else:
                                     big_tsv_fh.write("NA\t")
 
                             # get project_short_name from file path
-                            project_short_name = file_path.split('__')[0].split('/')[-1]
                             # add program and project short name to tsv rows
-                            big_tsv_fh.write(f"{PARAMS['PROGRAM']}\t")
-                            big_tsv_fh.write(f"{project_short_name}\n")
+
 
         with open(file_traversal_list, mode='w') as traversal_list_file:
             for tsv_file in concat_file_paths:
