@@ -534,6 +534,10 @@ def create_normalized_tsv(raw_tsv_fp: str, normalized_tsv_fp: str):
                     logger.critical("Normalized and raw record lengths differ (create_normalized_tsv)")
                     logger.critical(f"raw: {len(row)}, normalized: {len(normalized_record)}")
                     exit(-1)
+                elif len(normalized_record) != len(header_row):
+                    logger.critical("Normalized and header lengths differ (create_normalized_tsv)")
+                    logger.critical(f"header: {len(header_row)}, normalized: {len(normalized_record)}")
+                    exit(-1)
 
                 tsv_writer.writerow(normalized_record)
                 raw_row_count += 1
