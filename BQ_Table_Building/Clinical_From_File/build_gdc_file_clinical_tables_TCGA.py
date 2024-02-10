@@ -16,6 +16,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import csv
 import logging
 import os
 import shutil
@@ -50,19 +51,24 @@ def create_tsv_with_final_headers(tsv_file, headers, data_start_idx):
     """
     try:
         with open(tsv_file, 'r') as tsv_fh:
-            lines = tsv_fh.readlines()
+            lines = csv.reader(tsv_fh, delimiter="\t")
     except UnicodeDecodeError:
         with open(tsv_file, 'r', encoding="ISO-8859-1") as tsv_fh:
-            lines = tsv_fh.readlines()
+            lines = csv.reader(tsv_fh, delimiter="\t")
 
-    with open(tsv_file, 'w') as tsv_fh:
-        header_row = "\t".join(headers)
-        tsv_fh.write(f"{header_row}\n")
-        for i in range(data_start_idx, len(lines)):
-            line = lines[i].strip()
-            if not line:
-                break
-            tsv_fh.write(f"{line}\n")
+    with open(tsv_file, 'w', newline='') as tsv_fh:
+        tsv_writer = csv.writer(tsv_fh, delimiter="\t")
+
+        tsv_writer.writerow(headers)
+
+        count = 0
+
+        for line in lines:
+            if count < data_start_idx:
+                count += 1
+                continue
+
+            tsv_writer.writerow(line)
 
 
 def create_bq_column_names(tsv_file, header_row_idx):
