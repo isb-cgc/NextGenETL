@@ -86,13 +86,11 @@ def write_list_to_tsv(fp: str, tsv_list: list[str]):
 
         return print_str
 
-    logger = logging.getLogger('base_script.cda_bq_etl.data_helpers')
-
     with open(fp, "w") as tsv_file:
         for row in tsv_list:
             tsv_file.write(create_tsv_row(row))
 
-    logger.info(f"{len(tsv_list)} rows written to {fp}!")
+    print(f"{len(tsv_list)} rows written to {fp}!")
 
 
 def write_list_to_jsonl(jsonl_fp: str, json_obj_list: JSONList, mode: str = 'w'):
@@ -223,7 +221,7 @@ def get_column_list_tsv(header_list: Optional[list[str]] = None,
                 for index in range(header_row_index):
                     tsv_file.readline()
 
-            column_row = tsv_file.readline().strip()
+            column_row = tsv_file.readline()
             columns = column_row.split('\t')
 
             if len(columns) == 0:
@@ -260,17 +258,21 @@ def aggregate_column_data_types_tsv(tsv_fp: str,
     for column in column_headers:
         data_types_dict[column] = set()
 
-    with open(tsv_fp, 'r') as fh:
-        tsv_file = csv.reader(fh, delimiter='\t')
+    with open(tsv_fp, 'r') as tsv_file:
+        for i in range(skip_rows):
+            tsv_file.readline()
 
         count = 0
 
-        for row_list in tsv_file:
-            while count < skip_rows:
-                count += 1
-                continue
+        while True:
+            row = tsv_file.readline()
+
+            if not row:
+                break
 
             if count % sample_interval == 0:
+                row_list = row.split('\t')
+
                 if len(row_list) != len(column_headers):
                     logger.critical("Cannot aggregate column types, lengths don't match")
                     logger.critical(f"len row_list: {len(row_list)}")
@@ -514,7 +516,7 @@ def create_normalized_tsv(raw_tsv_fp: str, normalized_tsv_fp: str):
     with open(normalized_tsv_fp, mode="w", newline="") as normalized_tsv_file:
         tsv_writer = csv.writer(normalized_tsv_file, delimiter="\t")
 
-        with open(raw_tsv_fp) as tsv_file:
+        with open(raw_tsv_fp, mode="r", newline="") as tsv_file:
             tsv_reader = csv.reader(tsv_file, delimiter="\t")
 
             raw_row_count = 0
@@ -531,15 +533,6 @@ def create_normalized_tsv(raw_tsv_fp: str, normalized_tsv_fp: str):
                 for value in row:
                     new_value = normalize_value(value, is_tsv=True)
                     normalized_record.append(new_value)
-
-                if len(normalized_record) != len(row):
-                    logger.critical("Normalized and raw record lengths differ (create_normalized_tsv)")
-                    logger.critical(f"raw: {len(row)}, normalized: {len(normalized_record)}")
-                    exit(-1)
-                elif len(normalized_record) != len(header_row):
-                    logger.critical("Normalized and header lengths differ (create_normalized_tsv)")
-                    logger.critical(f"header: {len(header_row)}, normalized: {len(normalized_record)}")
-                    exit(-1)
 
                 tsv_writer.writerow(normalized_record)
                 raw_row_count += 1
