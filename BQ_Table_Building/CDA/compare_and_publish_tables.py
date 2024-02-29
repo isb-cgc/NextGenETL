@@ -567,7 +567,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_dis
         column_list = generate_column_list(table_id_list=table_id_list, excluded_columns=excluded_columns)
 
     for column in sorted(column_list):
-        query_logger.info(f"SQL to compare values for column: {column}, table type: {table_params['table_type']}")
+        query_logger.info(f"SQL to compare values for column: {column}, table: {table_params['table_base_name']}")
         query_logger.info(make_compare_table_column_sql(column))
         column_comparison_result = query_and_retrieve_result(sql=make_compare_table_column_sql(column))
 
@@ -676,11 +676,11 @@ def compare_concat_columns(table_ids: dict[str, str],
 
     logger.info("Comparing concatenated columns!")
 
-    query_logger.info(f"SQL to retrieve concat values in current version for table type: {table_params['table_type']}")
+    query_logger.info(f"SQL to retrieve concat values in current version for table: {table_params['table_base_name']}")
     query_logger.info(make_concat_column_query(table_ids['source']))
     new_table_records_dict = make_records_dict(query=make_concat_column_query(table_ids['source']))
 
-    query_logger.info(f"SQL to retrieve concat values in previous version for table type: {table_params['table_type']}")
+    query_logger.info(f"SQL to retrieve concat values in previous version for table: {table_params['table_base_name']}")
     query_logger.info(make_concat_column_query(table_ids['source']))
     old_table_records_dict = make_records_dict(query=make_concat_column_query(table_ids['previous_versioned']))
 
