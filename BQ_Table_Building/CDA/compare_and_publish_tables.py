@@ -1060,9 +1060,14 @@ def compare_tables(table_type, table_params, table_id_list):
             compare_table_columns(table_ids=table_ids,
                                   table_params=modified_table_params,
                                   max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
-            compare_concat_columns(table_ids=table_ids,
-                                   table_params=modified_table_params,
-                                   max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
+            if 'concat_columns' in table_params and table_params['concat_columns']:
+                concat_column_str = ", ".join(table_params['concat_columns'])
+                logger.info(f"Comparing concatenated columns: {concat_column_str}")
+                compare_concat_columns(table_ids=table_ids,
+                                       table_params=modified_table_params,
+                                       max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
+            else:
+                logger.info(f"No concatenated columns to compare for {table_params['table_base_name']}")
 
 
 def main(args):
