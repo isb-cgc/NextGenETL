@@ -712,9 +712,9 @@ def json_datetime_to_str_converter(datetime_obj: datetime) -> str:
         return str(datetime_obj)
 
 
-def initialize_logging(log_filepath: str) -> logging.Logger:
+def initialize_logging(log_filepath: str, name: str = 'base_script') -> logging.Logger:
     # initialize Logger object
-    logger = logging.getLogger(name='base_script')
+    logger = logging.getLogger(name=name)
     logger.setLevel(logging.DEBUG)
 
     # emit logger output to a file

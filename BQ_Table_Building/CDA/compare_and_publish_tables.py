@@ -186,6 +186,7 @@ def find_record_difference_counts(table_type: str,
 
     def compare_records(query: str) -> tuple[int, str]:
         # find added/removed/changed records by project
+        query_logger.info(query)
         result = query_and_retrieve_result(query)
 
         total_results = 0
@@ -208,34 +209,37 @@ def find_record_difference_counts(table_type: str,
 
         return total_results, output_string
 
-    columns_excluded_from_compare = table_metadata['columns_excluded_from_compare']
-
-    # added to sql queries if certain columns are excluded
-    excluded_column_sql_str = ''
-
-    if columns_excluded_from_compare:
-        excluded_columns = ", ".join(columns_excluded_from_compare)
-        excluded_column_sql_str = f"EXCEPT ({excluded_columns})"
-
     logger = logging.getLogger('base_script')
+    query_logger = logging.getLogger("query_logger")
 
     if table_ids['previous_versioned'] is None:
         logger.warning(f"No previous table found for {table_ids['versioned']}; therefore, no changes to report.")
         return
 
+    excluded_column_sql_str = ''
+
+    # added to sql query if columns are excluded in yaml config
+    if 'columns_excluded_from_compare' in table_metadata and table_metadata['columns_excluded_from_compare']:
+        excluded_columns = ", ".join(table_metadata['columns_excluded_from_compare'])
+        excluded_column_sql_str = f"EXCEPT ({excluded_columns})"
+
+    output_key_string = ''
+
+    # the keys used to filter added/removed/changed record results into types for display in output
+    # e.g. project_short_name and data_format for file metadata
     if 'output_keys' in table_metadata and table_metadata['output_keys']:
         output_key_string = ", ".join(table_metadata['output_keys'])
-    else:
-        output_key_string = ''
 
     primary_key = table_metadata['primary_key']
+    secondary_key = ''
 
+    # include secondary key where applicable--in GDC, secondary key is used for aliquot2case map and per sample file
     if 'secondary_key' in table_metadata and table_metadata['secondary_key'] is not None:
         secondary_key = table_metadata['secondary_key'] + ', '
-    else:
-        secondary_key = ''
 
     # get record count from previous versioned table
+    query_logger.info("Previous version record count query")
+    query_logger.info(make_record_count_query(table_ids['previous_versioned']))
     previous_version_count_result = query_and_retrieve_result(make_record_count_query(table_ids['previous_versioned']))
 
     try:
@@ -252,6 +256,8 @@ def find_record_difference_counts(table_type: str,
         logger.critical("Probably an error in the table id or SQL query.")
         sys.exit(-1)
 
+    query_logger.info("Current version record count query")
+    query_logger.info(make_record_count_query(table_ids['source']))
     new_version_count_result = query_and_retrieve_result(make_record_count_query(table_ids['source']))
 
     try:
@@ -272,12 +278,14 @@ def find_record_difference_counts(table_type: str,
 
     if table_type != "clinical" and table_type != "per_sample_file":
         logger.info(f"***** {table_type.upper()} *****")
+
     logger.info(f"Current {table_type} count: {new_version_count}")
     logger.info(f"Previous {table_type} count: {previous_version_count}")
     logger.info(f"Row count change since previous version: {count_difference}")
     logger.info("")
 
     # find added records by project
+    query_logger.info("Added record query")
     added_count, added_str = compare_records(query=make_added_record_count_query())
 
     logger.info(f"Added {table_type} count: {added_count}")
@@ -286,6 +294,7 @@ def find_record_difference_counts(table_type: str,
         logger.info(added_str)
 
     # find removed records by project
+    query_logger.info("Removed record query")
     removed_count, removed_str = compare_records(query=make_removed_record_count_query())
 
     logger.info(f"Removed {table_type} count: {removed_count}")
@@ -295,6 +304,7 @@ def find_record_difference_counts(table_type: str,
 
     if not table_metadata['compare_using_primary_only']:
         # find changed records by project
+        query_logger.info("Changed record query")
         changed_count, changed_str = compare_records(query=make_changed_record_count_query())
 
         logger.info(f"Changed {table_type} count: {changed_count}")
@@ -522,15 +532,19 @@ def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_dis
         """
 
     logger = logging.getLogger('base_script')
+    query_logger = logging.getLogger('query_logger')
 
     primary_key = table_params['primary_key']
     secondary_key = table_params['secondary_key'] if 'secondary_key' in table_params else None
 
+    # retrieve the list of concatenated columns from yaml config and convert to set
+    # todo could these be converted into sets in the config by using the following yaml syntax: !!set { a, b, c }
     if 'concat_columns' in table_params and table_params['concat_columns']:
         concat_column_set = set(table_params['concat_columns'])
     else:
         concat_column_set = set()
 
+    # retrieve the list of columns excluded from comparison
     if 'columns_excluded_from_compare' in table_params and table_params['columns_excluded_from_compare']:
         not_compared_column_set = set(table_params['columns_excluded_from_compare'])
     else:
@@ -553,6 +567,8 @@ def compare_table_columns(table_ids: dict[str, str], table_params: dict, max_dis
         column_list = generate_column_list(table_id_list=table_id_list, excluded_columns=excluded_columns)
 
     for column in sorted(column_list):
+        query_logger.info(f"SQL to compare values for column: {column}, table type: {table_params['table_type']}")
+        query_logger.info(make_compare_table_column_sql(column))
         column_comparison_result = query_and_retrieve_result(sql=make_compare_table_column_sql(column))
 
         if not column_comparison_result:
@@ -655,11 +671,18 @@ def compare_concat_columns(table_ids: dict[str, str],
 
         return records_dict
 
-    new_table_records_dict = make_records_dict(query=make_concat_column_query(table_ids['source']))
-    old_table_records_dict = make_records_dict(query=make_concat_column_query(table_ids['previous_versioned']))
-
     logger = logging.getLogger('base_script')
+    query_logger = logging.getLogger('query_logger')
+
     logger.info("Comparing concatenated columns!")
+
+    query_logger.info(f"SQL to retrieve concat values in current version for table type: {table_params['table_type']}")
+    query_logger.info(make_concat_column_query(table_ids['source']))
+    new_table_records_dict = make_records_dict(query=make_concat_column_query(table_ids['source']))
+
+    query_logger.info(f"SQL to retrieve concat values in previous version for table type: {table_params['table_type']}")
+    query_logger.info(make_concat_column_query(table_ids['source']))
+    old_table_records_dict = make_records_dict(query=make_concat_column_query(table_ids['previous_versioned']))
 
     record_key_set = set(new_table_records_dict.keys())
     record_key_set.update(old_table_records_dict.keys())
@@ -1022,15 +1045,23 @@ def compare_tables(table_type, table_params, table_id_list):
                     modified_table_params[key] = value
 
                 if 'primary_key' not in modified_table_params:
+                    # primary key is defined in a dict in the yaml config for clinical table type;
+                    # this will look up and return the primary key by parsing the 'current' table id.
                     modified_table_params['primary_key'] = get_primary_key(table_type, table_params, table_ids)
             else:
                 modified_table_params = table_params
 
             # display compare_to_last.sh style output
             find_record_difference_counts(table_type, table_ids, modified_table_params)
+            # todo incorporate output for added and removed rows
             # list_added_rows(table_type, table_ids, modified_table_params)
             # list_removed_rows(table_type, table_ids, modified_table_params)
-            compare_table_columns(table_ids, modified_table_params)
+            compare_table_columns(table_ids=table_ids,
+                                  table_params=modified_table_params,
+                                  max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
+            compare_concat_columns(table_ids=table_ids,
+                                   table_params=modified_table_params,
+                                   max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
 
 
 def main(args):
@@ -1045,6 +1076,8 @@ def main(args):
     log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
+    query_log_filepath = f"{PARAMS['QUERY_LOGFILE_PATH']}.{log_file_time}"
+    query_logger = initialize_logging(query_log_filepath, name='query_logger')
 
     logger.info("Comparing tables!")
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
@@ -1053,7 +1086,7 @@ def main(args):
             table_id_list = generate_metadata_table_id_list(table_params)
         else:
             # search for missing project tables for the given table type
-            # todo remove
+            # todo remove continue, this skips non-metadata tables temporarily
             continue
             # this is slow when comparing version 38 -> 37 because a lot of the clinical names changed.
             table_id_list = generate_table_id_list(table_type, table_params)
