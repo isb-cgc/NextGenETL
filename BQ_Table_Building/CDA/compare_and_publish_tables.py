@@ -681,7 +681,7 @@ def compare_concat_columns(table_ids: dict[str, str],
     new_table_records_dict = make_records_dict(query=make_concat_column_query(table_ids['source']))
 
     query_logger.info(f"SQL to retrieve concat values in previous version for table: {table_params['table_base_name']}")
-    query_logger.info(make_concat_column_query(table_ids['source']))
+    query_logger.info(make_concat_column_query(table_ids['previous_versioned']))
     old_table_records_dict = make_records_dict(query=make_concat_column_query(table_ids['previous_versioned']))
 
     record_key_set = set(new_table_records_dict.keys())
