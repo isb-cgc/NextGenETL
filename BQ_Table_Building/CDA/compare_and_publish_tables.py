@@ -743,10 +743,11 @@ def compare_concat_columns(table_ids: dict[str, str],
         if new_table_missing_record_count > 0 or old_table_missing_record_count > 0 \
                 or different_lengths_count > 0 or different_values_count > 0:
             logger.info(f"{column}:")
-            logger.info(f"Missing records in old table: {old_table_missing_record_count}, "
-                        f"new table: {new_table_missing_record_count}")
-            logger.info(f"Rows with differing item counts: {different_lengths_count}, "
-                        f"same count but mismatched records {different_values_count}")
+            logger.info(f"Missing records in old table: {old_table_missing_record_count}")
+            logger.info(f"Missing records in new table: {new_table_missing_record_count}")
+            logger.info(f"Rows with differing item counts: {different_lengths_count}")
+            logger.info(f"Rows with same count but mismatched records {different_values_count}")
+            logger.info("")
 
             if len(mismatched_records) > 0:
                 i = 0
