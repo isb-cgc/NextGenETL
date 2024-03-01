@@ -687,6 +687,8 @@ def compare_concat_columns(table_ids: dict[str, str],
     record_key_set = set(new_table_records_dict.keys())
     record_key_set.update(old_table_records_dict.keys())
 
+    logger.debug(record_key_set)
+
     for column in table_params['concat_columns']:
         correct_records_count = 0
         new_table_missing_record_count = 0
