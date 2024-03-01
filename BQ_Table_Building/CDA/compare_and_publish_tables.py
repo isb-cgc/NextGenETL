@@ -280,10 +280,12 @@ def find_record_difference_counts(table_type: str,
         result = query_and_retrieve_result(query)
 
         if result:
-            output_string = f"\n\n{'count':12}"
+            output_string = f"\n\n{'count':10}"
 
             for header in table_metadata['output_keys']:
                 output_string += f"{header:30}"
+
+            output_string += "\n"
 
             total_results = 0
             num_columns = len(table_metadata['output_keys']) + 1
@@ -293,7 +295,7 @@ def find_record_difference_counts(table_type: str,
 
                 if result.total_rows > 1:
                     # append the count, right justify
-                    row_str = f"{str(_row[0]):>10}  "
+                    row_str = f"{str(_row[0]):>10}"
 
                     # append the other values (e.g. project id, type) as specified in output keys
                     for i in range(1, num_columns):
