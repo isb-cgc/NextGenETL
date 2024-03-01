@@ -921,7 +921,7 @@ def compare_concat_columns(table_ids: dict[str, str],
                 old_column_header = f"old {column}"
 
                 if table_params['secondary_key'] is None:
-                    logger.info(f"{table_params['primary_key']:40} {old_column_header: 40} {new_column_header}")
+                    logger.info(f"{table_params['primary_key']:40} {old_column_header:40} {new_column_header}")
                 else:
                     logger.info(f"{table_params['primary_key']:40} {table_params['secondary_key']:40}"
                                 f" {old_column_header:40} {new_column_header}")
@@ -1015,7 +1015,13 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
     query_log_filepath = f"{PARAMS['QUERY_LOGFILE_PATH']}.{log_file_time}"
-    query_logger = initialize_logging(query_log_filepath, name='query_logger')
+
+    # todo remove this after testing, set in param yaml
+    PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'] = False
+
+    query_logger = initialize_logging(query_log_filepath,
+                                      name='query_logger',
+                                      emit_to_console=PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'])
 
     logger.info("Comparing tables!")
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
@@ -1036,7 +1042,6 @@ def main(args):
 
             # todo:
             # add example data for added and removed records
-            # make query logger console output toggleable
             # do some sanity checking to confirm that we don't have duplicate rows.
             #   the count of distinct portion_id and aliquot_id pairings should match the total number of rows, yeah?
 
