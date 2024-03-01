@@ -128,7 +128,7 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_m
 
     if table_metadata['output_keys']:
         for output_key in table_metadata['output_keys']:
-            header_str += f"{output_key:45} "
+            header_str += f"{output_key:45}"
 
     logger.info(header_str)
 
@@ -142,7 +142,10 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_m
 
         if table_metadata['output_keys']:
             for output_key in table_metadata['output_keys']:
-                row_str += f"{row[output_key]:45}"
+                if row[output_key]:
+                    row_str += f"{row[output_key]:45}"
+                else:
+                    row_str += f"{'':45}"
 
         logger.info(row_str)
 
@@ -150,6 +153,7 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_m
 
         if i == PARAMS['MAX_DISPLAY_ROWS']:
             break
+
     logger.info("")
 
 
