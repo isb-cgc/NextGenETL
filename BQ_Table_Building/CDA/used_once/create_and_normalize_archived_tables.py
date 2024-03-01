@@ -227,6 +227,9 @@ def main(args):
     except ValueError as err:
         has_fatal_error(err, ValueError)
 
+    # *** NOTE: THIS IS NO LONGER HOW THE LEGACY TABLES ARE BUILT.
+    # THEY WERE CREATED USING FILES CREATED BY THE OLD PIPELINE, PULLED OFF THE GDC METADATA VM.
+
     if 'create_case_metadata_legacy_table' in steps:
         create_table(table_name=BQ_PARAMS['CASE_TABLE_NAME'])
 
