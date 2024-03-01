@@ -121,7 +121,7 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_m
         logger.info("")
         return
 
-    output_str = f"\n{table_metadata['primary_key']:45}"
+    output_str = f"\n\n{table_metadata['primary_key']:45}"
 
     if table_metadata['secondary_key'] is not None:
         output_str += f"{table_metadata['secondary_key']:45}"
@@ -130,7 +130,7 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_m
         for output_key in table_metadata['output_keys']:
             output_str += f"{output_key:45}"
 
-    output_str += "\n"
+    output_str += "\n\n"
 
     i = 0
 
@@ -623,15 +623,12 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
 
             # list added rows
             logger.info("Added record examples:")
-            logger.info("")
             list_added_or_removed_rows(table_ids['source'], table_ids['previous_versioned'], modified_table_params)
             # list removed rows
             logger.info("Removed record examples:")
-            logger.info("")
             list_added_or_removed_rows(table_ids['previous_versioned'], table_ids['source'], modified_table_params)
 
             logger.info("Changed record examples:")
-            logger.info("")
             compare_table_columns(table_ids=table_ids,
                                   table_params=modified_table_params,
                                   max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
@@ -790,15 +787,14 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
             logger.info("")
         elif column_comparison_result.total_rows > 0:
             logger.info(f"{column}: {column_comparison_result.total_rows} differences found. Examples:")
-            logger.info("")
 
             output_str = ""
 
             # output header row
             if secondary_key is None:
-                output_str += f"\n{primary_key:45} {column}\n"
+                output_str += f"\n\n{primary_key:45}{column}\n\n"
             else:
-                output_str += f"\n{primary_key:45} {secondary_key:45} {column}\n"
+                output_str += f"\n\n{primary_key:45}{secondary_key:45}{column}\n\n"
 
             i = 0
 
@@ -827,9 +823,9 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
                     else:
                         secondary_key_val = str(old_second_key_val)
 
-                    output_str += f"{primary_key_val:45} {secondary_key_val:45} {column_val}\n"
+                    output_str += f"{primary_key_val:45}{secondary_key_val:45}{column_val}\n"
                 else:
-                    output_str += f"{primary_key_val:45} {column_val}\n"
+                    output_str += f"{primary_key_val:45}{column_val}\n"
 
                 i += 1
                 if i == max_display_rows:
