@@ -117,7 +117,7 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_m
     row_result = query_and_retrieve_result(added_removed_record_query)
 
     if row_result.total_rows == 0:
-        logger.info("\tNone found")
+        logger.info("None found")
         logger.info("")
         return
 
@@ -295,7 +295,7 @@ def find_record_difference_counts(table_type: str,
 
                 if result.total_rows > 1:
                     # append the count, right justify
-                    row_str = f"{str(_row[0]):>10}"
+                    row_str = f"{str(_row[0]):>8}  "
 
                     # append the other values (e.g. project id, type) as specified in output keys
                     for i in range(1, num_columns):
