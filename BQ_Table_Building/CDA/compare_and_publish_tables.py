@@ -776,7 +776,7 @@ def compare_concat_columns(table_ids: dict[str, str],
                     logger.info(f"{table_params['primary_key']:40} {old_column_header: 40} {new_column_header}")
                 else:
                     logger.info(f"{table_params['primary_key']:40} {table_params['secondary_key']:40}"
-                                f" {old_column_header: 40} {new_column_header}")
+                                f" {old_column_header:40} {new_column_header}")
 
                 for mismatched_record in mismatched_records:
                     if ';' in mismatched_record['record_id']:
@@ -1123,6 +1123,10 @@ def main(args):
 
         if 'compare_tables' in steps:
             compare_tables(table_type, table_params, table_id_list)
+
+            # todo:
+            # add example data for added and removed records
+            # make query logger console output toggleable
 
         if 'publish_tables' in steps:
             for table_ids in table_id_list:
