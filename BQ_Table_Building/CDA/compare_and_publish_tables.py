@@ -362,13 +362,19 @@ def find_record_difference_counts(table_type: str,
         logger.info(f"Removed {table_type} count: {removed_count}")
     else:
         # output counts by project or other type, where applicable
+        # print added row examples
         if added_str and added_str.strip() != added_count:
             logger.info(added_str)
+        else:
+            logger.info("")
 
         logger.info(f"Removed {table_type} count: {removed_count}")
         # output counts by project or other type, where applicable
+        # print removed row examples
         if removed_str and removed_str.strip() != removed_count:
             logger.info(removed_str)
+        else:
+            logger.info("")
 
         # find changed records by project
         query_logger.info("Changed record query")
@@ -378,6 +384,8 @@ def find_record_difference_counts(table_type: str,
         # outputs counts by project or other type, where applicable
         if changed_str and changed_str.strip() != changed_count:
             logger.info(changed_str)
+        else:
+            logger.info("")
 
     logger.info("")
 
@@ -833,7 +841,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
                 if i == max_display_rows:
                     break
 
-            logger.info(f"{output_str}\n")
+            logger.info(f"{output_str}")
 
 
 def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams, max_display_rows: int = 5):
