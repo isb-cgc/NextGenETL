@@ -1089,12 +1089,10 @@ def main(args):
                                       name='query_logger',
                                       emit_to_console=PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'])
 
-    logger.info("Comparing tables!")
-
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
         # todo remove--using this to get one table type at a time
-        if table_type != 'case':
-            continue
+        # if table_type != 'case':
+        #    continue
 
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
@@ -1106,16 +1104,15 @@ def main(args):
             table_id_list = generate_table_id_list(table_type, table_params)
 
         if 'compare_tables' in steps:
-            for table_ids in table_id_list:
+            # for table_ids in table_id_list:
                 # generate Table object
                 # pass to compare_tables rather than these existing arguments
                 # need to alter compare tables to work with Table object
-                compare_tables(table_type, table_params, table_id_list)
+            compare_tables(table_type, table_params, table_id_list)
 
             # todo:
-            # add example data for added and removed records
-            # do some sanity checking to confirm that we don't have duplicate rows.
-            #   the count of distinct portion_id and aliquot_id pairings should match the total number of rows, yeah?
+            # do some sanity checking to confirm that we don't have duplicate rows. Do distinct and total count differ?
+            # turn into a class? do something to chunk out this long script?
 
         if 'publish_tables' in steps:
             for table_ids in table_id_list:
