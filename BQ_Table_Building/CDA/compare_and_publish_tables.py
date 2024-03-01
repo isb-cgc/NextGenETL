@@ -121,28 +121,28 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_m
         logger.info("")
         return
 
-    header_str = f"{table_metadata['primary_key']:40} "
+    header_str = f"{table_metadata['primary_key']:50} "
 
     if table_metadata['secondary_key'] is not None:
-        header_str += f"{table_metadata['secondary_key']:40} "
+        header_str += f"{table_metadata['secondary_key']:50} "
 
     if table_metadata['output_keys']:
         for output_key in table_metadata['output_keys']:
-            header_str += f"{output_key:40}"
+            header_str += f"{output_key:50}"
 
     logger.info(header_str)
 
     i = 0
 
     for row in row_result:
-        row_str = f"{row[table_metadata['primary_key']]:40} "
+        row_str = f"{row[table_metadata['primary_key']]:50} "
 
         if table_metadata['secondary_key']:
-            row_str += f"{row[table_metadata['secondary_key']]:40}"
+            row_str += f"{row[table_metadata['secondary_key']]:50}"
 
         if table_metadata['output_keys']:
             for output_key in table_metadata['output_keys']:
-                row_str += f"{row[output_key]:40}"
+                row_str += f"{row[output_key]:50}"
 
         logger.info(row_str)
 
@@ -984,10 +984,10 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
                 old_column_header = f"old {column}"
 
                 if table_params['secondary_key'] is None:
-                    logger.info(f"{table_params['primary_key']:40} {old_column_header:40} {new_column_header}")
+                    logger.info(f"{table_params['primary_key']:50} {old_column_header:50} {new_column_header}")
                 else:
-                    logger.info(f"{table_params['primary_key']:40} {table_params['secondary_key']:40}"
-                                f" {old_column_header:40} {new_column_header}")
+                    logger.info(f"{table_params['primary_key']:50} {table_params['secondary_key']:50}"
+                                f" {old_column_header:50} {new_column_header}")
 
                 for mismatched_record in mismatched_records:
                     if ';' in mismatched_record['record_id']:
@@ -999,11 +999,11 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
                         secondary_key_val = None
 
                     if table_params['secondary_key'] is None:
-                        logger.info(f"{primary_key_val:40} {mismatched_record['old_table_value']:40} "
+                        logger.info(f"{primary_key_val:50} {mismatched_record['old_table_value']:50} "
                                     f"{mismatched_record['new_table_value']}")
                     else:
-                        logger.info(f"{primary_key_val:40} {secondary_key_val:40} "
-                                    f"{mismatched_record['old_table_value']:40} {mismatched_record['new_table_value']}")
+                        logger.info(f"{primary_key_val:50} {secondary_key_val:50} "
+                                    f"{mismatched_record['old_table_value']:50} {mismatched_record['new_table_value']}")
 
                     i += 1
 
