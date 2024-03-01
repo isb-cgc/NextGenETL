@@ -275,15 +275,15 @@ def find_record_difference_counts(table_type: str,
         query_logger.info(query)
         result = query_and_retrieve_result(query)
 
-        output_string = f"\n{'Count':10}"
-
-        for header in table_metadata['output_keys']:
-            output_string += f"{header:30}"
-
-        total_results = 0
-        num_columns = len(table_metadata['output_keys']) + 1
-
         if result:
+            output_string = f"\n\n{'Count':12}"
+
+            for header in table_metadata['output_keys']:
+                output_string += f"{header:30}"
+
+            total_results = 0
+            num_columns = len(table_metadata['output_keys']) + 1
+
             for _row in result:
                 total_results += _row[0]
 
@@ -297,7 +297,11 @@ def find_record_difference_counts(table_type: str,
 
                     output_string += '\n' + row_str
 
-        return total_results, output_string
+            output_string += "\n"
+
+            return total_results, output_string
+        else:
+            return 0, ""
 
     logger = logging.getLogger('base_script')
     query_logger = logging.getLogger("query_logger")
