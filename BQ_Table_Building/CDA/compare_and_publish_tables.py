@@ -763,7 +763,7 @@ def compare_concat_columns(table_ids: dict[str, str],
             logger.info(f"Missing records in old table: {old_table_missing_record_count}")
             logger.info(f"Missing records in new table: {new_table_missing_record_count}")
             logger.info(f"Rows with differing item counts: {different_lengths_count}")
-            logger.info(f"Rows with same count but mismatched records {different_values_count}")
+            logger.info(f"Rows with same count but mismatched records: {different_values_count}")
             logger.info("")
 
             if len(mismatched_records) > 0:
@@ -1108,7 +1108,7 @@ def main(args):
     logger.info("Comparing tables!")
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
         # todo remove--using this to get one table type at a time
-        if table_type != 'case':
+        if table_type != 'file':
             continue
 
         if table_params['table_type'] == 'metadata':
