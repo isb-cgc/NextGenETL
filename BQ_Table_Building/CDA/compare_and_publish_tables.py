@@ -514,11 +514,12 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
             logger.warning("")
             return False
 
-        # is there a previous version to compare with new table?
+        # table has changed since last version
         if table_has_new_data(table_ids['previous_versioned'], table_ids['source']):
             logger.info(f"New data found--table will be published.")
             logger.info("")
             return True
+        # table has not changed since last version
         else:
             logger.info(f"No changes found--table will not be published.")
             logger.info("")
@@ -899,6 +900,11 @@ def compare_concat_columns(table_ids: dict[str, str],
                         # exclusive or -- values only in exactly one set
                         different_values_count += 1
 
+                    if not new_column_value:
+                        new_column_value = ""
+                    if not old_column_value:
+                        old_column_value = ""
+
                     mismatched_records.append({
                         "record_id": record_id,
                         "new_table_value": new_column_value,
@@ -1024,6 +1030,7 @@ def main(args):
                                       emit_to_console=PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'])
 
     logger.info("Comparing tables!")
+
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
         # todo remove--using this to get one table type at a time
         if table_type != 'file':
@@ -1035,10 +1042,15 @@ def main(args):
         else:
             # search for missing project tables for the given table type
             find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
+            # generates a list of all the tables of that type--used for clinical and per-project tables
             table_id_list = generate_table_id_list(table_type, table_params)
 
         if 'compare_tables' in steps:
-            compare_tables(table_type, table_params, table_id_list)
+            for table_ids in table_id_list:
+                # generate Table object
+                # pass to compare_tables rather than these existing arguments
+                # need to alter compare tables to work with Table object
+                compare_tables(table_type, table_params, table_id_list)
 
             # todo:
             # add example data for added and removed records
