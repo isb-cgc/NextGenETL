@@ -62,10 +62,13 @@ def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
                 SELECT * from `{previous_table_id}`
             )
         """
+    query_logger = logging.getLogger('query_logger')
 
     if not previous_table_id:
         return True
 
+    compare_two_tables_query = compare_two_tables_sql()
+    query_logger.info(f"Query to find any difference in table data")
     compare_result = query_and_retrieve_result(sql=compare_two_tables_sql())
 
     if isinstance(compare_result, _EmptyRowIterator):
@@ -81,32 +84,73 @@ def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
         return True if row else False
 
 
-def make_added_or_removed_record_query(select_table_id: str,
-                                       join_table_id: str,
-                                       table_metadata: TableParams):
-    primary_key = table_metadata['primary_key']
-    secondary_key = table_metadata['secondary_key'] if table_metadata['secondary_key'] else None
+def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_metadata: TableParams):
+    def make_added_or_removed_record_query():
+        primary_key = table_metadata['primary_key']
+        secondary_key = table_metadata['secondary_key'] if table_metadata['secondary_key'] else None
 
-    select_str = primary_key
-    secondary_where_str = ""
+        select_str = primary_key
+        secondary_where_str = ""
 
-    if secondary_key:
-        select_str += f", {secondary_key}"
-        secondary_where_str += f"AND o.{secondary_key}=n.{secondary_key}"
+        if secondary_key:
+            select_str += f", {secondary_key}"
+            secondary_where_str += f"AND o.{secondary_key}=n.{secondary_key}"
+        if table_metadata['output_keys']:
+            output_keys = ', '.join(table_metadata['output_keys'])
+            select_str += f", {output_keys}"
+
+        return f"""
+            SELECT {select_str}
+            FROM `{select_table_id}` n
+            WHERE NOT EXISTS (
+              SELECT 1 
+              FROM `{join_table_id}` o 
+              WHERE o.{primary_key} = n.{primary_key} 
+                {secondary_where_str}
+            ) 
+        """
+    query_logger = logging.getLogger("query_logger")
+    logger = logging.getLogger("base_script")
+
+    added_removed_record_query = make_added_or_removed_record_query()
+    query_logger.info(added_removed_record_query)
+    row_result = query_and_retrieve_result(added_removed_record_query)
+
+    if row_result.total_rows == 0:
+        logger.info("\tNone found")
+        logger.info("")
+        return
+
+    header_str = f"{table_metadata['primary_key']:40} "
+
+    if table_metadata['secondary_key'] is not None:
+        header_str += f"{table_metadata['secondary_key']:40} "
+
     if table_metadata['output_keys']:
-        output_keys = ', '.join(table_metadata['output_keys'])
-        select_str += f", {output_keys}"
+        for output_key in table_metadata['output_keys']:
+            header_str += f"{output_key:40}"
 
-    return f"""
-        SELECT {select_str}
-        FROM `{select_table_id}` n
-        WHERE NOT EXISTS (
-          SELECT 1 
-          FROM `{join_table_id}` o 
-          WHERE o.{primary_key} = n.{primary_key} 
-            {secondary_where_str}
-        ) 
-    """
+    logger.info(header_str)
+
+    i = 0
+
+    for row in row_result:
+        row_str = f"{row[table_metadata['primary_key']]:40} "
+
+        if table_metadata['secondary_key']:
+            row_str += f"{row[table_metadata['secondary_key']]:40}"
+
+        if table_metadata['output_keys']:
+            for output_key in table_metadata['output_keys']:
+                row_str += f"{row[output_key]:40}"
+
+        logger.info(row_str)
+
+        i += 1
+
+        if i == PARAMS['MAX_DISPLAY_ROWS']:
+            break
+    logger.info("")
 
 
 def find_record_difference_counts(table_type: str,
@@ -540,7 +584,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
 
     for table_ids in table_id_list:
         # table_base_name only defined for metadata tables, so otherwise we'll output the source table
-        if 'table_base_name' in table_params and table_params['table_base_name']:
+        if table_params['table_base_name']:
             logger.info(f"Comparing tables for {table_params['table_base_name']}!")
         else:
             logger.info(f"Comparing tables for {table_ids['source']}!")
@@ -564,12 +608,18 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
 
             # display compare_to_last.sh style output
             find_record_difference_counts(table_type, table_ids, modified_table_params)
-            # todo incorporate output for added and removed rows
-            # list_added_rows(table_type, table_ids, modified_table_params)
-            # list_removed_rows(table_type, table_ids, modified_table_params)
+
+            # list added rows
+            logger.info("Newly added record examples:")
+            list_added_or_removed_rows(table_ids['source'], table_ids['previous_versioned'], modified_table_params)
+            # list removed rows
+            logger.info("Newly removed record examples:")
+            list_added_or_removed_rows(table_ids['previous_versioned'], table_ids['source'], modified_table_params)
+
             compare_table_columns(table_ids=table_ids,
                                   table_params=modified_table_params,
                                   max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
+
             if 'concat_columns' in table_params and table_params['concat_columns']:
                 concat_column_str = ", ".join(table_params['concat_columns'])
                 logger.info(f"Comparing concatenated columns: {concat_column_str}")
@@ -769,9 +819,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
             logger.info("")
 
 
-def compare_concat_columns(table_ids: dict[str, str],
-                           table_params: TableParams,
-                           max_display_rows: int = 5):
+def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams, max_display_rows: int = 5):
     """
     Compare concatenated column values to ensure matching data, as order is not guaranteed in these column strings.
     :param table_ids: dict of table ids: 'source' (dev table), 'versioned' and 'current' (future published ids),
@@ -914,8 +962,8 @@ def compare_concat_columns(table_ids: dict[str, str],
         if new_table_missing_record_count > 0 or old_table_missing_record_count > 0 \
                 or different_lengths_count > 0 or different_values_count > 0:
             logger.info(f"{column}:")
-            logger.info(f"Missing records in old table: {old_table_missing_record_count}")
-            logger.info(f"Missing records in new table: {new_table_missing_record_count}")
+            # logger.info(f"Missing records in old table: {old_table_missing_record_count}")
+            # logger.info(f"Missing records in new table: {new_table_missing_record_count}")
             logger.info(f"Rows with differing item counts: {different_lengths_count}")
             logger.info(f"Rows with same count but mismatched records: {different_values_count}")
             logger.info("")
@@ -952,6 +1000,7 @@ def compare_concat_columns(table_ids: dict[str, str],
 
                     if i == max_display_rows:
                         break
+                logger.info("")
         else:
             logger.info(f"All concatenated records match for {column}.")
 
