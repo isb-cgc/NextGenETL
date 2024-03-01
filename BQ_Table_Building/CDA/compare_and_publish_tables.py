@@ -130,6 +130,8 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_m
         for output_key in table_metadata['output_keys']:
             output_str += f"{output_key:45}"
 
+    output_str += "\n"
+
     i = 0
 
     for row in row_result:
@@ -145,7 +147,7 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_m
                 else:
                     row_str += f"{'':45}"
 
-        output_str += row_str
+        output_str += f"{row_str}\n"
 
         i += 1
 
