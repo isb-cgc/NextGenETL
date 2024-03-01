@@ -202,7 +202,7 @@ def find_record_difference_counts(table_type: str,
         elif previous_or_new == "new":
             count_table_id = table_ids['source']
         else:
-            logger.critical(f"invalid argument: {previous_or_new}. Should be 'previous' or 'current'.")
+            logger.critical(f"invalid argument: {previous_or_new}. Should be 'previous' or 'new'.")
             sys.exit(-1)
 
         record_count_query = make_record_count_query(count_table_id)
@@ -280,7 +280,7 @@ def find_record_difference_counts(table_type: str,
         secondary_key = table_metadata['secondary_key'] + ', '
 
     previous_version_count = get_count_result(previous_or_new="previous")
-    new_version_count = get_count_result(previous_or_new="current")
+    new_version_count = get_count_result(previous_or_new="new")
     count_difference = int(new_version_count) - int(previous_version_count)
 
     if table_type not in ("clinical", "per_sample_file"):
