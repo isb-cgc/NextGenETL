@@ -26,7 +26,6 @@ import sys
 import time
 
 from typing import Union
-from tabulate import tabluate
 
 from google.cloud.bigquery.table import _EmptyRowIterator
 
