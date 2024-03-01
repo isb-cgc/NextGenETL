@@ -121,16 +121,14 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_m
         logger.info("")
         return
 
-    header_str = f"{table_metadata['primary_key']:45}"
+    output_str = f"\n{table_metadata['primary_key']:45}"
 
     if table_metadata['secondary_key'] is not None:
-        header_str += f"{table_metadata['secondary_key']:45}"
+        output_str += f"{table_metadata['secondary_key']:45}"
 
     if table_metadata['output_keys']:
         for output_key in table_metadata['output_keys']:
-            header_str += f"{output_key:45}"
-
-    logger.info(header_str)
+            output_str += f"{output_key:45}"
 
     i = 0
 
@@ -147,14 +145,14 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_m
                 else:
                     row_str += f"{'':45}"
 
-        logger.info(row_str)
+        output_str += row_str
 
         i += 1
 
         if i == PARAMS['MAX_DISPLAY_ROWS']:
             break
 
-    logger.info("")
+    logger.info(f"{output_str}\n")
 
 
 def find_record_difference_counts(table_type: str,
@@ -792,11 +790,13 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
             logger.info(f"{column}: {column_comparison_result.total_rows} differences found. Examples:")
             logger.info("")
 
+            output_str = ""
+
             # output header row
             if secondary_key is None:
-                logger.info(f"{primary_key:45} {column} ")
+                output_str += f"\n{primary_key:45} {column}\n"
             else:
-                logger.info(f"{primary_key:45} {secondary_key:45} {column:45}")
+                output_str += f"\n{primary_key:45} {secondary_key:45} {column}\n"
 
             i = 0
 
@@ -825,15 +825,15 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
                     else:
                         secondary_key_val = str(old_second_key_val)
 
-                    logger.info(f"{primary_key_val:45} {secondary_key_val:45} {column_val}")
+                    output_str += f"{primary_key_val:45} {secondary_key_val:45} {column_val}\n"
                 else:
-                    logger.info(f"{primary_key_val:45} {column_val}")
+                    output_str += f"{primary_key_val:45} {column_val}\n"
 
                 i += 1
                 if i == max_display_rows:
                     break
 
-            logger.info("")
+            logger.info(f"{output_str}\n")
 
 
 def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams, max_display_rows: int = 5):
