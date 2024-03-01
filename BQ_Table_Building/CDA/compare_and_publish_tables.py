@@ -687,8 +687,6 @@ def compare_concat_columns(table_ids: dict[str, str],
     record_key_set = set(new_table_records_dict.keys())
     record_key_set.update(old_table_records_dict.keys())
 
-    logger.debug(record_key_set)
-
     for column in table_params['concat_columns']:
         correct_records_count = 0
         new_table_missing_record_count = 0
@@ -698,19 +696,23 @@ def compare_concat_columns(table_ids: dict[str, str],
         mismatched_records = list()
 
         for record_id in record_key_set:
+            # record was removed
             if record_id not in new_table_records_dict:
                 new_table_missing_record_count += 1
-                break
+                continue
+            # record was added
             elif record_id not in old_table_records_dict:
                 old_table_missing_record_count += 1
-                break
+                continue
 
             new_column_value = new_table_records_dict[record_id][column]
             old_column_value = old_table_records_dict[record_id][column]
 
+            # value is null in old and new version--matches
             if new_column_value is None and old_column_value is None:
                 correct_records_count += 1
             else:
+                # explode new and old concatenated strings into lists
                 if new_column_value is None:
                     new_column_value_list = list()
                 else:
@@ -724,14 +726,27 @@ def compare_concat_columns(table_ids: dict[str, str],
                 new_column_value_set = set(new_column_value_list)
                 old_column_value_set = set(old_column_value_list)
 
+                # The list length's match, and the values in each set are identical--these records match.
                 if len(new_column_value_list) == len(old_column_value_list) \
                         and len(new_column_value_set ^ old_column_value_set) == 0:
                     correct_records_count += 1
                 else:
+                    if len(new_column_value_set) != len(new_column_value_list):
+                        logger.warning(f"Duplicate value detected in new version's concatenated string column. "
+                                       f"Column name: {column}, record id: {record_id}")
+                        logger.warning(f"Values: {new_column_value}")
+
+                    if len(old_column_value_set) != len(old_column_value_list):
+                        logger.warning(f"Duplicate value detected in old version's concatenated string column. "
+                                       f"Column name: {column}, record id: {record_id}")
+                        logger.warning(f"Values: {old_column_value}")
+
+                    # different number of values in new and old versions
                     if len(new_column_value_list) != len(old_column_value_list):
                         # if length mismatch, there may be duplicates, so definitely not identical;
                         # set eliminates duplicates, so this is necessary
                         different_lengths_count += 1
+                    # different values found in new and old version
                     elif len(new_column_value_set ^ old_column_value_set) > 0:
                         # exclusive or -- values only in exactly one set
                         different_values_count += 1
@@ -780,8 +795,11 @@ def compare_concat_columns(table_ids: dict[str, str],
                                     f"{mismatched_record['old_table_value']:40} {mismatched_record['new_table_value']}")
 
                     i += 1
+
                     if i == max_display_rows:
                         break
+        else:
+            logger.info(f"All concatenated records match for {column}.")
 
 
 def get_new_table_names(dataset: str) -> list[str]:
