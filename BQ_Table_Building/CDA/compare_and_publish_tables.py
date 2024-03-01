@@ -276,7 +276,7 @@ def find_record_difference_counts(table_type: str,
         result = query_and_retrieve_result(query)
 
         if result:
-            output_string = f"\n\n{'Count':12}"
+            output_string = f"\n\n{'count':12}"
 
             for header in table_metadata['output_keys']:
                 output_string += f"{header:30}"
@@ -618,12 +618,13 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
             find_record_difference_counts(table_type, table_ids, modified_table_params)
 
             # list added rows
-            logger.info("Newly added record examples:")
+            logger.info("Added record examples:")
             list_added_or_removed_rows(table_ids['source'], table_ids['previous_versioned'], modified_table_params)
             # list removed rows
-            logger.info("Newly removed record examples:")
+            logger.info("Removed record examples:")
             list_added_or_removed_rows(table_ids['previous_versioned'], table_ids['source'], modified_table_params)
 
+            logger.info("Changed record examples:")
             compare_table_columns(table_ids=table_ids,
                                   table_params=modified_table_params,
                                   max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
