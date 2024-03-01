@@ -1082,7 +1082,7 @@ def main(args):
 
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
         # todo remove--using this to get one table type at a time
-        if table_type != 'file':
+        if table_type != 'case':
             continue
 
         if table_params['data_type'] == 'metadata':
