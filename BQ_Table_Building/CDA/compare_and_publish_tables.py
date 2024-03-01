@@ -619,12 +619,15 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
 
             # list added rows
             logger.info("Added record examples:")
+            logger.info("")
             list_added_or_removed_rows(table_ids['source'], table_ids['previous_versioned'], modified_table_params)
             # list removed rows
             logger.info("Removed record examples:")
+            logger.info("")
             list_added_or_removed_rows(table_ids['previous_versioned'], table_ids['source'], modified_table_params)
 
             logger.info("Changed record examples:")
+            logger.info("")
             compare_table_columns(table_ids=table_ids,
                                   table_params=modified_table_params,
                                   max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
@@ -632,6 +635,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
             if 'concat_columns' in table_params and table_params['concat_columns']:
                 concat_column_str = ", ".join(table_params['concat_columns'])
                 logger.info(f"Comparing concatenated columns: {concat_column_str}")
+                logger.info("")
                 compare_concat_columns(table_ids=table_ids,
                                        table_params=modified_table_params,
                                        max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
@@ -877,8 +881,6 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
 
     logger = logging.getLogger('base_script')
     query_logger = logging.getLogger('query_logger')
-
-    logger.info("Comparing concatenated columns!")
 
     new_concat_column_query = make_concat_column_query(table_ids['source'])
     query_logger.info(f"SQL to retrieve concat values in current version table: {table_params['table_base_name']} \n"
