@@ -558,7 +558,6 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
             'previous_versioned': previous_versioned_table_id
         }
 
-        logger.debug(f"appending: {table_ids}")
         table_ids_list.append(table_ids)
 
     return table_ids_list
@@ -607,9 +606,9 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
     for table_ids in table_id_list:
         # table_base_name only defined for metadata tables, so otherwise we'll output the source table
         if table_params['table_base_name']:
-            logger.info(f"Comparing tables for {table_params['table_base_name']}!")
+            logger.info(f"*** Comparing tables for {table_params['table_base_name']}!")
         else:
-            logger.info(f"Comparing tables for {table_ids['source']}!")
+            logger.info(f"*** Comparing tables for {table_ids['source']}!")
 
         modified_table_params = dict()
 
@@ -639,6 +638,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
             list_added_or_removed_rows(table_ids['previous_versioned'], table_ids['source'], modified_table_params)
 
             logger.info("Changed record examples:")
+            logger.info("")
             compare_table_columns(table_ids=table_ids,
                                   table_params=modified_table_params,
                                   max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
@@ -652,6 +652,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                                        max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
             else:
                 logger.info(f"No concatenated columns to compare for {table_params['table_base_name']}")
+                logger.info("")
 
 
 def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, max_display_rows: int = 5):
@@ -1103,8 +1104,8 @@ def main(args):
 
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
         # todo remove--using this to get one table type at a time
-        # if table_type != 'case':
-        #    continue
+        if table_type != 'clinical':
+           continue
 
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
@@ -1123,6 +1124,7 @@ def main(args):
             compare_tables(table_type, table_params, table_id_list)
 
             # todo:
+            # could output printing be abstracted?
             # do some sanity checking to confirm that we don't have duplicate rows. Do distinct and total count differ?
             # turn into a class? do something to chunk out this long script?
 
