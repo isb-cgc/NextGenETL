@@ -84,10 +84,13 @@ def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
         return True if row else False
 
 
-def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_metadata: TableParams):
+def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_params: TableParams):
     def make_added_or_removed_record_query():
-        primary_key = table_metadata['primary_key']
-        secondary_key = table_metadata['secondary_key'] if table_metadata['secondary_key'] else None
+        primary_key = table_params['primary_key']
+        if 'secondary_key' in table_params and table_params['secondary_key']:
+            secondary_key = table_params['secondary_key']
+        else:
+            secondary_key = None
 
         select_str = primary_key
         secondary_where_str = ""
@@ -95,8 +98,8 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_m
         if secondary_key:
             select_str += f", {secondary_key}"
             secondary_where_str += f"AND o.{secondary_key}=n.{secondary_key}"
-        if table_metadata['output_keys']:
-            output_keys = ', '.join(table_metadata['output_keys'])
+        if table_params['output_keys']:
+            output_keys = ', '.join(table_params['output_keys'])
             select_str += f", {output_keys}"
 
         return f"""
@@ -121,13 +124,13 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_m
         logger.info("")
         return
 
-    output_str = f"\n\n{table_metadata['primary_key']:45}"
+    output_str = f"\n\n{table_params['primary_key']:45}"
 
-    if table_metadata['secondary_key'] is not None:
-        output_str += f"{table_metadata['secondary_key']:45}"
+    if 'secondary_key' in table_params and table_params['secondary_key'] is not None:
+        output_str += f"{table_params['secondary_key']:45}"
 
-    if table_metadata['output_keys']:
-        for output_key in table_metadata['output_keys']:
+    if table_params['output_keys']:
+        for output_key in table_params['output_keys']:
             output_str += f"{output_key:45}"
 
     output_str += "\n\n"
@@ -135,13 +138,13 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_m
     i = 0
 
     for row in row_result:
-        row_str = f"{row[table_metadata['primary_key']]:45}"
+        row_str = f"{row[table_params['primary_key']]:45}"
 
-        if table_metadata['secondary_key']:
-            row_str += f"{row[table_metadata['secondary_key']]:45}"
+        if table_params['secondary_key']:
+            row_str += f"{row[table_params['secondary_key']]:45}"
 
-        if table_metadata['output_keys']:
-            for output_key in table_metadata['output_keys']:
+        if table_params['output_keys']:
+            for output_key in table_params['output_keys']:
                 if row[output_key]:
                     row_str += f"{row[output_key]:45}"
                 else:
@@ -334,7 +337,7 @@ def find_record_difference_counts(table_type: str,
     secondary_key = ''
 
     # include secondary key where applicable--in GDC, secondary key is used for aliquot2case map and per sample file
-    if table_metadata['secondary_key'] is not None:
+    if 'secondary_key' in table_metadata and table_metadata['secondary_key'] is not None:
         secondary_key = table_metadata['secondary_key'] + ', '
 
     previous_version_count = get_count_result(previous_or_new="previous")
@@ -858,7 +861,7 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
     def make_concat_column_query(table_id: str) -> str:
         secondary_key_string = ''
 
-        if table_params['secondary_key'] is not None:
+        if 'secondary_key' in table_params and table_params['secondary_key'] is not None:
             secondary_key_string = f"{table_params['secondary_key']},"
 
         concat_columns_str = ", ".join(table_params['concat_columns'])
@@ -877,7 +880,7 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
             primary_key_id = record.get(table_params['primary_key'])
             records_dict_key = primary_key_id
 
-            if table_params['secondary_key'] is not None:
+            if 'secondary_key' in table_params and table_params['secondary_key'] is not None:
                 records_dict_key += f";{record.get(table_params['secondary_key'])}"
 
             record_dict = dict()
@@ -992,6 +995,8 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
             logger.info(f"Rows with same count but mismatched records: {different_values_count}")
             logger.info("")
 
+            output_str = ""
+
             if len(mismatched_records) > 0:
                 i = 0
 
@@ -999,10 +1004,10 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
                 old_column_header = f"old {column}"
 
                 if table_params['secondary_key'] is None:
-                    logger.info(f"{table_params['primary_key']:45} {old_column_header:45} {new_column_header}")
+                    output_str += f"\n\n{table_params['primary_key']:45} {old_column_header:45} {new_column_header}\n"
                 else:
-                    logger.info(f"{table_params['primary_key']:45} {table_params['secondary_key']:45}"
-                                f" {old_column_header:45} {new_column_header}")
+                    output_str += f"\n\n{table_params['primary_key']:45} {table_params['secondary_key']:45} " \
+                                  f"{old_column_header:45} {new_column_header}\n"
 
                 for mismatched_record in mismatched_records:
                     if ';' in mismatched_record['record_id']:
@@ -1014,19 +1019,22 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
                         secondary_key_val = None
 
                     if table_params['secondary_key'] is None:
-                        logger.info(f"{primary_key_val:45} {mismatched_record['old_table_value']:45} "
-                                    f"{mismatched_record['new_table_value']}")
+                        output_str += f"{primary_key_val:45} {mismatched_record['old_table_value']:45} " \
+                                      f"{mismatched_record['new_table_value']}\n"
                     else:
-                        logger.info(f"{primary_key_val:45} {secondary_key_val:45} "
-                                    f"{mismatched_record['old_table_value']:45} {mismatched_record['new_table_value']}")
+                        output_str += f"{primary_key_val:45} {secondary_key_val:45} " \
+                                      f"{mismatched_record['old_table_value']:45} " \
+                                      f"{mismatched_record['new_table_value']}\n"
 
                     i += 1
 
                     if i == max_display_rows:
                         break
+                logger.info(output_str)
                 logger.info("")
         else:
             logger.info(f"All concatenated records match for {column}.")
+            logger.info("")
 
 
 def publish_table(table_ids: dict[str, str]):
