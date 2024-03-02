@@ -140,7 +140,7 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_p
     for row in row_result:
         row_str = f"{row[table_params['primary_key']]:45}"
 
-        if table_params['secondary_key']:
+        if 'secondary_key' in table_params and table_params['secondary_key']:
             row_str += f"{row[table_params['secondary_key']]:45}"
 
         if table_params['output_keys']:
@@ -653,9 +653,6 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                 compare_concat_columns(table_ids=table_ids,
                                        table_params=modified_table_params,
                                        max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
-            else:
-                logger.info(f"No concatenated columns to compare for {table_params['table_base_name']}")
-                logger.info("")
 
 
 def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, max_display_rows: int = 5):
@@ -798,6 +795,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
 
         if not column_comparison_result:
             logger.info(f"{column}: Column doesn't exist in one or both tables, or data types don't match.")
+            logger.info(f"Common reasons: non-trivial field data added to program; field deprecated by GDC.")
             logger.info("")
         elif column_comparison_result.total_rows > 0:
             logger.info(f"{column}: {column_comparison_result.total_rows} differences found. Examples:")
