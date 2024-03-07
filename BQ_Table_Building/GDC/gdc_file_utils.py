@@ -145,6 +145,27 @@ def get_column_list_tsv(header_list=None, tsv_fp=None, header_row_index=None):
     return column_list
 
 
+def build_file_list(local_files_dir):
+    """
+    Build the File List
+    Using the tree of downloaded files, we build a file list. Note that we see the downloads
+    (using the GDC download tool) bringing along logs and annotation.txt files, which we
+    specifically omit.
+    """
+    print(f"building file list from {local_files_dir}")
+    all_files = []
+    for path, dirs, files in os.walk(local_files_dir):
+        if not path.endswith('logs'):
+            for f in files:
+                if f != 'annotations.txt':
+                    if f.endswith('parcel'):
+                        raise Exception
+                    all_files.append(f'{path}/{f}')
+
+    print(f"done building file list from {local_files_dir}") # todo logger
+    return all_files
+
+
 def update_dir_from_git(local_repo, repo_url, repo_branch):
     """
     This function deletes the old directory and replaces it with the most current from GitHub
@@ -193,6 +214,102 @@ def local_to_bucket(bucket, bucket_file, local_file):
     blob = bucket.blob(bucket_file)
     blob.upload_from_filename(local_file)
     util_logger.info(f"{local_file} copied to {bucket_file}")
+
+
+class BucketPuller(object):
+    """Multithreaded bucket puller"""
+
+    # todo make it output to logger
+
+    def __init__(self, thread_count):
+        self._lock = threading.Lock()
+        self._threads = []
+        self._total_files = 0
+        self._read_files = 0
+        self._thread_count = thread_count
+        self._bar_bump = 0
+
+    def __str__(self):
+        return "BucketPuller"
+
+    def reset(self):
+        self._threads.clear()
+        self._total_files = 0
+        self._read_files = 0
+        self._bar_bump = 0
+
+    def pull_from_buckets(self, pull_list, local_files_dir):
+        # todo is this description accurate? It doesn't make sense
+        """
+          List of all project IDs
+        """
+        self._total_files = len(pull_list)
+        self._bar_bump = self._total_files // 100
+        if self._bar_bump == 0:
+            self._bar_bump = 1
+        size = self._total_files // self._thread_count
+        size = size if self._total_files % self._thread_count == 0 else size + 1
+        chunks = [pull_list[pos:pos + size] for pos in range(0, self._total_files, size)]
+        for i in range(0, self._thread_count):
+            if i >= len(chunks):
+                break
+            th = threading.Thread(target=self._pull_func, args=(chunks[i], local_files_dir))
+            self._threads.append(th)
+
+        for i in range(0, len(self._threads)):
+            self._threads[i].start()
+
+        for i in range(0, len(self._threads)):
+            self._threads[i].join()
+
+        print_progress_bar(self._read_files, self._total_files) # todo change to logger
+        return
+
+    def _pull_func(self, pull_list, local_files_dir):
+        storage_client = storage.Client()
+        for url in pull_list:
+            path_pieces = up.urlparse(url)
+            dir_name = os.path.dirname(path_pieces.path)
+            make_dir = f"{local_files_dir}{dir_name}"
+            os.makedirs(make_dir, exist_ok=True)
+            bucket = storage_client.bucket(path_pieces.netloc)
+            blob = bucket.blob(path_pieces.path[1:])  # drop leading / from blob name
+            full_file = f"{local_files_dir}{path_pieces.path}"
+            blob.download_to_filename(full_file)
+            self._bump_progress()
+
+    def _bump_progress(self):
+
+        with self._lock:
+            self._read_files += 1
+            if (self._read_files % self._bar_bump) == 0:
+                print_progress_bar(self._read_files, self._total_files) # todo change to logger
+
+
+def pull_from_buckets(pull_list, local_files_dir):
+    """
+    Run the "Download Client", which now just hauls stuff out of the cloud buckets
+    """
+
+    # Parse the manifest file for uids, pull out other data too as a sanity check:
+
+    num_files = len(pull_list)
+    print(f"Begin {num_files} bucket copies...") # todo make logger
+    storage_client = storage.Client()
+    copy_count = 0
+    for url in pull_list:
+        path_pieces = up.urlparse(url)
+        dir_name = os.path.dirname(path_pieces.path)
+        make_dir = f"{local_files_dir}{dir_name}"
+        os.makedirs(make_dir, exist_ok=True)
+        bucket = storage_client.bucket(path_pieces.netloc)
+        blob = bucket.blob(path_pieces.path[1:])  # drop leading / from blob name
+        full_file = f"{local_files_dir}{path_pieces.path}"
+        blob.download_to_filename(full_file)
+        copy_count += 1
+        if (copy_count % 10) == 0:
+            print_progress_bar(copy_count, num_files) # todo make logger
+    print_progress_bar(num_files, num_files) # todo make logger
 
 
 # Google VM Utils #

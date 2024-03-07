@@ -29,7 +29,7 @@ import zipfile
 import gzip
 
 from gdc_file_utils import (confirm_google_vm, format_seconds, update_dir_from_git, query_bq, bq_to_bucket_tsv,
-                            bucket_to_local, find_types,
+                            bucket_to_local, find_types, pull_from_buckets, build_file_list,
                             create_schema_hold_list, local_to_bucket, update_schema_tags,
                             write_table_schema_with_generic,
                             csv_to_bq, initialize_logging, bq_table_exists)
@@ -114,40 +114,41 @@ def concat_all_files(all_files, one_big_tsv):
     logger.info("building {}".format(one_big_tsv))
     first = True
     header_id = None
-    with open(one_big_tsv, 'w') as outfile:
-        for filename in all_files:
-            toss_zip = False
-            if filename.endswith('.zip'):
-                dir_name = os.path.dirname(filename)
-                logger.info(f"Unzipping {filename}")
-                with zipfile.ZipFile(filename, "r") as zip_ref:
-                    zip_ref.extractall(dir_name)
-                use_file_name = filename[:-4]
-                toss_zip = True
-            elif filename.endswith('.gz'):
-                use_file_name = filename[:-3]
-                logger.info(f"Uncompressing {filename}")
-                with gzip.open(filename, "rb") as gzip_in:
-                    with open(use_file_name, "wb") as uncomp_out:
-                        shutil.copyfileobj(gzip_in, uncomp_out)
-                toss_zip = True
-            else:
-                use_file_name = filename
+    with open(all_files, 'r') as file_list:
+        with open(one_big_tsv, 'w') as outfile:
+            for filename in file_list:
+                toss_zip = False
+                if filename.endswith('.zip'):
+                    dir_name = os.path.dirname(filename)
+                    logger.info(f"Unzipping {filename}")
+                    with zipfile.ZipFile(filename, "r") as zip_ref:
+                        zip_ref.extractall(dir_name)
+                    use_file_name = filename[:-4]
+                    toss_zip = True
+                elif filename.endswith('.gz'):
+                    use_file_name = filename[:-3]
+                    logger.info(f"Uncompressing {filename}")
+                    with gzip.open(filename, "rb") as gzip_in:
+                        with open(use_file_name, "wb") as uncomp_out:
+                            shutil.copyfileobj(gzip_in, uncomp_out)
+                    toss_zip = True
+                else:
+                    use_file_name = filename
 
-            if os.path.isfile(use_file_name):
-                with open(use_file_name, 'r') as readfile:
-                    for line in readfile:
-                        if not line.startswith('#') or line.startswith(header_id) or first:
-                            outfile.write(line.rstrip('\n'))
-                            outfile.write('\t')
-                            outfile.write('file_name' if first else filename)
-                            outfile.write('\n')
-                        first = False
-            else:
-                logger.info(f'{use_file_name} was not found')
+                if os.path.isfile(use_file_name):
+                    with open(use_file_name, 'r') as readfile:
+                        for line in readfile:
+                            if not line.startswith('#') or line.startswith(header_id) or first:
+                                outfile.write(line.rstrip('\n'))
+                                outfile.write('\t')
+                                outfile.write('file_name' if first else filename)
+                                outfile.write('\n')
+                            first = False
+                else:
+                    logger.info(f'{use_file_name} was not found')
 
-            if toss_zip and os.path.isfile(use_file_name):
-                os.remove(use_file_name)
+                if toss_zip and os.path.isfile(use_file_name):
+                    os.remove(use_file_name)
     return
 
 
@@ -190,6 +191,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         datatype_mappings = json_loads(datatype_mappings_file.read().rstrip())
 
     file_list = f"{prefix}_file_list.tsv"
+    file_traversal_list = f"{prefix}_traversal.tsv"
     raw_data = f"{prefix}_raw"
     draft_table = f"{prefix}_draft_table"  # todo find out where needs the table name and where it should be table id
     field_list = f"{local_location}/{prefix}_field_schema.json"
@@ -198,9 +200,21 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         logger.info("Running create_file_list Step")
         create_file_list(params, program, data_type, local_location, prefix, file_list, datatype_mappings)
 
-    if 'create_files' in steps:
+    # todo step for downloading files
+    if 'transfer_from_gdc' in steps:
+        # Bring the files to the local dir from DCF GDC Cloud Buckets
+        with open(file_list, mode='r') as pull_list_file:
+            pull_list = pull_list_file.read().splitlines()
+        pull_from_buckets(pull_list, f"{local_location}/files")
+
+        all_files = build_file_list(local_location)
+        with open(file_traversal_list, mode='w') as traversal_list: # todo move to build_file_list
+            for line in all_files:
+                traversal_list.write(f"{line}\n")
+
+    if 'create_files' in steps: # todo change to something like "create_raw_concat_files"
         logging.info("Running create_files Step")
-        concat_all_files(f"{local_location}/{file_list}", raw_data)
+        concat_all_files(f"{local_location}/{file_list}", raw_data) # todo to update to the correct file locations
         # todo future add header rows if needed (Methylation)
         # todo future break up copy number files into each workflow (maybe)
 
