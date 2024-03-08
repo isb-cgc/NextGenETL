@@ -203,12 +203,12 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
     # todo step for downloading files
     if 'transfer_from_gdc' in steps:
         # Bring the files to the local dir from DCF GDC Cloud Buckets
-        with open(file_list, mode='r') as pull_list_file:
+        with open(f"{local_location}/{file_list}", mode='r') as pull_list_file:
             pull_list = pull_list_file.read().splitlines()
         pull_from_buckets(pull_list, f"{local_location}/files")
 
         all_files = build_file_list(local_location)
-        with open(file_traversal_list, mode='w') as traversal_list: # todo move to build_file_list
+        with open(f"{local_location}/{file_traversal_list}", mode='w') as traversal_list: # todo move to build_file_list
             for line in all_files:
                 traversal_list.write(f"{line}\n")
 
