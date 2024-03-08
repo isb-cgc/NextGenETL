@@ -775,7 +775,7 @@ def generic_bq_harness(sql, target_dataset, dest_table, do_batch, do_replace, pr
     write_depo = "WRITE_TRUNCATE" if do_replace else None
     return generic_bq_harness_write_depo(sql, target_dataset, dest_table, do_batch, write_depo, project=project)
 
-def generic_bq_harness_write_depo(sql, target_dataset, dest_table, do_batch, write_depo, project=Npne):
+def generic_bq_harness_write_depo(sql, target_dataset, dest_table, do_batch, write_depo, project=None):
     """
     Handles all the boilerplate for running a BQ job
     """
