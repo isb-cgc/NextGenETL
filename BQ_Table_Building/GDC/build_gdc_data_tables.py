@@ -114,41 +114,43 @@ def concat_all_files(all_files, one_big_tsv):
     logger.info("building {}".format(one_big_tsv))
     first = True
     header_id = None
-    with open(all_files, 'r') as file_list:
-        with open(one_big_tsv, 'w') as outfile:
-            for filename in file_list:
-                toss_zip = False
-                if filename.endswith('.zip'):
-                    dir_name = os.path.dirname(filename)
-                    logger.info(f"Unzipping {filename}")
-                    with zipfile.ZipFile(filename, "r") as zip_ref:
-                        zip_ref.extractall(dir_name)
-                    use_file_name = filename[:-4]
-                    toss_zip = True
-                elif filename.endswith('.gz'):
-                    use_file_name = filename[:-3]
-                    logger.info(f"Uncompressing {filename}")
-                    with gzip.open(filename, "rb") as gzip_in:
-                        with open(use_file_name, "wb") as uncomp_out:
-                            shutil.copyfileobj(gzip_in, uncomp_out)
-                    toss_zip = True
-                else:
-                    use_file_name = filename
+    with open(all_files, 'r') as all_files_list:
+        files_list = all_files_list.read().splitlines()
 
-                if os.path.isfile(use_file_name):
-                    with open(use_file_name, 'r') as readfile:
-                        for line in readfile:
-                            if not line.startswith('#') or line.startswith(header_id) or first:
-                                outfile.write(line.rstrip('\n'))
-                                outfile.write('\t')
-                                outfile.write('file_name' if first else filename)
-                                outfile.write('\n')
-                            first = False
-                else:
-                    logger.info(f'{use_file_name} was not found')
+    with open(one_big_tsv, 'w') as outfile:
+        for filename in files_list:
+            toss_zip = False
+            if filename.endswith('.zip'):
+                dir_name = os.path.dirname(filename)
+                logger.info(f"Unzipping {filename}")
+                with zipfile.ZipFile(filename, "r") as zip_ref:
+                    zip_ref.extractall(dir_name)
+                use_file_name = filename[:-4]
+                toss_zip = True
+            elif filename.endswith('.gz'):
+                use_file_name = filename[:-3]
+                logger.info(f"Uncompressing {filename}")
+                with gzip.open(filename, "rb") as gzip_in:
+                    with open(use_file_name, "wb") as uncomp_out:
+                        shutil.copyfileobj(gzip_in, uncomp_out)
+                toss_zip = True
+            else:
+                use_file_name = filename
 
-                if toss_zip and os.path.isfile(use_file_name):
-                    os.remove(use_file_name)
+            if os.path.isfile(use_file_name):
+                with open(use_file_name, 'r') as readfile:
+                    for line in readfile:
+                        if not line.startswith('#') or line.startswith(header_id) or first:
+                            outfile.write(line.rstrip('\n'))
+                            outfile.write('\t')
+                            outfile.write('file_name' if first else filename)
+                            outfile.write('\n')
+                        first = False
+            else:
+                logger.info(f'{use_file_name} was not found')
+
+            if toss_zip and os.path.isfile(use_file_name):
+                os.remove(use_file_name)
     return
 
 
@@ -214,7 +216,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
 
     if 'create_files' in steps: # todo change to something like "create_raw_concat_files"
         logging.info("Running create_files Step")
-        concat_all_files(f"{local_location}/{file_list}", raw_data) # todo to update to the correct file locations
+        concat_all_files(f"{local_location}/{file_traversal_list}", raw_data)
         # todo future add header rows if needed (Methylation)
         # todo future break up copy number files into each workflow (maybe)
 
