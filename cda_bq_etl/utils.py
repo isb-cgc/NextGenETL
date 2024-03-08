@@ -253,6 +253,16 @@ def create_dev_table_id(params: Params, table_name: str, release_as_suffix: bool
         return f"{dev_dataset_id}.{params['RELEASE']}_{table_name}"
 
 
+def create_excluded_records_table_id(params: Params, table_name: str) -> str:
+    """
+    Create table id reference to one of the CDA excluded records tables.
+    :param params: params supplied in yaml config
+    :param table_name: name of the table
+    :return: table id string
+    """
+    return f"{params['DEV_PROJECT']}.{params['EXCLUDED_RECORDS_DATASET']}.{params['RELEASE']}_{table_name}"
+
+
 def create_metadata_table_id(params: Params, table_name: str) -> str:
     """
     Create table id reference to one of the CDA metadata tables.
