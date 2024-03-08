@@ -21,6 +21,7 @@ import os
 import time
 from git import Repo
 import requests
+import urllib.parse as up
 from google.api_core.exceptions import NotFound, BadRequest
 from google.cloud import bigquery, storage
 import shutil
@@ -77,6 +78,32 @@ def initialize_logging(log_filepath: str) -> logging.Logger:
     logger.info(f"\n---\nLogging started: {start_time}")
 
     return logger
+
+
+def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█'):
+    """
+    Ripped from Stack Overflow.
+    https://stackoverflow.com/questions/3173320/text-progress-bar-in-the-console
+    H/T to Greenstick: https://stackoverflow.com/users/2206251/greenstick
+
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filled_length = int(length * iteration // total)
+    bar = fill * filled_length + '-' * (length - filled_length)
+    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end='\r')
+    # Print New Line on Complete
+    if iteration == total:
+        print()
+    return
 
 
 # File Utilities #
