@@ -89,7 +89,7 @@ def make_aliquot_case_table_base_sql() -> str:
                 analyte_barcode,
                 aliquot_gdc_id,
                 aliquot_barcode  
-            FROM `{PARAMS['LEGACY_TABLE_ID']}` 
+            FROM `{PARAMS['LEGACY_TABLE_ID']}` legacy
             WHERE NOT EXISTS (
                 SELECT 1 
                 FROM active_records active
@@ -164,7 +164,7 @@ def make_excluded_legacy_records_sql() -> str:
         FROM `{PARAMS['LEGACY_TABLE_ID']}`
         EXCEPT DISTINCT 
         SELECT *
-        FROM filterered_records
+        FROM filtered_records
     """
 
     return sql_str
