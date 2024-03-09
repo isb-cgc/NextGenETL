@@ -160,6 +160,37 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_p
     logger.info(f"{output_str}\n")
 
 
+def get_primary_key(table_type: str, table_ids: dict[str, str], table_params: TableParams):
+    logger = logging.getLogger('base_script')
+
+    if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
+        current_table_name = table_ids['current'].split('.')[-1]
+        current_table_name = current_table_name.replace("_current", "")
+        base_table_name = current_table_name.replace(f"_{PARAMS['NODE']}", "")
+
+        return table_params['primary_key_dict'][base_table_name]
+    else:
+        logger.critical("Not defined for this node or type")
+        sys.exit(-1)
+
+
+def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params: TableParams):
+    if 'primary_key' not in table_params:
+        primary_key = get_primary_key(table_type, table_ids, table_params)
+    else:
+        primary_key = table_params['primary_key']
+
+    if 'secondary_key' not in table_params:
+        secondary_key = ""
+    else:
+        secondary_key = f", {table_params['secondary_key']}"
+
+    sql_query = f"""
+        SELECT COUNT(DISTINCT {primary_key} {secondary_key})
+        FROM `{table_ids['source']}`
+    """
+
+
 def find_record_difference_counts(table_type: str,
                                   table_ids: dict[str, str],
                                   table_metadata: TableParams):
@@ -593,17 +624,6 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
             logger.info("")
             return False
 
-    def get_primary_key():
-        if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
-            current_table_name = table_ids['current'].split('.')[-1]
-            current_table_name = current_table_name.replace("_current", "")
-            base_table_name = current_table_name.replace(f"_{PARAMS['NODE']}", "")
-
-            return table_params['primary_key_dict'][base_table_name]
-        else:
-            logger.critical("Not defined for this node or type")
-            sys.exit(-1)
-
     logger = logging.getLogger("base_script")
 
     for table_ids in table_id_list:
@@ -626,9 +646,12 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                 if 'primary_key' not in modified_table_params:
                     # primary key is defined in a dict in the yaml config for clinical table type;
                     # this will look up and return the primary key by parsing the 'current' table id.
-                    modified_table_params['primary_key'] = get_primary_key()
+                    modified_table_params['primary_key'] = get_primary_key(table_type, table_ids, modified_table_params)
             else:
                 modified_table_params = table_params
+
+            # todo verify that there are no duplicate rows for primary, secondary key
+            find_duplicate_keys(table_type, table_ids, modified_table_params)
 
             # display compare_to_last.sh style output
             find_record_difference_counts(table_type, table_ids, modified_table_params)
@@ -1111,7 +1134,7 @@ def main(args):
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
         # todo remove--using this to get one table type at a time
         if table_type != 'file':
-           continue
+            continue
 
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
@@ -1119,14 +1142,15 @@ def main(args):
         else:
             # search for missing project tables for the given table type
             find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
+
             # generates a list of all the tables of that type--used for clinical and per-project tables
             table_id_list = generate_table_id_list(table_type, table_params)
 
         if 'compare_tables' in steps:
             # for table_ids in table_id_list:
-                # generate Table object
-                # pass to compare_tables rather than these existing arguments
-                # need to alter compare tables to work with Table object
+            #   generate Table object
+            #   pass to compare_tables rather than these existing arguments
+            #   need to alter compare tables to work with Table object
             compare_tables(table_type, table_params, table_id_list)
 
             # todo:

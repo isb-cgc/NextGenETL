@@ -93,8 +93,11 @@ def make_aliquot_case_table_base_sql() -> str:
             WHERE NOT EXISTS (
                 SELECT 1 
                 FROM active_records active
-                WHERE legacy.portion_gdc_id = active.portion_gdc_id AND
-                    legacy.aliquot_gdc_id = active.aliquot_gdc_id
+                WHERE (legacy.portion_gdc_id = active.portion_gdc_id AND
+                        legacy.aliquot_gdc_id = active.aliquot_gdc_id)
+                    OR (legacy.portion_gdc_id = active.portion_gdc_id AND
+                        legacy.aliquot_gdc_id IS NULL AND 
+                        active.aliquot_gdc_id IS NULL)
             )
         ), aliquot_records AS (
             SELECT * FROM legacy_records
