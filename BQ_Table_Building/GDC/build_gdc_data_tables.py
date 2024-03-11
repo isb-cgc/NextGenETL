@@ -113,7 +113,6 @@ def concat_all_files(all_files, one_big_tsv):
     logger = logging.getLogger('base_script')
     logger.info("building {}".format(one_big_tsv))
     first = True
-    header_id = None
     with open(all_files, 'r') as all_files_list:
         files_list = all_files_list.read().splitlines()
 
@@ -140,7 +139,7 @@ def concat_all_files(all_files, one_big_tsv):
             if os.path.isfile(use_file_name):
                 with open(use_file_name, 'r') as readfile:
                     for line in readfile:
-                        if not line.startswith('#') or line.startswith(header_id) or first:
+                        if not line.startswith('#') or first:
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
                             outfile.write('file_name' if first else filename)
@@ -209,20 +208,20 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
             pull_list = pull_list_file.read().splitlines()
         pull_from_buckets(pull_list, f"{local_location}/files")
 
-        all_files = build_file_list(local_location)
+        all_files = build_file_list(f"{local_location}/files")
         with open(f"{local_location}/{file_traversal_list}", mode='w') as traversal_list: # todo move to build_file_list
             for line in all_files:
                 traversal_list.write(f"{line}\n")
 
     if 'create_files' in steps: # todo change to something like "create_raw_concat_files"
         logging.info("Running create_files Step")
-        concat_all_files(f"{local_location}/{file_traversal_list}", raw_data)
+        concat_all_files(f"{local_location}/{file_traversal_list}", f"{local_location}/{raw_data}.tsv")
         # todo future add header rows if needed (Methylation)
         # todo future break up copy number files into each workflow (maybe)
 
     if 'analyze_the_schema' in steps:
         logging.info("Running analyze_the_schema Step")
-        typing_tups = find_types(raw_data, params.SCHEMA_SAMPLE_SKIPS)
+        typing_tups = find_types(f"{local_location}/{raw_data}.tsv", params.SCHEMA_SAMPLE_SKIPS)
 
         create_schema_hold_list(typing_tups,
                                 f"{home}/schemaRepo/TableFieldUpdates/gdc_{data_type}_desc.json",
@@ -230,11 +229,11 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
 
     if 'upload_to_bucket' in steps:
         logging.info("Running upload_to_bucket Step")
-        local_to_bucket(f"{params.DEV_BUCKET}/{params.RELEASE}/", raw_data, f"{local_location}/{raw_data}")
+        local_to_bucket(f"{params.DEV_BUCKET}/{params.RELEASE}/", f"{raw_data}.tsv", f"{local_location}/{raw_data}.tsv")
 
     if 'create_bq_from_tsv' in steps:
         logging.info("Running create_bq_from_tsv Step")
-        bucket_src_url = f'gs://{params.DEV_BUCKET}/{params.RELEASE}/{raw_data}'
+        bucket_src_url = f'gs://{params.DEV_BUCKET}/{params.RELEASE}/{raw_data}.tsv'
         with open(field_list, mode='r') as schema_list:
             typed_schema = json_loads(schema_list.read())
         csv_to_bq(typed_schema, bucket_src_url, params.DEV_DATASET, raw_data, params.BQ_AS_BATCH, True)

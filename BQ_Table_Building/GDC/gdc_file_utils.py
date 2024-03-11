@@ -590,7 +590,7 @@ def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_in
                 for idx, value in enumerate(row_list):
                     value = value.strip()
                     value_type = check_value_type(value)
-                    data_types_dict[column_headers[idx]].add(value_type)
+                    data_types_dict[column_headers[idx]].add(value_type)  # todo throwing an error
 
             count += 1
 
