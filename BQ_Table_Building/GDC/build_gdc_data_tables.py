@@ -113,6 +113,7 @@ def concat_all_files(all_files, one_big_tsv):
     logger = logging.getLogger('base_script')
     logger.info("building {}".format(one_big_tsv))
     first = True
+
     with open(all_files, 'r') as all_files_list:
         files_list = all_files_list.read().splitlines()
 
@@ -139,7 +140,14 @@ def concat_all_files(all_files, one_big_tsv):
             if os.path.isfile(use_file_name):
                 with open(use_file_name, 'r') as readfile:
                     for line in readfile:
-                        if not line.startswith('#') or first:
+                        if line.startswith('#'):
+                            continue
+                        if first and 'methylation' in use_file_name:
+                            outfile.write('col1\tcol2\tfile_name\n')
+                            outfile.write(line.rstrip('\n'))
+                            outfile.write(filename)
+                            outfile.write('\t')
+                        else:
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
                             outfile.write('file_name' if first else filename)
