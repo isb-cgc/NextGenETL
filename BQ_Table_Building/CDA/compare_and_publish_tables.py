@@ -220,6 +220,8 @@ def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params
 
     key_list = select_key_str.split(", ")
 
+    logger.info(f"key_list: {key_list}")
+
     i = 0
 
     # create output header
