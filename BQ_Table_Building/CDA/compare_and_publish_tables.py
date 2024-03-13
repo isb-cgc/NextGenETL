@@ -124,7 +124,7 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_p
         logger.info("")
         return
 
-    output_str = f"\n\n{table_params['primary_key']:45}"
+    output_str = f"\n{table_params['primary_key']:45}"
 
     if 'secondary_key' in table_params and table_params['secondary_key'] is not None:
         output_str += f"{table_params['secondary_key']:45}"
@@ -220,12 +220,10 @@ def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params
 
     key_list = select_key_str.split(", ")
 
-    logger.info(f"key_list: {key_list}")
-
     i = 0
 
     # create output header
-    output_str = f"\n\n"
+    output_str = f"\n"
 
     for key in key_list:
         output_str += f"{key:45}"
@@ -369,7 +367,7 @@ def find_record_difference_counts(table_type: str,
         result = query_and_retrieve_result(query)
 
         if result.total_rows > 0:
-            output_string = f"\n\n{'count':10}"
+            output_string = f"\n{'count':10}"
 
             for header in table_metadata['output_keys']:
                 output_string += f"{header:30}"
@@ -883,9 +881,9 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
 
             # output header row
             if secondary_key is None:
-                output_str += f"\n\n{primary_key:45}{column}\n\n"
+                output_str += f"\n{primary_key:45}{column}\n\n"
             else:
-                output_str += f"\n\n{primary_key:45}{secondary_key:45}{column}\n\n"
+                output_str += f"\n{primary_key:45}{secondary_key:45}{column}\n\n"
 
             i = 0
 
@@ -1081,9 +1079,9 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
                 old_column_header = f"old {column}"
 
                 if table_params['secondary_key'] is None:
-                    output_str += f"\n\n{table_params['primary_key']:45} {old_column_header:45} {new_column_header}\n"
+                    output_str += f"\n{table_params['primary_key']:45} {old_column_header:45} {new_column_header}\n"
                 else:
-                    output_str += f"\n\n{table_params['primary_key']:45} {table_params['secondary_key']:45} " \
+                    output_str += f"\n{table_params['primary_key']:45} {table_params['secondary_key']:45} " \
                                   f"{old_column_header:45} {new_column_header}\n"
 
                 for mismatched_record in mismatched_records:
