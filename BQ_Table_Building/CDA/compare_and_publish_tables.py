@@ -216,7 +216,7 @@ def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params
     query_logger.info(duplicate_record_query)
     duplicate_record_result = query_and_retrieve_result(duplicate_record_query)
 
-    logger.info(f"{duplicate_record_result.total_rows} duplicate records detected. Examples:")
+    logger.warning(f"{duplicate_record_result.total_rows} records with duplicated keys detected. Examples:")
 
     key_list = select_key_str.split(", ")
 
@@ -836,7 +836,6 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
     secondary_key = table_params['secondary_key'] if 'secondary_key' in table_params else None
 
     # retrieve the list of concatenated columns from yaml config and convert to set
-    # todo could these be converted into sets in the config by using the following yaml syntax: !!set { a, b, c }
     if 'concat_columns' in table_params and table_params['concat_columns']:
         concat_column_set = set(table_params['concat_columns'])
     else:
