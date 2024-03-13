@@ -15,7 +15,7 @@ api_params:
   # most recent GDC release number
   # (NOTE: pulls data from the current release regardless of value here, not currently
   # possible to specify a release number when making API calls.)
-  RELEASE: '29'
+  RELEASE: '37'
 
   # How many case records to retrieve per GDC API call. Larger batch sizes are more
   # likely to fail before completion, seems to work consistently at 2500
@@ -30,8 +30,9 @@ api_params:
     - project
     - demographic
     - diagnoses
-    - diagnoses.treatments
     - diagnoses.annotations
+    - diagnoses.pathology_details
+    - diagnoses.treatments
     - exposures
     - family_histories
     - follow_ups
@@ -55,11 +56,6 @@ api_params:
     - submitter_slide_ids
     - project.primary_site
     - project.disease_type
-    - project.released
-    - project.state
-    - project.releasable
-    - project.intended_release_date
-    - project.dbgap_accession_number
 
 bq_params:
   ##

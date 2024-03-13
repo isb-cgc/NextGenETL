@@ -53,7 +53,7 @@ def retrieve_uniprot_kb_genes():
     data_format = 'tsv'
     columns = 'id,gene_primary,xref_refseq,reviewed'
 
-    request_url = f'https://rest.uniprot.org/uniprotkb/search?query={query}&format={data_format}&fields={columns}'
+    request_url = f'https://rest.uniprot.org/uniprotkb/search?query={query}&format={data_format}&fields={columns}&size=500'
 
     response = requests.get(request_url)
     return response.text
@@ -434,7 +434,7 @@ def get_quant_files():
 
     for blob in blobs:
         filename = blob.name.split('/')[-1]
-        # kind of a hacky fix, but we'll move to CDA before it matters (before there are 9000+ studies)
+        # kind of a hacky fix, but we'll move to CDA_old before it matters (before there are 9000+ studies)
         if "quant" in filename and "schema" not in filename and API_PARAMS['RELEASE'] in filename \
                 and "PDC0" in filename:
             files.add(filename)
@@ -592,8 +592,8 @@ def main(args):
             uniprot_file.write(uniprot_data)
 
         print("Creating schema for UniProt mapping table")
-        create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS, table_name=BQ_PARAMS['UNIPROT_TABLE'],
-                                         tsv_fp=uniprot_fp, header_row=0, skip_rows=1,
+        create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS, tsv_fp=uniprot_fp,
+                                         table_name=BQ_PARAMS['UNIPROT_TABLE'], header_row=0, skip_rows=1,
                                          release=API_PARAMS['UNIPROT_RELEASE'])
 
         upload_to_bucket(BQ_PARAMS, uniprot_fp, delete_local=True)
@@ -673,8 +673,9 @@ def main(args):
 
         refseq_uniprot_headers = ['uniprot_id', 'uniprot_review_status', 'gene_symbol', 'refseq_id']
 
-        create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS, table_name=BQ_PARAMS['REFSEQ_UNIPROT_TABLE'],
-                                         tsv_fp=refseq_fp, header_list=refseq_uniprot_headers, skip_rows=0,
+        create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS, tsv_fp=refseq_fp,
+                                         table_name=BQ_PARAMS['REFSEQ_UNIPROT_TABLE'],
+                                         header_list=refseq_uniprot_headers, skip_rows=0,
                                          release=API_PARAMS['UNIPROT_RELEASE'])
 
         refseq_schema = retrieve_bq_schema_object(API_PARAMS, BQ_PARAMS,
@@ -756,12 +757,9 @@ def main(args):
             lines_written = build_quant_tsv(study_id_dict, 'log2_ratio', quant_tsv_path, raw_quant_header)
 
             if lines_written > 0:
-                create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS,
-                                                 table_name=unversioned_quant_table_name,
-                                                 tsv_fp=quant_tsv_path,
-                                                 header_list=raw_quant_header,
-                                                 skip_rows=1,
-                                                 row_check_interval=100)
+                create_and_upload_schema_for_tsv(API_PARAMS, BQ_PARAMS, tsv_fp=quant_tsv_path,
+                                                 table_name=unversioned_quant_table_name, header_list=raw_quant_header,
+                                                 skip_rows=1, row_check_interval=100)
 
                 upload_to_bucket(BQ_PARAMS, quant_tsv_path, delete_local=True)
                 print(f"\n{lines_written} lines written for {study_id_dict['study_name']}")

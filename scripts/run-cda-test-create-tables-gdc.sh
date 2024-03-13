@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2021, Institute for Systems Biology
+# Copyright 2023, Institute for Systems Biology
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,35 +18,34 @@ source ~/setEnvVars.sh
 
 SCRIPT_NAME=$1
 
+ALIQUOT_ARG="aliquot_case_map"
 CASE_ARG="case"
 CLINICAL_ARG="clinical"
 FILE_ARG="file"
-STUDY_ARG="study"
-QUANT_ARG="quant"
 PER_SAMPLE_FILE_ARG="per_sample_file"
+SLIDE_ARG="slide_case_map"
 
-SHARED_CONFIG_FILE="test_PDCSharedConfig.yaml"
-
-if [[ ${SCRIPT_NAME} = ${CASE_ARG} ]] ; then
-    CONFIG_FILE="test_PDCCaseMetadata.yaml"
-    SCRIPT_FILE="build_pdc_case_metadata.py"
+if [[ ${SCRIPT_NAME} = ${ALIQUOT_ARG} ]] ; then
+    CONFIG_FILE="CDATestCreateTablesAliquotCaseMapGDC.yaml"
+    SCRIPT_FILE="test_create_tables_base.py"
+elif [[ ${SCRIPT_NAME} = ${CASE_ARG} ]] ; then
+    CONFIG_FILE="CDATestCreateTablesCaseGDC.yaml"
+    SCRIPT_FILE="test_create_tables_base.py"
 elif [[ ${SCRIPT_NAME} = ${CLINICAL_ARG} ]] ; then
-    CONFIG_FILE="test_PDCClinical.yaml"
-    SCRIPT_FILE="build_pdc_clinical.py"
+    CONFIG_FILE="CDATestCreateTablesClinicalGDC.yaml"
+    SCRIPT_FILE="test_create_tables_program_or_project.py"
 elif [[ ${SCRIPT_NAME} = ${FILE_ARG} ]] ; then
-    CONFIG_FILE="test_PDCFileMetadata.yaml"
-    SCRIPT_FILE="build_pdc_file_metadata.py"
-elif [[ ${SCRIPT_NAME} = ${STUDY_ARG} ]] ; then
-    CONFIG_FILE="test_PDCStudy.yaml"
-    SCRIPT_FILE="build_pdc_study.py"
-elif [[ ${SCRIPT_NAME} = ${QUANT_ARG} ]] ; then
-    CONFIG_FILE="test_PDCQuant.yaml"
-    SCRIPT_FILE="build_pdc_quant_data_matrix.py"
+    CONFIG_FILE="CDATestCreateTablesFileGDC.yaml"
+    SCRIPT_FILE="test_create_tables_base.py"
 elif [[ ${SCRIPT_NAME} = ${PER_SAMPLE_FILE_ARG} ]] ; then
-    CONFIG_FILE="test_PDCPerSampleFile.yaml"
-    SCRIPT_FILE="build_pdc_per_sample_file.py"
+    CONFIG_FILE="CDATestCreateTablesPerSampleFileGDC.yaml"
+    SCRIPT_FILE="test_create_tables_program_or_project.py"
+elif [[ ${SCRIPT_NAME} = ${SLIDE_ARG} ]] ; then
+    CONFIG_FILE="CDATestCreateTablesSlideCaseMapGDC.yaml"
+    SCRIPT_FILE="test_create_tables_base.py"
 else
-    echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, study, quant, per_sample_file"
+    echo "Error: incorrect or missing script data type argument."
+    echo "Accepted values: aliquot_case_map, case, clinical, file, per_sample_file, slide_case_map"
     exit 1
 fi
 
@@ -55,8 +54,6 @@ export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
 
 mkdir -p ~/config
 pushd ~/config > /dev/null
-
-gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/${SHARED_CONFIG_FILE} .
 gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/${CONFIG_FILE} .
 popd > /dev/null
 
@@ -67,5 +64,5 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3.9 ./BQ_Table_Building/PDC/${SCRIPT_FILE} ~/config/${SHARED_CONFIG_FILE} ~/config/${CONFIG_FILE}
+python3.9 ./BQ_Table_Building/CDA/tests/${SCRIPT_FILE} ~/config/${CONFIG_FILE}
 deactivate
