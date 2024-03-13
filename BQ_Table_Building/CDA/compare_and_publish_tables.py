@@ -233,11 +233,11 @@ def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params
     output_str += f"\n\n"
 
     for row in duplicate_record_result:
-        logger.info(f"row: {row}")
         for key in key_list:
-            output_str += f"{row[key]:45}"
-        output_str += f"\n"
+            value = str(row[key])
+            output_str += f"{value:45}"
 
+        output_str += f"\n"
         i += 1
 
         if i == PARAMS['MAX_DISPLAY_ROWS']:
