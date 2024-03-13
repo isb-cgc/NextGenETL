@@ -555,14 +555,14 @@ def find_missing_tables(dataset: str, table_type: str):
     published_table_names = get_published_table_names()
     new_table_names = get_new_table_names(dataset)
 
+    logger.debug("published_table_names: " + str(published_table_names))
+    logger.debug("new_table_names: " + str(new_table_names))
+
     for new_table_name in new_table_names:
         new_table_name = new_table_name.replace(f"{PARAMS['RELEASE']}_", "")
         new_table_name = new_table_name.replace(f"_{PARAMS['NODE']}", "")
 
         new_table_names_no_rel.append(new_table_name)
-
-        # todo remove after testing
-        logger.debug(new_table_names_no_rel)
 
     for current_table_name in published_table_names:
         if current_table_name not in new_table_names_no_rel:
