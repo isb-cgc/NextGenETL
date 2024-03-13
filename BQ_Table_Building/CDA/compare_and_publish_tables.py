@@ -176,7 +176,7 @@ def get_primary_key(table_type: str, table_ids: dict[str, str], table_params: Ta
 
 def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params: TableParams):
     logger = logging.getLogger('base_script')
-    query_logger = logger.getLogger('query_logger')
+    query_logger = logging.getLogger('query_logger')
 
     if 'keys_for_duplicate_detection' in table_params:
         select_key_str = ", ".join(table_params['keys_for_duplicate_detection'])
