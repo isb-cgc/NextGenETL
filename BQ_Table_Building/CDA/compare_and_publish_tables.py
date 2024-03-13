@@ -241,7 +241,7 @@ def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params
         if i == PARAMS['MAX_DISPLAY_ROWS']:
             break
 
-    logger.info(output_str)
+    logger.warning(output_str)
 
 
 def find_record_difference_counts(table_type: str,
@@ -1178,7 +1178,7 @@ def main(args):
     query_log_filepath = f"{PARAMS['QUERY_LOGFILE_PATH']}.{log_file_time}"
 
     # todo remove this after testing, set in param yaml
-    PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'] = False
+    PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'] = True
 
     query_logger = initialize_logging(query_log_filepath,
                                       name='query_logger',
