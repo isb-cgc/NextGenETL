@@ -1178,7 +1178,7 @@ def main(args):
     query_log_filepath = f"{PARAMS['QUERY_LOGFILE_PATH']}.{log_file_time}"
 
     # todo remove this after testing, set in param yaml
-    PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'] = True
+    PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'] = False
 
     query_logger = initialize_logging(query_log_filepath,
                                       name='query_logger',
