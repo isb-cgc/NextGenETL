@@ -204,7 +204,7 @@ def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params
 
     if distinct_result.total_rows == all_result.total_rows:
         logger.info("No duplicate records detected!")
-        logger.info()
+        logger.info("")
         return
 
     duplicate_record_query = f"""
@@ -555,8 +555,11 @@ def find_missing_tables(dataset: str, table_type: str):
     published_table_names = get_published_table_names()
     new_table_names = get_new_table_names(dataset)
 
-    logger.debug("published_table_names: " + str(published_table_names))
-    logger.debug("new_table_names: " + str(new_table_names))
+    if PARAMS['NODE'] and table_type == 'per_sample_file':
+        if 'no_url' in new_table_names[0]:
+            logger.info("Final tables not yet created for per sample file metadata. "
+                        "Please run compare and publish step for this table type after they're created.")
+            return False
 
     for new_table_name in new_table_names:
         new_table_name = new_table_name.replace(f"{PARAMS['RELEASE']}_", "")
@@ -568,6 +571,8 @@ def find_missing_tables(dataset: str, table_type: str):
         if current_table_name not in new_table_names_no_rel:
             logger.warning(f"Cannot find new dev table for published table {current_table_name}. "
                            f"Is this due to change from singular to plural?")
+
+    return True
 
 
 def generate_metadata_table_id_list(table_params: TableParams) -> TableIDList:
@@ -656,10 +661,12 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
 
 def compare_tables(table_type: str, table_params: TableParams, table_id_list: TableIDList):
     """
-    todo
-    :param table_type:
-    :param table_params:
-    :param table_id_list:
+    Compare published and newly created dev tables.
+    :param table_type: type of table to compare
+    :param table_params: metadata dict containing table parameters, such as primary and secondary keys,
+                         concatenated columns, columns excluded from comparison
+    :param table_id_list: list of dicts of table ids: 'source' (dev table), 'versioned' and 'current'
+                          (future published ids) and 'previous_versioned' (most recent published table)
     :return:
     """
     def can_compare_tables() -> bool:
@@ -1181,24 +1188,25 @@ def main(args):
     logger = initialize_logging(log_filepath)
     query_log_filepath = f"{PARAMS['QUERY_LOGFILE_PATH']}.{log_file_time}"
 
-    # todo remove this after testing, set in param yaml
-    PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'] = False
+    # PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'] = False
 
     query_logger = initialize_logging(query_log_filepath,
                                       name='query_logger',
                                       emit_to_console=PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'])
 
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
-        # todo remove after testing
-        if table_type != 'per_sample_file':
-            continue
+        # if table_type != 'per_sample_file':
+        #    continue
 
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
             table_id_list = generate_metadata_table_id_list(table_params)
         else:
             # search for missing project tables for the given table type
-            find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
+            can_compare_type = find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
+
+            if not can_compare_type:
+                continue
 
             # generates a list of all the tables of that type--used for clinical and per-project tables
             table_id_list = generate_table_id_list(table_type, table_params)
