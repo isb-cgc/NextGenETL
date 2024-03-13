@@ -180,11 +180,11 @@ def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params
 
     if 'keys_for_duplicate_detection' in table_params:
         select_key_str = ", ".join(table_params['keys_for_duplicate_detection'])
-        select_str = f"SELECT COUNT (DISTINCT {select_key_str})"
+        select_str = f"SELECT DISTINCT {select_key_str}"
     else:
         # this fetches primary keys for clinical tables
         select_key_str = get_primary_key(table_type, table_ids, table_params)
-        select_str = f"SELECT COUNT (DISTINCT {select_key_str})"
+        select_str = f"SELECT DISTINCT {select_key_str}"
 
     distinct_sql_query = f"""
         {select_str}
@@ -192,7 +192,7 @@ def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params
     """
 
     all_count_query = f"""
-        SELECT COUNT(*) 
+        SELECT {select_key_str}
         FROM {table_ids['source']}
     """
 
@@ -202,15 +202,7 @@ def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params
     query_logger.info(all_count_query)
     all_result = query_and_retrieve_result(all_count_query)
 
-    for row in distinct_result:
-        distinct_result_count = row[0]
-        break
-
-    for row in all_result:
-        all_result_count = row[0]
-        break
-
-    if distinct_result_count == all_result_count:
+    if distinct_result.total_rows == all_result.total_rows:
         logger.info("No duplicate records detected")
         return
 
