@@ -218,18 +218,20 @@ def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params
 
     logger.info(f"{duplicate_record_result.total_rows} duplicate records detected. Examples:")
 
+    key_list = select_key_str.split(", ")
+
     i = 0
 
     # create output header
     output_str = f"\n\n"
 
-    for key in select_key_str:
+    for key in key_list:
         output_str += f"{key:45}"
 
     output_str += f"\n\n"
 
     for row in duplicate_record_result:
-        for key in select_key_str:
+        for key in key_list:
             output_str += f"{row[key]:45}"
         output_str += f"\n"
 
