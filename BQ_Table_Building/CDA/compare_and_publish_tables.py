@@ -203,7 +203,8 @@ def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params
     all_result = query_and_retrieve_result(all_count_query)
 
     if distinct_result.total_rows == all_result.total_rows:
-        logger.info("No duplicate records detected")
+        logger.info("No duplicate records detected!")
+        logger.info()
         return
 
     duplicate_record_query = f"""
