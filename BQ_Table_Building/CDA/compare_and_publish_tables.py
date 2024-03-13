@@ -561,6 +561,9 @@ def find_missing_tables(dataset: str, table_type: str):
 
         new_table_names_no_rel.append(new_table_name)
 
+        # todo remove after testing
+        logger.debug(new_table_names_no_rel)
+
     for current_table_name in published_table_names:
         if current_table_name not in new_table_names_no_rel:
             logger.warning(f"Cannot find new dev table for published table {current_table_name}. "
