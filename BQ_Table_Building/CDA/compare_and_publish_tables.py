@@ -175,20 +175,78 @@ def get_primary_key(table_type: str, table_ids: dict[str, str], table_params: Ta
 
 
 def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params: TableParams):
-    if 'primary_key' not in table_params:
-        primary_key = get_primary_key(table_type, table_ids, table_params)
-    else:
-        primary_key = table_params['primary_key']
+    logger = logging.getLogger('base_script')
+    query_logger = logger.getLogger('query_logger')
 
-    if 'secondary_key' not in table_params:
-        secondary_key = ""
+    if 'keys_for_duplicate_detection' in table_params:
+        select_key_str = ", ".join(table_params['keys_for_duplicate_detection'])
+        select_str = f"SELECT COUNT (DISTINCT {select_key_str})"
     else:
-        secondary_key = f", {table_params['secondary_key']}"
+        # this fetches primary keys for clinical tables
+        select_key_str = get_primary_key(table_type, table_ids, table_params)
+        select_str = f"SELECT COUNT (DISTINCT {select_key_str})"
 
-    sql_query = f"""
-        SELECT COUNT(DISTINCT {primary_key} {secondary_key})
+    distinct_sql_query = f"""
+        {select_str}
         FROM `{table_ids['source']}`
     """
+
+    all_count_query = f"""
+        SELECT COUNT(*) 
+        FROM {table_ids['source']}
+    """
+
+    query_logger.info(distinct_sql_query)
+    distinct_result = query_and_retrieve_result(distinct_sql_query)
+
+    query_logger.info(all_count_query)
+    all_result = query_and_retrieve_result(all_count_query)
+
+    for row in distinct_result:
+        distinct_result_count = row[0]
+        break
+
+    for row in all_result:
+        all_result_count = row[0]
+        break
+
+    if distinct_result_count == all_result_count:
+        logger.info("No duplicate records detected")
+        return
+
+    duplicate_record_query = f"""
+        SELECT {select_key_str}  
+        FROM {table_ids['source']}
+        GROUP BY {select_key_str}
+        HAVING COUNT(*) > 1
+    """
+
+    query_logger.info(duplicate_record_query)
+    duplicate_record_result = query_and_retrieve_result(duplicate_record_query)
+
+    logger.info(f"{duplicate_record_result.total_rows} duplicate records detected. Examples:")
+
+    i = 0
+
+    # create output header
+    output_str = f"\n\n"
+
+    for key in select_key_str:
+        output_str += f"{key:45}"
+
+    output_str += f"\n\n"
+
+    for row in duplicate_record_result:
+        for key in select_key_str:
+            output_str += f"{row[key]:45}"
+        output_str += f"\n"
+
+        i += 1
+
+        if i == PARAMS['MAX_DISPLAY_ROWS']:
+            break
+
+    logger.info(output_str)
 
 
 def find_record_difference_counts(table_type: str,
@@ -650,8 +708,9 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
             else:
                 modified_table_params = table_params
 
-            # todo verify that there are no duplicate rows for primary, secondary key
-            find_duplicate_keys(table_type, table_ids, modified_table_params)
+            find_duplicate_keys(table_type=table_type,
+                                table_ids=table_ids,
+                                table_params=modified_table_params)
 
             # display compare_to_last.sh style output
             find_record_difference_counts(table_type, table_ids, modified_table_params)
@@ -1132,10 +1191,6 @@ def main(args):
                                       emit_to_console=PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'])
 
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
-        # todo remove--using this to get one table type at a time
-        if table_type != 'file':
-            continue
-
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
             table_id_list = generate_metadata_table_id_list(table_params)
@@ -1147,16 +1202,7 @@ def main(args):
             table_id_list = generate_table_id_list(table_type, table_params)
 
         if 'compare_tables' in steps:
-            # for table_ids in table_id_list:
-            #   generate Table object
-            #   pass to compare_tables rather than these existing arguments
-            #   need to alter compare tables to work with Table object
             compare_tables(table_type, table_params, table_id_list)
-
-            # todo:
-            # could output printing be abstracted?
-            # do some sanity checking to confirm that we don't have duplicate rows. Do distinct and total count differ?
-            # turn into a class? do something to chunk out this long script?
 
         if 'publish_tables' in steps:
             for table_ids in table_id_list:
