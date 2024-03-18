@@ -141,7 +141,10 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_p
         row_str = f"{row[table_params['primary_key']]:45}"
 
         if 'secondary_key' in table_params and table_params['secondary_key']:
-            row_str += f"{row[table_params['secondary_key']]:45}"
+            if row[table_params['secondary_key']]:
+                row_str += f"{row[table_params['secondary_key']]:45}"
+            else:
+                row_str += f"{'':45}"
 
         if table_params['output_keys']:
             for output_key in table_params['output_keys']:
