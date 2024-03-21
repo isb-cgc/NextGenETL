@@ -146,12 +146,12 @@ def concat_all_files(all_files, one_big_tsv, all_files_local_location):
                         if first and 'methylation' in use_file_name:
                             outfile.write('col1\tcol2\tfile_name\n')
                             outfile.write(line.rstrip('\n'))
-                            outfile.write(filename.replace(all_files_local_location, ''))
+                            outfile.write(filename.replace(f"{all_files_local_location}/", ''))
                             outfile.write('\t')
                         else:
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
-                            outfile.write('file_name' if first else filename.replace(all_files_local_location, ''))
+                            outfile.write('file_name' if first else filename.replace(f"{all_files_local_location}/", ''))
                             outfile.write('\n')
                         first = False
             else:
@@ -195,7 +195,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
     # file variables
     prefix = f"{program}_{data_type}_{params.RELEASE}{workflow_run_ver}"
     local_location = f"{local_dir}/{program}"
-    raw_files_local_location = f"{local_dir}/files"
+    raw_files_local_location = f"{local_location}/files"
     tables_created_file = f"{home}/{params.LOCAL_DIR}/tables_created_{params.RELEASE}{workflow_run_ver}.txt"
 
     with open(f"{home}/{params.SCHEMA_REPO_LOCAL}/{params.DATATYPE_MAPPINGS}", mode='r') as datatype_mappings_file:
