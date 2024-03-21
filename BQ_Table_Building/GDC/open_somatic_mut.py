@@ -456,6 +456,8 @@ def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, aliquot_table, 
     step_2_table = f"{raw_somatic_mut}_step_2"
     step_3_table = f"{raw_somatic_mut}_step_3"
 
+    # todo add a step to separate the callers
+
     # todo describe
     collect_barcodes_result = collect_barcodes(raw_somatic_mut, aliquot_table, case_table, step_1_table)
     if collect_barcodes_result == 'DONE':

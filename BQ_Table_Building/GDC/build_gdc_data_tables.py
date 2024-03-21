@@ -100,7 +100,7 @@ def create_file_list_sql(program, filters, file_table, gcs_url_table, max_files)
         """
 
 
-def concat_all_files(all_files, one_big_tsv):
+def concat_all_files(all_files, one_big_tsv, all_files_local_location):
     # todo description to accurately reflect the function
     """
     Concatenate all Files
@@ -120,9 +120,10 @@ def concat_all_files(all_files, one_big_tsv):
     with open(one_big_tsv, 'w') as outfile:
         for filename in files_list:
             toss_zip = False
+
             if filename.endswith('.zip'):
-                dir_name = os.path.dirname(filename)
                 logger.info(f"Unzipping {filename}")
+                dir_name = os.path.dirname(filename)
                 with zipfile.ZipFile(filename, "r") as zip_ref:
                     zip_ref.extractall(dir_name)
                 use_file_name = filename[:-4]
@@ -145,12 +146,12 @@ def concat_all_files(all_files, one_big_tsv):
                         if first and 'methylation' in use_file_name:
                             outfile.write('col1\tcol2\tfile_name\n')
                             outfile.write(line.rstrip('\n'))
-                            outfile.write(filename)
+                            outfile.write(filename.replace(all_files_local_location, ''))
                             outfile.write('\t')
                         else:
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
-                            outfile.write('file_name' if first else filename)
+                            outfile.write('file_name' if first else filename.replace(all_files_local_location, ''))
                             outfile.write('\n')
                         first = False
             else:
@@ -194,6 +195,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
     # file variables
     prefix = f"{program}_{data_type}_{params.RELEASE}{workflow_run_ver}"
     local_location = f"{local_dir}/{program}"
+    raw_files_local_location = f"{local_dir}/files"
     tables_created_file = f"{home}/{params.LOCAL_DIR}/tables_created_{params.RELEASE}{workflow_run_ver}.txt"
 
     with open(f"{home}/{params.SCHEMA_REPO_LOCAL}/{params.DATATYPE_MAPPINGS}", mode='r') as datatype_mappings_file:
@@ -214,16 +216,17 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         # Bring the files to the local dir from DCF GDC Cloud Buckets
         with open(f"{local_location}/{file_list}", mode='r') as pull_list_file:
             pull_list = pull_list_file.read().splitlines()
-        pull_from_buckets(pull_list, f"{local_location}/files")
+        pull_from_buckets(pull_list, raw_files_local_location)
 
-        all_files = build_file_list(f"{local_location}/files")
+        all_files = build_file_list(raw_files_local_location)
         with open(f"{local_location}/{file_traversal_list}", mode='w') as traversal_list: # todo move to build_file_list
             for line in all_files:
                 traversal_list.write(f"{line}\n")
 
     if 'create_files' in steps: # todo change to something like "create_raw_concat_files"
         logging.info("Running create_files Step")
-        concat_all_files(f"{local_location}/{file_traversal_list}", f"{local_location}/{raw_data}.tsv")
+        concat_all_files(f"{local_location}/{file_traversal_list}", f"{local_location}/{raw_data}.tsv",
+                         raw_files_local_location)
         # todo future add header rows if needed (Methylation)
         # todo future break up copy number files into each workflow (maybe)
 
