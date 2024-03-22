@@ -147,7 +147,6 @@ def concat_all_files(all_files, one_big_tsv, all_files_local_location):
                             outfile.write('col1\tcol2\tfile_name\n')
                             outfile.write(line.rstrip('\n'))
                             outfile.write(filename.replace(f"{all_files_local_location}/", ''))
-                            outfile.write('\t')
                         else:
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
