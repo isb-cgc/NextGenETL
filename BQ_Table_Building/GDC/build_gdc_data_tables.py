@@ -152,7 +152,6 @@ def concat_all_files(all_files, one_big_tsv, all_files_local_location):
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
                             outfile.write('file_name' if first else filename.replace(f"{all_files_local_location}/", ''))
-                            outfile.write('\n')
                         first = False
             else:
                 logger.info(f'{use_file_name} was not found')
@@ -232,6 +231,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
 
     if 'analyze_the_schema' in steps:
         logging.info("Running analyze_the_schema Step")
+
         typing_tups = find_types(f"{local_location}/{raw_data}.tsv", params.SCHEMA_SAMPLE_SKIPS)
 
         create_schema_hold_list(typing_tups,
