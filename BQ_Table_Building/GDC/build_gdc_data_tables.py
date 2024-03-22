@@ -144,7 +144,7 @@ def concat_all_files(all_files, one_big_tsv, all_files_local_location):
                         if line.startswith('#'):
                             continue
                         if first and 'methylation' in use_file_name:
-                            outfile.write('col1\tcol2\tfile_name\n')
+                            outfile.write('col1\tcol2\tfile_name')
                             outfile.write(line.rstrip('\n'))
                         else:
                             outfile.write(line.rstrip('\n'))

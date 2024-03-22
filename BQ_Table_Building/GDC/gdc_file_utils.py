@@ -590,7 +590,7 @@ def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_in
                 for idx, value in enumerate(row_list):
                     value = value.strip()
                     value_type = check_value_type(value)
-                    data_types_dict[column_headers[idx]].add(value_type)  # todo throwing an error
+                    data_types_dict[column_headers[idx]].add(value_type)
 
             count += 1
 
@@ -826,7 +826,7 @@ def create_schema_hold_list(typing_tups, field_schema, holding_list, static=True
     for tup in typing_tups:
         util_logger.info(tup)
         field_dict = all_field_schema[tup[0]]
-        if tup[1][0:4] != field_dict["type"][0:4]: # todo error here, looks like the type got set wrong for a field
+        if tup[1] is None or tup[1][0:4] != field_dict["type"][0:4]:
             util_logger.warning(f"{tup[0]} types do not match.")
             util_logger.warning(f"Dynamic type ({tup[1]}) does not equal static type ({field_dict['type']})")
 
