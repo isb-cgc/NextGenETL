@@ -568,9 +568,15 @@ def find_missing_tables(dataset: str, table_type: str):
         new_table_name = new_table_name.replace(f"{PARAMS['RELEASE']}_", "")
         new_table_name = new_table_name.replace(f"_{PARAMS['NODE']}", "")
 
+        # filter out legacy tables
+        if 'hg19' not in new_table_name:
+            new_table_names_no_rel.append(new_table_name)
+
     for current_table_name in published_table_names:
-        # don't check for legacy tables
-        if 'hg19' not in current_table_name and current_table_name not in new_table_names_no_rel:
+        if 'hg19' in current_table_name:
+            continue
+
+        if current_table_name not in new_table_names_no_rel:
             logger.warning(f"Cannot find new dev table for published table {current_table_name}. "
                            f"Is this due to change from singular to plural?")
 
@@ -879,7 +885,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
     for column in sorted(column_list):
         compare_table_column_query = make_compare_table_column_sql(column)
 
-        if table_params['data_type'] == 'metadata':
+        if table_params['table_type'] == 'metadata':
             table_name = table_params['table_base_name']
         else:
             table_name = table_ids['source']
