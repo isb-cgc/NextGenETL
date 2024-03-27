@@ -697,7 +697,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
 
     for table_ids in table_id_list:
         # table_base_name only defined for metadata tables, so otherwise we'll output the source table
-        if table_params['table_base_name']:
+        if table_params['data_type'] == 'metadata':
             logger.info(f"*** Comparing tables for {table_params['table_base_name']}!")
         else:
             logger.info(f"*** Comparing tables for {table_ids['source']}!")
@@ -881,7 +881,13 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
 
     for column in sorted(column_list):
         compare_table_column_query = make_compare_table_column_sql(column)
-        query_logger.info(f"SQL to compare values for column: {column}, table: {table_params['table_base_name']}\n"
+
+        if table_params['table_type'] == 'metadata':
+            table_name = table_params['table_base_name']
+        else:
+            table_name = table_ids['source']
+
+        query_logger.info(f"SQL to compare values for column: {column}, table: {table_name}\n"
                           f"{compare_table_column_query}")
         column_comparison_result = query_and_retrieve_result(sql=compare_table_column_query)
 
@@ -989,12 +995,12 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
     query_logger = logging.getLogger('query_logger')
 
     new_concat_column_query = make_concat_column_query(table_ids['source'])
-    query_logger.info(f"SQL to retrieve concat values in current version table: {table_params['table_base_name']} \n"
+    query_logger.info(f"SQL to retrieve concat values in current version table: {table_ids['source']} \n"
                       f"{new_concat_column_query}")
     new_table_records_dict = make_records_dict(query=new_concat_column_query)
 
     previous_concat_column_query = make_concat_column_query(table_ids['previous_versioned'])
-    query_logger.info(f"SQL to retrieve concat values in previous version table: {table_params['table_base_name']} \n"
+    query_logger.info(f"SQL to retrieve concat values in previous version table: {table_ids['previous_versioned']} \n"
                       f"{previous_concat_column_query}")
     old_table_records_dict = make_records_dict(query=previous_concat_column_query)
 
