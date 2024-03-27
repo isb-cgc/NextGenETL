@@ -879,7 +879,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
     for column in sorted(column_list):
         compare_table_column_query = make_compare_table_column_sql(column)
 
-        if table_params['table_type'] == 'metadata':
+        if table_params['data_type'] == 'metadata':
             table_name = table_params['table_base_name']
         else:
             table_name = table_ids['source']
