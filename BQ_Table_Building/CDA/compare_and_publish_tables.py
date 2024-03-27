@@ -882,7 +882,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
     for column in sorted(column_list):
         compare_table_column_query = make_compare_table_column_sql(column)
 
-        if table_params['table_type'] == 'metadata':
+        if table_params['data_type'] == 'metadata':
             table_name = table_params['table_base_name']
         else:
             table_name = table_ids['source']
@@ -1216,11 +1216,13 @@ def main(args):
             table_id_list = generate_metadata_table_id_list(table_params)
         else:
             # search for missing project tables for the given table type
+            # todo uncomment before publishing
+            """
             can_compare_type = find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
 
             if not can_compare_type:
                 continue
-
+            """
             # generates a list of all the tables of that type--used for clinical and per-project tables
             table_id_list = generate_table_id_list(table_type, table_params)
 
