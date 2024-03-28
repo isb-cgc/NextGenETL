@@ -100,7 +100,7 @@ def create_file_list_sql(program, filters, file_table, gcs_url_table, max_files)
         """
 
 
-def concat_all_files(all_files, one_big_tsv, all_files_local_location):
+def concat_all_files(all_files, one_big_tsv, all_files_local_location, headers_to_switch, columns_to_add):
     # todo description to accurately reflect the function
     """
     Concatenate all Files
@@ -143,14 +143,24 @@ def concat_all_files(all_files, one_big_tsv, all_files_local_location):
                     for line in readfile:
                         if line.startswith('#'):
                             continue
-                        if first and 'methylation' in use_file_name:
-                            outfile.write('col1\tcol2\tfile_name')
-                            outfile.write(line.rstrip('\n'))
+                        elif first:
+                            header = line.rstrip("\n").split("\t")
+                            for column in header:
+                                if headers_to_switch and column in headers_to_switch.keys():
+                                    replace_index = header.index(column)
+                                    header[replace_index:] = headers_to_switch[column]
+
+                            if columns_to_add:
+                                header.extend(columns_to_add)
+
+                            header.append("file_name")
+                            outfile.write("\t".join(header))
+                            outfile.write("\n")
+                            first = False
                         else:
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
-                            outfile.write('file_name' if first else filename.replace(f"{all_files_local_location}/", ''))
-                        first = False
+                            outfile.write(filename.replace(f"{all_files_local_location}/", ''))
             else:
                 logger.info(f'{use_file_name} was not found')
 
@@ -223,7 +233,8 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
     if 'create_files' in steps: # todo change to something like "create_raw_concat_files"
         logging.info("Running create_files Step")
         concat_all_files(f"{local_location}/{file_traversal_list}", f"{local_location}/{raw_data}.tsv",
-                         raw_files_local_location)
+                         raw_files_local_location, datatype_mappings[data_type]['headers_to_switch'],
+                         datatype_mappings[data_type]['columns_to_add'])
         # todo future add header rows if needed (Methylation)
         # todo future break up copy number files into each workflow (maybe)
 
