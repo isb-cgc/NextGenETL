@@ -1208,21 +1208,19 @@ def main(args):
 
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
         # todo remove before publishing
-        if table_type != 'per_sample_file':
-            continue
+        # if table_type != 'per_sample_file':
+        #     continue
 
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
             table_id_list = generate_metadata_table_id_list(table_params)
         else:
             # search for missing project tables for the given table type
-            # todo uncomment before publishing
-            """
             can_compare_type = find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
 
             if not can_compare_type:
                 continue
-            """
+
             # generates a list of all the tables of that type--used for clinical and per-project tables
             table_id_list = generate_table_id_list(table_type, table_params)
 
