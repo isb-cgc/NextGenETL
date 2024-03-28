@@ -148,7 +148,7 @@ def concat_all_files(all_files, one_big_tsv, all_files_local_location, headers_t
                             for column in header:
                                 if headers_to_switch and column in headers_to_switch.keys():
                                     replace_index = header.index(column)
-                                    header[replace_index:] = headers_to_switch[column]
+                                    header[replace_index] = headers_to_switch[column]
 
                             if columns_to_add:
                                 header.extend(columns_to_add)
@@ -160,7 +160,9 @@ def concat_all_files(all_files, one_big_tsv, all_files_local_location, headers_t
                         else:
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
+                            outfile.write("\t" * len(columns_to_add))
                             outfile.write(filename.replace(f"{all_files_local_location}/", ''))
+                            outfile.write('\n')
             else:
                 logger.info(f'{use_file_name} was not found')
 
@@ -234,7 +236,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         logging.info("Running create_files Step")
         concat_all_files(f"{local_location}/{file_traversal_list}", f"{local_location}/{raw_data}.tsv",
                          raw_files_local_location, datatype_mappings[data_type]['headers_to_switch'],
-                         datatype_mappings[data_type]['columns_to_add'])
+                         datatype_mappings[data_type]['headers_to_add'])
         # todo future add header rows if needed (Methylation)
         # todo future break up copy number files into each workflow (maybe)
 
