@@ -825,7 +825,7 @@ def create_schema_hold_list(typing_tups, field_schema, holding_list, static=True
     typed_schema = []
     for tup in typing_tups:
         util_logger.info(tup)
-        field_dict = all_field_schema[tup[0]]
+        field_dict = all_field_schema[tup[0].rstrip("\n")]
         if tup[1] is None or tup[1][0:4] != field_dict["type"][0:4]:
             util_logger.warning(f"{tup[0]} types do not match.")
             util_logger.warning(f"Dynamic type ({tup[1]}) does not equal static type ({field_dict['type']})")
@@ -834,7 +834,6 @@ def create_schema_hold_list(typing_tups, field_schema, holding_list, static=True
             if static:
                 util_logger.info(f"\tsetting type to static type {field_dict['type']}")
                 tup = (tup[0], field_dict["type"])
-                # tup[1] = str(field_dict["type"])
             else:
                 util_logger.info(f"\tsetting type to dynamic type ({tup[1]})")
 
