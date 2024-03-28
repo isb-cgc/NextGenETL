@@ -449,7 +449,7 @@ def find_record_difference_counts(table_type: str,
 
     logger.info(f"Added {table_type} count: {added_count}")
 
-    if table_metadata['compare_using_primary_only']:
+    if table_metadata['data_type'] == 'per_project_or_program':
         logger.info(f"Removed {table_type} count: {removed_count}")
     else:
         # output counts by project or other type, where applicable
