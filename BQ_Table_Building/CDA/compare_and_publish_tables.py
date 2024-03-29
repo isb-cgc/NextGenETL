@@ -737,7 +737,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                 logger.info("Removed record examples:")
                 list_added_or_removed_rows(table_ids['previous_versioned'], table_ids['source'], modified_table_params)
 
-            logger.info("Comparing records by column:")
+            logger.info("Comparing records by column!")
             logger.info("")
             compare_table_columns(table_ids=table_ids,
                                   table_params=modified_table_params,
