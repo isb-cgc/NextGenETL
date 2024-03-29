@@ -251,7 +251,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
 
     if 'upload_to_bucket' in steps:
         logging.info("Running upload_to_bucket Step")
-        local_to_bucket(f"{params.DEV_BUCKET}/{params.RELEASE}/", f"{raw_data}.tsv", f"{local_location}/{raw_data}.tsv")
+        local_to_bucket(params.DEV_BUCKET, f"{params.DEV_BUCKET_DIR}/{params.RELEASE}/{raw_data}.tsv", f"{local_location}/{raw_data}.tsv")
 
     if 'create_bq_from_tsv' in steps:
         logging.info("Running create_bq_from_tsv Step")
