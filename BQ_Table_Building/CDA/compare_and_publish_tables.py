@@ -449,7 +449,7 @@ def find_record_difference_counts(table_type: str,
 
     logger.info(f"Added {table_type} count: {added_count}")
 
-    if table_metadata['compare_using_primary_only']:
+    if table_metadata['data_type'] == 'per_project_or_program':
         logger.info(f"Removed {table_type} count: {removed_count}")
     else:
         # output counts by project or other type, where applicable
@@ -479,6 +479,8 @@ def find_record_difference_counts(table_type: str,
             logger.info("")
 
     logger.info("")
+
+    return added_count, removed_count
 
 
 def get_new_table_names(dataset: str) -> list[str]:
@@ -567,10 +569,12 @@ def find_missing_tables(dataset: str, table_type: str):
     for new_table_name in new_table_names:
         new_table_name = new_table_name.replace(f"{PARAMS['RELEASE']}_", "")
         new_table_name = new_table_name.replace(f"_{PARAMS['NODE']}", "")
-
         new_table_names_no_rel.append(new_table_name)
 
     for current_table_name in published_table_names:
+        if 'hg19' in current_table_name:
+            continue
+
         if current_table_name not in new_table_names_no_rel:
             logger.warning(f"Cannot find new dev table for published table {current_table_name}. "
                            f"Is this due to change from singular to plural?")
@@ -695,7 +699,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
 
     for table_ids in table_id_list:
         # table_base_name only defined for metadata tables, so otherwise we'll output the source table
-        if table_params['table_base_name']:
+        if table_params['data_type'] == 'metadata':
             logger.info(f"*** Comparing tables for {table_params['table_base_name']}!")
         else:
             logger.info(f"*** Comparing tables for {table_ids['source']}!")
@@ -722,16 +726,18 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                                 table_params=modified_table_params)
 
             # display compare_to_last.sh style output
-            find_record_difference_counts(table_type, table_ids, modified_table_params)
+            added_count, removed_count = find_record_difference_counts(table_type, table_ids, modified_table_params)
 
-            # list added rows
-            logger.info("Added record examples:")
-            list_added_or_removed_rows(table_ids['source'], table_ids['previous_versioned'], modified_table_params)
-            # list removed rows
-            logger.info("Removed record examples:")
-            list_added_or_removed_rows(table_ids['previous_versioned'], table_ids['source'], modified_table_params)
+            if added_count > 0:
+                # list added rows
+                logger.info("Added record examples:")
+                list_added_or_removed_rows(table_ids['source'], table_ids['previous_versioned'], modified_table_params)
+            if removed_count > 0:
+                # list removed rows
+                logger.info("Removed record examples:")
+                list_added_or_removed_rows(table_ids['previous_versioned'], table_ids['source'], modified_table_params)
 
-            logger.info("Changed record examples:")
+            logger.info("Comparing records by column!")
             logger.info("")
             compare_table_columns(table_ids=table_ids,
                                   table_params=modified_table_params,
@@ -879,7 +885,13 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
 
     for column in sorted(column_list):
         compare_table_column_query = make_compare_table_column_sql(column)
-        query_logger.info(f"SQL to compare values for column: {column}, table: {table_params['table_base_name']}\n"
+
+        if table_params['data_type'] == 'metadata':
+            table_name = table_params['table_base_name']
+        else:
+            table_name = table_ids['source']
+
+        query_logger.info(f"SQL to compare values for column: {column}, table: {table_name}\n"
                           f"{compare_table_column_query}")
         column_comparison_result = query_and_retrieve_result(sql=compare_table_column_query)
 
@@ -987,12 +999,12 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
     query_logger = logging.getLogger('query_logger')
 
     new_concat_column_query = make_concat_column_query(table_ids['source'])
-    query_logger.info(f"SQL to retrieve concat values in current version table: {table_params['table_base_name']} \n"
+    query_logger.info(f"SQL to retrieve concat values in current version table: {table_ids['source']} \n"
                       f"{new_concat_column_query}")
     new_table_records_dict = make_records_dict(query=new_concat_column_query)
 
     previous_concat_column_query = make_concat_column_query(table_ids['previous_versioned'])
-    query_logger.info(f"SQL to retrieve concat values in previous version table: {table_params['table_base_name']} \n"
+    query_logger.info(f"SQL to retrieve concat values in previous version table: {table_ids['previous_versioned']} \n"
                       f"{previous_concat_column_query}")
     old_table_records_dict = make_records_dict(query=previous_concat_column_query)
 
@@ -1191,15 +1203,17 @@ def main(args):
     logger = initialize_logging(log_filepath)
     query_log_filepath = f"{PARAMS['QUERY_LOGFILE_PATH']}.{log_file_time}"
 
-    # PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'] = False
+    # todo remove before publishing
+    PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'] = False
 
     query_logger = initialize_logging(query_log_filepath,
                                       name='query_logger',
                                       emit_to_console=PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'])
 
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
-        # if table_type != 'per_sample_file':
-        #    continue
+        # todo remove before publishing
+        if table_type != 'per_sample_file':
+            continue
 
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
