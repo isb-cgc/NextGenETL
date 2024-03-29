@@ -1203,7 +1203,8 @@ def main(args):
     logger = initialize_logging(log_filepath)
     query_log_filepath = f"{PARAMS['QUERY_LOGFILE_PATH']}.{log_file_time}"
 
-    # PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'] = False
+    # todo remove before publishing
+    PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'] = False
 
     query_logger = initialize_logging(query_log_filepath,
                                       name='query_logger',
