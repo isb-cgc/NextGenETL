@@ -266,8 +266,15 @@ def build_manifest_from_filters( release, filters, manifest_file, manifest_table
         sys.exit( "Failure generating manifest" )
 
 def download_from_gdc( local_pull_list, local_files_dir ):
+    pull_list = []
     with open(local_pull_list, mode='r') as pull_list_file:
-        pull_list = pull_list_file.read().splitlines()
+        pull_list_raw = pull_list_file.read().splitlines()
+
+    for x in pull_list_raw:
+        link = x.replace("[", "").replace("]", "").replace("'", "").split(", ")
+        print(link[2])
+        pull_list.append(link[2])
+       
     print( f"Preparing to download {len(pull_list)} files from buckets\n" )
     if os.path.exists( local_files_dir ): shutil.rmtree( local_files_dir )
     os.makedirs( local_files_dir)
