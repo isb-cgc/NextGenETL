@@ -423,12 +423,13 @@ def main(args):
     
     print(filters)
     home = expanduser("~")
-    local_files_dir = f'{home}/gexp/gexpFilesHoldMini'
+    
     
     for program in params.PROGRAMS:
         # BQ does not like to be given paths that have "~". So make all local paths absolute:
         params.PROGRAM      = program
         bq_program          = params.MAPPING[program]['bq_dataset']
+        local_files_dir     = f'{home}/gexp/{bq_program}_gexpFilesHoldMini'
         one_big_tsv         = f'{home}/gexp/{bq_program}_GEXP-joinedData.tsv'
         manifest_file       = f'{home}/gexp/{bq_program}_GEXP-manifest.tsv'
         local_pull_list     = f'{home}/gexp/{bq_program}_gexp_pull_list.tsv'
@@ -445,7 +446,7 @@ def main(args):
         ftc_plat_table      = f'{bq_program}_{params.DATE}_RNAseq_files_to_case_with_plat'
         barcodes_table      = f'{bq_program}_{params.DATE}_RNAseq_barcodes'
         counts_metadata_table = f'{bq_program}_{params.DATE}_counts_and_meta'
-        draft_table         = f'{bq_program} RNAseq_{params.BUILD}_gdc'
+        draft_table         = f'{bq_program}_RNAseq_{params.BUILD}_gdc'
         publication_table   = f'RNAseq_{params.BUILD}_gdc'
 
         #if 'clear_target_directory' in steps:        create_clean_target( local_files_dir )
