@@ -70,9 +70,12 @@ def table_cleaner(dump_tables, delete_result):
 
 # Associate Aliquot And Case IDs to File IDs
 # BQ ETL step 2: find the case and aliquot gdc_ids that go with each gexp file
-def build_aliquot_and_case(upload_table, file_table, target_dataset, output_table, write_depo, do_batch):
-    sql = attach_aliquot_and_case_ids_sql( upload_table, file_table )
-    return generic_bq_harness_write_depo( sql, target_dataset, output_table, do_batch, write_depo )
+def build_aliquot_and_case(upload_table, file_table, target_dataset, output_table, write_depo, do_batch, program, case_aliquot_fix):
+   if program == "TARGET":
+      sql = attach_aliquot_and_case_ids_sql_with_fix(upload_table, file_table, case_aliquot_fix)
+   else:
+      sql = attach_aliquot_and_case_ids_sql( upload_table, file_table )
+   return generic_bq_harness_write_depo( sql, target_dataset, output_table, do_batch, write_depo )
 
 # The files we get from GDC just have gene and expression columns. What aliquot is this for?
 # Use the file table to associate case and aliquot GDC ids for each file we are using.
@@ -89,6 +92,67 @@ def attach_aliquot_and_case_ids_sql(upload_table, file_table):
                b.platform
         FROM a1 JOIN `{file_table}` AS b ON a1.source_file_id = b.file_gdc_id
         WHERE b.associated_entities__entity_type = 'aliquot' '''
+
+
+# The files we get from GDC just have gene and expression columns. What aliquot is this for?
+# Use the file table to associate case and aliquot GDC ids for each file we are using and update 
+# some case and aliquots for TARGET files.
+
+def attach_aliquot_and_case_ids_sql_with_fix(upload_table, file_table, case_aliquot_fix):
+   when_clauses = {}
+   for field_name, values in case_aliquot_fix.items():
+      when_clause = ""
+      
+      for correct, incorrect in values.items():
+         when_clause = f'{when_clause} WHEN {field_name} = "{correct};{incorrect}" THEN "{correct}" WHEN {field_name} = "{incorrect};{correct}" THEN "{correct}"'
+      
+      when_clauses[field_name] = when_clause
+   
+   return f"""WITH
+     a1 AS (
+     SELECT
+       DISTINCT source_file_id
+     FROM
+       `{upload_table}`),
+     a2 AS (
+     SELECT
+       b.project_short_name,
+       b.case_gdc_id,
+       b.analysis_input_file_gdc_ids,
+       b.associated_entities__entity_gdc_id AS aliquot_gdc_id,
+       b.file_name,
+       b.file_gdc_id,
+       b.platform
+     FROM
+       a1
+     JOIN
+       `{file_table}` AS b
+     ON
+       a1.source_file_id = b.file_gdc_id
+     WHERE
+       b.associated_entities__entity_type = 'aliquot')
+   SELECT
+     project_short_name,
+     CASE
+      {when_clauses["case_gdc_id"]}
+     ELSE
+     case_gdc_id
+   END
+     AS case_gdc_id,
+     analysis_input_file_gdc_ids,
+     CASE
+      {when_clauses["aliquot_gdc_id"]}
+     ELSE
+     aliquot_gdc_id
+   END
+     AS aliquot_gdc_id,
+     file_name,
+     file_gdc_id,
+     platform
+   FROM
+     a2
+   """
+         
 
 
 
@@ -306,13 +370,13 @@ def create_abridged_schema( one_big_tsv, field_lookup_json ):
                        'type': field_dict[field]['type']} for field in header ]
     return typed_schema
 
-def bq_metadata_steps( release, upload_table, files_to_case_table, barcodes_table, ftc_plat_table, counts_metadata_table, draft_table ):
+def bq_metadata_steps( release, upload_table, files_to_case_table, barcodes_table, ftc_plat_table, counts_metadata_table, draft_table, program, case_aliquot_fix ):
     scratchp    = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.'
     aliq_table  = params.ALIQUOT_TABLE.format(release)
     case_table  = params.CASE_TABLE.format(release)
     file_table  = params.FILEDATA_TABLE.format(release)
     
-    if not build_aliquot_and_case( scratchp+upload_table, file_table, params.SCRATCH_DATASET, files_to_case_table, "WRITE_TRUNCATE", params.BQ_AS_BATCH ):
+    if not build_aliquot_and_case( scratchp+upload_table, file_table, params.SCRATCH_DATASET, files_to_case_table, "WRITE_TRUNCATE", params.BQ_AS_BATCH, program, case_aliquot_fix ):
         sys.exit( "Attaching case and aliquot ids to files failed" )
     if not extract_platform_for_files( scratchp+files_to_case_table, file_table, params.SCRATCH_DATASET, ftc_plat_table, True, params.BQ_AS_BATCH ):
         sys.exit( "Extraction of platform information failed" )
@@ -465,7 +529,7 @@ def main(args):
             typed_schema = create_abridged_schema( one_big_tsv, field_lookup_json )
             csv_to_bq_write_depo( typed_schema, full_bucket_path, params.SCRATCH_DATASET, upload_table, params.BQ_AS_BATCH, "WRITE_TRUNCATE" )
         if 'bq_metadata_steps' in steps:
-            bq_metadata_steps( release, upload_table, files_to_case_table, barcodes_table, ftc_plat_table, counts_metadata_table, draft_table )
+            bq_metadata_steps( release, upload_table, files_to_case_table, barcodes_table, ftc_plat_table, counts_metadata_table, draft_table, program, params.CASE_ALIQUOT_FIX )
         if 'cluster_table' in steps:
             sql = cluster_table( draft_table, draft_table+'_cluster', params.SCRATCH_DATASET, params.SCRATCH_DATASET, ['project_short_name', 'case_barcode', 'sample_barcode', 'aliquot_barcode'] )
             success = bq_harness_with_result(sql, False, verbose=True)
