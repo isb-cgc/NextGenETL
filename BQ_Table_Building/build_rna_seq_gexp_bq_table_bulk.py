@@ -104,7 +104,7 @@ def attach_aliquot_and_case_ids_sql_with_fix(upload_table, file_table, case_aliq
       when_clause = ""
       
       for correct, incorrect in values.items():
-         when_clause = f'{when_clause} WHEN "{correct};{incorrect}" THEN "{correct}" WHEN "{incorrect};{correct}" THEN "{correct}"'
+         when_clause = f'{when_clause} WHEN {field_name} = "{correct};{incorrect}" THEN "{correct}" WHEN "{incorrect};{correct}" THEN "{correct}"'
       
       when_clauses[field_name] = when_clause
    
