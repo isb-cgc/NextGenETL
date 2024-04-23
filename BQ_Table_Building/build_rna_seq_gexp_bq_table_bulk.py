@@ -134,14 +134,14 @@ def attach_aliquot_and_case_ids_sql_with_fix(upload_table, file_table, case_aliq
    SELECT
      project_short_name,
      CASE
-      {when_clause["case_gdc_id"]}
+      {when_clauses["case_gdc_id"]}
      ELSE
      case_gdc_id
    END
      AS case_gdc_id,
      analysis_input_file_gdc_ids,
      CASE
-      {when_clause["aliquot_gdc_id"]}
+      {when_clauses["aliquot_gdc_id"]}
      ELSE
      aliquot_gdc_id
    END
