@@ -70,9 +70,12 @@ def table_cleaner(dump_tables, delete_result):
 
 # Associate Aliquot And Case IDs to File IDs
 # BQ ETL step 2: find the case and aliquot gdc_ids that go with each gexp file
-def build_aliquot_and_case(upload_table, file_table, target_dataset, output_table, write_depo, do_batch):
-    sql = attach_aliquot_and_case_ids_sql( upload_table, file_table )
-    return generic_bq_harness_write_depo( sql, target_dataset, output_table, do_batch, write_depo )
+def build_aliquot_and_case(upload_table, file_table, target_dataset, output_table, write_depo, do_batch, program, case_aliquot_fix):
+   if program = "TARGET":
+      sql = attach_aliquot_and_case_ids_sql_with_fix(upload_table, file_table, case_aliquot_fix)
+   else:
+      sql = attach_aliquot_and_case_ids_sql( upload_table, file_table )
+   return generic_bq_harness_write_depo( sql, target_dataset, output_table, do_batch, write_depo )
 
 # The files we get from GDC just have gene and expression columns. What aliquot is this for?
 # Use the file table to associate case and aliquot GDC ids for each file we are using.
@@ -89,6 +92,67 @@ def attach_aliquot_and_case_ids_sql(upload_table, file_table):
                b.platform
         FROM a1 JOIN `{file_table}` AS b ON a1.source_file_id = b.file_gdc_id
         WHERE b.associated_entities__entity_type = 'aliquot' '''
+
+
+# The files we get from GDC just have gene and expression columns. What aliquot is this for?
+# Use the file table to associate case and aliquot GDC ids for each file we are using and update 
+# some case and aliquots for TARGET files.
+
+def attach_aliquot_and_case_ids_sql_with_fix(upload_table, file_table, case_aliquot_fix):
+   when_clauses = {}
+   for field_name, values in case_aliquot_fix.items():
+      when_clause = ""
+      
+      for correct, incorrect in values.items():
+         when_clause = f'{when_clause} WHEN "{correct};{incorrect}" THEN "{correct} WHEN "{incorrect};{correct}" THEN "{correct}"'
+      
+      when_clauses[field_name] = when_string
+   
+   return f"""WITH
+     a1 AS (
+     SELECT
+       DISTINCT source_file_id
+     FROM
+       `{upload_table}`),
+     a2 AS (
+     SELECT
+       b.project_short_name,
+       b.case_gdc_id,
+       b.analysis_input_file_gdc_ids,
+       b.associated_entities__entity_gdc_id AS aliquot_gdc_id,
+       b.file_name,
+       b.file_gdc_id,
+       b.platform
+     FROM
+       a1
+     JOIN
+       `{file_table}` AS b
+     ON
+       a1.source_file_id = b.file_gdc_id
+     WHERE
+       b.associated_entities__entity_type = 'aliquot')
+   SELECT
+     project_short_name,
+     CASE
+      {when_clause["case_gdc_id"]}
+     ELSE
+     case_gdc_id
+   END
+     AS case_gdc_id,
+     analysis_input_file_gdc_ids,
+     CASE
+      {when_clause["aliquot_gdc_id"]}
+     ELSE
+     aliquot_gdc_id
+   END
+     AS aliquot_gdc_id,
+     file_name,
+     file_gdc_id,
+     platform
+   FROM
+     a2
+   """
+         
 
 
 
