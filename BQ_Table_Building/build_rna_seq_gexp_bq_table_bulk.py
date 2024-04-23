@@ -370,13 +370,13 @@ def create_abridged_schema( one_big_tsv, field_lookup_json ):
                        'type': field_dict[field]['type']} for field in header ]
     return typed_schema
 
-def bq_metadata_steps( release, upload_table, files_to_case_table, barcodes_table, ftc_plat_table, counts_metadata_table, draft_table ):
+def bq_metadata_steps( release, upload_table, files_to_case_table, barcodes_table, ftc_plat_table, counts_metadata_table, draft_table, program, case_aliquot_fix ):
     scratchp    = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.'
     aliq_table  = params.ALIQUOT_TABLE.format(release)
     case_table  = params.CASE_TABLE.format(release)
     file_table  = params.FILEDATA_TABLE.format(release)
     
-    if not build_aliquot_and_case( scratchp+upload_table, file_table, params.SCRATCH_DATASET, files_to_case_table, "WRITE_TRUNCATE", params.BQ_AS_BATCH ):
+    if not build_aliquot_and_case( scratchp+upload_table, file_table, params.SCRATCH_DATASET, files_to_case_table, "WRITE_TRUNCATE", params.BQ_AS_BATCH, program, case_aliquot_fix ):
         sys.exit( "Attaching case and aliquot ids to files failed" )
     if not extract_platform_for_files( scratchp+files_to_case_table, file_table, params.SCRATCH_DATASET, ftc_plat_table, True, params.BQ_AS_BATCH ):
         sys.exit( "Extraction of platform information failed" )
@@ -529,7 +529,7 @@ def main(args):
             typed_schema = create_abridged_schema( one_big_tsv, field_lookup_json )
             csv_to_bq_write_depo( typed_schema, full_bucket_path, params.SCRATCH_DATASET, upload_table, params.BQ_AS_BATCH, "WRITE_TRUNCATE" )
         if 'bq_metadata_steps' in steps:
-            bq_metadata_steps( release, upload_table, files_to_case_table, barcodes_table, ftc_plat_table, counts_metadata_table, draft_table )
+            bq_metadata_steps( release, upload_table, files_to_case_table, barcodes_table, ftc_plat_table, counts_metadata_table, draft_table, program, params.CASE_ALIQUOT_FIX )
         if 'cluster_table' in steps:
             sql = cluster_table( draft_table, draft_table+'_cluster', params.SCRATCH_DATASET, params.SCRATCH_DATASET, ['project_short_name', 'case_barcode', 'sample_barcode', 'aliquot_barcode'] )
             success = bq_harness_with_result(sql, False, verbose=True)
