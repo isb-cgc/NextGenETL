@@ -71,7 +71,7 @@ def table_cleaner(dump_tables, delete_result):
 # Associate Aliquot And Case IDs to File IDs
 # BQ ETL step 2: find the case and aliquot gdc_ids that go with each gexp file
 def build_aliquot_and_case(upload_table, file_table, target_dataset, output_table, write_depo, do_batch, program, case_aliquot_fix):
-   if program = "TARGET":
+   if program == "TARGET":
       sql = attach_aliquot_and_case_ids_sql_with_fix(upload_table, file_table, case_aliquot_fix)
    else:
       sql = attach_aliquot_and_case_ids_sql( upload_table, file_table )
