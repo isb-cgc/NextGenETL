@@ -82,7 +82,7 @@ def concat_all_files(all_files, one_big_tsv):
                 file_name = path_pieces[-1]
                 gdc_id = path_pieces[-2]
                 for line in readfile:
-                    if not line.startswith('gene_id') or first:
+                    if not line.startswith('GDC_Aliquot') or first:
                         outfile.write(line.rstrip('\n'))
                         outfile.write('\t')
                         outfile.write('source_file_name' if first else file_name)
