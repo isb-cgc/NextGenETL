@@ -25,25 +25,25 @@ STUDY_ARG="study"
 QUANT_ARG="quant"
 PER_SAMPLE_FILE_ARG="per_sample_file"
 
-SHARED_CONFIG_FILE="PDCSharedConfig.yaml"
+SHARED_CONFIG_FILE="test_PDCSharedConfig.yaml"
 
 if [[ ${SCRIPT_NAME} = ${CASE_ARG} ]] ; then
-    CONFIG_FILE="PDCCaseMetadata.yaml"
+    CONFIG_FILE="test_PDCCaseMetadata.yaml"
     SCRIPT_FILE="build_pdc_case_metadata.py"
 elif [[ ${SCRIPT_NAME} = ${CLINICAL_ARG} ]] ; then
-    CONFIG_FILE="PDCClinical.yaml"
+    CONFIG_FILE="test_PDCClinical.yaml"
     SCRIPT_FILE="build_pdc_clinical.py"
 elif [[ ${SCRIPT_NAME} = ${FILE_ARG} ]] ; then
-    CONFIG_FILE="PDCFileMetadata.yaml"
+    CONFIG_FILE="test_PDCFileMetadata.yaml"
     SCRIPT_FILE="build_pdc_file_metadata.py"
 elif [[ ${SCRIPT_NAME} = ${STUDY_ARG} ]] ; then
-    CONFIG_FILE="PDCStudy.yaml"
+    CONFIG_FILE="test_PDCStudy.yaml"
     SCRIPT_FILE="build_pdc_study.py"
 elif [[ ${SCRIPT_NAME} = ${QUANT_ARG} ]] ; then
-    CONFIG_FILE="PDCQuant.yaml"
+    CONFIG_FILE="test_PDCQuant.yaml"
     SCRIPT_FILE="build_pdc_quant_data_matrix.py"
 elif [[ ${SCRIPT_NAME} = ${PER_SAMPLE_FILE_ARG} ]] ; then
-    CONFIG_FILE="PDCPerSampleFile.yaml"
+    CONFIG_FILE="test_PDCPerSampleFile.yaml"
     SCRIPT_FILE="build_pdc_per_sample_file.py"
 else
     echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, study, quant, per_sample_file"

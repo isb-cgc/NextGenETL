@@ -1,0 +1,50 @@
+#
+# YAML Configuration file used for CDA-GDC pipeline scripts.
+#
+
+version: 1
+
+######################################################################################
+#
+#   params: configuration settings
+#
+######################################################################################
+
+params:
+  # Current release version for CDA. Currently using YYYY-MM because there is no
+  # release version number for CDA data-only releases.
+  RELEASE: <cda-release-here>
+  # Underlying DC data source
+  DC_SOURCE: gdc
+  # DC release version
+  DC_RELEASE: <gdc-release-here>
+
+  # BQ project/dataset location, defined when they're created
+  LOCATION: us
+  # Development project name
+  DEV_PROJECT: <bq-development-project-here>
+  # Development raw dataset name, used to house base tables created from CDA tsv files
+  DEV_RAW_DATASET: <bq-raw-dataset-here>
+  # Development metadata dataset name, used to store tables which live in the metadata production datasets
+  DEV_METADATA_DATASET: <bq-dev-metadata-dataset-here>
+  # Development per sample file dataset name, used to store tables which live in program datasets in production
+  DEV_SAMPLE_DATASET: <bq-dev-sample-dataset-here>
+  # Development clinical dataset name, used to store tables which live in program datasets in production
+  DEV_CLINICAL_DATASET: <bq-dev-clinical-dataset-here>
+
+  # GCS working bucket -- base directory where pipeline files, such as schema files
+  # and .jsonl files used to populate tables, are stored in GCS
+  WORKING_BUCKET: <working-bucket-here>
+  # GCS working bucket directory -- path to where pipeline files are stored in GCS
+  WORKING_BUCKET_DIR: <your>/<bucket>/<dir>
+  # Scratch directory on local VM, used to store files while written or after downloaded from GCS
+  SCRATCH_DIR: <vm-scratch-dir-here>
+
+
+######################################################################################
+#
+#   steps: should remain null--steps are defined in individual yaml config files
+#
+######################################################################################
+
+steps: null

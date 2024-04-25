@@ -1,0 +1,67 @@
+
+version: 1
+files_and_buckets_and_tables:
+  # Run all BQ jobs in Batch mode? Slower but uses less of quotas:
+  BQ_AS_BATCH: False
+
+  # What bucket is going to get the text file heading to BQ?
+  WORKING_BUCKET: bq_staging_bucket_name
+
+  # What will be the file in the bucket (CSV):
+  BUCKET_CSV: bucket_path_for_raw_bq_table_{}.csv # DO NOT HAVE A LEADING /
+
+  # Where will projects file go (CSV):
+  PROJECTS_CSV: bucket_path_for_projects_file.csv # DO NOT HAVE A LEADING /
+
+  # What project are we in:
+  WORKING_PROJECT: working_project_id
+
+  # Where is scratch BQ table dataset:
+  SCRATCH_DATASET: bq_dataset_for_table
+
+  # Where is the BQ table dataset:
+  TARGET_DATASET: bq_dataset_for_table
+
+  # Where is the scratch table:
+  SCRATCH_TABLE: Scratch_Table_Name_{}
+
+  # cores reduced by columns and datasets
+  REDUCED_CORE_TABLE: Reduced_Core_Table_Name_{}
+
+  # Single all-core table
+  COMBINED_REDUCED_TABLE: Combined_Core_Table_Name
+
+  # Where is the projects table:
+  PROJECTS_TABLE: Projects_Table_Name
+
+  # Final table name:
+  FINAL_TARGET_TABLE: Final_Table_Name_{}
+
+core_list:
+    - core0
+    - core1
+    - core2
+    - core3
+    - core4
+    - core5
+    - core6
+    - core7
+
+steps:
+
+  - projects_to_bq
+
+  - create_bq_from_tsv
+
+  - prune_to_public
+
+  - glue_cores_together
+
+  - build_empty_table
+
+  - fill_program_table
+
+  - update_table_description
+
+  - dump_working_tables
+

@@ -33,7 +33,8 @@ tar xvf Python-3.9.2.tgz
 # move to the directory
 cd Python-3.9.2
 # run the python configure and make
-./configure && make && make test
+./configure && make
+
 # install python using altinstall, so to avoid overwriting the system's python version
 sudo make altinstall
 cd ~

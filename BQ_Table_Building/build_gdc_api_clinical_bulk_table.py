@@ -24,11 +24,14 @@ import time
 import os
 import sys
 import json
+import jsonlines
+import difflib
 
 from common_etl.utils import (has_fatal_error, load_config, get_rel_prefix, get_scratch_fp, upload_to_bucket,
                               create_and_load_table_from_jsonl, format_seconds, construct_table_id, get_filename,
                               write_list_to_jsonl, create_and_upload_schema_for_json, construct_table_name,
-                              retrieve_bq_schema_object, download_from_bucket)
+                              retrieve_bq_schema_object, download_from_bucket, recursively_normalize_field_values,
+                              write_line_to_jsonl)
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -105,7 +108,6 @@ def extract_api_response_json(local_path):
                 if '.' not in field and field in response_case:
                     response_case.pop(field)
                 else:
-                    # todo fix this workaround (arrays aren't being recognized by the schema inference)
                     split_field = field.split('.')
                     if len(split_field) == 2:
                         field_group = split_field[0]
@@ -146,27 +148,43 @@ def main(args):
     bulk_table_id = construct_table_id(project=BQ_PARAMS['DEV_PROJECT'],
                                        dataset=BQ_PARAMS['DEV_DATASET'],
                                        table_name=bulk_table_name)
-    jsonl_output_file = get_filename(API_PARAMS,
-                                     file_extension='jsonl',
-                                     prefix=get_rel_prefix(API_PARAMS),
-                                     suffix=BQ_PARAMS['MASTER_TABLE'],
-                                     include_release=False)
-    scratch_fp = get_scratch_fp(BQ_PARAMS, jsonl_output_file)
+    raw_jsonl_output_file = get_filename(API_PARAMS,
+                                         file_extension='jsonl',
+                                         prefix=get_rel_prefix(API_PARAMS) + '_raw',
+                                         suffix=BQ_PARAMS['MASTER_TABLE'],
+                                         include_release=False)
+
+    raw_scratch_fp = get_scratch_fp(BQ_PARAMS, raw_jsonl_output_file)
+
+    normalized_jsonl_output_file = get_filename(API_PARAMS,
+                                                file_extension='jsonl',
+                                                prefix=get_rel_prefix(API_PARAMS),
+                                                suffix=BQ_PARAMS['MASTER_TABLE'],
+                                                include_release=False)
+
+    norm_scratch_fp = get_scratch_fp(BQ_PARAMS, normalized_jsonl_output_file)
 
     if 'build_and_upload_case_jsonl' in steps:
-        # Hit paginated GDC api endpoint, then write data to jsonl file
-        extract_api_response_json(scratch_fp)
+        # Hit paginated GDC api endpoint, then write data to local jsonl file
+        extract_api_response_json(raw_scratch_fp)
+
+        with jsonlines.open(raw_scratch_fp) as raw_data_jsonl_file:
+            for record in raw_data_jsonl_file.iter():
+                normalized_record = recursively_normalize_field_values(json_records=record, is_single_record=True)
+                write_line_to_jsonl(norm_scratch_fp, normalized_record)
+
         # Upload bulk jsonl file to Google Cloud bucket
-        upload_to_bucket(BQ_PARAMS, scratch_fp)
+        upload_to_bucket(BQ_PARAMS, norm_scratch_fp, delete_local=True)
+        upload_to_bucket(BQ_PARAMS, raw_scratch_fp, delete_local=True)
 
     if 'create_schema' in steps:
         print("Inferring column data types and generating schema!")
         record_list = list()
 
-        download_from_bucket(BQ_PARAMS, jsonl_output_file)
+        download_from_bucket(BQ_PARAMS, normalized_jsonl_output_file)
 
         # Create list of record objects for schema analysis
-        with open(scratch_fp) as jsonl_file:
+        with open(norm_scratch_fp) as jsonl_file:
             while True:
                 file_record = jsonl_file.readline()
 
@@ -180,9 +198,10 @@ def main(args):
         create_and_upload_schema_for_json(API_PARAMS, BQ_PARAMS,
                                           record_list=record_list,
                                           table_name=bulk_table_name,
-                                          include_release=False)
+                                          include_release=False,
+                                          delete_local=True)
 
-        os.remove(scratch_fp)
+        os.remove(norm_scratch_fp)
 
     if 'build_bq_table' in steps:
         # Download schema file from Google Cloud bucket
@@ -192,7 +211,7 @@ def main(args):
 
         # Load jsonl data into BigQuery table
         create_and_load_table_from_jsonl(BQ_PARAMS,
-                                         jsonl_file=jsonl_output_file,
+                                         jsonl_file=normalized_jsonl_output_file,
                                          table_id=bulk_table_id,
                                          schema=bulk_table_schema)
 

@@ -66,15 +66,15 @@ def get_all_file_ids_from_file(fh):
             ## they are not queryable based on their GUIDs...
             if (file_name.endswith('.bai') or file_name.endswith('.tbi')): continue
             if (len(file_id) != 36):
-                print " invalid file identifier ??? ", len(file_id), file_id
+                print( " invalid file identifier ??? ", len(file_id), file_id )
                 sys.exit(-1)
             if (file_id not in fileID_list):
                 fileID_list[file_id] = 1
             else:
                 if (verboseFlag >= 3):
-                    print " already have this one in list ?!?! ", len(fileID_list), file_id
+                    print( " already have this one in list ?!?! ", len(fileID_list), file_id )
 
-    if (verboseFlag >= 1): print " returning map with %d file ids " % len(fileID_list)
+    if (verboseFlag >= 1): print( " returning map with {} file ids ".format(len(fileID_list)) )
 
     return (fileID_list)
 
@@ -86,9 +86,9 @@ def get_all_file_ids_from_file(fh):
 
 def get_all_file_ids(files_endpt):
     if (verboseFlag >= 1):
-        print " "
-        print " >>> in get_all_file_ids ... ", files_endpt
-        print " "
+        print( " " )
+        print( " >>> in get_all_file_ids ... ", files_endpt )
+        print( " " )
 
     maxSize = 1000
     fromStart = 0
@@ -104,67 +104,67 @@ def get_all_file_ids(files_endpt):
                   'size': maxSize}
 
         try:
-            if (verboseFlag >= 9): print " get request ", files_endpt, params
+            if (verboseFlag >= 9): print( " get request ", files_endpt, params )
             response = requests.get(files_endpt, params=params, timeout=10.0)
         except:
-            print " ERROR !!! requests.get() call FAILED ??? (a) "
+            print( " ERROR !!! requests.get() call FAILED ??? (a) " )
             continue
 
         ## check response status_code
         try:
-            if (verboseFlag >= 3): print " response status_code : ", response.status_code
+            if (verboseFlag >= 3): print( " response status_code : ", response.status_code )
             if (response.status_code != 200):
-                print " --> BAD status_code returned !!! ", response.status_code
+                print( " --> BAD status_code returned !!! ", response.status_code )
                 continue
         except:
-            print " ERROR just in looking for status_code ??? !!! "
+            print( " ERROR just in looking for status_code ??? !!! " )
             continue
 
         try:
-            if (verboseFlag >= 9): print " now parsing json response ... "
+            if (verboseFlag >= 9): print( " now parsing json response ... " )
             rj = response.json()
-            if (verboseFlag >= 9): print json.dumps(rj, indent=4)
+            if (verboseFlag >= 9): print( json.dumps(rj, indent=4) )
         except:
-            print " failed to get information about files ??? "
+            print( " failed to get information about files ??? " )
             continue
 
         try:
 
-            if (verboseFlag >= 3): print " now parsing info returned ... "
+            if (verboseFlag >= 3): print( " now parsing info returned ... " )
 
             iCount = rj['data']['pagination']['count']
             iFrom = rj['data']['pagination']['from']
             iPages = rj['data']['pagination']['pages']
             iTotal = rj['data']['pagination']['total']
             iSize = rj['data']['pagination']['size']
-            if (verboseFlag >= 3): print iCount, iFrom, iPages, iTotal, iSize
+            if (verboseFlag >= 3): print( iCount, iFrom, iPages, iTotal, iSize )
 
             fromStart += iCount
             if (iCount == 0):
-                if (verboseFlag >= 2): print " got nothing back ... (?) "
+                if (verboseFlag >= 2): print( " got nothing back ... (?) " )
                 done = 1
 
             for ii in range(iCount):
-                if (verboseFlag >= 9): print ii, rj['data']['hits'][ii]
+                if (verboseFlag >= 9): print( ii, rj['data']['hits'][ii] )
                 file_id = rj['data']['hits'][ii]['file_id']
-                if (verboseFlag >= 9): print file_id
+                if (verboseFlag >= 9): print( file_id )
                 if (file_id not in fileID_list):
                     fileID_list[file_id] = 1
                 else:
                     if (verboseFlag >= 3):
-                        print " already have this one in list ?!?! ", ii, iCount, file_id
+                        print( " already have this one in list ?!?! ", ii, iCount, file_id )
 
-            if (verboseFlag >= 1): print "         ", len(fileID_list)
+            if (verboseFlag >= 1): print( "         ", len(fileID_list) )
 
         except:
-            print " "
-            print " --> setting DONE to TRUE now ... is this OK ??? "
-            print " "
+            print( " " )
+            print( " --> setting DONE to TRUE now ... is this OK ??? " )
+            print( " " )
             done = 1
 
             ## if ( len(fileID_list) > 2000 ): done=1
 
-    if (verboseFlag >= 1): print " returning map with %d file ids " % len(fileID_list)
+    if (verboseFlag >= 1): print( " returning map with {} file ids ".format(len(fileID_list)) )
 
     return (fileID_list)
 
@@ -175,28 +175,27 @@ def getFileInfo(fileID_list, files_endpt, dbName, file_fh2):
     global numFiles
 
     if (verboseFlag >= 1):
-        print " "
-        print " >>> in getFileInfo ... ", len(fileID_list), files_endpt
-        print " "
+        print( " " )
+        print( " >>> in getFileInfo ... ", len(fileID_list), files_endpt )
+        print( " " )
 
     allFiles = fileID_list.keys()
-    allFiles.sort()
 
     fileID_dict = {}
 
     ## outer loop is over ALL files ...
-    for file_id in allFiles:
+    for file_id in sorted(allFiles):
 
         if (verboseFlag >= 1):
-            print " "
-            print " "
-            print " in getFileInfo ... looping over allFiles ... ", file_id
+            print( " " )
+            print( " " )
+            print( " in getFileInfo ... looping over allFiles ... ", file_id )
 
         ## get file info for this one file ...
         fileInfoVec = get_file_info(files_endpt, file_id)
         numFiles2 = len(fileInfoVec)
         if (verboseFlag >= 1):
-            print " --> got back INFORMATION for %d files " % numFiles2
+            print( " --> got back INFORMATION for {} files ".format(numFiles2) )
 
         numFiles += numFiles2
 
@@ -205,10 +204,10 @@ def getFileInfo(fileID_list, files_endpt, dbName, file_fh2):
             fileInfo = fileInfoVec[ii]
             fileInfo = stripBlanks(fileInfo)
             if (len(fileInfo['file_id']) != 1):
-                print " ERROR ??? HOW CAN THIS BE ??? NO file_id ??? or TOO MANY ??? "
-                print fileInfo['file_id']
-                print fileInfo
-                print " FATAL ERROR in getFileInfo "
+                print( " ERROR ??? HOW CAN THIS BE ??? NO file_id ??? or TOO MANY ??? " )
+                print( fileInfo['file_id'] )
+                print( fileInfo )
+                print( " FATAL ERROR in getFileInfo " )
                 sys.exit(-1)
 
             file_id = fileInfo['file_id'][0]
@@ -219,22 +218,22 @@ def getFileInfo(fileID_list, files_endpt, dbName, file_fh2):
                 fileID_dict[file_id] = [fileInfo]
                 writeOneFile4BQ(file_fh2, dbName, file_id, fileInfo)
                 if (verboseFlag >= 3):
-                    print file_id
-                    print " creating fileID_dict entry for this file ", file_id
-                    print fileID_dict[file_id]
+                    print( file_id )
+                    print( " creating fileID_dict entry for this file ", file_id )
+                    print( fileID_dict[file_id] )
             else:
 
                 if (verboseFlag >= 3):
-                    print " already know about this file ... no worries ... ", file_id
+                    print( " already know about this file ... no worries ... ", file_id )
 
         if (verboseFlag >= 1):
             if (numFiles % 100 == 0):
-                print "     working ... in getFileInfo ... %d " % (numFiles)
+                print( "     working ... in getFileInfo ... {} ".format(numFiles) )
 
     if (verboseFlag >= 1):
-        print " "
-        print " returning dict with %d files " % (len(fileID_dict))
-        print " "
+        print( " " )
+        print( " returning dict with {} files ".format(len(fileID_dict)) )
+        print( " " )
 
     return (fileID_dict)
 
@@ -254,7 +253,7 @@ def stripBlanks(inD):
                 newD[bKey] += [aItem]
 
     if (newD != inD):
-        print " stripBlanks made a difference! "
+        print( " stripBlanks made a difference! " )
 
     return (newD)
 
@@ -263,8 +262,8 @@ def stripBlanks(inD):
 
 def flattenJSON(inJ):
     if (verboseFlag >= 77):
-        print " >>> in flattenJSON ... "
-        print json.dumps(inJ, indent=4)
+        print( " >>> in flattenJSON ... " )
+        print( json.dumps(inJ, indent=4) )
 
     outJ = {}
 
@@ -291,10 +290,10 @@ def flattenJSON(inJ):
     flatten(inJ)
 
     if (verboseFlag >= 77):
-        print " "
-        print " how does this look ??? "
-        print " "
-        print json.dumps(outJ, indent=4)
+        print( " " )
+        print( " how does this look ??? " )
+        print( " " )
+        print( json.dumps(outJ, indent=4) )
 
     return (outJ)
 
@@ -303,9 +302,9 @@ def flattenJSON(inJ):
 
 def get_file_info(files_endpt, file_id):
     if (verboseFlag >= 3):
-        print " "
-        print " >>> in get_file_info ... ", files_endpt, file_id
-        print " "
+        print( " " )
+        print( " >>> in get_file_info ... ", files_endpt, file_id )
+        print( " " )
 
     global files_fields
 
@@ -349,7 +348,7 @@ def get_file_info(files_endpt, file_id):
               'from': 0,
               'size': 2000}
 
-    if (verboseFlag >= 9): print " get request ", files_endpt, params
+    if (verboseFlag >= 9): print( " get request ", files_endpt, params )
 
     ## on a 3/28 run for active DR16 this was the retry pattern I saw:
     ##      442  >>>> trying again ...  2 0.1
@@ -365,49 +364,49 @@ def get_file_info(files_endpt, file_id):
     while iTry < 11:
 
         if iTry == 10:
-            print " HOLY COW WHAT IS GOING ON ??? !!! "
+            print( " HOLY COW WHAT IS GOING ON ??? !!! " )
 
         if (iTry > 0):
-            print " >>>> trying again ... ", iTry + 1, sleepTime
+            print( " >>>> trying again ... ", iTry + 1, sleepTime )
             time.sleep(sleepTime)
             sleepTime = sleepTime * 2
             if (sleepTime > 600): sleepTime = 600
         iTry += 1
 
         try:
-            if (verboseFlag >= 9): print " get request ", files_endpt, params
+            if (verboseFlag >= 9): print( " get request ", files_endpt, params )
             response = requests.get(files_endpt, params=params, timeout=10.0)
         except:
-            print " ERROR !!! requests.get() call FAILED ??? (c) "
+            print( " ERROR !!! requests.get() call FAILED ??? (c) " )
             continue
 
         ## check response status_code
         try:
-            if (verboseFlag >= 3): print " response status_code : ", response.status_code
+            if (verboseFlag >= 3): print( " response status_code : ", response.status_code )
             if (response.status_code != 200):
-                print " --> BAD status_code returned !!! ", response.status_code
+                print( " --> BAD status_code returned !!! ", response.status_code )
                 continue
         except:
-            print " ERROR just in looking for status_code ??? !!! "
+            print( " ERROR just in looking for status_code ??? !!! " )
             continue
 
         try:
-            if (verboseFlag >= 9): print " now parsing json response ... "
+            if (verboseFlag >= 9): print( " now parsing json response ... " )
             rj = response.json()
 
             numFiles = len(rj['data']['hits'])
             if (verboseFlag >= 9):
-                print "     --> got back information for %d files " % numFiles
+                print( "     --> got back information for {} files ".format(numFiles) )
             if (verboseFlag >= 13):
-                print json.dumps(rj, indent=4)
+                print( json.dumps(rj, indent=4) )
 
             if (numFiles != 1):
-                print " ERROR ??? did not get back all of the files we were expecting ??? !!! "
-                print "     expecting 1 ... got back %d " % (numFiles)
+                print( " ERROR ??? did not get back all of the files we were expecting ??? !!! " )
+                print( "     expecting 1 ... got back {} ".format(numFiles) )
                 sys.exit(-1)
 
             if (numFiles != 1):
-                print " ERROR ??? number of files does not match expected number ??? (%d,1) " % (numFiles)
+                print( " ERROR ??? number of files does not match expected number ??? ({},1) ".format(numFiles) )
 
             ## if the number of files we get back is greater than or equal to
             ## what's expected, let's just go with it ...
@@ -423,12 +422,11 @@ def get_file_info(files_endpt, file_id):
                     fileInfoVec += [fileInfo]
 
                     fields = fileInfo.keys()
-                    fields.sort()
 
-                    for aField in fields:
+                    for aField in sorted(fields):
                         if (aField not in files_fields):
                             if (verboseFlag >= 1):
-                                print " adding new field to files_fields list : ", aField
+                                print( " adding new field to files_fields list : ", aField )
                             files_fields += [aField]
 
                 return (fileInfoVec)
@@ -436,15 +434,15 @@ def get_file_info(files_endpt, file_id):
                 ## otherwise let's go back and try again ...
 
         except:
-            print " ERROR in get_file_info ??? failed to get any information about this file ??? ", file_id
+            print( " ERROR in get_file_info ??? failed to get any information about this file ??? ", file_id )
 
             ## go back and try again ...
 
     ## returning EMPTY HANDED ???
     if (verboseFlag >= 1):
-        print " "
-        print " --> returning EMPTY HANDED from get_file_info ??? ERROR ??? ", file_id
-        print " "
+        print( " " )
+        print( " --> returning EMPTY HANDED from get_file_info ??? ERROR ??? ", file_id )
+        print( " " )
 
     return ({})
 
@@ -464,13 +462,13 @@ def get_fileID_list(caseInfo):
         pass
 
     if (len(fileID_list) != file_count):
-        print " WARNING ??? !!! the number of file IDs returned is not as expected ??? ", file_count, len(fileID_list)
-        print json.dumps(caseInfo, indent=4)
+        print( " WARNING ??? !!! the number of file IDs returned is not as expected ??? ", file_count, len(fileID_list) )
+        print( json.dumps(caseInfo, indent=4) )
         return (file_count, fileID_list)
 
     if (verboseFlag >= 7):
-        print len(fileID_list)
-        print fileID_list
+        print( len(fileID_list) )
+        print( fileID_list )
 
     return (file_count, fileID_list)
 
@@ -478,38 +476,37 @@ def get_fileID_list(caseInfo):
 ## -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 def examineFilesInfo(fileID_dict):
-    files_fields.sort()
 
     if (verboseFlag >= 1):
-        print " "
-        print " >>> in examineFilesInfo ... ", len(fileID_dict)
-        print " "
-        print files_fields
+        print( " " )
+        print( " >>> in examineFilesInfo ... ", len(fileID_dict) )
+        print( " " )
+        print( files_fields )
 
     ## and now let's do the same for each of the FILEs ...
 
     fileFieldValues = {}
-    for aField in files_fields:
+    for aField in sorted(files_fields):
         fileFieldValues[aField] = {}
 
     for file_id in fileID_dict:
 
         if (len(fileID_dict[file_id]) > 1):
-            print " WHAT (file) ??? "
-            print len(fileID_dict[file_id])
-            print " FATAL ERROR in examineFilesInfo "
+            print( " WHAT (file) ??? " )
+            print( len(fileID_dict[file_id]) )
+            print( " FATAL ERROR in examineFilesInfo " )
             sys.exit(-1)
 
         fileInfo = fileID_dict[file_id][0]
 
         if (verboseFlag >= 9):
-            print " for this file_id : ", file_id
-            print " got this : "
-            print fileInfo
-            print " "
-            print " "
+            print( " for this file_id : ", file_id )
+            print( " got this : " )
+            print( fileInfo )
+            print( " " )
+            print( " " )
 
-        for aField in files_fields:
+        for aField in sorted(files_fields):
             ## print " "
             ## print " aField=<%s> " % aField
             ## print " fileFieldValues[aField] = ", fileFieldValues[aField]
@@ -528,14 +525,14 @@ def examineFilesInfo(fileID_dict):
                 except:
                     pass
 
-    for aField in files_fields:
+    for aField in sorted(files_fields):
         numV = len(fileFieldValues[aField])
         if (numV > 0 and numV < 50):
-            if (verboseFlag >= 2): print aField, fileFieldValues[aField]
+            if (verboseFlag >= 2): print( aField, fileFieldValues[aField] )
 
     if (verboseFlag >= 1):
-        print " "
-        print " "
+        print( " " )
+        print( " " )
 
     return
 
@@ -553,7 +550,7 @@ def mergeStrings(aVec, nMax):
     uVec.sort()
 
     for ii in range(len(uVec)):
-        mStr += '%s' % uVec[ii]
+        mStr += '{}'.format(uVec[ii])
         if (ii < len(uVec) - 1): mStr += ';'
 
     return (mStr)
@@ -563,9 +560,9 @@ def mergeStrings(aVec, nMax):
 
 def writeFileTable4BigQuery(fh, dbName, fileID_dict):
     if (verboseFlag >= 1):
-        print " "
-        print " >>> in writeFileTablesBigQuery ... ", len(fileID_dict)
-        print " "
+        print( " " )
+        print( " >>> in writeFileTablesBigQuery ... ", len(fileID_dict) )
+        print( " " )
 
     hdrFlag = 1
     hdrLine = ''
@@ -575,13 +572,13 @@ def writeFileTable4BigQuery(fh, dbName, fileID_dict):
         fileInfo = fileID_dict[file_id][0]
 
         if (verboseFlag >= 1):
-            print " for this file_id : ", file_id
-            print " got this : "
-            print fileInfo
-            print " "
-            print " "
-            print " files_fields : "
-            print files_fields
+            print( " for this file_id : ", file_id )
+            print( " got this : " )
+            print( fileInfo )
+            print( " " )
+            print( " " )
+            print( " files_fields : " )
+            print( files_fields )
 
         ## build up the output line ...
 
@@ -589,62 +586,62 @@ def writeFileTable4BigQuery(fh, dbName, fileID_dict):
             hdrLine = 'dbName'
             hdrLine += '\tfile_id'
 
-        outLine = '%s' % dbName
-        outLine += '\t%s' % file_id
-        for aField in files_fields:
+        outLine = '{}'.format(dbName)
+        outLine += '\t{}'.format( file_id )
+        for aField in sorted(files_fields):
             if (aField != "file_id"):
-                if (hdrFlag): hdrLine += '\t%s' % aField
+                if (hdrFlag): hdrLine += '\t{}'.format(aField)
                 try:
                     if (len(fileInfo[aField]) == 0):
                         outLine += '\t'
                     else:
                         mStr = mergeStrings(fileInfo[aField], 8)
-                        outLine += '\t%s' % mStr
+                        outLine += '\t{}'.format( mStr )
                 except:
                     outLine += '\t'
 
         if (hdrFlag):
-            fh.write("%s\n" % hdrLine)
+            fh.write("{}\n".format( hdrLine ))
             hdrFlag = 0
 
-        fh.write("%s\n" % outLine)
+        fh.write("{}\n".format( outLine ))
 
 
 ## -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 def writeOneFile4BQ(fh, dbName, file_id, fileInfo):
     if (verboseFlag >= 1):
-        print " "
-        print " >>> in writeOneFile4BQ ... ", file_id
-        print " "
+        print( " " )
+        print( " >>> in writeOneFile4BQ ... ", file_id )
+        print( " " )
 
     if (1):
 
         if (verboseFlag >= 1):
-            print " for this file_id : ", file_id
-            print " got this : "
-            print fileInfo
-            print " "
-            print " "
-            print " files_fields : "
-            print files_fields
+            print( " for this file_id : ", file_id )
+            print( " got this : " )
+            print( fileInfo )
+            print( " " )
+            print( " " )
+            print( " files_fields : " )
+            print( files_fields )
 
         ## build up the output line ...
 
-        outLine = '%s' % dbName
-        outLine += '\t%s' % file_id
-        for aField in files_fields:
+        outLine = '{}'.format( dbName )
+        outLine += '\t{}'.format( file_id )
+        for aField in sorted(files_fields):
             if (aField != "file_id"):
                 try:
                     if (len(fileInfo[aField]) == 0):
                         outLine += '\t'
                     else:
                         mStr = mergeStrings(fileInfo[aField], 8)
-                        outLine += '\t%s' % mStr
+                        outLine += '\t{}'.format( mStr )
                 except:
                     outLine += '\t'
 
-        fh.write("%s\n" % outLine)
+        fh.write("{}\n".format( outLine ))
 
 
 ## -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -672,24 +669,24 @@ def main(args):
         GDC_endpts['active']['files'] = "https://api.gdc.cancer.gov/files"
 
     else:
-        print " invalid endpoint flag : ", args.endpoint
-        print " should be either legacy or active "
+        print( " invalid endpoint flag : ", args.endpoint )
+        print( " should be either legacy or active " )
         sys.exit(-1)
 
     fName = "fileData.bq." + uuidStr + ".tsv"
-    file_fh = file(fName, 'w')
+    file_fh = open(fName, 'w')
 
     fName = "fileData.bq." + uuidStr + ".tmp"
-    file_fh2 = file(fName, 'w')
+    file_fh2 = open(fName, 'w')
 
     fName = "fileList." + uuidStr + ".txt"
-    file_fh3 = file(fName, 'w')
+    file_fh3 = open(fName, 'w')
 
     for dbName in GDC_endpts.keys():
 
-        print " "
-        print " "
-        print " get all of the file GUIDs ... either from the API or from the input file provided "
+        print( " " )
+        print( " " )
+        print( " get all of the file GUIDs ... either from the API or from the input file provided " )
 
         try:
             if (args.id_list != ''):
@@ -697,27 +694,23 @@ def main(args):
                 fileID_list = get_all_file_ids_from_file(id_fh)
 
         except:
-            print " Querying GDC database %s for all files " % dbName
+            print( " Querying GDC database {} for all files ".format(dbName) )
             fileID_list = get_all_file_ids(GDC_endpts[dbName]['files'])
 
         allIDs = fileID_list.keys()
-        allIDs.sort()
-        for a in allIDs:
-            file_fh3.write("%s\n" % a)
+        
+        for a in sorted(allIDs):
+            file_fh3.write( "{}\n".format(a) )
         file_fh3.close()
 
         fileID_dict = getFileInfo(fileID_list, GDC_endpts[dbName]['files'], dbName, file_fh2)
 
-        print " DONE processing %s database " % dbName
-        print " "
-        files_fields.sort()
-        print " files fields : "
-        for aField in files_fields:
-            print "     ", aField
-        print " "
-
-        print " "
-        print " "
+        print( " DONE processing {} database ".format(dbName) )
+        print( " " )
+        print( " files fields : " )
+        for aField in sorted(files_fields):
+            print( "     ", aField )
+        print( "\n\n " )
 
         examineFilesInfo(fileID_dict)
 
@@ -730,9 +723,9 @@ def main(args):
 ## -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 if __name__ == '__main__':
-    print " "
-    print " RUNNING ... ", uuidStr
-    print " "
+    print( " " )
+    print( " RUNNING ... ", uuidStr )
+    print( " " )
 
     parser = argparse.ArgumentParser(description="Query the GDC endpoints for file metadata")
     parser.add_argument("-v", "--verbosity", type=int, help="Verbosity (0 to 99) Can get ginormous if > 0")
