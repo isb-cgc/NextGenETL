@@ -781,10 +781,10 @@ def main(args):
         with open(local_pull_list, mode='r') as pull_list_file:
             pull_list_raw = pull_list_file.read().splitlines()
        
-       for x in pull_list_raw:
-          link = x.replace("[", "").replace("]", "").replace("'", "").split(", ")
-          print(link[2])
-          pull_list.append(link[2])
+        for x in pull_list_raw:
+            link = x.replace("[", "").replace("]", "").replace("'", "").split(", ")
+            print(link[2])
+            pull_list.append(link[2])
        
         pull_from_buckets(pull_list, local_files_dir)
 
