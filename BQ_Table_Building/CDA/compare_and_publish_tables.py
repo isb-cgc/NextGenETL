@@ -374,7 +374,7 @@ def find_record_difference_counts(table_type: str,
             output_string = f"\n{'count':10}"
 
             for header in table_metadata['output_keys']:
-                output_string += f"{header:30}"
+                output_string += f"{header:30} "
 
             output_string += "\n"
 
@@ -390,7 +390,7 @@ def find_record_difference_counts(table_type: str,
 
                     # append the other values (e.g. project id, type) as specified in output keys
                     for i in range(1, num_columns):
-                        row_str += f"{str(_row[i]):30}"
+                        row_str += f"{str(_row[i]):30} "
 
                     output_string += '\n' + row_str
 
