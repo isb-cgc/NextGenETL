@@ -341,8 +341,15 @@ def main(args):
 
         if 'transfer_from_gdc' in steps:
             # Bring the files to the local dir from DCF GDC Cloud Buckets
+            pull_list = []
             with open(local_pull_list, mode='r') as pull_list_file:
-                pull_list = pull_list_file.read().splitlines()
+                pull_list_raw = pull_list_file.read().splitlines()
+      
+            for x in pull_list_raw:
+                link = x.replace("[", "").replace("]", "").replace("'", "").split(", ")
+                print(link[2])
+                pull_list.append(link[2])
+            
             pull_from_buckets(pull_list, local_files_dir)
 
             all_files = build_file_list(local_files_dir)
