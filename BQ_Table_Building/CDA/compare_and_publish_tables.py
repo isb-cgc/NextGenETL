@@ -520,8 +520,15 @@ def find_missing_tables(dataset: str, table_type: str):
         # get program list from BQEcosystem/MetadataMappings/
         # for each program, look for tables in current list with 'clinical' or 'per_sample_file' prefix
         # add any tables to list object
-        program_metadata_fp = f"{PARAMS['BQ_REPO']}/{PARAMS['PROGRAM_METADATA_DIR']}"
-        program_metadata_fp = get_filepath(program_metadata_fp, PARAMS['PROGRAM_METADATA_FILE'])
+        if PARAMS['NODE'] == 'gdc':
+            program_metadata_fp = f"{PARAMS['BQ_REPO']}/{PARAMS['PROGRAM_METADATA_DIR']}"
+            program_metadata_fp = get_filepath(program_metadata_fp, PARAMS['PROGRAM_METADATA_FILE'])
+        elif PARAMS['NODE'] == 'pdc':
+            program_metadata_fp = f"{PARAMS['BQ_REPO']}/{PARAMS['PROJECT_STUDY_METADATA_DIR']}"
+            program_metadata_fp = get_filepath(program_metadata_fp, PARAMS['PROJECT_METADATA_FILE'])
+        else:
+            logger.critical("No BQEcosystem path specified for this node, exiting.")
+            sys.exit(-1)
 
         if not os.path.exists(program_metadata_fp):
             logger.critical("BQEcosystem program metadata path not found")
