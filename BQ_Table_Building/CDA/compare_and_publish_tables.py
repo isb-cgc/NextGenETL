@@ -370,7 +370,7 @@ def find_record_difference_counts(table_type: str,
         query_logger.info(query)
         result = query_and_retrieve_result(query)
 
-        if result.total_rows is None or result.total_rows == 0:
+        if result is None or result.total_rows == 0:
             return 0, ""
         else:
             output_string = f"\n{'count':10}"
