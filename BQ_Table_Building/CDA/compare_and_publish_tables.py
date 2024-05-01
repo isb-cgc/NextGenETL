@@ -897,7 +897,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
 
         if not column_comparison_result:
             logger.info(f"{column}: Column doesn't exist in one or both tables, or data types don't match.")
-            logger.info(f"Common reasons: non-trivial field data added to program; field deprecated by GDC.")
+            logger.info(f"Common reasons: non-trivial field data added to program; field deprecated by node.")
             logger.info("")
         elif column_comparison_result.total_rows > 0:
             logger.info(f"{column}: {column_comparison_result.total_rows} differences found. Examples:")

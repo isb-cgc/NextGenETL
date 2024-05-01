@@ -177,6 +177,7 @@ def get_study_list() -> list[dict[str, str]]:
                 study_friendly_name, 
                 program_labels
             FROM  `{create_metadata_table_id(PARAMS, 'studies')}`
+            WHERE analytical_fraction = 'Proteome'
             ORDER BY pdc_study_id
         """
 
