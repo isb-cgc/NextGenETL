@@ -196,7 +196,7 @@ def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params
 
     all_count_query = f"""
         SELECT {select_key_str}
-        FROM {table_ids['source']}
+        FROM `{table_ids['source']}`
     """
 
     query_logger.info(distinct_sql_query)
@@ -386,7 +386,7 @@ def find_record_difference_counts(table_type: str,
             for _row in result:
                 total_results += _row[0]
 
-                if result.total_rows > 1:
+                if result.total_rows > 0:
                     # append the count, right justify
                     row_str = f"{str(_row[0]):>8}  "
 
