@@ -827,7 +827,13 @@ def find_most_recent_published_refseq_table_id(params, versioned_table_id):
             return None
 
         table_id_no_release = versioned_table_id.replace(f"_{params['UNIPROT_RELEASE']}", '')
-        prev_release_table_id = f"{table_id_no_release}_{last_year}_{last_month}"
+
+        if last_month < 10:
+            last_month_str = f"0{last_month}"
+        else:
+            last_month_str = str(last_month)
+
+        prev_release_table_id = f"{table_id_no_release}_{last_year}_{last_month_str}"
         logger.debug(prev_release_table_id)
 
         if exists_bq_table(prev_release_table_id):
