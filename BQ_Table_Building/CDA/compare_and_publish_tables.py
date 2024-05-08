@@ -710,6 +710,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
         # table_base_name only defined for metadata tables, so otherwise we'll output the source table
         if table_params['data_type'] == 'metadata':
             logger.info(f"*** Comparing tables for {table_params['table_base_name']}!")
+            logger.debug(table_id_list)
         else:
             logger.info(f"*** Comparing tables for {table_ids['source']}!")
 
