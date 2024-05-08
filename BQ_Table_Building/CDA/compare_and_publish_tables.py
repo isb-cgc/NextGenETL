@@ -578,9 +578,15 @@ def find_missing_tables(dataset: str, table_type: str):
                     else:
                         for row in table_name_result:
                             table_name = row['table_name']
+
+                            logger.debug(table_name)
+
                             table_name = table_name.replace(suffix, "")
                             table_name = table_name.replace(project_short_name, "")
                             project_table_name = f"{project_short_name}_{table_name}"
+
+                            logger.debug(project_table_name)
+
                             _published_table_names.append(project_table_name)
 
                 return sorted(_published_table_names)
