@@ -564,6 +564,8 @@ def find_missing_tables(dataset: str, table_type: str):
 
     new_table_names_no_rel = list()
 
+    logger.info(f"dataset: {dataset}")
+
     published_table_names = get_published_table_names()
     new_table_names = get_new_table_names(dataset)
 
@@ -1218,6 +1220,8 @@ def main(args):
                                       emit_to_console=PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'])
 
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
+        if table_type != 'refseq_mapping':
+            continue
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
             table_id_list = generate_metadata_table_id_list(table_params)
