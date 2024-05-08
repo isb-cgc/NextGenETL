@@ -800,6 +800,37 @@ def find_most_recent_published_table_id(params, versioned_table_id):
         sys.exit(-1)
 
 
+def find_most_recent_published_refseq_table_id(params, versioned_table_id):
+    """
+    Find table id for most recent published version of UniProt dataset.
+    :param params: api_params supplied in YAML config
+    :param versioned_table_id: (future) published versioned table id for current release
+    :return: previous published versioned table id, if exists; else None
+    """
+    # oldest uniprot release used in published dataset
+    oldest_year = 2021
+    max_month = 12
+
+    split_release = params['UNIPROT_RELEASE'].split('_')
+    last_year = int(split_release[0])
+    last_month = int(split_release[1])
+
+    while True:
+        if last_month > 1 and last_year >= oldest_year:
+            last_month -= 1
+        elif last_year > oldest_year:
+            last_year -= 1
+            last_month = max_month
+        else:
+            return None
+
+        table_id_no_release = versioned_table_id.replace(f"_{params['UNIPROT_RELEASE']}", '')
+        prev_release_table_id = f"{table_id_no_release}_{last_year}_{last_month}"
+
+        if exists_bq_table(prev_release_table_id):
+            return prev_release_table_id
+
+
 def update_table_schema_from_generic(params, table_id, schema_tags=None, metadata_file=None):
     """
     Insert schema tags into generic schema (currently located in BQEcosystem repo).

@@ -30,7 +30,8 @@ from typing import Union
 from google.cloud.bigquery.table import _EmptyRowIterator
 
 from cda_bq_etl.bq_helpers import (find_most_recent_published_table_id, exists_bq_table, copy_bq_table,
-                                   update_friendly_name, change_status_to_archived, query_and_retrieve_result)
+                                   update_friendly_name, change_status_to_archived, query_and_retrieve_result,
+                                   find_most_recent_published_refseq_table_id)
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import input_with_timeout, load_config, format_seconds, get_filepath, create_metadata_table_id
 
@@ -593,13 +594,20 @@ def find_missing_tables(dataset: str, table_type: str):
 
 def generate_metadata_table_id_list(table_params: TableParams) -> TableIDList:
     prod_table_name = table_params['table_base_name']
-
     prod_project_dataset_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_METADATA_DATASET']}"
 
     current_table_id = f"{prod_project_dataset_id}.{prod_table_name}_current"
-    versioned_table_id = f"{prod_project_dataset_id}_versioned.{prod_table_name}_{PARAMS['RELEASE']}"
-    source_table_id = create_metadata_table_id(PARAMS, table_params['table_base_name'])
-    previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, versioned_table_id)
+
+    if prod_table_name == 'refseq_mapping':
+        versioned_table_id = f"{prod_project_dataset_id}_versioned.{prod_table_name}_{PARAMS['UNIPROT_RELEASE']}"
+        source_table_id = create_metadata_table_id(params=PARAMS,
+                                                   table_name=table_params['table_base_name'],
+                                                   release=PARAMS['UNIPROT_RELEASE'])
+        previous_versioned_table_id = find_most_recent_published_refseq_table_id(PARAMS, versioned_table_id)
+    else:
+        versioned_table_id = f"{prod_project_dataset_id}_versioned.{prod_table_name}_{PARAMS['RELEASE']}"
+        source_table_id = create_metadata_table_id(PARAMS, table_params['table_base_name'])
+        previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, versioned_table_id)
 
     table_ids = {
         'current': current_table_id,
