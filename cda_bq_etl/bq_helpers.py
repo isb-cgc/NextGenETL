@@ -807,6 +807,8 @@ def find_most_recent_published_refseq_table_id(params, versioned_table_id):
     :param versioned_table_id: (future) published versioned table id for current release
     :return: previous published versioned table id, if exists; else None
     """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
     # oldest uniprot release used in published dataset
     oldest_year = 2021
     max_month = 12
@@ -826,6 +828,7 @@ def find_most_recent_published_refseq_table_id(params, versioned_table_id):
 
         table_id_no_release = versioned_table_id.replace(f"_{params['UNIPROT_RELEASE']}", '')
         prev_release_table_id = f"{table_id_no_release}_{last_year}_{last_month}"
+        logger.debug(prev_release_table_id)
 
         if exists_bq_table(prev_release_table_id):
             return prev_release_table_id
