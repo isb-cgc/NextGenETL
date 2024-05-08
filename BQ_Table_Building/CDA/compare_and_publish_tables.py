@@ -569,6 +569,7 @@ def find_missing_tables(dataset: str, table_type: str):
 
                 for value in project_metadata.values():
                     program_name = value['program_short_name']
+                    project_short_name = value['project_short_name']
 
                     table_name_result = query_and_retrieve_result(make_program_tables_query())
 
@@ -578,8 +579,9 @@ def find_missing_tables(dataset: str, table_type: str):
                         for row in table_name_result:
                             table_name = row['table_name']
                             table_name = table_name.replace(suffix, "")
-                            program_table_name = f"{program_name}_{table_name}"
-                            _published_table_names.append(program_table_name)
+                            table_name = table_name.replace(project_short_name, "")
+                            project_table_name = f"{project_short_name}_{table_name}"
+                            _published_table_names.append(project_table_name)
 
                 return sorted(_published_table_names)
         else:
