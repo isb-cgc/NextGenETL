@@ -524,41 +524,65 @@ def find_missing_tables(dataset: str, table_type: str):
         if PARAMS['NODE'] == 'gdc':
             program_metadata_fp = f"{PARAMS['BQ_REPO']}/{PARAMS['PROGRAM_METADATA_DIR']}"
             program_metadata_fp = get_filepath(program_metadata_fp, PARAMS['PROGRAM_METADATA_FILE'])
+
+            if not os.path.exists(program_metadata_fp):
+                logger.critical("BQEcosystem program metadata path not found")
+                sys.exit(-1)
+            with open(program_metadata_fp) as field_output:
+                program_metadata = json.load(field_output)
+                program_names = sorted(list(program_metadata.keys()))
+
+                _published_table_names = list()
+
+                suffix = f"_{PARAMS['NODE']}_current"
+
+                for program_name_original in program_names:
+                    if program_name_original == "BEATAML1.0":
+                        program_name = "BEATAML1_0"
+                    elif program_name_original == "EXCEPTIONAL_RESPONDERS":
+                        program_name = "EXC_RESPONDERS"
+                    else:
+                        program_name = program_name_original
+
+                    table_name_result = query_and_retrieve_result(make_program_tables_query())
+
+                    for row in table_name_result:
+                        table_name = row['table_name']
+                        table_name = table_name.replace(suffix, "")
+                        program_table_name = f"{program_name}_{table_name}"
+                        _published_table_names.append(program_table_name)
+
+                return sorted(_published_table_names)
         elif PARAMS['NODE'] == 'pdc':
-            program_metadata_fp = f"{PARAMS['BQ_REPO']}/{PARAMS['PROJECT_STUDY_METADATA_DIR']}"
-            program_metadata_fp = get_filepath(program_metadata_fp, PARAMS['PROJECT_METADATA_FILE'])
+            project_metadata_fp = f"{PARAMS['BQ_REPO']}/{PARAMS['PROJECT_STUDY_METADATA_DIR']}"
+            project_metadata_fp = get_filepath(project_metadata_fp, PARAMS['PROJECT_METADATA_FILE'])
+
+            if not os.path.exists(project_metadata_fp):
+                logger.critical("BQEcosystem project metadata path not found")
+                sys.exit(-1)
+            with open(project_metadata_fp) as field_output:
+                project_metadata = json.load(field_output)
+
+                _published_table_names = list()
+
+                suffix = f"_{PARAMS['NODE']}_current"
+
+                for key, value in project_metadata:
+                    program_name = value['program_short_name']
+
+                    table_name_result = query_and_retrieve_result(make_program_tables_query())
+
+                    for row in table_name_result:
+                        table_name = row['table_name']
+                        table_name = table_name.replace(suffix, "")
+                        program_table_name = f"{program_name}_{table_name}"
+                        _published_table_names.append(program_table_name)
+
+                return sorted(_published_table_names)
         else:
             logger.critical("No BQEcosystem path specified for this node, exiting.")
             sys.exit(-1)
 
-        if not os.path.exists(program_metadata_fp):
-            logger.critical("BQEcosystem program metadata path not found")
-            sys.exit(-1)
-        with open(program_metadata_fp) as field_output:
-            program_metadata = json.load(field_output)
-            program_names = sorted(list(program_metadata.keys()))
-
-            _published_table_names = list()
-
-            suffix = f"_{PARAMS['NODE']}_current"
-
-            for program_name_original in program_names:
-                if program_name_original == "BEATAML1.0":
-                    program_name = "BEATAML1_0"
-                elif program_name_original == "EXCEPTIONAL_RESPONDERS":
-                    program_name = "EXC_RESPONDERS"
-                else:
-                    program_name = program_name_original
-
-                table_name_result = query_and_retrieve_result(make_program_tables_query())
-
-                for row in table_name_result:
-                    table_name = row['table_name']
-                    table_name = table_name.replace(suffix, "")
-                    program_table_name = f"{program_name}_{table_name}"
-                    _published_table_names.append(program_table_name)
-
-            return sorted(_published_table_names)
 
     logger = logging.getLogger('base_script')
     logger.info("Searching for missing tables!")
