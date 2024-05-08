@@ -718,7 +718,6 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
         # table_base_name only defined for metadata tables, so otherwise we'll output the source table
         if table_params['data_type'] == 'metadata':
             logger.info(f"*** Comparing tables for {table_params['table_base_name']}!")
-            logger.debug(table_id_list)
         else:
             logger.info(f"*** Comparing tables for {table_ids['source']}!")
 
@@ -1222,14 +1221,15 @@ def main(args):
     query_log_filepath = f"{PARAMS['QUERY_LOGFILE_PATH']}.{log_file_time}"
 
     # todo remove before publishing
-    # PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'] = False
+    PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'] = False
 
     query_logger = initialize_logging(query_log_filepath,
                                       name='query_logger',
                                       emit_to_console=PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'])
 
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
-        if table_type != 'refseq_mapping':
+        # todo remove before publishing
+        if table_params['data_type'] == 'metadata':
             continue
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way

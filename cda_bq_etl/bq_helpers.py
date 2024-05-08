@@ -834,7 +834,6 @@ def find_most_recent_published_refseq_table_id(params, versioned_table_id):
             last_month_str = str(last_month)
 
         prev_release_table_id = f"{table_id_no_release}_{last_year}_{last_month_str}"
-        logger.debug(prev_release_table_id)
 
         if exists_bq_table(prev_release_table_id):
             return prev_release_table_id
