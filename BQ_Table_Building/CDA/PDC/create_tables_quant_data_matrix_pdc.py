@@ -837,11 +837,12 @@ def main(args):
 
             built_table_counts[study_id_dict['analytical_fraction']] += 1
 
+        """
         logger.info("quantDataMatrix table counts per analytical fraction:")
 
         for analytical_fraction in built_table_counts.keys():
             logger.info(f" - {analytical_fraction}: {built_table_counts[analytical_fraction]}")
-
+        """
     if 'build_final_quant_tables' in steps:
         logger.info("Building final quant tables!")
 
