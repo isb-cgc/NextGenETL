@@ -572,24 +572,24 @@ def find_missing_tables(dataset: str, table_type: str):
 
                     table_name_result = query_and_retrieve_result(make_program_tables_query())
 
-                    for row in table_name_result:
-                        table_name = row['table_name']
-                        table_name = table_name.replace(suffix, "")
-                        program_table_name = f"{program_name}_{table_name}"
-                        _published_table_names.append(program_table_name)
+                    if table_name_result is None:
+                        logger.warning(f"No tables found for {program_name}. New program (or changed name)?")
+                    else:
+                        for row in table_name_result:
+                            table_name = row['table_name']
+                            table_name = table_name.replace(suffix, "")
+                            program_table_name = f"{program_name}_{table_name}"
+                            _published_table_names.append(program_table_name)
 
                 return sorted(_published_table_names)
         else:
             logger.critical("No BQEcosystem path specified for this node, exiting.")
             sys.exit(-1)
 
-
     logger = logging.getLogger('base_script')
     logger.info("Searching for missing tables!")
 
     new_table_names_no_rel = list()
-
-    logger.info(f"dataset: {dataset}")
 
     published_table_names = get_published_table_names()
     new_table_names = get_new_table_names(dataset)
