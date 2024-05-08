@@ -567,7 +567,7 @@ def find_missing_tables(dataset: str, table_type: str):
 
                 suffix = f"_{PARAMS['NODE']}_current"
 
-                for key, value in project_metadata:
+                for value in project_metadata.values():
                     program_name = value['program_short_name']
 
                     table_name_result = query_and_retrieve_result(make_program_tables_query())
