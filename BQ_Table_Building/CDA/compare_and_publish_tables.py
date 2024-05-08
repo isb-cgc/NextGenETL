@@ -1226,6 +1226,8 @@ def main(args):
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
             table_id_list = generate_metadata_table_id_list(table_params)
+
+            logger.debug(table_id_list)
         else:
             # search for missing project tables for the given table type
             can_compare_type = find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)

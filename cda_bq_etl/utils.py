@@ -263,14 +263,18 @@ def create_excluded_records_table_id(params: Params, table_name: str) -> str:
     return f"{params['DEV_PROJECT']}.{params['EXCLUDED_RECORDS_DATASET']}.{params['RELEASE']}_{table_name}"
 
 
-def create_metadata_table_id(params: Params, table_name: str) -> str:
+def create_metadata_table_id(params: Params, table_name: str, release: str = None) -> str:
     """
     Create table id reference to one of the CDA metadata tables.
     :param params: params supplied in yaml config
     :param table_name: name of the table
+    :param release: optional, supply custom release string
     :return: table id string
     """
-    return f"{params['DEV_PROJECT']}.{params['DEV_METADATA_DATASET']}.{params['RELEASE']}_{table_name}"
+    if release is None:
+        return f"{params['DEV_PROJECT']}.{params['DEV_METADATA_DATASET']}.{params['RELEASE']}_{table_name}"
+    else:
+        return f"{params['DEV_PROJECT']}.{params['DEV_METADATA_DATASET']}.{release}_{table_name}"
 
 
 def create_per_sample_table_id(params: Params, table_name: str) -> str:

@@ -746,13 +746,17 @@ def main(args):
 
         create_and_load_table_from_jsonl(params=PARAMS,
                                          jsonl_file=gene_jsonl_filename,
-                                         table_id=create_metadata_table_id(PARAMS, gene_table_base_name),
+                                         table_id=create_metadata_table_id(params=PARAMS,
+                                                                           table_name=gene_table_base_name,
+                                                                           release=PARAMS['UNIPROT_RELEASE']),
                                          schema=gene_table_schema)
 
         schema_tags = get_gene_info_schema_tags(PARAMS)
 
         update_table_schema_from_generic(params=PARAMS,
-                                         table_id=create_metadata_table_id(PARAMS, gene_table_base_name),
+                                         table_id=create_metadata_table_id(params=PARAMS,
+                                                                           table_name=gene_table_base_name,
+                                                                           release=PARAMS['UNIPROT_RELEASE']),
                                          schema_tags=schema_tags,
                                          metadata_file=PARAMS['GENERIC_GENE_TABLE_METADATA_FILE'])
 
