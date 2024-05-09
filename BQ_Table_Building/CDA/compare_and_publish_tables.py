@@ -751,6 +751,8 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
             'previous_versioned': previous_versioned_table_id
         }
 
+        logger.debug(table_ids)
+
         table_ids_list.append(table_ids)
 
     logger.debug(table_ids_list)
