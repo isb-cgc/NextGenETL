@@ -688,6 +688,30 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
 
         return dataset_name, prod_table_name
 
+    def parse_pdc_clinical_table_id() -> tuple[str, str]:
+        split_table_name_list = table_name.split('_')
+        split_table_name_list.remove(PARAMS['RELEASE'])
+
+        # index to split table name from program
+        clinical_idx = split_table_name_list.index('clinical')
+
+        dataset_name = "_".join(split_table_name_list[0:clinical_idx])
+        base_table_name = "_".join(split_table_name_list[clinical_idx:])
+        prod_table_name = f"{base_table_name}_{PARAMS['NODE']}"
+
+        return dataset_name, prod_table_name
+
+    def parse_pdc_per_sample_file_table_id() -> tuple[str, str]:
+        base_table_name = PARAMS['TABLE_TYPES']['per_sample_file']['table_base_name']
+
+        table_name_no_rel = table_name.replace(f"{PARAMS['RELEASE']}_", "")
+        table_name_no_rel = table_name_no_rel.replace(f"_{PARAMS['NODE']}", "")
+        dataset_name = table_name_no_rel.replace(f"_{base_table_name}", "")
+
+        prod_table_name = f"{base_table_name}_{PARAMS['NODE']}"
+
+        return dataset_name, prod_table_name
+
     logger = logging.getLogger('base_script')
     logger.info("Generating table id list")
     new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
@@ -704,8 +728,13 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
                 logger.critical("Not configured for this GDC type")
                 sys.exit(-1)
         elif PARAMS['NODE'] == 'pdc':
-            logger.critical("Not configured for this PDC type")
-            sys.exit(-1)
+            if table_type == 'clinical':
+                dataset, prod_table = parse_pdc_clinical_table_id()
+            elif table_type == 'per_sample_file':
+                dataset, prod_table = parse_pdc_per_sample_file_table_id()
+            else:
+                logger.critical("Not configured for this PDC type")
+                sys.exit(-1)
         else:
             logger.critical("Not configured for this node")
             sys.exit(-1)
