@@ -1058,7 +1058,8 @@ def get_most_recent_published_table_version_pdc(params: Params, project_short_na
     if previous_versioned_table_name_result is None:
         return None
     for previous_versioned_table_name in previous_versioned_table_name_result:
-        return previous_versioned_table_name[0]
+        table_name = previous_versioned_table_name[0]
+        return f"{params['PROD_PROJECT']}.{program_name}_versioned.{table_name}"
 
 
 def get_project_level_schema_tags(params: Params, project_submitter_id: str) -> dict[str, str]:
