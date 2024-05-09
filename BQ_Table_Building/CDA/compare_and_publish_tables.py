@@ -583,13 +583,13 @@ def find_missing_tables(dataset: str, table_type: str):
                         for row in table_name_result:
                             table_name = row['table_name']
 
-                            logger.debug(table_name)
-
                             table_name = table_name.replace(suffix, "")
                             if table_type == 'clinical':
                                 if table_name[0:19] == 'clinical_diagnosis_':
                                     table_name = table_name[19:]
                                     table_name = f"{table_name}_clinical_diagnosis"
+                                elif 'diagnoses' in table_name:
+                                    continue
                                 elif table_name[0:9] == 'clinical_':
                                     table_name = table_name[9:]
                                     table_name = f"{table_name}_clinical"
@@ -613,9 +613,6 @@ def find_missing_tables(dataset: str, table_type: str):
 
     published_table_names = get_published_table_names()
     new_table_names = get_new_table_names(dataset)
-
-    logger.debug(published_table_names)
-    logger.debug(new_table_names)
 
     if PARAMS['NODE'] == 'gdc' and table_type == 'per_sample_file':
         if 'no_url' in new_table_names[0]:
