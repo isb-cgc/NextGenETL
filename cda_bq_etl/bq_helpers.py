@@ -991,7 +991,7 @@ def get_pdc_per_project_dataset(params: Params, project_short_name: str) -> str:
         return f"""
             SELECT program_short_name
             FROM {create_metadata_table_id(params, "studies")}
-            WHERE project_short_name = {project_short_name}
+            WHERE project_short_name = '{project_short_name}'
             LIMIT 1
         """
     logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
