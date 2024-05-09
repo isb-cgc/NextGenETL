@@ -31,7 +31,8 @@ from google.cloud.bigquery.table import _EmptyRowIterator
 
 from cda_bq_etl.bq_helpers import (find_most_recent_published_table_id, exists_bq_table, copy_bq_table,
                                    update_friendly_name, change_status_to_archived, query_and_retrieve_result,
-                                   find_most_recent_published_refseq_table_id)
+                                   find_most_recent_published_refseq_table_id, get_pdc_projects_metadata,
+                                   get_pdc_per_project_dataset)
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import input_with_timeout, load_config, format_seconds, get_filepath, create_metadata_table_id
 
@@ -695,13 +696,15 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
         # index to split table name from program
         clinical_idx = split_table_name_list.index('clinical')
 
-        dataset_name = "_".join(split_table_name_list[0:clinical_idx])
+        project_short_name = "_".join(split_table_name_list[0:clinical_idx])
+
+        dataset_name = get_pdc_per_project_dataset(PARAMS, project_short_name=project_short_name)
+
         base_table_name = "_".join(split_table_name_list[clinical_idx:])
-        prod_table_name = f"{base_table_name}_{PARAMS['NODE']}"
+        prod_table_name = f"{base_table_name}_{project_short_name}_{PARAMS['NODE']}"
 
         logger.debug(dataset_name)
         logger.debug(prod_table_name)
-
 
         return dataset_name, prod_table_name
 

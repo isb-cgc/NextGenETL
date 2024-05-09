@@ -986,6 +986,25 @@ def update_schema(table_id: str, new_descriptions: dict[str, str]):
     client.update_table(table, ['schema'])
 
 
+def get_pdc_per_project_dataset(params: Params, project_short_name: str) -> str:
+    def make_dataset_query():
+        return f"""
+            SELECT program_short_name
+            FROM {create_metadata_table_id(params, "studies")}
+            WHERE project_short_name = {project_short_name}
+            LIMIT 1
+        """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
+    dataset_result = query_and_retrieve_result(make_dataset_query())
+
+    if dataset_result is None:
+        logger.critical("No dataset found for project " + project_short_name)
+        sys.exit(-1)
+    for dataset in dataset_result:
+        return dataset[0]
+
+
 def get_pdc_projects_metadata(params: Params, project_submitter_id: str = None) -> list[dict[str, str]]:
     """
     Get project short name, program short name and project name for given project submitter id.
