@@ -699,6 +699,10 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
         base_table_name = "_".join(split_table_name_list[clinical_idx:])
         prod_table_name = f"{base_table_name}_{PARAMS['NODE']}"
 
+        logger.debug(dataset_name)
+        logger.debug(prod_table_name)
+
+
         return dataset_name, prod_table_name
 
     def parse_pdc_per_sample_file_table_id() -> tuple[str, str]:
