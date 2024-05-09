@@ -771,25 +771,37 @@ def find_most_recent_published_table_id(params, versioned_table_id):
     elif params['NODE'].lower() == 'pdc':
         # Assuming PDC will use 2-digit minor releases--they said they didn't expect this to ever become 3 digits, and
         # making 900 extraneous calls to google seems wasteful.
-        max_minor_release_num = 99
+        max_minor_release_num = 50
+        max_dot_release_num = 20
         dc_release = params['RELEASE'].replace("V", "")
         split_current_etl_release = dc_release.split("_")
         # set to current release initially, decremented in loop
         last_major_rel_num = int(split_current_etl_release[0])
         last_minor_rel_num = int(split_current_etl_release[1])
 
+        if len(split_current_etl_release) == 3:
+            last_dot_rel_num = int(split_current_etl_release[2])
+        else:
+            last_dot_rel_num = 0
+
         while True:
-            if last_minor_rel_num > 0 and last_major_rel_num >= 1:
+            if last_dot_rel_num > 0 and last_major_rel_num >= 2:
+                last_dot_rel_num -= 1
+            elif last_dot_rel_num == 0 and last_minor_rel_num > 0 and last_major_rel_num >= 2:
                 last_minor_rel_num -= 1
-            elif last_minor_rel_num == 0 and last_major_rel_num > 1:
-                # go from version (n).0 to version (n-1).99
+                last_dot_rel_num = max_dot_release_num
+            elif last_dot_rel_num == 0 and last_minor_rel_num == 0 and last_major_rel_num > 2:
                 last_major_rel_num -= 1
                 last_minor_rel_num = max_minor_release_num
+                last_dot_rel_num = max_dot_release_num
             else:
                 return None
 
             table_id_no_release = versioned_table_id.replace(f"_{params['RELEASE']}", '')
             prev_release_table_id = f"{table_id_no_release}_V{last_major_rel_num}_{last_minor_rel_num}"
+
+            if last_dot_rel_num > 0:
+                prev_release_table_id = f"{prev_release_table_id}_{last_dot_rel_num}"
 
             if exists_bq_table(prev_release_table_id):
                 # found last release table, stop iterating
