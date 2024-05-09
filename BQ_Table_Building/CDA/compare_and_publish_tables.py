@@ -753,6 +753,7 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
 
         table_ids_list.append(table_ids)
 
+    logger.debug(table_ids_list)
     return table_ids_list
 
 
