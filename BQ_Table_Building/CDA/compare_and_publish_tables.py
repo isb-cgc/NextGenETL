@@ -741,7 +741,6 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
             versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{dataset}_versioned.{prod_table}_{PARAMS['RELEASE']}"
             source_table_id = f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}"
             previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, versioned_table_id)
-
         elif PARAMS['NODE'] == 'pdc':
             if table_type == 'clinical':
                 dataset, prod_table, project_short_name, base_table_name = parse_pdc_clinical_table_id()

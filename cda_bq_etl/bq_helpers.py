@@ -1046,9 +1046,8 @@ def get_most_recent_published_table_version_pdc(params: Params, project_short_na
         return f"""
             SELECT table_name 
             FROM `{params['PROD_PROJECT']}.{program_name}_versioned`.INFORMATION_SCHEMA.TABLES
-            WHERE table_name LIKE '%{table_type}%'
+            WHERE table_name LIKE '%{table_type}_{project_short_name}%'
                 AND table_name LIKE '%{params['NODE']}%'
-                AND table_name LIKE '%{project_short_name}%'
             ORDER BY creation_time DESC
             LIMIT 1
         """
