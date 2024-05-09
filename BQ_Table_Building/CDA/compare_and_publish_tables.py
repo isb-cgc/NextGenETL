@@ -605,8 +605,13 @@ def find_missing_tables(dataset: str, table_type: str):
                                 else:
                                     logger.critical(f"table type {table_type} not found in table name {table_name}, exiting")
                                     sys.exit(-1)
+                            elif table_type == 'per_sample_file':
+                                base_table_name = PARAMS['TABLE_TYPES'][table_type]['table_base_name']
+                                table_name = table_name.replace(f"{base_table_name}_", "")
+                                table_name = f"{table_name}_{base_table_name}"
                             else:
                                 logger.critical(f"create missing tables logic for table type {table_type}")
+                                sys.exit(-1)
 
                             _published_table_names.append(table_name)
 
