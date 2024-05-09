@@ -563,14 +563,18 @@ def find_missing_tables(dataset: str, table_type: str):
             with open(project_metadata_fp) as field_output:
                 project_metadata = json.load(field_output)
 
+                program_names = set()
+
+                for value in project_metadata.values():
+                    program_names.add(value['program_short_name'])
+
+                program_names = sorted(list(program_names))
+
                 _published_table_names = list()
 
                 suffix = f"_{PARAMS['NODE']}_current"
 
-                for value in project_metadata.values():
-                    program_name = value['program_short_name']
-                    project_short_name = value['project_short_name']
-
+                for program_name in program_names:
                     table_name_result = query_and_retrieve_result(make_program_tables_query())
 
                     if table_name_result is None:
@@ -582,12 +586,20 @@ def find_missing_tables(dataset: str, table_type: str):
                             logger.debug(table_name)
 
                             table_name = table_name.replace(suffix, "")
-                            table_name = table_name.replace(project_short_name, "")
-                            project_table_name = f"{project_short_name}_{table_name}"
+                            if table_type == 'clinical':
+                                if table_name[0:19] == 'clinical_diagnosis_':
+                                    table_name = table_name[19:]
+                                    table_name = f"{table_name}_clinical_diagnosis"
+                                elif table_name[0:9] == 'clinical_':
+                                    table_name = table_name[9:]
+                                    table_name = f"{table_name}_clinical"
+                                else:
+                                    logger.critical(f"table type {table_type} not found in table name {table_name}, exiting")
+                                    sys.exit(-1)
+                            else:
+                                logger.critical(f"create missing tables logic for table type {table_type}")
 
-                            logger.debug(project_table_name)
-
-                            _published_table_names.append(project_table_name)
+                            _published_table_names.append(table_name)
 
                 return sorted(_published_table_names)
         else:
