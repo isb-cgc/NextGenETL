@@ -439,8 +439,8 @@ def publish( draft_table, publication_table, bq_program ):
     source_table = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{draft_table}_cluster'
     publication_dest = f'{params.PUBLICATION_PROJECT}.{bq_program}_versioned.{publication_table}_r{params.RELEASE}'
     print( f'publishing current and versioned {params.PROGRAM} tables' )
-    #if not publish_table( source_table, publication_dest, overwrite = False ):
-    #    sys.exit( 'versioned publication failed' )
+    if not publish_table( source_table, publication_dest, overwrite = False ):
+        sys.exit( 'versioned publication failed' )
     publication_dest = f'{params.PUBLICATION_PROJECT}.{bq_program}.{publication_table}_current'
     success = delete_table_bq_job( bq_program, f'{publication_table}_current', params.PUBLICATION_PROJECT )
     if not success: sys.exit('deletion failed')
