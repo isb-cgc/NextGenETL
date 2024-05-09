@@ -32,7 +32,7 @@ from google.cloud.bigquery.table import _EmptyRowIterator
 from cda_bq_etl.bq_helpers import (find_most_recent_published_table_id, exists_bq_table, copy_bq_table,
                                    update_friendly_name, change_status_to_archived, query_and_retrieve_result,
                                    find_most_recent_published_refseq_table_id, get_pdc_projects_metadata,
-                                   get_pdc_per_project_dataset)
+                                   get_pdc_per_project_dataset, get_most_recent_published_table_version_pdc)
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import input_with_timeout, load_config, format_seconds, get_filepath, create_metadata_table_id
 
@@ -689,7 +689,7 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
 
         return dataset_name, prod_table_name
 
-    def parse_pdc_clinical_table_id() -> tuple[str, str]:
+    def parse_pdc_clinical_table_id() -> tuple[str, str, str, str]:
         new_table_name = table_name.replace(f"{PARAMS['RELEASE']}_", "")
         split_table_name_list = new_table_name.split('_')
 
@@ -706,18 +706,20 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
         logger.debug(dataset_name)
         logger.debug(prod_table_name)
 
-        return dataset_name, prod_table_name
+        return dataset_name, prod_table_name, project_short_name, base_table_name
 
-    def parse_pdc_per_sample_file_table_id() -> tuple[str, str]:
+    def parse_pdc_per_sample_file_table_id() -> tuple[str, str, str]:
         base_table_name = PARAMS['TABLE_TYPES']['per_sample_file']['table_base_name']
 
         table_name_no_rel = table_name.replace(f"{PARAMS['RELEASE']}_", "")
         table_name_no_rel = table_name_no_rel.replace(f"_{PARAMS['NODE']}", "")
-        dataset_name = table_name_no_rel.replace(f"_{base_table_name}", "")
+        project_short_name = table_name_no_rel.replace(f"_{base_table_name}", "")
 
-        prod_table_name = f"{base_table_name}_{PARAMS['NODE']}"
+        dataset_name = get_pdc_per_project_dataset(PARAMS, project_short_name=project_short_name)
 
-        return dataset_name, prod_table_name
+        prod_table_name = f"{base_table_name}_{project_short_name}_{PARAMS['NODE']}"
+
+        return dataset_name, prod_table_name, project_short_name
 
     logger = logging.getLogger('base_script')
     logger.info("Generating table id list")
@@ -734,22 +736,31 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
             else:
                 logger.critical("Not configured for this GDC type")
                 sys.exit(-1)
+
+            current_table_id = f"{PARAMS['PROD_PROJECT']}.{dataset}.{prod_table}_current"
+            versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{dataset}_versioned.{prod_table}_{PARAMS['RELEASE']}"
+            source_table_id = f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}"
+            previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, versioned_table_id)
+
         elif PARAMS['NODE'] == 'pdc':
             if table_type == 'clinical':
-                dataset, prod_table = parse_pdc_clinical_table_id()
+                dataset, prod_table, project_short_name, base_table_name = parse_pdc_clinical_table_id()
             elif table_type == 'per_sample_file':
-                dataset, prod_table = parse_pdc_per_sample_file_table_id()
+                dataset, prod_table, project_short_name = parse_pdc_per_sample_file_table_id()
+                base_table_name = table_params['table_base_name']
             else:
                 logger.critical("Not configured for this PDC type")
                 sys.exit(-1)
+
+            current_table_id = f"{PARAMS['PROD_PROJECT']}.{dataset}.{prod_table}_current"
+            versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{dataset}_versioned.{prod_table}_{PARAMS['RELEASE']}"
+            source_table_id = f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}"
+            previous_versioned_table_id = get_most_recent_published_table_version_pdc(PARAMS,
+                                                                                      project_short_name,
+                                                                                      base_table_name)
         else:
             logger.critical("Not configured for this node")
             sys.exit(-1)
-
-        current_table_id = f"{PARAMS['PROD_PROJECT']}.{dataset}.{prod_table}_current"
-        versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{dataset}_versioned.{prod_table}_{PARAMS['RELEASE']}"
-        source_table_id = f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}"
-        previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, versioned_table_id)
 
         table_ids = {
             'current': current_table_id,

@@ -1041,6 +1041,27 @@ def get_pdc_projects_metadata(params: Params, project_submitter_id: str = None) 
     return projects_list
 
 
+def get_most_recent_published_table_version_pdc(params: Params, project_short_name: str, table_type: str):
+    def make_program_tables_query() -> str:
+        return f"""
+            SELECT table_name 
+            FROM `{params['PROD_PROJECT']}.{program_name}_versioned`.INFORMATION_SCHEMA.TABLES
+            WHERE table_name LIKE '%{table_type}%'
+                AND table_name LIKE '%{params['NODE']}%'
+                AND table_name LIKE '%{project_short_name}%'
+            ORDER BY creation_time DESC
+            LIMIT 1
+        """
+    program_name = get_pdc_per_project_dataset(params, project_short_name)
+
+    previous_versioned_table_name_result = query_and_retrieve_result(make_program_tables_query())
+
+    if previous_versioned_table_name_result is None:
+        return None
+    for previous_versioned_table_name in previous_versioned_table_name_result:
+        return previous_versioned_table_name[0]
+
+
 def get_project_level_schema_tags(params: Params, project_submitter_id: str) -> dict[str, str]:
     """
     Get project-level schema tags for populating generic table metadata schema.
