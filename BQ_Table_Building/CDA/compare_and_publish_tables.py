@@ -689,9 +689,8 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
         return dataset_name, prod_table_name
 
     def parse_pdc_clinical_table_id() -> tuple[str, str]:
-        split_table_name_list = table_name.split('_')
-        logger.debug(split_table_name_list)
-        split_table_name_list.remove(PARAMS['RELEASE'])
+        new_table_name = table_name.replace(f"{PARAMS['RELEASE']}_", "")
+        split_table_name_list = new_table_name.split('_')
 
         # index to split table name from program
         clinical_idx = split_table_name_list.index('clinical')
