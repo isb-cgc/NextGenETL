@@ -174,6 +174,14 @@ def get_primary_key(table_type: str, table_ids: dict[str, str], table_params: Ta
         base_table_name = current_table_name.replace(f"_{PARAMS['NODE']}", "")
 
         return table_params['primary_key_dict'][base_table_name]
+    elif table_type == 'clinical' and PARAMS['NODE'] == 'pdc':
+        current_table_name = table_ids['source'].split('.')[-1]
+        current_table_name_list = current_table_name.split('_')
+        clinical_idx = current_table_name_list.index('clinical')
+        base_table_name = "_".join(current_table_name_list[clinical_idx:])
+
+        return table_params['primary_key_dict'][base_table_name]
+
     else:
         logger.critical("Not defined for this node or type")
         sys.exit(-1)
@@ -702,9 +710,6 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
 
         base_table_name = "_".join(split_table_name_list[clinical_idx:])
         prod_table_name = f"{base_table_name}_{project_short_name}_{PARAMS['NODE']}"
-
-        logger.debug(dataset_name)
-        logger.debug(prod_table_name)
 
         return dataset_name, prod_table_name, project_short_name, base_table_name
 
