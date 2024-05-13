@@ -642,7 +642,11 @@ def find_missing_tables(dataset: str, table_type: str):
             return False
 
     for new_table_name in new_table_names:
-        new_table_name = new_table_name.replace(f"{PARAMS['RELEASE']}_", "")
+        if table_type == 'quant':
+            new_table_name = new_table_name.replace(f"_{PARAMS['RELEASE']}", "")
+        else:
+            new_table_name = new_table_name.replace(f"{PARAMS['RELEASE']}_", "")
+
         new_table_name = new_table_name.replace(f"_{PARAMS['NODE']}", "")
         new_table_names_no_rel.append(new_table_name)
 
