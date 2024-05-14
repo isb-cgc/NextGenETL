@@ -467,7 +467,7 @@ def find_record_difference_counts(table_type: str,
     else:
         # output counts by project or other type, where applicable
         # print added row examples
-        if added_str and added_str.strip() != added_count:
+        if added_str and added_str.strip() != added_count and table_metadata['output_keys']:
             logger.info(added_str)
         else:
             logger.info("")
@@ -475,7 +475,7 @@ def find_record_difference_counts(table_type: str,
         logger.info(f"Removed {table_type} count: {removed_count}")
         # output counts by project or other type, where applicable
         # print removed row examples
-        if removed_str and removed_str.strip() != removed_count:
+        if removed_str and removed_str.strip() != removed_count and table_metadata['output_keys']:
             logger.info(removed_str)
         else:
             logger.info("")
@@ -486,7 +486,7 @@ def find_record_difference_counts(table_type: str,
 
         logger.info(f"Changed {table_type} count: {changed_count}")
         # outputs counts by project or other type, where applicable
-        if changed_str and changed_str.strip() != changed_count:
+        if changed_str and changed_str.strip() != changed_count and table_metadata['output_keys']:
             logger.info(changed_str)
         else:
             logger.info("")
@@ -1360,8 +1360,6 @@ def main(args):
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
             table_id_list = generate_metadata_table_id_list(table_params)
-
-            logger.debug(table_id_list)
         else:
             # search for missing project tables for the given table type
             can_compare_type = find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
