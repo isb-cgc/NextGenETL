@@ -1349,7 +1349,7 @@ def main(args):
     query_log_filepath = f"{PARAMS['QUERY_LOGFILE_PATH']}.{log_file_time}"
 
     # todo remove before publishing
-    # PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'] = False
+    PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'] = False
 
     query_logger = initialize_logging(query_log_filepath,
                                       name='query_logger',
@@ -1357,7 +1357,7 @@ def main(args):
 
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
         # todo remove before publishing
-        if table_type != 'quant':
+        if table_type != 'file':
             continue
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
