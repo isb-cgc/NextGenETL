@@ -1005,6 +1005,25 @@ def get_pdc_per_project_dataset(params: Params, project_short_name: str) -> str:
         return dataset[0]
 
 
+def get_pdc_per_study_dataset(params: Params, pdc_study_id: str) -> str:
+    def make_dataset_query():
+        return f"""
+            SELECT program_short_name
+            FROM {create_metadata_table_id(params, "studies")}
+            WHERE pdc_study_id = '{pdc_study_id}'
+            LIMIT 1
+        """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
+    dataset_result = query_and_retrieve_result(make_dataset_query())
+
+    if dataset_result is None:
+        logger.critical("No dataset found for study " + pdc_study_id)
+        sys.exit(-1)
+    for dataset in dataset_result:
+        return dataset[0]
+
+
 def get_pdc_projects_metadata(params: Params, project_submitter_id: str = None) -> list[dict[str, str]]:
     """
     Get project short name, program short name and project name for given project submitter id.
@@ -1041,17 +1060,16 @@ def get_pdc_projects_metadata(params: Params, project_submitter_id: str = None) 
     return projects_list
 
 
-def get_most_recent_published_table_version_pdc(params: Params, project_short_name: str, table_type: str):
+def get_most_recent_published_table_version_pdc(params: Params, dataset: str, table_filter_str: str):
     def make_program_tables_query() -> str:
         return f"""
             SELECT table_name 
-            FROM `{params['PROD_PROJECT']}.{program_name}_versioned`.INFORMATION_SCHEMA.TABLES
-            WHERE table_name LIKE '%{table_type}_{project_short_name}%'
+            FROM `{params['PROD_PROJECT']}.{dataset}_versioned`.INFORMATION_SCHEMA.TABLES
+            WHERE table_name LIKE '%{table_filter_str}%'
                 AND table_name LIKE '%{params['NODE']}%'
             ORDER BY creation_time DESC
             LIMIT 1
         """
-    program_name = get_pdc_per_project_dataset(params, project_short_name)
 
     previous_versioned_table_name_result = query_and_retrieve_result(make_program_tables_query())
 
@@ -1059,7 +1077,7 @@ def get_most_recent_published_table_version_pdc(params: Params, project_short_na
         return None
     for previous_versioned_table_name in previous_versioned_table_name_result:
         table_name = previous_versioned_table_name[0]
-        return f"{params['PROD_PROJECT']}.{program_name}_versioned.{table_name}"
+        return f"{params['PROD_PROJECT']}.{dataset}_versioned.{table_name}"
 
 
 def get_project_level_schema_tags(params: Params, project_submitter_id: str) -> dict[str, str]:
