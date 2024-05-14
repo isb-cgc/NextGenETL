@@ -882,19 +882,20 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                 logger.info("Removed record examples:")
                 list_added_or_removed_rows(table_ids['previous_versioned'], table_ids['source'], modified_table_params)
 
-            logger.info("Comparing records by column!")
-            logger.info("")
-            compare_table_columns(table_ids=table_ids,
-                                  table_params=modified_table_params,
-                                  max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
-
-            if 'concat_columns' in table_params and table_params['concat_columns']:
-                concat_column_str = ", ".join(table_params['concat_columns'])
-                logger.info(f"Comparing concatenated columns: {concat_column_str}")
+            if table_type != 'quant':
+                logger.info("Comparing records by column!")
                 logger.info("")
-                compare_concat_columns(table_ids=table_ids,
-                                       table_params=modified_table_params,
-                                       max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
+                compare_table_columns(table_ids=table_ids,
+                                      table_params=modified_table_params,
+                                      max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
+
+                if 'concat_columns' in table_params and table_params['concat_columns']:
+                    concat_column_str = ", ".join(table_params['concat_columns'])
+                    logger.info(f"Comparing concatenated columns: {concat_column_str}")
+                    logger.info("")
+                    compare_concat_columns(table_ids=table_ids,
+                                           table_params=modified_table_params,
+                                           max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
 
 
 def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, max_display_rows: int = 5):
@@ -1356,9 +1357,6 @@ def main(args):
                                       emit_to_console=PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'])
 
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
-        # todo remove before publishing
-        if table_type != 'file':
-            continue
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
             table_id_list = generate_metadata_table_id_list(table_params)

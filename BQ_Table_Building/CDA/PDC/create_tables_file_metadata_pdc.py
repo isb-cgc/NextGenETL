@@ -97,8 +97,6 @@ def main(args):
 
         dev_table_id = create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME'])
 
-        logger.debug(make_file_metadata_query())
-
         create_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_file_metadata_query())
         update_table_schema_from_generic(params=PARAMS, table_id=dev_table_id)
 
