@@ -1211,11 +1211,6 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
                                        f"Column name: {column}, record id: {record_id}")
                         logger.warning(f"Values: {new_column_value}")
 
-                    if len(old_column_value_set) != len(old_column_value_list):
-                        logger.warning(f"Duplicate value detected in old version's concatenated string column. "
-                                       f"Column name: {column}, record id: {record_id}")
-                        logger.warning(f"Values: {old_column_value}")
-
                     # different number of values in new and old versions
                     if len(new_column_value_list) != len(old_column_value_list):
                         # if length mismatch, there may be duplicates, so definitely not identical;
