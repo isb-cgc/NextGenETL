@@ -1355,7 +1355,7 @@ def main(args):
 
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
         # todo remove before publishing
-        if table_type != 'quant':
+        if table_type != 'file':
             continue
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
