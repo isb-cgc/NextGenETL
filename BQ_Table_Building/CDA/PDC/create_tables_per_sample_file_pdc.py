@@ -58,8 +58,8 @@ def make_project_per_sample_file_query(project_submitter_id):
             f.file_format,
             fi.instruments AS instrument,
             f.file_name,
-            f.file_location,
-            "open" AS `access`
+            CONCAT('s3://pdcdatastore/', f.file_location) AS file_location,
+            'open' AS `access`
         FROM `{create_dev_table_id(PARAMS, 'file')}` f
         JOIN `{create_dev_table_id(PARAMS, 'file_case_id')}` fc
             ON fc.file_id = f.file_id
@@ -71,7 +71,7 @@ def make_project_per_sample_file_query(project_submitter_id):
             ON s.sample_id = sc.sample_id
         JOIN `{create_dev_table_id(PARAMS, 'file_study_id')}` fs
             ON fs.file_id = f.file_id
-        JOIN `{create_metadata_table_id(PARAMS, "studies")}` study
+        JOIN `{create_metadata_table_id(PARAMS, 'studies')}` study
             ON study.study_id = fs.study_id
         JOIN file_instruments fi
             ON fi.file_id = f.file_id
