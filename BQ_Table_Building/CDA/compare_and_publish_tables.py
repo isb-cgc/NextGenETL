@@ -744,6 +744,8 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
 
         return dataset_name, prod_table_name, project_short_name
 
+    def parse_pdc_quant_table_id() -> tuple[str, str, str]:
+
     logger = logging.getLogger('base_script')
     logger.info("Generating table id list")
     new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])

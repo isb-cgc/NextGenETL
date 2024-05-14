@@ -485,13 +485,14 @@ def get_quant_table_name(study: dict[str, str], is_final: bool):
     study_name = study['study_name']
     study_name = change_study_name_to_table_name_format(study_name)
     analytical_fraction = study['analytical_fraction'].lower()
+    pdc_study_id = study['pdc_study_id']
 
-    table_name = "_".join([quant_prefix, analytical_fraction, study_name, 'pdc', PARAMS['RELEASE']])
+    table_name = "_".join([pdc_study_id, quant_prefix, analytical_fraction, study_name, 'pdc', PARAMS['RELEASE']])
 
     if not is_final:
         table_name = table_name + '_raw'
 
-    # return table name in following format: quant_<analyte>_<study_name>_pdc_<version>
+    # return table name in following format: <pdc_study_id>_quant_<analyte>_<study_name>_pdc_<version>
     # if not final, append '_raw'
     return table_name
 
