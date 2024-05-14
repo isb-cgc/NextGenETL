@@ -383,13 +383,20 @@ def find_record_difference_counts(table_type: str,
         query_logger.info(query)
         result = query_and_retrieve_result(query)
 
+        if PARAMS['node'] == 'gdc':
+            width = 30
+        elif PARAMS['node'] == 'pdc':
+            width = 95
+        else:
+            width = 30
+
         if result is None or result.total_rows == 0:
             return 0, ""
         else:
             output_string = f"\n{'count':10}"
 
             for header in table_metadata['output_keys']:
-                output_string += f"{header:30} "
+                output_string += f"{header:{width}} "
 
             output_string += "\n"
 
@@ -405,7 +412,7 @@ def find_record_difference_counts(table_type: str,
 
                     # append the other values (e.g. project id, type) as specified in output keys
                     for i in range(1, num_columns):
-                        row_str += f"{str(_row[i]):30} "
+                        row_str += f"{str(_row[i]):{width}} "
 
                     output_string += '\n' + row_str
 
