@@ -645,6 +645,8 @@ def find_missing_tables(dataset: str, table_type: str):
     for new_table_name in new_table_names:
         if table_type == 'quant':
             new_table_name = new_table_name.replace(f"_{PARAMS['RELEASE']}", "")
+            # remove pdc study id
+            new_table_name = "_".join(new_table_name.split("_")[1:])
         else:
             new_table_name = new_table_name.replace(f"{PARAMS['RELEASE']}_", "")
 
@@ -1355,7 +1357,7 @@ def main(args):
 
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
         # todo remove before publishing
-        if table_type != 'file':
+        if table_type != 'quant':
             continue
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
