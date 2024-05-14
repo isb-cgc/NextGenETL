@@ -31,7 +31,7 @@ import gzip
 from gdc_file_utils import (confirm_google_vm, format_seconds, update_dir_from_git, query_bq, bq_to_bucket_tsv,
                             bucket_to_local, find_types, pull_from_buckets, build_file_list,
                             create_schema_hold_list, local_to_bucket, update_schema_tags,
-                            write_table_schema_with_generic,
+                            write_table_schema_with_generic, clean_local_file_dir,
                             csv_to_bq, initialize_logging, bq_table_exists)
 
 from open_somatic_mut import create_somatic_mut_table
@@ -232,26 +232,29 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
             for line in all_files:
                 traversal_list.write(f"{line}\n")
 
-    if 'create_files' in steps: # todo change to something like "create_raw_concat_files"
-        logging.info("Running create_files Step")
-        concat_all_files(f"{local_location}/{file_traversal_list}", f"{local_location}/{raw_data}.tsv",
+    if 'create_concat_file' in steps:
+
+        logging.info("Creating concat file")
+        local_concat_file = f"{local_location}/{raw_data}.tsv"
+        concat_all_files(f"{local_location}/{file_traversal_list}", local_concat_file,
                          raw_files_local_location, datatype_mappings[data_type]['headers_to_switch'],
                          datatype_mappings[data_type]['headers_to_add'])
         # todo future add header rows if needed (Methylation)
         # todo future break up copy number files into each workflow (maybe)
 
-    if 'analyze_the_schema' in steps:
         logging.info("Running analyze_the_schema Step")
 
-        typing_tups = find_types(f"{local_location}/{raw_data}.tsv", params.SCHEMA_SAMPLE_SKIPS)
+        typing_tups = find_types(local_concat_file, params.SCHEMA_SAMPLE_SKIPS)
 
         create_schema_hold_list(typing_tups,
                                 f"{home}/schemaRepo/TableFieldUpdates/gdc_{data_type}_desc.json",
                                 field_list, True)
 
-    if 'upload_to_bucket' in steps:
         logging.info("Running upload_to_bucket Step")
-        local_to_bucket(params.DEV_BUCKET, f"{params.DEV_BUCKET_DIR}/{params.RELEASE}/{raw_data}.tsv", f"{local_location}/{raw_data}.tsv")
+        local_to_bucket(params.DEV_BUCKET, f"{params.DEV_BUCKET_DIR}/{params.RELEASE}/{raw_data}.tsv", local_concat_file)
+
+        logging.info("Removing local files")
+        clean_local_file_dir(local_concat_file)
 
     if 'create_bq_from_tsv' in steps:
         logging.info("Running create_bq_from_tsv Step")
@@ -260,7 +263,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
             typed_schema = json_loads(schema_list.read())
         csv_to_bq(typed_schema, bucket_src_url, params.DEV_DATASET, raw_data, params.BQ_AS_BATCH, True)
 
-    if 'transform_bq_data' in steps:  # todo currently working on
+    if 'transform_bq_data' in steps:
         logging.info("Running transform_bq_data Step")
         created_tables = transform_bq_data(data_type, raw_data, draft_table, params.ALIQUOT_TABLE, params.CASE_TABLE,
                                            params.FILE_TABLE, params.GENE_NAMES_TABLE)
