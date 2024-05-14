@@ -638,9 +638,6 @@ def find_missing_tables(dataset: str, table_type: str):
     published_table_names = get_published_table_names()
     new_table_names = get_new_table_names(dataset)
 
-    logger.debug(published_table_names)
-    logger.debug(new_table_names)
-
     if PARAMS['NODE'] == 'gdc' and table_type == 'per_sample_file':
         if 'no_url' in new_table_names[0]:
             logger.info("Final tables not yet created for per sample file metadata. "
