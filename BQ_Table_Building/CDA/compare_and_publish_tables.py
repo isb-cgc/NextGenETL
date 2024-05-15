@@ -1352,6 +1352,8 @@ def main(args):
                                       emit_to_console=PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'])
 
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
+        if table_type != 'quant':
+            continue
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
             table_id_list = generate_metadata_table_id_list(table_params)
