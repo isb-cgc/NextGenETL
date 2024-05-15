@@ -606,7 +606,7 @@ def make_quant_table_query(raw_table_id: str, study_id_dict: dict[str, str]) -> 
 
     if analytical_fraction == 'Proteome':
         return f"""
-            SELECT sample_case.case_id, 
+            SELECT distinct sample_case.case_id, 
                 sample_case.sample_id, 
                 sample_aliq.aliquot_id, 
                 quant.aliquot_submitter_id, 
