@@ -745,10 +745,10 @@ def main(args):
         gene_table_id = create_metadata_table_id(params=PARAMS,
                                                  table_name=gene_table_base_name,
                                                  release=PARAMS['RELEASE'])
+        logger.debug(gene_table_id)
 
         gene_table_schema = retrieve_bq_schema_object(PARAMS, table_name=gene_table_base_name, include_release=True)
 
-        logger.debug(gene_table_id)
         logger.debug(gene_table_schema)
 
         create_and_load_table_from_jsonl(params=PARAMS,
