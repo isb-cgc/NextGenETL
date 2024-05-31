@@ -742,22 +742,24 @@ def main(args):
         logger.info("Building gene info table!")
         gene_table_base_name = PARAMS['ENDPOINT_SETTINGS']['getPaginatedGenes']['output_name']
         gene_jsonl_filename = f"{gene_table_base_name}_{PARAMS['RELEASE']}.jsonl"
+        gene_table_id = create_metadata_table_id(params=PARAMS,
+                                                 table_name=gene_table_base_name,
+                                                 release=PARAMS['RELEASE'])
 
         gene_table_schema = retrieve_bq_schema_object(PARAMS, table_name=gene_table_base_name, include_release=True)
 
+        logger.debug(gene_table_id)
+        logger.debug(gene_table_schema)
+
         create_and_load_table_from_jsonl(params=PARAMS,
                                          jsonl_file=gene_jsonl_filename,
-                                         table_id=create_metadata_table_id(params=PARAMS,
-                                                                           table_name=gene_table_base_name,
-                                                                           release=PARAMS['RELEASE']),
+                                         table_id=gene_table_id,
                                          schema=gene_table_schema)
 
         schema_tags = get_gene_info_schema_tags(PARAMS)
 
         update_table_schema_from_generic(params=PARAMS,
-                                         table_id=create_metadata_table_id(params=PARAMS,
-                                                                           table_name=gene_table_base_name,
-                                                                           release=PARAMS['RELEASE']),
+                                         table_id=gene_table_id,
                                          schema_tags=schema_tags,
                                          metadata_file=PARAMS['GENERIC_GENE_TABLE_METADATA_FILE'])
 
