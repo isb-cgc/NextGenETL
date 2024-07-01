@@ -85,12 +85,12 @@ def main(args):
 
         from_table, to_table = next(iter(mydict.items()))
 
-         if 'delete' in steps:
+        if 'delete' in steps:
             print('Deleting {}'.format(to_table))
             to_project, to_dataset, to_table_name = to_table.split(".")
             success = delete_table_bq_job(to_dataset, to_table_name, to_project)
 
-             if not success:
+            if not success:
                 print("delete failed")
                 return
        
