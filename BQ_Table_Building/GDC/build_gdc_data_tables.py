@@ -235,7 +235,8 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
     if 'create_concat_file' in steps:
 
         logging.info("Creating concat file")
-        local_concat_file = f"{local_location}/{raw_data}.tsv"
+        local_file_dir = f"{local_location}/concat_file"
+        local_concat_file = f"{local_file_dir}/{raw_data}.tsv"
         concat_all_files(f"{local_location}/{file_traversal_list}", local_concat_file,
                          raw_files_local_location, datatype_mappings[data_type]['headers_to_switch'],
                          datatype_mappings[data_type]['headers_to_add'])
@@ -251,10 +252,10 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
                                 field_list, True)
 
         logging.info("Running upload_to_bucket Step")
-        local_to_bucket(params.DEV_BUCKET, f"{params.DEV_BUCKET_DIR}/{params.RELEASE}/{raw_data}.tsv", local_concat_file)
+        local_to_bucket(params.DEV_BUCKET, f"{params.DEV_BUCKET_DIR}/{params.RELEASE}/concat_file", local_concat_file)
 
         logging.info("Removing local files")
-        clean_local_file_dir(local_concat_file)
+        clean_local_file_dir(local_file_dir)
 
     if 'create_bq_from_tsv' in steps:
         logging.info("Running create_bq_from_tsv Step")
