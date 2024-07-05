@@ -27,6 +27,7 @@ from types import SimpleNamespace
 import shutil
 import zipfile
 import gzip
+from google.cloud import bigquery
 
 from gdc_file_utils import (confirm_google_vm, format_seconds, update_dir_from_git, query_bq, bq_to_bucket_tsv,
                             bucket_to_local, find_types, pull_from_buckets, build_file_list,
@@ -261,8 +262,8 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         logging.info("Running create_bq_from_tsv Step")
         bucket_src_url = f'gs://{params.DEV_BUCKET}/{params.RELEASE}/{raw_data}.tsv'
         with open(field_list, mode='r') as schema_list:
-            typed_schema = json_loads(schema_list.read())
-        csv_to_bq(typed_schema, bucket_src_url, params.DEV_DATASET, raw_data, params.BQ_AS_BATCH, True)
+            typed_schema = json_loads(schema_list.read()) # todo issue here
+        csv_to_bq(typed_schema, bucket_src_url, params.DEV_DATASET, raw_data, params.BQ_AS_BATCH, bigquery.WriteDisposition.WRITE_TRUNCATE)
 
     if 'transform_bq_data' in steps:
         logging.info("Running transform_bq_data Step")

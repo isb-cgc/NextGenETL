@@ -794,7 +794,7 @@ def find_types(file, sample_interval):
     final_field_types = resolve_type_conflicts(field_types)
     typing_tups = []
     for column in column_list:
-        tup = (column, final_field_types[column])
+        tup = (column.rstrip("\n"), final_field_types[column])
         typing_tups.append(tup)
 
     return typing_tups
