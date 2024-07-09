@@ -324,8 +324,15 @@ def pull_from_buckets(pull_list, local_files_dir):
     print(f"Begin {num_files} bucket copies...") # todo make logger
     storage_client = storage.Client()
     copy_count = 0
+
     for url in pull_list:
-        path_pieces = up.urlparse(url)
+        url_list = url.replace("[", "").replace("]", "").replace("'", "").split(", ")
+        if len(url_list) == 3:
+            gcs_url = url_list[2]
+        else:
+            gcs_url = url_list[0]
+
+        path_pieces = up.urlparse(gcs_url)
         dir_name = os.path.dirname(path_pieces.path)
         make_dir = f"{local_files_dir}{dir_name}"
         os.makedirs(make_dir, exist_ok=True)
