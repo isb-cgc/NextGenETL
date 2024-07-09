@@ -114,6 +114,7 @@ def concat_all_files(all_files, one_big_tsv, all_files_local_location, headers_t
     logger = logging.getLogger('base_script')
     logger.info("building {}".format(one_big_tsv))
     first = True
+    header_id = None
 
     with open(all_files, 'r') as all_files_list:
         files_list = all_files_list.read().splitlines()
@@ -146,6 +147,7 @@ def concat_all_files(all_files, one_big_tsv, all_files_local_location, headers_t
                             continue
                         elif first:
                             header = line.rstrip("\n").split("\t")
+                            header_id = header[0]
                             for column in header:
                                 if headers_to_switch and column in headers_to_switch.keys():
                                     replace_index = header.index(column)
@@ -158,7 +160,7 @@ def concat_all_files(all_files, one_big_tsv, all_files_local_location, headers_t
                             outfile.write("\t".join(header))
                             outfile.write("\n")
                             first = False
-                        else:
+                        elif not line.startswith(header_id):
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
                             outfile.write("\t" * len(columns_to_add))
@@ -260,9 +262,9 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
 
     if 'create_bq_from_tsv' in steps:
         logging.info("Running create_bq_from_tsv Step")
-        bucket_src_url = f'gs://{params.DEV_BUCKET}/{params.RELEASE}/{raw_data}.tsv'
+        bucket_src_url = f'gs://{params.DEV_BUCKET}/{params.DEV_BUCKET_DIR}/{params.RELEASE}/{raw_data}.tsv'
         with open(field_list, mode='r') as schema_list:
-            typed_schema = json_loads(schema_list.read()) # todo issue here
+            typed_schema = json_loads(schema_list.read())
         csv_to_bq(typed_schema, bucket_src_url, params.DEV_DATASET, raw_data, params.BQ_AS_BATCH, bigquery.WriteDisposition.WRITE_TRUNCATE)
 
     if 'transform_bq_data' in steps:
