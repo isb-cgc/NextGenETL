@@ -255,7 +255,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
                                 field_list, True)
 
         logging.info("Running upload_to_bucket Step")
-        local_to_bucket(params.DEV_BUCKET, f"{params.DEV_BUCKET_DIR}/{params.RELEASE}/concat_file", local_concat_file)
+        local_to_bucket(params.DEV_BUCKET, f"{params.DEV_BUCKET_DIR}/{params.RELEASE}/", local_concat_file)
 
         logging.info("Removing local files")
         clean_local_file_dir(local_file_dir)
