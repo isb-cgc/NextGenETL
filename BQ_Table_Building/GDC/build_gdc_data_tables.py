@@ -184,12 +184,12 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
     if datatype == "copy_number":  # todo
         print("copy number")
 
-    if datatype == "somatic_mut":
+    if datatype == "open_somatic_mut":
         logger.info("Creating Somatic Mut draft tables")
         som_mut_tables = create_somatic_mut_table(raw_data_table, draft_data_table, aliquot_table, case_table)
         intermediate_tables.extend(som_mut_tables)
 
-    if datatype == "RNA_seq":
+    if datatype == "rna_seq":
         logger.info("Creating RNA seq draft tables")
 
         rna_seq_table = create_rna_seq_table(raw_data_table, draft_data_table, file_table, aliquot_table, case_table)
@@ -207,7 +207,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
     # file variables
     prefix = f"{program}_{data_type}_{params.RELEASE}{workflow_run_ver}"
     local_location = f"{local_dir}/{program}"
-    raw_files_local_location = f"{local_location}/files"
+    raw_files_local_location = f"{local_location}/files{data_type}"
     tables_created_file = f"{home}/{params.LOCAL_DIR}/tables_created_{params.RELEASE}{workflow_run_ver}.txt"
 
     with open(f"{home}/{params.SCHEMA_REPO_LOCAL}/{params.DATATYPE_MAPPINGS}", mode='r') as datatype_mappings_file:
@@ -255,7 +255,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
                                 field_list, True)
 
         logging.info("Running upload_to_bucket Step")
-        local_to_bucket(params.DEV_BUCKET, f"{params.DEV_BUCKET_DIR}/{params.RELEASE}/", local_concat_file)
+        local_to_bucket(params.DEV_BUCKET, f"{params.DEV_BUCKET_DIR}/{params.RELEASE}/{raw_data}.tsv", local_concat_file)
 
         logging.info("Removing local files")
         clean_local_file_dir(local_file_dir)
