@@ -174,7 +174,7 @@ def concat_all_files(all_files, one_big_tsv, all_files_local_location, headers_t
     return
 
 
-def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table, case_table, file_table, gene_table, dev_project, dev_dataset):
+def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table, case_table, file_table, gene_table, dev_project, dev_dataset, release):
     logger = logging.getLogger('base_script')
     intermediate_tables = []
 
@@ -186,7 +186,7 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
 
     if datatype == "open_somatic_mut":
         logger.info("Creating Somatic Mut draft tables")
-        som_mut_tables = create_somatic_mut_table(raw_data_table, draft_data_table, aliquot_table, case_table, dev_project, dev_dataset)
+        som_mut_tables = create_somatic_mut_table(raw_data_table, draft_data_table, aliquot_table, case_table, dev_project, dev_dataset, release)
         intermediate_tables.extend(som_mut_tables)
 
     if datatype == "rna_seq":
@@ -265,12 +265,14 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         bucket_src_url = f'gs://{params.DEV_BUCKET}/{params.DEV_BUCKET_DIR}/{params.RELEASE}/{raw_data}.tsv'
         with open(field_list, mode='r') as schema_list:
             typed_schema = json_loads(schema_list.read())
-        csv_to_bq(typed_schema, bucket_src_url, params.DEV_DATASET, raw_data, params.BQ_AS_BATCH, bigquery.WriteDisposition.WRITE_TRUNCATE)
+        csv_to_bq(typed_schema, bucket_src_url, params.DEV_DATASET, raw_data, params.BQ_AS_BATCH,
+                  bigquery.WriteDisposition.WRITE_TRUNCATE)
 
     if 'transform_bq_data' in steps:
         logging.info("Running transform_bq_data Step")
         created_tables = transform_bq_data(data_type, raw_data, draft_table, params.ALIQUOT_TABLE, params.CASE_TABLE,
-                                           params.FILE_TABLE, params.GENE_NAMES_TABLE, params.DEV_PROJECT, params.DEV_DATASET)
+                                           params.FILE_TABLE, params.GENE_NAMES_TABLE, params.DEV_PROJECT,
+                                           params.DEV_DATASET, params.RELEASE)
         with open(tables_created_file, 'w') as outfile:
             for table in created_tables:
                 outfile.write(table)
