@@ -459,7 +459,8 @@ def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, aliquot_table, 
     # todo add a step to separate the callers
 
     # todo describe
-    collect_barcodes_result = collect_barcodes(raw_somatic_mut, aliquot_table, case_table, f"{project_id}.{dataset}.{step_1_table}")
+    collect_barcodes_result = collect_barcodes(f"{project_id}.{dataset}.{raw_somatic_mut}", aliquot_table,
+                                               case_table, f"{project_id}.{dataset}.{step_1_table}")
     if collect_barcodes_result == 'DONE':
         created_tables.append(step_1_table)
     else:
@@ -467,7 +468,9 @@ def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, aliquot_table, 
         sys.exit()
 
     # todo describe
-    barcode_raw_table_merge_result = barcode_raw_table_merge(raw_somatic_mut, step_1_table, f"{project_id}.{dataset}.{step_2_table}")
+    barcode_raw_table_merge_result = barcode_raw_table_merge(f"{project_id}.{dataset}.{raw_somatic_mut}",
+                                                             f"{project_id}.{dataset}.{step_1_table}",
+                                                             f"{project_id}.{dataset}.{step_2_table}")
     if barcode_raw_table_merge_result == 'DONE':
         created_tables.append(step_2_table)
     else:
@@ -475,7 +478,8 @@ def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, aliquot_table, 
         sys.exit()
 
     # todo describe
-    merge_samples_by_aliquot_result = merge_samples_by_aliquot(step_2_table, f"{project_id}.{dataset}.{step_3_table}")
+    merge_samples_by_aliquot_result = merge_samples_by_aliquot(f"{project_id}.{dataset}.{step_2_table}",
+                                                               f"{project_id}.{dataset}.{step_3_table}")
     if merge_samples_by_aliquot_result == 'DONE':
         created_tables.append(step_3_table)
     else:
@@ -484,7 +488,7 @@ def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, aliquot_table, 
 
     # todo describe
     cluster_fields = ["project_short_name", "case_barcode", "sample_barcode", "aliquot_barcode"]
-    cluster_table_result = cluster_table(step_3_table, draft_somatic_mut, cluster_fields)
+    cluster_table_result = cluster_table(f"{project_id}.{dataset}.{step_3_table}", draft_somatic_mut, cluster_fields)
     if cluster_table_result == 'DONE':
         created_tables.append(draft_somatic_mut)
     else:
