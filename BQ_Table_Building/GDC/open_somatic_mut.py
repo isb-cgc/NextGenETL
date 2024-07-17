@@ -448,7 +448,8 @@ def merge_samples_by_aliquot(input_table, output_table):
     return query_bq(sql, output_table)
 
 
-def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, aliquot_table, case_table, project_id, dataset):
+def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, aliquot_table, case_table, project_id, dataset,
+                             release):
     som_mut_logger.info(f"Creating {draft_somatic_mut}")
 
     created_tables = []
@@ -459,8 +460,10 @@ def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, aliquot_table, 
     # todo add a step to separate the callers
 
     # todo describe
-    collect_barcodes_result = collect_barcodes(f"{project_id}.{dataset}.{raw_somatic_mut}", aliquot_table,
-                                               case_table, f"{project_id}.{dataset}.{step_1_table}")
+    collect_barcodes_result = collect_barcodes(f"{project_id}.{dataset}.{raw_somatic_mut}",
+                                               f"{aliquot_table}_{release}",
+                                               f"{case_table}_{release}",
+                                               f"{project_id}.{dataset}.{step_1_table}")
     if collect_barcodes_result == 'DONE':
         created_tables.append(step_1_table)
     else:
