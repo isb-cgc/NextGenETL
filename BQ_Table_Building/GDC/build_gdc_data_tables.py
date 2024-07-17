@@ -174,7 +174,7 @@ def concat_all_files(all_files, one_big_tsv, all_files_local_location, headers_t
     return
 
 
-def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table, case_table, file_table, gene_table):
+def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table, case_table, file_table, gene_table, dev_project, dev_dataset):
     logger = logging.getLogger('base_script')
     intermediate_tables = []
 
@@ -186,13 +186,13 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
 
     if datatype == "open_somatic_mut":
         logger.info("Creating Somatic Mut draft tables")
-        som_mut_tables = create_somatic_mut_table(raw_data_table, draft_data_table, aliquot_table, case_table)
+        som_mut_tables = create_somatic_mut_table(raw_data_table, draft_data_table, aliquot_table, case_table, dev_project, dev_dataset)
         intermediate_tables.extend(som_mut_tables)
 
     if datatype == "rna_seq":
         logger.info("Creating RNA seq draft tables")
 
-        rna_seq_table = create_rna_seq_table(raw_data_table, draft_data_table, file_table, aliquot_table, case_table)
+        rna_seq_table = create_rna_seq_table(raw_data_table, draft_data_table, file_table, aliquot_table, case_table, dev_project, dev_dataset)
         intermediate_tables.extend(rna_seq_table)
 
     if datatype == "mRNA_seq":  # todo
@@ -270,7 +270,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
     if 'transform_bq_data' in steps:
         logging.info("Running transform_bq_data Step")
         created_tables = transform_bq_data(data_type, raw_data, draft_table, params.ALIQUOT_TABLE, params.CASE_TABLE,
-                                           params.FILE_TABLE, params.GENE_NAMES_TABLE)
+                                           params.FILE_TABLE, params.GENE_NAMES_TABLE, params.DEV_PROJECT, params.DEV_DATASET)
         with open(tables_created_file, 'w') as outfile:
             for table in created_tables:
                 outfile.write(table)
