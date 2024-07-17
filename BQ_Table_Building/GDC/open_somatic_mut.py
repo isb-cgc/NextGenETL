@@ -258,7 +258,7 @@ def merge_samples_by_aliquot(input_table, output_table):
             RNA_ref_count,
             RNA_alt_count,
             callers,
-            file_gdc_id,
+            LEFT(file_name, 36) as file_gdc_id,
                 CASE
                     WHEN callers LIKE '%muse*%' THEN 'YES*'
                     WHEN callers LIKE '%muse%' THEN 'YES'
@@ -448,7 +448,7 @@ def merge_samples_by_aliquot(input_table, output_table):
     return query_bq(sql, output_table)
 
 
-def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, aliquot_table, case_table, project_id, dataset,
+def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, file_table, aliquot_table, case_table, project_id, dataset,
                              release):
     som_mut_logger.info(f"Creating {draft_somatic_mut}")
 
@@ -456,8 +456,6 @@ def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, aliquot_table, 
     step_1_table = f"{raw_somatic_mut}_step_1"
     step_2_table = f"{raw_somatic_mut}_step_2"
     step_3_table = f"{raw_somatic_mut}_step_3"
-
-    # todo add a step to separate the callers
 
     # todo describe
     collect_barcodes_result = collect_barcodes(f"{project_id}.{dataset}.{raw_somatic_mut}",

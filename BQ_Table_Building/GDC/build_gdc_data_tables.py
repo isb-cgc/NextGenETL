@@ -186,7 +186,8 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
 
     if datatype == "open_somatic_mut":
         logger.info("Creating Somatic Mut draft tables")
-        som_mut_tables = create_somatic_mut_table(raw_data_table, draft_data_table, aliquot_table, case_table, dev_project, dev_dataset, release)
+        som_mut_tables = create_somatic_mut_table(raw_data_table, draft_data_table, file_table, aliquot_table,
+                                                  case_table, dev_project, dev_dataset, release)
         intermediate_tables.extend(som_mut_tables)
 
     if datatype == "rna_seq":
