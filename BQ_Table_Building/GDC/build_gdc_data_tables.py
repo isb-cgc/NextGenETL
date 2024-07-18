@@ -282,7 +282,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         # todo
         logging.info("Running update_table_schema Step")
 
-        if bq_table_exists(draft_table):
+        if bq_table_exists(f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{draft_table}"):
             updated_schema_tags = update_schema_tags(datatype_mappings, params.RELEASE, params.REL_DATE,
                                                      program)  # todo is this correct?
 
