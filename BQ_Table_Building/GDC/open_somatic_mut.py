@@ -488,7 +488,7 @@ def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, file_table, ali
         sys.exit()
 
     # todo describe
-    cluster_fields = ["project_short_name", "case_barcode", "sample_barcode", "aliquot_barcode"]
+    cluster_fields = ["project_short_name", "case_barcode", "sample_barcode_tumor", "aliquot_barcode_tumor"]
     cluster_table_result = cluster_table(f"{project_id}.{dataset}.{step_3_table}",
                                          f"{project_id}.{dataset}.{draft_somatic_mut}", cluster_fields)
     if cluster_table_result == 'DONE':
