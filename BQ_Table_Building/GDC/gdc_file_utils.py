@@ -866,9 +866,7 @@ def create_schema_hold_list(typing_tups, field_schema, holding_list, static=True
     return True
 
 
-def update_schema_tags(metadata_mapping_fp, release=None, release_date=None, program=None):  # todo docstring
-    with open(metadata_mapping_fp, mode='r') as metadata_mapping:
-        mappings = json_loads(metadata_mapping.read())
+def update_schema_tags(datatype_mappings, program_mappings, release=None, release_date=None, program=None):  # todo docstring
 
     schema = dict()
 
@@ -881,18 +879,18 @@ def update_schema_tags(metadata_mapping_fp, release=None, release_date=None, pro
 
     if program is not None:
         schema['---tag-program---'] = program
-        if 'program_label' in mappings[program]:
-            schema['---tag-program-name-lower---'] = mappings[program]['program_label']
+        if 'program_label' in datatype_mappings[program]:
+            schema['---tag-program-name-lower---'] = program_mappings[program]['program_label']
         else:
             schema['---tag-program-name-lower---'] = None
 
-        if 'program_label_0' in mappings[program]:
-            schema['---tag-program-name-lower-0---'] = mappings[program]['program_label_0']
+        if 'program_label_0' in datatype_mappings[program]:
+            schema['---tag-program-name-lower-0---'] = program_mappings[program]['program_label_0']
         else:
             schema['---tag-program-name-lower-0---'] = None
 
-        if 'program_label_1' in mappings[program]:
-            schema['---tag-program-name-lower-1---'] = mappings[program]['program_label_1']
+        if 'program_label_1' in datatype_mappings[program]:
+            schema['---tag-program-name-lower-1---'] = program_mappings[program]['program_label_1']
         else:
             schema['---tag-program-name-lower-1---'] = None
 
