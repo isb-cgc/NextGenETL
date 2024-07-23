@@ -205,9 +205,12 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
 def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data_type, program):
     logger = logging.getLogger('base_script')
 
+    with open(f"{home}/{params.SCHEMA_REPO_LOCAL}/{params.PROGRAM_MAPPINGS}", mode='r') as program_mappings_file:
+        program_mappings = json_loads(program_mappings_file.read().rstrip())
+
     # file variables
-    prefix = f"{program}_{data_type}_{params.RELEASE}{workflow_run_ver}"
-    local_location = f"{local_dir}/{program}"
+    prefix = f"{program_mappings[program]['bq_dataset']}_{data_type}_{params.RELEASE}{workflow_run_ver}"
+    local_location = f"{local_dir}/{program_mappings[program]['bq_dataset']}"
     raw_files_local_location = f"{local_location}/files{data_type}"
     tables_created_file = f"{home}/{params.LOCAL_DIR}/tables_created_{params.RELEASE}{workflow_run_ver}.txt"
 
@@ -222,7 +225,8 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
 
     if 'create_file_list' in steps:
         logger.info("Running create_file_list Step")
-        create_file_list(params, program, data_type, local_location, prefix, file_list, datatype_mappings)
+        create_file_list(params, program, data_type, local_location, prefix, file_list,
+                         datatype_mappings)
 
     # todo step for downloading files
     if 'transfer_from_gdc' in steps:
@@ -284,13 +288,13 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
 
         if bq_table_exists(f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{draft_table}"):
             updated_schema_tags = update_schema_tags(datatype_mappings, params.PROGRAM_MAPPINGS, params.RELEASE,
-                                                     params.REL_DATE, program)  # todo is this correct?
+                                                     params.REL_DATE, program_mappings[program]['bq_dataset'])  # todo is this correct?
 
             write_table_schema_with_generic(
                 f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{draft_table}",
                 updated_schema_tags,
-                f"{home}/schemaRepo/GenericSchemas/{program}_{data_type}.json",
-                f"{home}/schemaRepo/TableFieldUpdates/gdc_{program}_{data_type}_desc.json")
+                f"{home}/schemaRepo/GenericSchemas/{program_mappings[program]['bq_dataset']}_{data_type}.json",
+                f"{home}/schemaRepo/TableFieldUpdates/gdc_{program_mappings[program]['bq_dataset']}_{data_type}_desc.json")
 
     if 'qc_tables' in steps:
         # todo

@@ -260,31 +260,31 @@ def merge_samples_by_aliquot(input_table, output_table):
             callers,
             LEFT(file_name, 36) as file_gdc_id,
                 CASE
-                    WHEN callers LIKE '%muse*%' THEN 'YES*'
-                    WHEN callers LIKE '%muse%' THEN 'YES'
+                    WHEN callers LIKE '%muse*%' THEN 'Yes*'
+                    WHEN callers LIKE '%muse%' THEN 'Yes'
                 ELSE
-                    'NO'
+                    'No'
             END
               muse,
               CASE
-                WHEN callers LIKE '%mutect2*%' THEN 'YES*'
-                WHEN callers LIKE '%mutect2%' THEN 'YES'
+                WHEN callers LIKE '%mutect2*%' THEN 'Yes*'
+                WHEN callers LIKE '%mutect2%' THEN 'Yes'
               ELSE
-              'NO'
+              'No'
             END
               mutect2,
               CASE
-                WHEN callers LIKE '%pindel*%' THEN 'YES*'
-                WHEN callers LIKE '%pindel%' THEN 'YES'
+                WHEN callers LIKE '%pindel*%' THEN 'Yes*'
+                WHEN callers LIKE '%pindel%' THEN 'Yes'
               ELSE
-              'NO'
+              'No'
             END
               pindel,
               CASE
-                WHEN callers LIKE '%varscan2*%' THEN 'YES*'
-                WHEN callers LIKE '%varscan2%' THEN 'YES'
+                WHEN callers LIKE '%varscan2*%' THEN 'Yes*'
+                WHEN callers LIKE '%varscan2%' THEN 'Yes'
               ELSE
-              'NO'
+              'No'
             END
               varscan2,
             string_agg(distinct sample_barcode_tumor, ';') as sample_barcode_tumor, 
