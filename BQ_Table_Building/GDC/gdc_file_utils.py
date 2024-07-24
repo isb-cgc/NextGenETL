@@ -866,7 +866,7 @@ def create_schema_hold_list(typing_tups, field_schema, holding_list, static=True
     return True
 
 
-def update_schema_tags(datatype_mappings, program_mappings, release=None, release_date=None, program=None):  # todo docstring
+def update_schema_tags(program_mappings, release=None, release_date=None, program=None):  # todo docstring
 
     schema = dict()
 
