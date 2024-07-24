@@ -879,17 +879,17 @@ def update_schema_tags(datatype_mappings, program_mappings, release=None, releas
 
     if program is not None:
         schema['---tag-program---'] = program
-        if 'program_label' in program_mappings[program]:
+        if 'program_label' in program_mappings[program].keys():
             schema['---tag-program-name-lower---'] = program_mappings[program]['program_label']
         else:
             schema['---tag-program-name-lower---'] = None
 
-        if 'program_label_0' in datatype_mappings[program]:
+        if 'program_label_0' in program_mappings[program].keys():
             schema['---tag-program-name-lower-0---'] = program_mappings[program]['program_label_0']
         else:
             schema['---tag-program-name-lower-0---'] = None
 
-        if 'program_label_1' in datatype_mappings[program]:
+        if 'program_label_1' in program_mappings[program].keys():
             schema['---tag-program-name-lower-1---'] = program_mappings[program]['program_label_1']
         else:
             schema['---tag-program-name-lower-1---'] = None
