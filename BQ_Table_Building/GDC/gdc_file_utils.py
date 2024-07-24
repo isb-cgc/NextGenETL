@@ -866,13 +866,13 @@ def create_schema_hold_list(typing_tups, field_schema, holding_list, static=True
     return True
 
 
-def update_schema_tags(program_mappings, release=None, release_date=None, program=None):  # todo docstring
+def update_schema_tags(program_mappings, release=None, release_date=None, release_anchor=None, program=None):  # todo docstring
 
     schema = dict()
 
     if release:
-        schema['---tag-release---'] = str(release).upper()
-        schema['---tag-release-url-anchor---'] = str(release.replace("r", "").replace(".", ""))
+        schema['---tag-release---'] = release
+        schema['---tag-release-url-anchor---'] = str(release_anchor)
 
     if release_date:
         schema['---tag-extracted-month-year---'] = release_date
