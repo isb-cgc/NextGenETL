@@ -287,14 +287,14 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         logging.info("Running update_table_schema Step")
 
         if bq_table_exists(f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{draft_table}"):
-            updated_schema_tags = update_schema_tags(datatype_mappings, params.PROGRAM_MAPPINGS, params.RELEASE,
+            updated_schema_tags = update_schema_tags(datatype_mappings, program_mappings, params.RELEASE,
                                                      params.REL_DATE, program_mappings[program]['bq_dataset'])  # todo is this correct?
 
             write_table_schema_with_generic(
                 f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{draft_table}",
                 updated_schema_tags,
-                f"{home}/schemaRepo/GenericSchemas/{program_mappings[program]['bq_dataset']}_{data_type}.json",
-                f"{home}/schemaRepo/TableFieldUpdates/gdc_{program_mappings[program]['bq_dataset']}_{data_type}_desc.json")
+                f"{home}/schemaRepo/GenericSchemas/{data_type}.json",
+                f"{home}/schemaRepo/TableFieldUpdates/{data_type}_desc.json")
 
     if 'qc_tables' in steps:
         # todo
