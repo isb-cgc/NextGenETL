@@ -294,7 +294,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
                 f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{draft_table}",
                 updated_schema_tags,
                 f"{home}/schemaRepo/GenericSchemas/{data_type}.json",
-                f"{home}/schemaRepo/TableFieldUpdates/{data_type}_desc.json")
+                f"{home}/schemaRepo/TableFieldUpdates/gdc_{data_type}_desc.json")
 
     if 'qc_tables' in steps:
         # todo
