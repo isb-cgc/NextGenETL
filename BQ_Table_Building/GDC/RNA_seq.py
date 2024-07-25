@@ -182,7 +182,7 @@ def merge_samples_by_aliquot(input_table, output_table):
     return query_bq(sql, output_table)
 
 
-def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, case_table):
+def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, case_table, project_id, dataset, release):
     rna_seq_logger.info("Creating {draft_rna_seq}")
 
     created_tables = []
@@ -194,14 +194,18 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
 
 
     # todo describe
-    gather_aliquot_ids_results = gather_aliquot_ids(raw_rna_seq, file_table, step_1_table)
+    gather_aliquot_ids_results = gather_aliquot_ids(f"{project_id}.{dataset}.{raw_rna_seq}",
+                                                    f"{project_id}.{dataset}.{file_table}_{release}",
+                                                    f"{project_id}.{dataset}.{step_1_table}")
     if gather_aliquot_ids_results == 'DONE':
         created_tables.append(step_1_table)
     else:
         rna_seq_logger.error("Creating RNA Seq aliquot id table failed")
         sys.exit()
 
-    extract_platform_for_files_results = extract_platform_for_files(step_1_table, file_table, step_2_table)
+    extract_platform_for_files_results = extract_platform_for_files(f"{project_id}.{dataset}.{step_1_table}",
+                                                                    f"{project_id}.{dataset}.{file_table}_{release}",
+                                                                    f"{project_id}.{dataset}.{step_2_table}")
     if extract_platform_for_files_results == 'DONE':
         created_tables.append(step_2_table)
     else:
@@ -209,7 +213,10 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
         sys.exit()
 
     # todo describe
-    add_barcodes_to_aliquot_results = add_barcodes_to_aliquot(step_2_table, aliquot_table, case_table, step_3_table)
+    add_barcodes_to_aliquot_results = add_barcodes_to_aliquot(f"{project_id}.{dataset}.{step_2_table}",
+                                                              f"{project_id}.{dataset}.{aliquot_table}_{release}",
+                                                              f"{project_id}.{dataset}.{case_table}_{release}",
+                                                              f"{project_id}.{dataset}.{step_3_table}")
 
     if add_barcodes_to_aliquot_results == 'DONE':
         created_tables.append(step_3_table)
@@ -218,7 +225,9 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
         sys.exit()
 
     # todo describe
-    glue_metadata_results = glue_metadata(step_3_table, raw_rna_seq, step_4_table)
+    glue_metadata_results = glue_metadata(f"{project_id}.{dataset}.{step_3_table}",
+                                          f"{project_id}.{dataset}.{raw_rna_seq}",
+                                          f"{project_id}.{dataset}.{step_4_table}")
     if glue_metadata_results != 'DONE':
         created_tables.append(step_4_table)
     else:
@@ -226,7 +235,8 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
         sys.exit()
 
     # todo describe
-    merge_samples_by_aliquot_results = merge_samples_by_aliquot(step_4_table, step_5_table)
+    merge_samples_by_aliquot_results = merge_samples_by_aliquot(f"{project_id}.{dataset}.{step_4_table}",
+                                                                f"{project_id}.{dataset}.{step_5_table}")
     if merge_samples_by_aliquot_results != 'DONE':
         created_tables.append(step_5_table)
     else:
@@ -235,7 +245,9 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
 
     # todo describe
     cluster_fields = ['project_short_name', 'case_barcode', 'sample_barcode', 'aliquot_barcode']
-    cluster_table_result = cluster_table(step_5_table, draft_rna_seq, cluster_fields)
+    cluster_table_result = cluster_table(f"{project_id}.{dataset}.{step_5_table}",
+                                         f"{project_id}.{dataset}.{draft_rna_seq}",
+                                         cluster_fields)
     if cluster_table_result == 'DONE':
         created_tables.append(draft_rna_seq)
     else:

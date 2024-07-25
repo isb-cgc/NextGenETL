@@ -448,7 +448,7 @@ def merge_samples_by_aliquot(input_table, output_table):
     return query_bq(sql, output_table)
 
 
-def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, file_table, aliquot_table, case_table, project_id, dataset,
+def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, aliquot_table, case_table, project_id, dataset,
                              release):
     som_mut_logger.info(f"Creating {draft_somatic_mut}")
 
