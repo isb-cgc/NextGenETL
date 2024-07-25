@@ -19,9 +19,9 @@ rna_seq_logger = logging.getLogger(name='base_script.rna_seq')
 
 
 def gather_aliquot_ids(input_table, file_table, output_table):
- # todo Is this actually gather file data?
+    # todo Is this actually gather file data?
     sql = f'''
-        WITH a1 AS (SELECT DISTINCT source_file_id
+        WITH a1 AS (SELECT DISTINCT LEFT(file_name, 36) as file_gdc_id
                 FROM `{input_table}`)
         SELECT b.project_short_name,
                b.case_gdc_id,
@@ -30,7 +30,7 @@ def gather_aliquot_ids(input_table, file_table, output_table):
                b.file_name,
                b.file_gdc_id,
                b.platform
-        FROM a1 JOIN `{file_table}` AS b ON a1.source_file_id = b.file_gdc_id
+        FROM a1 JOIN `{file_table}` AS b ON a1.file_gdc_id = b.file_gdc_id
         WHERE b.associated_entities__entity_type = 'aliquot' '''
 
     return query_bq(sql, output_table)
