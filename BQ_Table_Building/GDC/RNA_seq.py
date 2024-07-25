@@ -36,7 +36,7 @@ def gather_aliquot_ids(input_table, file_table, output_table):
     return query_bq(sql, output_table)
 
 
-def add_barcodes_to_aliquot(step_1_table, aliquot_table, case_table, step_2_table):
+def add_barcodes_to_aliquot(step_2_table, aliquot_table, case_table, step_3_table):
     # todo Is this actually gathering case data? why are we bringing in the aliquot table again?
     sql = f'''
         WITH a1 AS (
@@ -51,7 +51,7 @@ def add_barcodes_to_aliquot(step_1_table, aliquot_table, case_table, step_2_tabl
                  a.file_gdc_id,
                  a.platform,
                  a.file_name
-            FROM `{step_1_table}` AS a 
+            FROM `{step_2_table}` AS a 
             JOIN (SELECT DISTINCT * 
                   FROM (SELECT * EXCEPT (analyte_gdc_id, portion_gdc_id) FROM `{aliquot_table}`) ) AS b 
                     ON a.aliquot_gdc_id = b.aliquot_gdc_id)
@@ -70,7 +70,7 @@ def add_barcodes_to_aliquot(step_1_table, aliquot_table, case_table, step_2_tabl
         FROM a1 JOIN `{case_table}` AS c ON a1.case_barcode = c.case_barcode and a1.project_short_name = c.project_id
         '''
 
-    return query_bq(sql, step_2_table)
+    return query_bq(sql, step_3_table)
 
 
 def glue_metadata(step_3_table, raw_rna_seq, step_4_able):
@@ -97,7 +97,7 @@ def glue_metadata(step_3_table, raw_rna_seq, step_4_able):
                a.file_gdc_id,
                a.platform,
                a.file_name
-        FROM `{step_3_table}` AS a JOIN `{raw_rna_seq}` AS b ON a.file_gdc_id = b.source_file_id 
+        FROM `{step_3_table}` AS a JOIN `{raw_rna_seq}` AS b ON a.file_gdc_id = LEFT(b.file_name, 36) 
         WHERE gene_id <> '__no_feature'
             AND gene_id <> '__ambiguous' 
             AND gene_id <> '__too_low_aQual' 
@@ -108,11 +108,11 @@ def glue_metadata(step_3_table, raw_rna_seq, step_4_able):
     return query_bq(sql, step_4_able)
 
 
-def extract_platform_for_files(step_2_table, file_table, step_5_table):
+def extract_platform_for_files(step_1_table, file_table, step_2_table):
     sql = f'''
         WITH
             a1 AS (SELECT DISTINCT analysis_input_file_gdc_ids
-                   FROM `{step_2_table}`),
+                   FROM `{step_1_table}`),
             a2 AS (SELECT a1.analysis_input_file_gdc_ids,
                           b.platform
                    FROM a1 JOIN `{file_table}` as b ON a1.analysis_input_file_gdc_ids = b.file_gdc_id)
@@ -124,11 +124,11 @@ def extract_platform_for_files(step_2_table, file_table, step_5_table):
                b.file_name,
                b.file_gdc_id,
                a2.platform
-        FROM `{step_2_table}` AS b 
+        FROM `{step_1_table}` AS b 
         JOIN a2 ON a2.analysis_input_file_gdc_ids = b.analysis_input_file_gdc_ids 
         '''
 
-    return query_bq(sql, step_5_table)
+    return query_bq(sql, step_2_table)
 
 
 def merge_samples_by_aliquot(input_table, output_table):
