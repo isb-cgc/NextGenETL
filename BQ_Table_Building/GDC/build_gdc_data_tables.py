@@ -193,7 +193,8 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
     if datatype == "rna_seq":
         logger.info("Creating RNA seq draft tables")
 
-        rna_seq_table = create_rna_seq_table(raw_data_table, draft_data_table, file_table, aliquot_table, case_table, dev_project, dev_dataset)
+        rna_seq_table = create_rna_seq_table(raw_data_table, draft_data_table, file_table, aliquot_table, case_table,
+                                             dev_project, dev_dataset, release)
         intermediate_tables.extend(rna_seq_table)
 
     if datatype == "mRNA_seq":  # todo
