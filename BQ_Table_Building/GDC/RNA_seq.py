@@ -228,7 +228,7 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
     glue_metadata_results = glue_metadata(f"{project_id}.{dataset}.{step_3_table}",
                                           f"{project_id}.{dataset}.{raw_rna_seq}",
                                           f"{project_id}.{dataset}.{step_4_table}")
-    if glue_metadata_results != 'DONE':
+    if glue_metadata_results == 'DONE':
         created_tables.append(step_4_table)
     else:
         rna_seq_logger.error("Creating add metadata table failed")
@@ -237,20 +237,20 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
     # todo describe
     merge_samples_by_aliquot_results = merge_samples_by_aliquot(f"{project_id}.{dataset}.{step_4_table}",
                                                                 f"{project_id}.{dataset}.{step_5_table}")
-    if merge_samples_by_aliquot_results != 'DONE':
+    if merge_samples_by_aliquot_results == 'DONE':
         created_tables.append(step_5_table)
     else:
         rna_seq_logger.error("Creating merge table failed")
         sys.exit()
 
     # todo describe
-    cluster_fields = ['project_short_name', 'case_barcode', 'sample_barcode', 'aliquot_barcode']
+    cluster_fields = ["project_short_name", "case_barcode", "sample_barcode", "aliquot_barcode"]
     cluster_table_result = cluster_table(f"{project_id}.{dataset}.{step_5_table}",
-                                         f"{project_id}.{dataset}.{draft_rna_seq}",
-                                         cluster_fields)
+                                         f"{project_id}.{dataset}.{draft_rna_seq}", cluster_fields)
     if cluster_table_result == 'DONE':
         created_tables.append(draft_rna_seq)
     else:
+        print(cluster_table_result)
         rna_seq_logger.error("Creating RNA draft table failed")
         sys.exit()
 
