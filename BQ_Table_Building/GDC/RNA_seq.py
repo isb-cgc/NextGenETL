@@ -195,7 +195,7 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
 
     # todo describe
     gather_aliquot_ids_results = gather_aliquot_ids(f"{project_id}.{dataset}.{raw_rna_seq}",
-                                                    f"{project_id}.{dataset}.{file_table}_{release}",
+                                                    f"{file_table}_{release}",
                                                     f"{project_id}.{dataset}.{step_1_table}")
     if gather_aliquot_ids_results == 'DONE':
         created_tables.append(step_1_table)
@@ -204,7 +204,7 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
         sys.exit()
 
     extract_platform_for_files_results = extract_platform_for_files(f"{project_id}.{dataset}.{step_1_table}",
-                                                                    f"{project_id}.{dataset}.{file_table}_{release}",
+                                                                    f"{file_table}_{release}",
                                                                     f"{project_id}.{dataset}.{step_2_table}")
     if extract_platform_for_files_results == 'DONE':
         created_tables.append(step_2_table)
@@ -214,8 +214,8 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
 
     # todo describe
     add_barcodes_to_aliquot_results = add_barcodes_to_aliquot(f"{project_id}.{dataset}.{step_2_table}",
-                                                              f"{project_id}.{dataset}.{aliquot_table}_{release}",
-                                                              f"{project_id}.{dataset}.{case_table}_{release}",
+                                                              f"{aliquot_table}_{release}",
+                                                              f"{case_table}_{release}",
                                                               f"{project_id}.{dataset}.{step_3_table}")
 
     if add_barcodes_to_aliquot_results == 'DONE':
