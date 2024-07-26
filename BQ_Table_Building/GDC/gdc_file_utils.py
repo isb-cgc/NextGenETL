@@ -897,6 +897,37 @@ def update_schema_tags(program_mappings, release=None, release_date=None, releas
     return schema
 
 
+def install_table_field_desc(table_id, new_descriptions):
+    """
+    Modify an existing table's field descriptions. Based on a function from utils.py called update_schema
+    Function adapted from update_schema in utils.py and support.py
+    :param table_id: table id in standard SQL format
+    :param new_descriptions: dict of field names and new description strings
+    """
+    client = bigquery.Client()
+    table = client.get_table(table_id)
+
+    new_schema = []
+
+    for schema_field in table.schema:
+        field = schema_field.to_api_repr()
+        name = field['name']
+
+        if name in new_descriptions.keys() and new_descriptions[name]['exception'] == '':
+            field['description'] = new_descriptions[name]['description']
+        elif name in new_descriptions.keys() and new_descriptions[name]['exception'] is not None:
+            print(f"Field {name} has an exception listed: {new_descriptions[name]['exception']}")
+        else:
+            print(f"{name} field is not listed in json")
+
+        mod_field = bigquery.SchemaField.from_api_repr(field)
+        new_schema.append(mod_field)
+
+    table.schema = new_schema
+
+    client.update_table(table, ['schema'])
+
+
 def write_table_schema_with_generic(table_id, schema_tags=None, metadata_fp=None,
                                     field_desc_fp=None):  # todo fill in docstring
     """
@@ -916,7 +947,7 @@ def write_table_schema_with_generic(table_id, schema_tags=None, metadata_fp=None
     if metadata_fp is not None:
         write_table_metadata_with_generic(metadata_fp, table_id, schema_tags)
 
-    if field_desc_fp is not None:
+    if field_desc_fp is not None: #todo is needed for the FIELD desc
         with open(field_desc_fp, mode='r') as field_desc:
             field_desc_dict = json_loads(field_desc.read())
         install_table_field_desc(table_id, field_desc_dict)
