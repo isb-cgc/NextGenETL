@@ -247,7 +247,7 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
     cluster_fields = ["project_short_name", "case_barcode", "sample_barcode", "aliquot_barcode"]
     cluster_table_result = cluster_table(f"{project_id}.{dataset}.{step_5_table}",
                                          f"{project_id}.{dataset}.{draft_rna_seq}", cluster_fields)
-    if cluster_table_result == 'DONE':
+    if cluster_table_result.total_rows < 1:
         created_tables.append(draft_rna_seq)
     else:
         print(cluster_table_result)
