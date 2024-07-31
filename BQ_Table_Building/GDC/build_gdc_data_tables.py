@@ -284,7 +284,6 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
                 outfile.write(table)
 
     if 'update_table_schema' in steps:
-        # todo
         logging.info("Running update_table_schema Step")
 
         if bq_table_exists(f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{draft_table}"):
@@ -306,6 +305,8 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         # todo
         # todo Create a list of tables published in the formatting for readthedocs
         logging.info("Running publish_tables Step")
+
+        
 
     if 'clean_up' in steps:
         # todo

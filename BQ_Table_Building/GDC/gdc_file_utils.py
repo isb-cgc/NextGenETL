@@ -947,7 +947,7 @@ def write_table_schema_with_generic(table_id, schema_tags=None, metadata_fp=None
     if metadata_fp is not None:
         write_table_metadata_with_generic(metadata_fp, table_id, schema_tags)
 
-    if field_desc_fp is not None: #todo is needed for the FIELD desc
+    if field_desc_fp is not None:
         with open(field_desc_fp, mode='r') as field_desc:
             field_desc_dict = json_loads(field_desc.read())
         install_table_field_desc(table_id, field_desc_dict)
