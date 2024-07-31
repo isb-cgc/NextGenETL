@@ -288,7 +288,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
 
         if bq_table_exists(f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{draft_table}"):
             updated_schema_tags = update_schema_tags(program_mappings, params.RELEASE, params.REL_DATE,
-                                                     params.RELEASE_ANCHOR, program_mappings[program]['bq_dataset'])  # todo is this correct?
+                                                     params.RELEASE_ANCHOR, program)
 
             write_table_schema_with_generic(
                 f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{draft_table}",
