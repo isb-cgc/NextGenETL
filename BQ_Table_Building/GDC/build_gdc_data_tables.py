@@ -33,7 +33,7 @@ from gdc_file_utils import (confirm_google_vm, format_seconds, update_dir_from_g
                             bucket_to_local, find_types, pull_from_buckets, build_file_list,
                             create_schema_hold_list, local_to_bucket, update_schema_tags,
                             write_table_schema_with_generic, clean_local_file_dir,
-                            csv_to_bq, initialize_logging, bq_table_exists)
+                            csv_to_bq, initialize_logging, bq_table_exists, publish_tables_and_update_schema)
 
 from open_somatic_mut import create_somatic_mut_table
 
@@ -184,13 +184,13 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
     if datatype == "copy_number":  # todo
         print("copy number")
 
-    if datatype == "open_somatic_mut":
+    if datatype == "masked_somatic_mutation":
         logger.info("Creating Somatic Mut draft tables")
         som_mut_tables = create_somatic_mut_table(raw_data_table, draft_data_table, aliquot_table,
                                                   case_table, dev_project, dev_dataset, release)
         intermediate_tables.extend(som_mut_tables)
 
-    if datatype == "rna_seq":
+    if datatype == "RNAseq":
         logger.info("Creating RNA seq draft tables")
 
         rna_seq_table = create_rna_seq_table(raw_data_table, draft_data_table, file_table, aliquot_table, case_table,
@@ -209,19 +209,18 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
     with open(f"{home}/{params.SCHEMA_REPO_LOCAL}/{params.PROGRAM_MAPPINGS}", mode='r') as program_mappings_file:
         program_mappings = json_loads(program_mappings_file.read().rstrip())
 
-    # file variables
+    with open(f"{home}/{params.SCHEMA_REPO_LOCAL}/{params.DATATYPE_MAPPINGS}", mode='r') as datatype_mappings_file:
+        datatype_mappings = json_loads(datatype_mappings_file.read().rstrip())
+
+    # variables
     prefix = f"{program_mappings[program]['bq_dataset']}_{data_type}_{params.RELEASE}{workflow_run_ver}"
     local_location = f"{local_dir}/{program_mappings[program]['bq_dataset']}"
     raw_files_local_location = f"{local_location}/files{data_type}"
     tables_created_file = f"{home}/{params.LOCAL_DIR}/tables_created_{params.RELEASE}{workflow_run_ver}.txt"
-
-    with open(f"{home}/{params.SCHEMA_REPO_LOCAL}/{params.DATATYPE_MAPPINGS}", mode='r') as datatype_mappings_file:
-        datatype_mappings = json_loads(datatype_mappings_file.read().rstrip())
-
     file_list = f"{prefix}_file_list.tsv"
     file_traversal_list = f"{prefix}_traversal.tsv"
     raw_data = f"{prefix}_raw"
-    draft_table = f"{prefix}_draft_table"  # todo find out where needs the table name and where it should be table id
+    draft_table = f"{prefix}_draft_table"
     field_list = f"{local_location}/{prefix}_field_schema.json"
 
     if 'create_file_list' in steps:
@@ -229,7 +228,6 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         create_file_list(params, program, data_type, local_location, prefix, file_list,
                          datatype_mappings)
 
-    # todo step for downloading files
     if 'transfer_from_gdc' in steps:
         # Bring the files to the local dir from DCF GDC Cloud Buckets
         with open(f"{local_location}/{file_list}", mode='r') as pull_list_file:
@@ -237,7 +235,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         pull_from_buckets(pull_list, raw_files_local_location)
 
         all_files = build_file_list(raw_files_local_location)
-        with open(f"{local_location}/{file_traversal_list}", mode='w') as traversal_list: # todo move to build_file_list
+        with open(f"{local_location}/{file_traversal_list}", mode='w') as traversal_list:
             for line in all_files:
                 traversal_list.write(f"{line}\n")
 
@@ -286,7 +284,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
     if 'update_table_schema' in steps:
         logging.info("Running update_table_schema Step")
 
-        if bq_table_exists(f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{draft_table}"):
+        if bq_table_exists({draft_table}, {params.DEV_DATASET}, {params.DEV_PROJECT}):
             updated_schema_tags = update_schema_tags(program_mappings, params.RELEASE, params.REL_DATE,
                                                      params.RELEASE_ANCHOR, program)
 
@@ -305,6 +303,18 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         # todo
         # todo Create a list of tables published in the formatting for readthedocs
         logging.info("Running publish_tables Step")
+
+        pub_base = f""
+
+        success = publish_tables_and_update_schema(
+            f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{draft_table}",
+            f"{params.PUBLICATION_PROJECT}.{program_mappings[program]['bq_dataset']}_versioned.{data_type}_hg38_{params.RELEASE}",
+            f"{params.PUBLICATION_PROJECT}.{program_mappings[program]['bq_dataset']}.{data_type}_hg38_current",
+            params.RELEASE.replace("r", "REL"),
+            f"{data_type}_hg38")
+
+        if not success:
+            print("Publication step did not work")
 
         
 
