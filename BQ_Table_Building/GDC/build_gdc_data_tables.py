@@ -304,8 +304,6 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         # todo Create a list of tables published in the formatting for readthedocs
         logging.info("Running publish_tables Step")
 
-        pub_base = f""
-
         success = publish_tables_and_update_schema(
             f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{draft_table}",
             f"{params.PUBLICATION_PROJECT}.{program_mappings[program]['bq_dataset']}_versioned.{data_type}_hg38_{params.RELEASE}",
