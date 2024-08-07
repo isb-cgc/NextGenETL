@@ -559,6 +559,125 @@ def cluster_table(input_table_id, output_table_id, cluster_fields):
     return query_bq(cluster_sql)
 
 
+def find_most_recent_release(dataset, base_table, project=None):
+    """
+
+    This function iterates though all tables of a BigQuery versioned dataset to find the most recent release of version
+    number of a certain data type. Function from support.py
+
+    :param dataset: Dataset to search
+    :type dataset: basestring
+    :param base_table: The table name before the release number (must include _ before release number)
+    :type base_table: basestring
+    :param project: Which project is the data set in?
+    :type project: basestring
+
+    :returns: The highest version number of that table type in that dataset as a string
+    """
+    print('finding most recent release in ' + dataset)
+    try:
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
+        release = ''  # variable for the most recent release
+        table_create = ''  # the most recently created table
+        # subset the tables for those that match the desired one
+        table_subset = [t for t in client.list_tables(dataset) if t.table_id[:len(base_table)] == base_table]
+        if not table_subset:
+            print('No older versions to compare to')
+            return False
+        for t in table_subset:
+            # If the table has a newer create date then the one in table_create date, replace current value
+            if table_create < str(t.created):
+                table_create = str(t.created)
+                release = t.table_id[len(base_table):]
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return release
+
+
+def publish_table(source_table, target_table, overwrite=False):
+
+    try:
+        #
+        # 3/11/20: Friendly names not copied across, so do it here!
+        #
+
+        src_toks = source_table.split('.')
+        src_proj = src_toks[0]
+        src_dset = src_toks[1]
+        src_tab = src_toks[2]
+
+        trg_toks = target_table.split('.')
+        trg_proj = trg_toks[0]
+        trg_dset = trg_toks[1]
+        trg_tab = trg_toks[2]
+
+        src_client = bigquery.Client(src_proj)
+
+        if overwrite:
+            job_config = bigquery.CopyJobConfig()
+            job_config.write_disposition = "WRITE_TRUNCATE"
+            job = src_client.copy_table(source_table, target_table, job_config=job_config)
+            job.result()
+        else:
+            job = src_client.copy_table(source_table, target_table)
+            job.result()
+
+        src_table_ref = src_client.dataset(src_dset).table(src_tab)
+        s_table = src_client.get_table(src_table_ref)
+        src_friendly = s_table.friendly_name
+
+        trg_client = bigquery.Client(trg_proj)
+        trg_table_ref = trg_client.dataset(trg_dset).table(trg_tab)
+        t_table = src_client.get_table(trg_table_ref)
+        t_table.friendly_name = src_friendly
+
+        trg_client.update_table(t_table, ['friendlyName'])
+
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return True
+
+
+def publish_tables_and_update_schema(scratch_table_id, versioned_table_id, current_table_id, release_friendly_name,
+                                     base_table=None):
+
+    # publish current and update old versioned. From support.py
+    if base_table:
+        project, dataset, curr_table = current_table_id.split('.')
+
+        # find the most recent table
+        most_recent_release = find_most_recent_release(f"{dataset}_versioned", base_table, project)
+        if most_recent_release:
+            update_status_tag(f"{dataset}_versioned", f"{base_table}{most_recent_release}", "archived", project)
+            # create or update current table and update older versioned tables
+            if bq_table_exists(f"{curr_table}", dataset, project):
+                print(f"Deleting old table: {current_table_id}")
+                if not delete_bq_table(f"{dataset}.{curr_table}", project):
+                    sys.exit(f'deleting old current table called {current_table_id} failed')
+
+        print("Creating new current table")
+        if not publish_table(scratch_table_id, current_table_id):
+            sys.exit(f'creating a new current table called {current_table_id} failed')
+
+    # publish versioned
+    print(f"publishing {versioned_table_id}")
+    if publish_table(scratch_table_id, versioned_table_id):
+        print("Updating friendly name")
+        client = bigquery.Client()
+        table = client.get_table(versioned_table_id)
+        friendly_name = table.friendly_name
+        table.friendly_name = f"{friendly_name} {release_friendly_name} VERSIONED"
+        client.update_table(table, ["friendly_name"])
+    else:
+        sys.exit(f'versioned publication failed for {versioned_table_id}')
+
+    return True
+
+
 # Schema Utils #
 
 
@@ -931,6 +1050,29 @@ def install_table_field_desc(table_id, new_descriptions):
     client.update_table(table, ['schema'])
 
 
+def update_status_tag(target_dataset, dest_table, status, project=None):
+    """
+    Update the status tag of a big query table once a new version of the table has been created. From support.py
+
+    :param target_dataset: Dataset name
+    :type target_dataset: basestring
+    :param dest_table: Table name
+    :type dest_table: basestring
+    :param status: The value you want to change the table label to
+    :type status: basestring
+    :param project: Project name
+    :type project: basestring
+    :return: Whether the function works
+    :rtype: bool
+    """
+    client = bigquery.Client() if project is None else bigquery.Client(project=project)
+    table_ref = client.dataset(target_dataset).table(dest_table)
+    table = client.get_table(table_ref)
+    table.labels = {"status": status}
+    table = client.update_table(table, ["labels"])
+    return True
+
+
 def write_table_schema_with_generic(table_id, schema_tags=None, metadata_fp=None,
                                     field_desc_fp=None):  # todo fill in docstring
     """
@@ -1012,39 +1154,6 @@ def install_table_metadata(table_id, metadata):
     assert table.description == metadata['description']
 
 
-def publish_tables_and_update_schema(scratch_table_id, versioned_table_id, current_table_id, release_friendly_name,
-                                     base_table=None):
 
-    # publish current and update old versioned. From support.py
-    if base_table:
-        project, dataset, curr_table = current_table_id.split('.')
-
-        # find the most recent table
-        most_recent_release = find_most_recent_release(f"{dataset}_versioned", base_table, project)
-        if most_recent_release:
-            update_status_tag(f"{dataset}_versioned", f"{base_table}{most_recent_release}", "archived", project)
-            # create or update current table and update older versioned tables
-            if bq_table_exists(f"{curr_table}", dataset, project):
-                print(f"Deleting old table: {current_table_id}")
-                if not delete_table_bq_job(dataset, f"{curr_table}", project):
-                    sys.exit(f'deleting old current table called {current_table_id} failed')
-
-        print("Creating new current table")
-        if not publish_table(scratch_table_id, current_table_id):
-            sys.exit(f'creating a new current table called {current_table_id} failed')
-
-    # publish versioned
-    print(f"publishing {versioned_table_id}")
-    if publish_table(scratch_table_id, versioned_table_id):
-        print("Updating friendly name")
-        client = bigquery.Client()
-        table = client.get_table(versioned_table_id)
-        friendly_name = table.friendly_name
-        table.friendly_name = f"{friendly_name} {release_friendly_name} VERSIONED"
-        client.update_table(table, ["friendly_name"])
-    else:
-        sys.exit(f'versioned publication failed for {versioned_table_id}')
-
-    return True
 
 
