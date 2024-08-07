@@ -186,6 +186,26 @@ def make_clinical_table_sql(project: dict[str, str], non_null_column_dict: dict[
     """
 
 
+def make_case_study_table_sql():
+    """
+    todo
+    :return:
+    """
+    # todo integrate study groupings into app
+
+    return f"""
+        SELECT cs.case_id, 
+          STRING_AGG(DISTINCT sg.study_grouping_name, ";" order by sg.study_grouping_name) AS study_grouping_names,
+          STRING_AGG(DISTINCT s.pdc_study_id, ";" order by s.pdc_study_id) AS pdc_study_ids
+        FROM {create_dev_table_id(PARAMS, 'case_study_id')} cs
+        JOIN {create_dev_table_id(PARAMS, 'study')} s
+          ON cs.study_id = s.study_id
+        JOIN {create_metadata_table_id(PARAMS, 'study_grouping')} sg
+          ON s.pdc_study_id = sg.pdc_study_id
+        GROUP BY cs.case_id
+    """
+
+
 def make_diagnosis_table_sql(project: dict[str], diagnosis_columns) -> str:
     """
     Output sql used to create project supplemental diagnosis table.
