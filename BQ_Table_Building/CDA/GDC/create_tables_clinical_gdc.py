@@ -521,12 +521,21 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
         else:
             program_name_original = program_name
 
-        clinical_table_id = create_clinical_table_id(PARAMS,
-                                                     f"{program_name}_{PARAMS['TABLE_PARAMS'][table]['table_name']}")
+        table_name = PARAMS['TABLE_PARAMS'][table]['table_name'].strip()
+
+        friendly_name_suffix = ""
+
+        if table_name != 'clinical':
+            # used to append the supplemental table type to the friendly name derived via the BQEcosystem table schema.
+            friendly_name_suffix = " ".join(table_name.strip().split("_")[1:]).upper()
+
+        clinical_table_id = create_clinical_table_id(PARAMS, f"{program_name}_{table_name}")
 
         create_table_from_query(PARAMS, table_id=clinical_table_id, query=sql_query)
 
         schema_tags = get_program_schema_tags_gdc(params=PARAMS, program_name=program_name_original)
+
+        schema_tags['friendly_name'] += f" - {friendly_name_suffix}"
 
         if 'program-label' in schema_tags:
             metadata_file = PARAMS['METADATA_FILE_SINGLE_PROGRAM']
