@@ -38,13 +38,15 @@ YAML_HEADERS = ('params', 'steps')
 def get_project_metadata():
     """
     Load project metadata from BQEcosystem/MetadataMappings/pdc_project_metadata.json as dict.
-    :return dict of project dicts of the following form. Key equals PDC field "project_submitter_id."
+    :return: dict of project dicts of the following form. Key equals PDC field "project_submitter_id."
     Example project dict:
-        { "CPTAC-TCGA": {
-            "project_short_name": "CPTAC_TCGA",
-            "project_friendly_name": "CPTAC-TCGA",
-            "program_short_name": "TCGA",
-            "program_labels": "cptac2; tcga"
+        {
+            "CPTAC-TCGA": {
+                "project_short_name": "CPTAC_TCGA",
+                "project_friendly_name": "CPTAC-TCGA",
+                "program_short_name": "TCGA",
+                "program_labels": "cptac2; tcga"
+            }
         }
     """
     metadata_mappings_path = f"{PARAMS['BQ_REPO']}/{PARAMS['PROJECT_STUDY_METADATA_DIR']}"
@@ -54,13 +56,20 @@ def get_project_metadata():
         return json.load(fh)
 
 
-def get_study_friendly_names():
+def get_study_metadata():
     """
-    Load study friendly names json file (from BQEcosystem/MetadataMappings/pdc_study_friendly_name_map.json) as dict.
-    :return: dict of { "pdc_study_id": "STUDY FRIENDLY NAME" } strings
+    Load study metadata json file (from BQEcosystem/MetadataMappings/pdc_study_metadata.json) as dict.
+    :return: dict of study metadata dicts in the following form:
+        Example dict:
+            {
+                "pdc_study_id": {
+                    "study_friendly_name": "<STUDY FRIENDLY NAME>",
+                    "study_grouping": "<STUDY GROUPING>"
+                }
+            }
     """
     metadata_mappings_path = f"{PARAMS['BQ_REPO']}/{PARAMS['PROJECT_STUDY_METADATA_DIR']}"
-    study_metadata_fp = get_filepath(f"{metadata_mappings_path}/{PARAMS['STUDY_FRIENDLY_NAME_FILE']}")
+    study_metadata_fp = get_filepath(f"{metadata_mappings_path}/{PARAMS['STUDY_METADATA_FILE']}")
 
     with open(study_metadata_fp, 'r') as fh:
         return json.load(fh)
@@ -126,7 +135,7 @@ def create_study_record_list() -> list[dict[str, Optional[Any]]]:
     logger = logging.getLogger('base_script')
 
     project_metadata_records = get_project_metadata()
-    study_friendly_names = get_study_friendly_names()
+    study_metadata_records = get_study_metadata()
 
     study_record_result = query_and_retrieve_result(sql=make_study_query())
 
@@ -153,7 +162,8 @@ def create_study_record_list() -> list[dict[str, Optional[Any]]]:
             project_submitter_id = 'CPTAC-2'
 
         pdc_study_id = row.get('pdc_study_id')
-        study_friendly_name = study_friendly_names[pdc_study_id]
+        study_friendly_name = study_metadata_records[pdc_study_id]['study_friendly_name']
+        study_grouping = study_metadata_records[pdc_study_id]['study_grouping']
         project_metadata = project_metadata_records[project_submitter_id]
 
         project_short_name = project_metadata['project_short_name']
@@ -178,6 +188,7 @@ def create_study_record_list() -> list[dict[str, Optional[Any]]]:
             'pdc_study_id': row.get('pdc_study_id'),
             'study_id': row.get('study_id'),
             'study_friendly_name': study_friendly_name,
+            'study_grouping': study_grouping,
             'analytical_fraction': row.get('analytical_fraction'),
             'disease_type': disease_type,
             'primary_site': primary_site,
