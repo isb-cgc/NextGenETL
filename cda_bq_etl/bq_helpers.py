@@ -875,14 +875,14 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, metadat
     if 'RELEASE_NOTES_URL' in params:
         schema_tags['release-notes-url'] = params['RELEASE_NOTES_URL']
 
-    add_generic_table_metadata(params=params,
-                               table_id=table_id,
-                               schema_tags=schema_tags,
-                               metadata_file=metadata_file)
+    add_generic_table_metadata_pdc(params=params,
+                                   table_id=table_id,
+                                   schema_tags=schema_tags,
+                                   metadata_file=metadata_file)
     add_column_descriptions(params=params, table_id=table_id)
 
 
-def add_generic_table_metadata(params: Params, table_id: str, schema_tags: dict[str, str], metadata_file: str = None):
+def add_generic_table_metadata_pdc(params: Params, table_id: str, schema_tags: dict[str, str], metadata_file: str = None):
     """
     todo
     :param params: params supplied in yaml config
@@ -910,10 +910,13 @@ def add_generic_table_metadata(params: Params, table_id: str, schema_tags: dict[
 
         table_metadata = json.loads(table_schema)
 
-        update_table_metadata(table_id, table_metadata)
+        if 'diagnosis' in table_id:
+            table_metadata['friendly_name'] += f" - DIAGNOSIS"
+
+        update_table_metadata_pdc(table_id, table_metadata)
 
 
-def update_table_metadata(table_id: str, metadata: dict[str, str]):
+def update_table_metadata_pdc(table_id: str, metadata: dict[str, str]):
     """
     Modify an existing BigQuery table's metadata (labels, friendly name, description) using metadata dict argument
     :param table_id: table id in standard SQL format

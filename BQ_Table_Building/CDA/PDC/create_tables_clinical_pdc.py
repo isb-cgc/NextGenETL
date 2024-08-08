@@ -300,7 +300,6 @@ def main(args):
                                              metadata_file=generic_table_metadata_file)
 
             if has_diagnosis_table:
-                schema_tags['friendly-project-name-upper'] += f" - DIAGNOSIS"
                 update_table_schema_from_generic(params=PARAMS,
                                                  table_id=diagnosis_table_id,
                                                  schema_tags=schema_tags,
