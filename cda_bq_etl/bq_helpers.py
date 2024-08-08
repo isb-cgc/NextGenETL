@@ -851,12 +851,13 @@ def find_most_recent_published_refseq_table_id(params, versioned_table_id):
             return prev_release_table_id
 
 
-def update_table_schema_from_generic(params, table_id, schema_tags=None, metadata_file=None):
+def update_table_schema_from_generic(params, table_id, schema_tags=None, friendly_name_suffix=None, metadata_file=None):
     """
     Insert schema tags into generic schema (currently located in BQEcosystem repo).
     :param params: params from YAML config
     :param table_id: table_id where schema metadata should be inserted
     :param schema_tags: schema tags used to populate generic schema metadata
+    :param friendly_name_suffix: todo
     :param metadata_file: name of generic table metadata file
     """
     if schema_tags is None:
@@ -875,19 +876,25 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, metadat
     if 'RELEASE_NOTES_URL' in params:
         schema_tags['release-notes-url'] = params['RELEASE_NOTES_URL']
 
-    add_generic_table_metadata_pdc(params=params,
-                                   table_id=table_id,
-                                   schema_tags=schema_tags,
-                                   metadata_file=metadata_file)
+    add_generic_table_metadata(params=params,
+                               table_id=table_id,
+                               schema_tags=schema_tags,
+                               friendly_name_suffix=friendly_name_suffix,
+                               metadata_file=metadata_file)
     add_column_descriptions(params=params, table_id=table_id)
 
 
-def add_generic_table_metadata_pdc(params: Params, table_id: str, schema_tags: dict[str, str], metadata_file: str = None):
+def add_generic_table_metadata(params: Params,
+                               table_id: str,
+                               schema_tags: dict[str, str],
+                               friendly_name_suffix: str = None,
+                               metadata_file: str = None):
     """
     todo
     :param params: params supplied in yaml config
     :param table_id: table id for which to add the metadata
     :param schema_tags: dictionary of generic schema tag keys and values
+    :param friendly_name_suffix: todo
     :param metadata_file: todo
     """
     generic_schema_path = f"{params['BQ_REPO']}/{params['GENERIC_SCHEMA_DIR']}"
@@ -910,8 +917,8 @@ def add_generic_table_metadata_pdc(params: Params, table_id: str, schema_tags: d
 
         table_metadata = json.loads(table_schema)
 
-        if 'diagnosis' in table_id:
-            table_metadata['friendlyName'] += f" - DIAGNOSIS"
+        if friendly_name_suffix:
+            table_metadata['friendlyName'] += f" - {friendly_name_suffix}"
 
         update_table_metadata_pdc(table_id, table_metadata)
 

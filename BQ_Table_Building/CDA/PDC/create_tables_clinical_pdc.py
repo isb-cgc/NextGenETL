@@ -300,9 +300,11 @@ def main(args):
                                              metadata_file=generic_table_metadata_file)
 
             if has_diagnosis_table:
+                friendly_name_suffix = "DIAGNOSIS"
                 update_table_schema_from_generic(params=PARAMS,
                                                  table_id=diagnosis_table_id,
                                                  schema_tags=schema_tags,
+                                                 friendly_name_suffix=friendly_name_suffix,
                                                  metadata_file=generic_table_metadata_file)
 
     end_time = time.time()

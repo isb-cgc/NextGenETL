@@ -535,9 +535,6 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
 
         schema_tags = get_program_schema_tags_gdc(params=PARAMS, program_name=program_name_original)
 
-        if friendly_name_suffix:
-            schema_tags['friendly-name'] += f" - {friendly_name_suffix}"
-
         if 'program-label' in schema_tags:
             metadata_file = PARAMS['METADATA_FILE_SINGLE_PROGRAM']
         else:
@@ -546,6 +543,7 @@ def create_clinical_tables(program: str, stand_alone_tables: set[str]):
         update_table_schema_from_generic(params=PARAMS,
                                          table_id=clinical_table_id,
                                          schema_tags=schema_tags,
+                                         friendly_name_suffix=friendly_name_suffix,
                                          metadata_file=metadata_file)
 
 
