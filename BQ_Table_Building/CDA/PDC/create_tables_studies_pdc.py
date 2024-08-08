@@ -163,7 +163,7 @@ def create_study_record_list() -> list[dict[str, Optional[Any]]]:
 
         pdc_study_id = row.get('pdc_study_id')
         study_friendly_name = study_metadata_records[pdc_study_id]['study_friendly_name']
-        study_grouping = study_metadata_records[pdc_study_id]['study_grouping']
+        study_grouping_name = study_metadata_records[pdc_study_id]['study_grouping']
         project_metadata = project_metadata_records[project_submitter_id]
 
         project_short_name = project_metadata['project_short_name']
@@ -188,7 +188,7 @@ def create_study_record_list() -> list[dict[str, Optional[Any]]]:
             'pdc_study_id': row.get('pdc_study_id'),
             'study_id': row.get('study_id'),
             'study_friendly_name': study_friendly_name,
-            'study_grouping': study_grouping,
+            'study_grouping_name': study_grouping_name,
             'analytical_fraction': row.get('analytical_fraction'),
             'disease_type': disease_type,
             'primary_site': primary_site,
