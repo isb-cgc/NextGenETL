@@ -911,7 +911,7 @@ def add_generic_table_metadata_pdc(params: Params, table_id: str, schema_tags: d
         table_metadata = json.loads(table_schema)
 
         if 'diagnosis' in table_id:
-            table_metadata['friendly_name'] += f" - DIAGNOSIS"
+            table_metadata['friendlyName'] += f" - DIAGNOSIS"
 
         update_table_metadata_pdc(table_id, table_metadata)
 
