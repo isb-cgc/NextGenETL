@@ -38,7 +38,7 @@ def project_needs_supplemental_diagnosis_table(project_submitter_id: str) -> boo
     :param project_submitter_id: PDC project submitter id
     :return: True if project requires a supplemental diagnosis table; False otherwise
     """
-    def make_multiple_diagnosis_count_sql() -> str:
+    def make_multiple_diagnosis_count_query() -> str:
         return f"""
             WITH project_ids AS (
                 SELECT distinct s.project_id
@@ -60,7 +60,7 @@ def project_needs_supplemental_diagnosis_table(project_submitter_id: str) -> boo
             HAVING case_id_count > 1
         """
 
-    result = query_and_retrieve_result(make_multiple_diagnosis_count_sql())
+    result = query_and_retrieve_result(make_multiple_diagnosis_count_query())
 
     if result.total_rows == 0:
         return False
@@ -76,7 +76,7 @@ def filter_null_columns(project_dict: dict[str, str], table_type: str, columns: 
     :param columns: full column list from yaml config
     :return: list of non-null columns
     """
-    def make_count_column_sql() -> str:
+    def make_count_column_query() -> str:
         count_sql_str = ''
 
         for col in columns:
@@ -115,7 +115,7 @@ def filter_null_columns(project_dict: dict[str, str], table_type: str, columns: 
 
         return make_filter_null_columns_sql
 
-    column_count_result = query_and_retrieve_result(sql=make_count_column_sql())
+    column_count_result = query_and_retrieve_result(sql=make_count_column_query())
 
     non_null_columns = list()
 
@@ -130,7 +130,7 @@ def filter_null_columns(project_dict: dict[str, str], table_type: str, columns: 
     return non_null_columns
 
 
-def make_clinical_table_sql(project: dict[str, str], non_null_column_dict: dict[str, list[str]]) -> str:
+def make_clinical_table_query(project: dict[str, str], non_null_column_dict: dict[str, list[str]]) -> str:
     """
     Output sql used to create project clinical table
     :param project: project metadata dict
@@ -186,25 +186,7 @@ def make_clinical_table_sql(project: dict[str, str], non_null_column_dict: dict[
     """
 
 
-def make_case_study_table_sql():
-    """
-    todo
-    :return:
-    """
-    # todo create case - study mapping table
-
-    return f"""
-        SELECT cs.case_id, 
-          STRING_AGG(DISTINCT s.study_grouping_name, ";" order by s.study_grouping_name) AS study_grouping_names,
-          STRING_AGG(DISTINCT s.pdc_study_id, ";" order by s.pdc_study_id) AS pdc_study_ids
-        FROM {create_dev_table_id(PARAMS, 'case_study_id')} cs
-        JOIN {create_dev_table_id(PARAMS, 'study')} s
-          ON cs.study_id = s.study_id
-        GROUP BY cs.case_id
-    """
-
-
-def make_diagnosis_table_sql(project: dict[str], diagnosis_columns) -> str:
+def make_diagnosis_table_query(project: dict[str], diagnosis_columns) -> str:
     """
     Output sql used to create project supplemental diagnosis table.
     :param project: project metadata dict
@@ -288,7 +270,7 @@ def main(args):
                 # no cases have multiple diagnoses, so create combined clinical table
                 create_table_from_query(params=PARAMS,
                                         table_id=clinical_table_id,
-                                        query=make_clinical_table_sql(project, non_null_column_dict))
+                                        query=make_clinical_table_query(project, non_null_column_dict))
             else:
                 # case(s) in this project have multiple diagnoses, so make clinical and diagnosis tables
 
@@ -298,12 +280,12 @@ def main(args):
                 # create main clinical table
                 create_table_from_query(params=PARAMS,
                                         table_id=clinical_table_id,
-                                        query=make_clinical_table_sql(project, non_null_column_dict))
+                                        query=make_clinical_table_query(project, non_null_column_dict))
 
                 # create supplementary diagnosis table
                 create_table_from_query(PARAMS,
                                         table_id=diagnosis_table_id,
-                                        query=make_diagnosis_table_sql(project, diagnosis_columns))
+                                        query=make_diagnosis_table_query(project, diagnosis_columns))
 
             schema_tags = get_project_level_schema_tags(PARAMS, project['project_submitter_id'])
 
