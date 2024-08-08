@@ -36,7 +36,7 @@ def make_project_per_sample_file_query(project_submitter_id):
     return f"""
         WITH file_instruments AS (
             SELECT file_id, 
-                STRING_AGG(DISTINCT instrument, ';') AS instruments
+                STRING_AGG(DISTINCT instrument, ';' order by instrument) AS instruments
             FROM `{create_dev_table_id(PARAMS, 'file_instrument')}`
             GROUP BY file_id
         )

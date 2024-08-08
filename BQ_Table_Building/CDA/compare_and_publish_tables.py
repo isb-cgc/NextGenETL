@@ -231,7 +231,7 @@ def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params
     query_logger.info(duplicate_record_query)
     duplicate_record_result = query_and_retrieve_result(duplicate_record_query)
 
-    logger.warning(f"{duplicate_record_result.total_rows} records with duplicated keys detected. Examples:")
+    logger.warning(f"{duplicate_record_result.total_rows} records with duplicate keys detected. Examples:")
 
     key_list = select_key_str.split(", ")
 
@@ -1352,7 +1352,7 @@ def main(args):
                                       emit_to_console=PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'])
 
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
-        if table_type == 'quant':
+        if table_type != 'per_sample_file':
             continue
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
@@ -1368,6 +1368,8 @@ def main(args):
             table_id_list = generate_table_id_list(table_type, table_params)
 
         if 'compare_tables' in steps:
+            if table_type in ("clinical", "per_sample_file", "quant"):
+                logger.info(f"***** {table_type.upper()} *****")
             compare_tables(table_type, table_params, table_id_list)
 
         if 'publish_tables' in steps:
