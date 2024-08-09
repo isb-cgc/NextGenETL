@@ -1344,16 +1344,11 @@ def main(args):
     logger = initialize_logging(log_filepath)
     query_log_filepath = f"{PARAMS['QUERY_LOGFILE_PATH']}.{log_file_time}"
 
-    # todo remove before publishing
-    PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'] = False
-
     query_logger = initialize_logging(query_log_filepath,
                                       name='query_logger',
                                       emit_to_console=PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'])
 
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
-        if table_type != 'per_sample_file':
-            continue
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
             table_id_list = generate_metadata_table_id_list(table_params)
