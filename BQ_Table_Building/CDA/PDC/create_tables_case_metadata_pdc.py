@@ -64,6 +64,22 @@ def make_case_metadata_query() -> str:
     """
 
 
+def make_case_study_grouping_table_query():
+    """
+    Create mapping table linking case_ids to pdc_study_ids and study_grouping_names.
+    :return: sql query statement
+    """
+    return f"""
+        SELECT cs.case_id, 
+          STRING_AGG(DISTINCT s.study_grouping_name, ";" order by s.study_grouping_name) AS study_grouping_names,
+          STRING_AGG(DISTINCT s.pdc_study_id, ";" order by s.pdc_study_id) AS pdc_study_ids
+        FROM {create_dev_table_id(PARAMS, 'case_study_id')} cs
+        JOIN {create_metadata_table_id(PARAMS, 'studies')} s
+          ON cs.study_id = s.study_id
+        GROUP BY cs.case_id
+    """
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -77,14 +93,24 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    dev_table_id = create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME'])
+    dev_metadata_table_id = create_metadata_table_id(PARAMS, PARAMS['METADATA_TABLE_NAME'])
+    dev_study_grouping_table_id = create_metadata_table_id(PARAMS, PARAMS['STUDY_GROUPING_TABLE_NAME'])
 
-    if 'create_table_from_query' in steps:
-        logger.info("Entering create_table_from_query")
+    if 'create_case_metadata_table_from_query' in steps:
+        logger.info("Entering create_case_metadata_table_from_query")
 
-        create_table_from_query(params=PARAMS, table_id=dev_table_id, query=make_case_metadata_query())
+        create_table_from_query(params=PARAMS,
+                                table_id=dev_metadata_table_id,
+                                query=make_case_metadata_query())
 
-        update_table_schema_from_generic(params=PARAMS, table_id=dev_table_id)
+        update_table_schema_from_generic(params=PARAMS, table_id=dev_metadata_table_id)
+
+    if 'create_case_study_grouping_table_from_query' in steps:
+        logger.info("Entering create_case_study_grouping_table_from_query")
+
+        create_table_from_query(params=PARAMS,
+                                table_id=dev_study_grouping_table_id,
+                                query=make_case_study_grouping_table_query())
 
     end_time = time.time()
 

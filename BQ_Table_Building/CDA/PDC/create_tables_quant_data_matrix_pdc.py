@@ -177,6 +177,7 @@ def get_study_list() -> list[dict[str, str]]:
                 study_friendly_name, 
                 program_labels
             FROM  `{create_metadata_table_id(PARAMS, 'studies')}`
+            WHERE analytical_fraction = 'Proteome'
             ORDER BY pdc_study_id
         """
 
@@ -484,13 +485,14 @@ def get_quant_table_name(study: dict[str, str], is_final: bool):
     study_name = study['study_name']
     study_name = change_study_name_to_table_name_format(study_name)
     analytical_fraction = study['analytical_fraction'].lower()
+    pdc_study_id = study['pdc_study_id']
 
-    table_name = "_".join([quant_prefix, analytical_fraction, study_name, 'pdc', PARAMS['RELEASE']])
+    table_name = "_".join([pdc_study_id, quant_prefix, analytical_fraction, study_name, 'pdc', PARAMS['RELEASE']])
 
     if not is_final:
         table_name = table_name + '_raw'
 
-    # return table name in following format: quant_<analyte>_<study_name>_pdc_<version>
+    # return table name in following format: <pdc_study_id>_quant_<analyte>_<study_name>_pdc_<version>
     # if not final, append '_raw'
     return table_name
 
@@ -604,7 +606,7 @@ def make_quant_table_query(raw_table_id: str, study_id_dict: dict[str, str]) -> 
 
     if analytical_fraction == 'Proteome':
         return f"""
-            SELECT sample_case.case_id, 
+            SELECT distinct sample_case.case_id, 
                 sample_case.sample_id, 
                 sample_aliq.aliquot_id, 
                 quant.aliquot_submitter_id, 
@@ -740,18 +742,23 @@ def main(args):
         logger.info("Building gene info table!")
         gene_table_base_name = PARAMS['ENDPOINT_SETTINGS']['getPaginatedGenes']['output_name']
         gene_jsonl_filename = f"{gene_table_base_name}_{PARAMS['RELEASE']}.jsonl"
+        gene_table_id = create_metadata_table_id(PARAMS, 'gene_info')
+
+        # gene_table_id = create_metadata_table_id(params=PARAMS,
+        #                                          table_name=gene_table_base_name,
+        #                                          release=PARAMS['RELEASE'])
 
         gene_table_schema = retrieve_bq_schema_object(PARAMS, table_name=gene_table_base_name, include_release=True)
 
         create_and_load_table_from_jsonl(params=PARAMS,
                                          jsonl_file=gene_jsonl_filename,
-                                         table_id=create_metadata_table_id(PARAMS, gene_table_base_name),
+                                         table_id=gene_table_id,
                                          schema=gene_table_schema)
 
         schema_tags = get_gene_info_schema_tags(PARAMS)
 
         update_table_schema_from_generic(params=PARAMS,
-                                         table_id=create_metadata_table_id(PARAMS, gene_table_base_name),
+                                         table_id=gene_table_id,
                                          schema_tags=schema_tags,
                                          metadata_file=PARAMS['GENERIC_GENE_TABLE_METADATA_FILE'])
 
@@ -836,11 +843,12 @@ def main(args):
 
             built_table_counts[study_id_dict['analytical_fraction']] += 1
 
+        """
         logger.info("quantDataMatrix table counts per analytical fraction:")
 
         for analytical_fraction in built_table_counts.keys():
             logger.info(f" - {analytical_fraction}: {built_table_counts[analytical_fraction]}")
-
+        """
     if 'build_final_quant_tables' in steps:
         logger.info("Building final quant tables!")
 

@@ -35,6 +35,7 @@ def make_file_metadata_query() -> str:
     Make BigQuery sql statement, used to generate the file_metadata table.
     :return: sql query statement
     """
+
     return f"""
         WITH file_instruments AS (
             SELECT file_id, 
@@ -54,14 +55,16 @@ def make_file_metadata_query() -> str:
             f.file_name,
             si.pdc_study_ids,
             srm.study_run_metadata_id,
-            srm.study_run_metadata_submitter_id,
+            # these replace clauses are to circumvent formatting issues in PDC V3.8 data, 
+            # hopefully will be resolved--then they can be removed
+            REPLACE(srm.study_run_metadata_submitter_id, '\\\\t', '') AS study_run_metadata_submitter_id,
             f.file_format,
             f.file_type,
             f.data_category,
             f.file_size,
-            f.fraction_number,
+            REPLACE(f.fraction_number, '\\\\r', '') AS fraction_number,
             f.experiment_type,
-            f.plex_or_dataset_name,
+            REPLACE(f.plex_or_dataset_name, '\\\\t', '') AS plex_or_dataset_name,
             f.analyte,
             fi.instruments AS instrument,
             f.md5sum,

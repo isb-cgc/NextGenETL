@@ -542,6 +542,36 @@ def query_and_retrieve_result(sql: str) -> Union[BQQueryResult, None]:
     return query_job.result()
 
 
+def query_and_return_row_count(sql: str) -> int:
+    """
+    Create and execute a BQ QueryJob, wait for and return affected row count. Useful for updating table values.
+    :param sql: the query for which to execute and return results
+    :return: number of rows affected, or None if query fails
+    """
+    client = bigquery.Client()
+    job_config = bigquery.QueryJobConfig()
+    location = 'US'
+
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
+    # Initialize QueryJob
+    query_job = client.query(query=sql, location=location, job_config=job_config)
+
+    while query_job.state != 'DONE':
+        query_job = client.get_job(job_id=query_job.job_id, location=location)
+
+        if query_job.state != 'DONE':
+            time.sleep(3)
+
+    query_job = client.get_job(job_id=query_job.job_id, location=location)
+
+    if query_job.error_result is not None:
+        logger.warning(f"Query failed: {query_job.error_result['message']}")
+        return None
+
+    return query_job.num_dml_affected_rows
+
+
 # todo should this be in data helpers?
 def create_schema_object(column_headers: list[str], data_types_dict: dict[str, str]) -> SchemaFieldFormat:
     """
@@ -771,25 +801,37 @@ def find_most_recent_published_table_id(params, versioned_table_id):
     elif params['NODE'].lower() == 'pdc':
         # Assuming PDC will use 2-digit minor releases--they said they didn't expect this to ever become 3 digits, and
         # making 900 extraneous calls to google seems wasteful.
-        max_minor_release_num = 99
+        max_minor_release_num = 50
+        max_dot_release_num = 20
         dc_release = params['RELEASE'].replace("V", "")
         split_current_etl_release = dc_release.split("_")
         # set to current release initially, decremented in loop
         last_major_rel_num = int(split_current_etl_release[0])
         last_minor_rel_num = int(split_current_etl_release[1])
 
+        if len(split_current_etl_release) == 3:
+            last_dot_rel_num = int(split_current_etl_release[2])
+        else:
+            last_dot_rel_num = 0
+
         while True:
-            if last_minor_rel_num > 0 and last_major_rel_num >= 1:
+            if last_dot_rel_num > 0 and last_major_rel_num >= 2:
+                last_dot_rel_num -= 1
+            elif last_dot_rel_num == 0 and last_minor_rel_num > 0 and last_major_rel_num >= 2:
                 last_minor_rel_num -= 1
-            elif last_minor_rel_num == 0 and last_major_rel_num > 1:
-                # go from version (n).0 to version (n-1).99
+                last_dot_rel_num = max_dot_release_num
+            elif last_dot_rel_num == 0 and last_minor_rel_num == 0 and last_major_rel_num > 2:
                 last_major_rel_num -= 1
                 last_minor_rel_num = max_minor_release_num
+                last_dot_rel_num = max_dot_release_num
             else:
                 return None
 
             table_id_no_release = versioned_table_id.replace(f"_{params['RELEASE']}", '')
             prev_release_table_id = f"{table_id_no_release}_V{last_major_rel_num}_{last_minor_rel_num}"
+
+            if last_dot_rel_num > 0:
+                prev_release_table_id = f"{prev_release_table_id}_{last_dot_rel_num}"
 
             if exists_bq_table(prev_release_table_id):
                 # found last release table, stop iterating
@@ -800,12 +842,52 @@ def find_most_recent_published_table_id(params, versioned_table_id):
         sys.exit(-1)
 
 
-def update_table_schema_from_generic(params, table_id, schema_tags=None, metadata_file=None):
+def find_most_recent_published_refseq_table_id(params, versioned_table_id):
+    """
+    Find table id for most recent published version of UniProt dataset.
+    :param params: api_params supplied in YAML config
+    :param versioned_table_id: (future) published versioned table id for current release
+    :return: previous published versioned table id, if exists; else None
+    """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
+    # oldest uniprot release used in published dataset
+    oldest_year = 2021
+    max_month = 12
+
+    split_release = params['UNIPROT_RELEASE'].split('_')
+    last_year = int(split_release[0])
+    last_month = int(split_release[1])
+
+    while True:
+        if last_month > 1 and last_year >= oldest_year:
+            last_month -= 1
+        elif last_year > oldest_year:
+            last_year -= 1
+            last_month = max_month
+        else:
+            return None
+
+        table_id_no_release = versioned_table_id.replace(f"_{params['UNIPROT_RELEASE']}", '')
+
+        if last_month < 10:
+            last_month_str = f"0{last_month}"
+        else:
+            last_month_str = str(last_month)
+
+        prev_release_table_id = f"{table_id_no_release}_{last_year}_{last_month_str}"
+
+        if exists_bq_table(prev_release_table_id):
+            return prev_release_table_id
+
+
+def update_table_schema_from_generic(params, table_id, schema_tags=None, friendly_name_suffix=None, metadata_file=None):
     """
     Insert schema tags into generic schema (currently located in BQEcosystem repo).
     :param params: params from YAML config
     :param table_id: table_id where schema metadata should be inserted
     :param schema_tags: schema tags used to populate generic schema metadata
+    :param friendly_name_suffix: todo
     :param metadata_file: name of generic table metadata file
     """
     if schema_tags is None:
@@ -827,16 +909,22 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, metadat
     add_generic_table_metadata(params=params,
                                table_id=table_id,
                                schema_tags=schema_tags,
+                               friendly_name_suffix=friendly_name_suffix,
                                metadata_file=metadata_file)
     add_column_descriptions(params=params, table_id=table_id)
 
 
-def add_generic_table_metadata(params: Params, table_id: str, schema_tags: dict[str, str], metadata_file: str = None):
+def add_generic_table_metadata(params: Params,
+                               table_id: str,
+                               schema_tags: dict[str, str],
+                               friendly_name_suffix: str = None,
+                               metadata_file: str = None):
     """
     todo
     :param params: params supplied in yaml config
     :param table_id: table id for which to add the metadata
     :param schema_tags: dictionary of generic schema tag keys and values
+    :param friendly_name_suffix: todo
     :param metadata_file: todo
     """
     generic_schema_path = f"{params['BQ_REPO']}/{params['GENERIC_SCHEMA_DIR']}"
@@ -859,10 +947,13 @@ def add_generic_table_metadata(params: Params, table_id: str, schema_tags: dict[
 
         table_metadata = json.loads(table_schema)
 
-        update_table_metadata(table_id, table_metadata)
+        if friendly_name_suffix:
+            table_metadata['friendlyName'] += f" - {friendly_name_suffix}"
+
+        update_table_metadata_pdc(table_id, table_metadata)
 
 
-def update_table_metadata(table_id: str, metadata: dict[str, str]):
+def update_table_metadata_pdc(table_id: str, metadata: dict[str, str]):
     """
     Modify an existing BigQuery table's metadata (labels, friendly name, description) using metadata dict argument
     :param table_id: table id in standard SQL format
@@ -935,6 +1026,44 @@ def update_schema(table_id: str, new_descriptions: dict[str, str]):
     client.update_table(table, ['schema'])
 
 
+def get_pdc_per_project_dataset(params: Params, project_short_name: str) -> str:
+    def make_dataset_query():
+        return f"""
+            SELECT program_short_name
+            FROM {create_metadata_table_id(params, "studies")}
+            WHERE project_short_name = '{project_short_name}'
+            LIMIT 1
+        """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
+    dataset_result = query_and_retrieve_result(make_dataset_query())
+
+    if dataset_result is None:
+        logger.critical("No dataset found for project " + project_short_name)
+        sys.exit(-1)
+    for dataset in dataset_result:
+        return dataset[0]
+
+
+def get_pdc_per_study_dataset(params: Params, pdc_study_id: str) -> str:
+    def make_dataset_query():
+        return f"""
+            SELECT program_short_name
+            FROM {create_metadata_table_id(params, "studies")}
+            WHERE pdc_study_id = '{pdc_study_id}'
+            LIMIT 1
+        """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
+    dataset_result = query_and_retrieve_result(make_dataset_query())
+
+    if dataset_result is None:
+        logger.critical("No dataset found for study " + pdc_study_id)
+        sys.exit(-1)
+    for dataset in dataset_result:
+        return dataset[0]
+
+
 def get_pdc_projects_metadata(params: Params, project_submitter_id: str = None) -> list[dict[str, str]]:
     """
     Get project short name, program short name and project name for given project submitter id.
@@ -969,6 +1098,26 @@ def get_pdc_projects_metadata(params: Params, project_submitter_id: str = None) 
         projects_list.append(dict(project))
 
     return projects_list
+
+
+def get_most_recent_published_table_version_pdc(params: Params, dataset: str, table_filter_str: str):
+    def make_program_tables_query() -> str:
+        return f"""
+            SELECT table_name 
+            FROM `{params['PROD_PROJECT']}.{dataset}_versioned`.INFORMATION_SCHEMA.TABLES
+            WHERE table_name LIKE '%{table_filter_str}%'
+                AND table_name LIKE '%{params['NODE']}%'
+            ORDER BY creation_time DESC
+            LIMIT 1
+        """
+
+    previous_versioned_table_name_result = query_and_retrieve_result(make_program_tables_query())
+
+    if previous_versioned_table_name_result is None:
+        return None
+    for previous_versioned_table_name in previous_versioned_table_name_result:
+        table_name = previous_versioned_table_name[0]
+        return f"{params['PROD_PROJECT']}.{dataset}_versioned.{table_name}"
 
 
 def get_project_level_schema_tags(params: Params, project_submitter_id: str) -> dict[str, str]:

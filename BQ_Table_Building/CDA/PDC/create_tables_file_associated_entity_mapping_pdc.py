@@ -38,8 +38,8 @@ def make_associated_entity_query() -> str:
     return f"""
         SELECT fa.file_id,
             ac.case_id,
-            a.aliquot_id,
-            a.aliquot_submitter_id,
+            a.aliquot_id AS entity_id,
+            a.aliquot_submitter_id AS entity_submitter_id,
             "aliquot" AS entity_type
         FROM `{create_dev_table_id(PARAMS, 'file_aliquot_id')}` fa
         JOIN `{create_dev_table_id(PARAMS, 'aliquot')}` a
