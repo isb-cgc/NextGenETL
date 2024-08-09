@@ -306,10 +306,10 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
 
         success = publish_tables_and_update_schema(
             f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{draft_table}",
-            f"{params.PUBLICATION_PROJECT}.{program_mappings[program]['bq_dataset']}_versioned.{data_type}_hg38_{params.RELEASE}",
-            f"{params.PUBLICATION_PROJECT}.{program_mappings[program]['bq_dataset']}.{data_type}_hg38_current",
+            f"{params.PUBLICATION_PROJECT}.{program_mappings[program]['bq_dataset']}_versioned.{data_type}_hg38_gdc_{params.RELEASE}",
+            f"{params.PUBLICATION_PROJECT}.{program_mappings[program]['bq_dataset']}.{data_type}_hg38_gdc_current",
             params.RELEASE.replace("r", "REL"),
-            f"{data_type}_hg38")
+            f"{data_type}_hg38_gdc")
 
         if not success:
             print("Publication step did not work")
