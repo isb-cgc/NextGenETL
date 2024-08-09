@@ -16,17 +16,17 @@
 
 source ~/setEnvVars.sh
 
-export MY_VENV=~/virtualEnvETL3_9
+export MY_VENV=~/virtualEnvETL
 export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
 
 mkdir -p ~/config
 pushd ~/config > /dev/null
-gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/OpenSomaticMutBQBuild.yaml .
+gsutil cp gs://${CONFIG_BUCKET}/${CURRENT_CONFIG_PATH}/RnaSeqGexpBQBuild-bulk.yaml .
 popd > /dev/null
 
 pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 cd ..
-python3.9 ./BQ_Table_Building/build_open_somatic_mut_bq_table.py ~/config/OpenSomaticMutBQBuild.yaml
+python3.9 ./BQ_Table_Building/build_rna_seq_gexp_bq_table_bulk.py ~/config/RnaSeqGexpBQBuild-bulk.yaml
 deactivate

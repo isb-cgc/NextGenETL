@@ -24,35 +24,34 @@ reading, 187 million lines for writing.
 '''
 
 import sys
-
 import os
 import yaml
-import gzip
 import shutil
 import zipfile
 import io
-from git import Repo
 import re
 from json import loads as json_loads
 from os.path import expanduser
-from createSchemaP3 import build_schema
 from datetime import date
+from types import SimpleNamespace
 import gzip
 
 from common_etl.support import create_clean_target, pull_from_buckets, build_file_list, generic_bq_harness, \
-                               upload_to_bucket, csv_to_bq, delete_table_bq_job, \
-                               build_pull_list_with_bq, update_schema, \
-                               build_combined_schema, get_the_bq_manifest, confirm_google_vm, \
-                               generate_table_detail_files, customize_labels_and_desc, install_labels_and_desc, \
-                               publish_table, update_status_tag, compare_two_tables
+    upload_to_bucket, csv_to_bq, delete_table_bq_job, \
+    build_pull_list_with_bq, write_table_schema_with_generic, update_dir_from_git, \
+    create_schema_hold_list, get_the_bq_manifest, confirm_google_vm, \
+    update_schema_tags, qc_bq_table_metadata, publish_tables_and_update_schema, bq_table_exists
 
-'''
-----------------------------------------------------------------------------------------------
-The configuration reader. Parses the YAML configuration into dictionaries
-'''
-
+from common_etl.utils import find_types
 
 def load_config(yaml_config):
+    """
+    The configuration reader. Parses the YAML configuration into dictionaries
+    :param yaml_config: file location of the YAML configuration
+    :type yaml_config: basestring
+    :return: dictionary of configurations
+    :rtype: dict
+    """
     yaml_dict = None
     config_stream = io.StringIO(yaml_config)
     try:
@@ -61,264 +60,167 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None, None, None, None, None, None
+        return None, None
 
-    return (yaml_dict['files_and_buckets_and_tables'], yaml_dict['filters'], yaml_dict['bq_filters'],
-            yaml_dict['steps'],  yaml_dict['callers'], yaml_dict['update_schema_tables'],
-            yaml_dict['schema_tags'])
+    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps']
 
-'''
-----------------------------------------------------------------------------------------------
-Extract the TCGA Programs We Are Working With From File List
-Extract from downloaded file names instead of using a specified list.
-'''
-
-
-def build_program_list(all_files):
-    programs = set()
-    for filename in all_files:
-        info_list = file_info(filename, None)
-        programs.add(info_list[0])
-
-    return sorted(programs)
-
-
-'''
-----------------------------------------------------------------------------------------------
-Extract the Callers We Are Working With From File List
-Extract from downloaded file names, compare to expected list. Answer if they match.
-'''
-
-
-def check_caller_list(all_files, expected_callers):
-    expected_set = set(expected_callers)
-    callers = set()
-    for filename in all_files:
-        info_list = file_info(filename, None)
-        callers.add(info_list[1])
-
-    return callers == expected_set
-
-
-'''
-----------------------------------------------------------------------------------------------
-First BQ Processing: Add Aliquot IDs
-The GDC files only provide tumor and normal BAM file IDS. We need aliquots, samples, and
-associated barcodes. We get this by first attaching the aliquot IDs using the file table
-that provides aliquot UUIDs for BAM files.
-'''
-
-
-def attach_aliquot_ids(maf_table, file_table, target_dataset, dest_table, do_batch):
-    sql = attach_aliquot_ids_sql(maf_table, file_table)
+def attach_barcodes(temp_table, aliquot_table, target_dataset, dest_table, do_batch, case_table):
+    """
+    Gather and add sample information to the draft table from the aliquot table
+    :param temp_table: draft table to add the aliquot information to
+    :type temp_table: basestring
+    :param aliquot_table: metadata table id for the aliquot information
+    :type aliquot_table: basestring
+    :param target_dataset: dataset id for the new table
+    :type target_dataset: basestring
+    :param dest_table: table id for the new table
+    :type dest_table: basestring
+    :param do_batch: If the BQ job should be run in batch mode
+    :type do_batch: bool
+    :param case_table: metadata table id for the case information
+    :type case_table: basestring
+    :return: if the SQL query worked
+    :rtype: bool
+    """
+    sql = attach_barcodes_sql(temp_table, aliquot_table, case_table)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
-
-'''
-----------------------------------------------------------------------------------------------
-SQL for above
-'''
-
-
-def attach_aliquot_ids_sql(maf_table, file_table):
-    return '''
+def attach_barcodes_sql(maf_table, aliquot_table, case_table):
+    """
+    SQL for the attach_barcodes function
+    :param maf_table: table id for the draft maf table
+    :type maf_table: basestring
+    :param aliquot_table: table id for the aliquot table
+    :type aliquot_table: basestring
+    :param case_table: table id for the case table
+    :type case_table: basestring
+    :return: Formatted string SQL query
+    :rtype: basestring
+    """
+    return f"""
         WITH
-        a1 AS (SELECT DISTINCT tumor_bam_uuid, normal_bam_uuid FROM `{0}`),        
-        a2 AS (SELECT b.associated_entities__entity_gdc_id AS aliquot_gdc_id_tumor,
-                      a1.tumor_bam_uuid,
-                      a1.normal_bam_uuid
-               FROM a1 JOIN `{1}` AS b ON a1.tumor_bam_uuid = b.file_gdc_id
-               WHERE b.associated_entities__entity_type = 'aliquot')
-        SELECT 
-               c.project_short_name,
-               c.case_gdc_id,
-               c.associated_entities__entity_gdc_id AS aliquot_gdc_id_normal,
+        a1 AS (SELECT b.project_id AS project_short_name,
+                      a.case_id AS case_gdc_id,
+                      b.aliquot_barcode AS aliquot_barcode_tumor,
+                      b.sample_barcode AS sample_barcode_tumor,
+                      a.Tumor_Aliquot_UUID AS aliquot_gdc_id_tumor,
+                      a.Matched_Norm_Aliquot_UUID AS aliquot_gdc_id_normal,
+                      a.Start_Position,
+          a.Chromosome
+            FROM
+              `{maf_table}` AS a JOIN `{aliquot_table}` AS b ON a.Tumor_Aliquot_UUID = b.aliquot_gdc_id),
+        a2 AS (SELECT a1.project_short_name,
+                      c.case_barcode,
+                      a1.sample_barcode_tumor,
+                      c.sample_barcode AS sample_barcode_normal,
+                      a1.aliquot_barcode_tumor,
+                      c.aliquot_barcode AS aliquot_barcode_normal,
+                      a1.aliquot_gdc_id_tumor,
+                      a1.Start_Position, 
+          a1.Chromosome
+            FROM a1 JOIN `{aliquot_table}` AS c ON a1.aliquot_gdc_id_normal = c.aliquot_gdc_id
+            WHERE c.case_gdc_id = a1.case_gdc_id)
+        SELECT a2.project_short_name,
+               a2.case_barcode,
+               d.primary_site,
+               a2.sample_barcode_tumor,
+               a2.sample_barcode_normal,
+               a2.aliquot_barcode_tumor,
+               a2.aliquot_barcode_normal,
                a2.aliquot_gdc_id_tumor,
-               a2.tumor_bam_uuid,
-               a2.normal_bam_uuid
-        FROM a2 JOIN `{1}` AS c ON a2.normal_bam_uuid = c.file_gdc_id
-        WHERE c.associated_entities__entity_type = 'aliquot'
-        '''.format(maf_table, file_table)
+               a2.Start_Position, 
+       a2.Chromosome
+        FROM a2 JOIN `{case_table}` AS d ON a2.case_barcode = d.case_barcode
+    """
 
-
-'''
-----------------------------------------------------------------------------------------------
-Second BQ Processing: Add Barcodes
-With the aliquot UUIDs known, we can now use the aliquot table to glue in sample info
-'''
-
-
-def attach_barcodes(temp_table, aliquot_table, target_dataset, dest_table, do_batch, program, case_table):
-    sql = attach_barcodes_sql(temp_table, aliquot_table, program, case_table)
+def barcode_raw_table_merge(maf_table, barcode_table, target_dataset, dest_table, do_batch):
+    """
+    Glue the New Info to the Raw Data Table
+    :param maf_table: table id for the draft maf table
+    :type maf_table: basestring
+    :param barcode_table: table id for the barcode table
+    :type barcode_table: basestring
+    :param target_dataset: dataset id for the new table
+    :type target_dataset: basestring
+    :param dest_table: table id for the new table
+    :type dest_table: basestring
+    :param do_batch: If the BQ job should be run in batch mode
+    :type do_batch: bool
+    :return: if the SQL query worked
+    :rtype: bool
+    """
+    sql = final_join_sql(maf_table, barcode_table)
     return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
 
+def final_join_sql(maf_table, barcode_table):
+    """
+    SQL string for the barcode_raw_table_merge
+    :param maf_table: table id for the draft maf table
+    :type maf_table: basestring
+    :param barcode_table: table id for the barcode table
+    :type barcode_table: basestring
+    :return: Formatted string SQL query
+    :rtype: basestring
+    """
+    return f"""
+         SELECT a.project_short_name,
+                a.case_barcode,
+                a.primary_site,
+                b.*,
+                a.sample_barcode_tumor,
+                a.sample_barcode_normal,
+                a.aliquot_barcode_tumor, 
+                a.aliquot_barcode_normal,
+         FROM `{barcode_table}` as a JOIN `{maf_table}` as b 
+         ON a.aliquot_gdc_id_tumor = b.Tumor_Aliquot_UUID AND a.Start_Position = b.Start_Position AND a.Chromosome = b.Chromosome
+    """
 
-'''
-----------------------------------------------------------------------------------------------
-SQL for above
-'''
-
-
-def attach_barcodes_sql(maf_table, aliquot_table, program, case_table):
-    if program == 'TCGA':
-        return '''
-            WITH
-            a1 AS (SELECT a.project_short_name,
-                          a.case_gdc_id,
-                          b.aliquot_barcode AS aliquot_barcode_tumor,
-                          b.sample_barcode AS sample_barcode_tumor,
-                          a.aliquot_gdc_id_tumor,
-                          a.aliquot_gdc_id_normal,
-                          a.tumor_bam_uuid,
-                          a.normal_bam_uuid
-                   FROM `{0}` AS a JOIN `{1}` AS b ON a.aliquot_gdc_id_tumor = b.aliquot_gdc_id)
-            SELECT a1.project_short_name,
-                   c.case_barcode,
-                   a1.sample_barcode_tumor,
-                   c.sample_barcode AS sample_barcode_normal,
-                   a1.aliquot_barcode_tumor, 
-                   c.aliquot_barcode AS aliquot_barcode_normal,
-                   a1.tumor_bam_uuid,
-                   a1.normal_bam_uuid
-            FROM a1 JOIN `{1}` AS c ON a1.aliquot_gdc_id_normal = c.aliquot_gdc_id
-            WHERE c.case_gdc_id = a1.case_gdc_id
-            '''.format(maf_table, aliquot_table)
-    else:
-        return '''
-            WITH
-            a1 AS (SELECT b.project_id AS project_short_name,
-                          a.case_id AS case_gdc_id,
-                          b.aliquot_barcode AS aliquot_barcode_tumor,
-                          b.sample_barcode AS sample_barcode_tumor,
-                          a.Tumor_Aliquot_UUID AS aliquot_gdc_id_tumor,
-                          a.Matched_Norm_Aliquot_UUID AS aliquot_gdc_id_normal,
-                          a.Start_Position,
-			  a.Chromosome
-                FROM
-                  `{0}` AS a JOIN `{1}` AS b ON a.Tumor_Aliquot_UUID = b.aliquot_gdc_id),
-            a2 AS (SELECT a1.project_short_name,
-                          c.case_barcode,
-                          a1.sample_barcode_tumor,
-                          c.sample_barcode AS sample_barcode_normal,
-                          a1.aliquot_barcode_tumor,
-                          c.aliquot_barcode AS aliquot_barcode_normal,
-                          a1.aliquot_gdc_id_tumor,
-                          a1.Start_Position, 
-			  a1.Chromosome
-                FROM a1 JOIN `{1}` AS c ON a1.aliquot_gdc_id_normal = c.aliquot_gdc_id
-                WHERE c.case_gdc_id = a1.case_gdc_id)
-            SELECT a2.project_short_name,
-                   a2.case_barcode,
-                   d.primary_site,
-                   a2.sample_barcode_tumor,
-                   a2.sample_barcode_normal,
-                   a2.aliquot_barcode_tumor,
-                   a2.aliquot_barcode_normal,
-                   a2.aliquot_gdc_id_tumor,
-                   a2.Start_Position, 
-		   a2.Chromosome
-            FROM a2 JOIN `{2}` AS d ON a2.case_barcode = d.case_barcode
-        '''.format(maf_table, aliquot_table, case_table)
-
-
-'''
-----------------------------------------------------------------------------------------------
-Final BQ Step: Glue the New Info to the Original Table
-All the new info we have pulled together goes in the first columns of the final table
-'''
-
-
-def final_merge(maf_table, barcode_table, target_dataset, dest_table, do_batch, program):
-    sql = final_join_sql(maf_table, barcode_table, program)
-    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
-
-
-'''
-----------------------------------------------------------------------------------------------
-SQL for above
-'''
-
-
-def final_join_sql(maf_table, barcodes_table, program):
-    if program == 'TCGA':
-        return '''
-             SELECT a.project_short_name,
-                    a.case_barcode,
-                    b.*,
-                    a.sample_barcode_tumor,
-                    a.sample_barcode_normal,
-                    a.aliquot_barcode_tumor, 
-                    a.aliquot_barcode_normal,
-             FROM `{0}` as a JOIN `{1}` as b ON a.tumor_bam_uuid = b.tumor_bam_uuid
-        '''.format(barcodes_table, maf_table)
-    else:
-        return '''
-             SELECT a.project_short_name,
-                    a.case_barcode,
-                    a.primary_site,
-                    b.*,
-                    a.sample_barcode_tumor,
-                    a.sample_barcode_normal,
-                    a.aliquot_barcode_tumor, 
-                    a.aliquot_barcode_normal,
-             FROM `{0}` as a JOIN `{1}` as b 
-             ON a.aliquot_gdc_id_tumor = b.Tumor_Aliquot_UUID AND a.Start_Position = b.Start_Position AND a.Chromosome = b.Chromosome
-        '''.format(barcodes_table, maf_table)
-
-
-'''
-----------------------------------------------------------------------------------------------
-file_info() function Author: Sheila Reynolds
-File name includes important information, e.g. the program name and the caller. Extract that
-out along with name and ID.
-'''
-
-
-def file_info(aFile, program):
-    norm_path = os.path.normpath(aFile)
+def file_info(filepath):
+    """
+    file_info() function Author: Sheila Reynolds
+    File name includes important information, e.g. the program name and the caller. Extract that
+    out along with name and ID.
+    :param filepath:
+    :type filepath:
+    :return: the file UUID
+    :rtype: basestring
+    """
+    norm_path = os.path.normpath(filepath)
     path_pieces = norm_path.split(os.sep)
+    file_uuid = path_pieces[-2]
 
-    if program == 'TCGA':
-        file_name = path_pieces[-1]
-        file_name_parts = file_name.split('.')
-        callerName = file_name_parts[2]
-        fileUUID = file_name_parts[3]
-    else:
-        fileUUID = path_pieces[-2]
-        callerName = None
+    return file_uuid
 
-    return ([callerName, fileUUID])
+def clean_header_names(header_list, fields_to_fix):
+    """
+    Change header names based on the list in yaml configuration file
+    :param header_list: List of headers
+    :type header_list: list
+    :param fields_to_fix: List of dictionaries of fields to fix
+    :type fields_to_fix: list
+    :return: Updated header list
+    :rtype: list
+    """
+    for header_name in range(len(header_list)):
+        for dict in fields_to_fix:
+            original, new = next(iter(dict.items()))
 
+            if header_list[header_name] == original:
+                header_list[header_name] = new
 
-'''
-------------------------------------------------------------------------------
-Clean header field names
-Some field names are not accurately named and as of 2020-08-05, the GDC has said they will not be updated. We decided to 
-update the field names to accurately reflect the data within th column.
-'''
-
-
-def clean_header_names(header_line, fields_to_fix, program):
-    header_id = header_line.split('\t')
-    if program != 'TCGA':
-        for header_name in range(len(header_id)):
-            for dict in fields_to_fix:
-                original, new = next(iter(dict.items()))
-
-                if header_id[header_name] == original:
-                    header_id[header_name] = new
-
-    return header_id
-
-
-'''
-------------------------------------------------------------------------------
-Separate the Callers into their own columns
-The non-TCGA maf files has one column with a semicolon deliminated 
-'''
-
+    return header_list
 
 def process_callers(callers_str, callers):
+    """
+    Separate the Callers into their own columns
+    The maf files has one column with a semicolon delimited with the callers in it.
+    :param callers_str: string of callers from raw file
+    :type callers_str: basestring
+    :param callers: list of callers from yaml file
+    :type callers: list
+    :return: list of callers in the raw file
+    :rtype: list
+    """
     line_callers = callers_str.rstrip('\n').split(';')
     caller_list = dict.fromkeys(callers, 'No')
     for caller in line_callers:
@@ -330,14 +232,7 @@ def process_callers(callers_str, callers):
                 caller_list[caller] = 'Yes'
     return caller_list
 
-
-'''
-------------------------------------------------------------------------------
-Concatenate all Files
-'''
-
-
-def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
+def concat_all_files(all_files, one_big_tsv, callers, fields_to_fix):
     """
     Concatenate all Files
     Gather up all files and glue them into one big one. The file name and path often include features
@@ -345,24 +240,32 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
     the file path. Note if file is zipped,
     we unzip it, concat it, then toss the unzipped version.
     THIS VERSION OF THE FUNCTION USES THE FIRST LINE OF THE FIRST FILE TO BUILD THE HEADER LINE!
+    :param all_files: list of file paths
+    :type all_files: list
+    :param one_big_tsv: name of file to create
+    :type one_big_tsv: basestring
+    :param callers: list of callers
+    :type callers: list
+    :param fields_to_fix: list of fixed fields
+    :type fields_to_fix: list
     """
-    print("building {}".format(one_big_tsv))
+    print(f"building {one_big_tsv}")
     first = True
     header_id = None
+    caller_field_index = 0
     with open(one_big_tsv, 'w') as outfile:
         for filename in all_files:
             toss_zip = False
             if filename.endswith('.zip'):
                 dir_name = os.path.dirname(filename)
-                print("Unzipping {}".format(filename))
+                print(f"Unzipping {filename}")
                 with zipfile.ZipFile(filename, "r") as zip_ref:
                     zip_ref.extractall(dir_name)
                 use_file_name = filename[:-4]
                 toss_zip = True
             elif filename.endswith('.gz'):
-                dir_name = os.path.dirname(filename)
                 use_file_name = filename[:-3]
-                print("Uncompressing {}".format(filename))
+                print(f"Uncompressing {filename}")
                 with gzip.open(filename, "rb") as gzip_in:
                     with open(use_file_name, "wb") as uncomp_out:
                         shutil.copyfileobj(gzip_in, uncomp_out)
@@ -370,325 +273,408 @@ def concat_all_files(all_files, one_big_tsv, program, callers, fields_to_fix):
             else:
                 use_file_name = filename
             with open(use_file_name, 'r') as readfile:
-                callerName, fileUUID = file_info(use_file_name, program)
+                file_uuid = file_info(use_file_name)
                 for line in readfile:
-                    # Seeing comments in MAF files.
+                    # Bypass comments in MAF file
                     if not line.startswith('#'):
                         if first:
-                            header_id = line.split('\t')[0]
-                            header_names = clean_header_names(line, fields_to_fix, program)
+                            header_list = line.rstrip('\n').split('\t')
+                            header_id = header_list[0]
+                            header_names = clean_header_names(header_list, fields_to_fix)
+                            caller_field_index = header_names.index('callers')
                             header_line = '\t'.join(header_names)
-                            outfile.write(header_line.rstrip('\n'))
+                            outfile.write(header_line)
                             outfile.write('\t')
                             outfile.write('file_gdc_id')
-                            if program == "TCGA":
+                            for field in callers:
                                 outfile.write('\t')
-                                outfile.write('caller')
-                            else:
-                                for field in callers:
-                                    outfile.write('\t')
-                                    outfile.write(field)
+                                outfile.write(field)
                             outfile.write('\n')
                             first = False
                         if not line.startswith(header_id):
                             outfile.write(line.rstrip('\n'))
                             outfile.write('\t')
-                            outfile.write(fileUUID)
-                            if program == "TCGA":
+                            outfile.write(file_uuid)
+                            caller_data = process_callers(line.rstrip('\n').split('\t')[caller_field_index], callers)
+                            for caller in callers:
                                 outfile.write('\t')
-                                outfile.write(callerName)
-                            else:
-                                caller_field = line.split('\t')[124]
-                                caller_data = process_callers(caller_field, callers)
-                                for caller in callers:
-                                    outfile.write('\t')
-                                    outfile.write(caller_data[caller])
+                                outfile.write(caller_data[caller])
                             outfile.write('\n')
                 if toss_zip:
                     os.remove(use_file_name)
-		
-def merge_samples_by_aliquot(input_table, output_table, target_dataset, do_batch):
-    sql = merge_samples_by_aliquot_sql(input_table)
+
+
+def merge_samples_by_aliquot(input_table, output_table, target_dataset, callers, do_batch):
+    """
+    Some samples are pooled and their lines need to be merged by aliquot
+    :param input_table: table to merge samples
+    :type input_table: basestring
+    :param output_table: name of new table
+    :type output_table: basestring
+    :param target_dataset: dataset for the new table
+    :type target_dataset: basestring
+    :param callers: list of callers
+    :type callers: list
+    :param do_batch: If the BQ job should be run in batch mode
+    :type do_batch: bool
+    :return: if the SQL query worked
+    :rtype: bool
+    """
+    sql = merge_samples_by_aliquot_sql(input_table, callers)
     return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
 
-def merge_samples_by_aliquot_sql(input_table):
-    return '''
+
+def merge_samples_by_aliquot_sql(input_table, callers):
+    """
+    SQL for merge_samples_by_aliquot
+    :param input_table: table to merge samples
+    :type input_table: basestring
+    :param callers: list of callers
+    :type callers: list
+    :return: formatted SQL string
+    :rtype: basestring
+    """
+    joined_callers = ", ".join(callers)
+
+    return f"""
     SELECT 
-        project_short_name, 
-       case_barcode, 
-       primary_site, 
-       Hugo_Symbol, 
-       Entrez_Gene_Id, 
-       Center, 
-       NCBI_Build, 
-       Chromosome, 
-       Start_Position, 
-       End_Position, 
-       Strand, 
-       Variant_Classification, 
-       Variant_Type,
-       Reference_Allele, 
-       Tumor_Seq_Allele1, 
-       Tumor_Seq_Allele2, 
-       dbSNP_RS, 
-       dbSNP_Val_Status, 
-       Tumor_Aliquot_Barcode, 
-       Matched_Norm_Aliquot_Barcode, 
-       Match_Norm_Seq_Allele1, 
-       Match_Norm_Seq_Allele2, 
-       Tumor_Validation_Allele1, 
-       Tumor_Validation_Allele2, 
-       Match_Norm_Validation_Allele1, 
-       Match_Norm_Validation_Allele2, 
-       Verification_Status, 
-       Validation_Status, 
-       Mutation_Status, 
-       Sequencing_Phase, 
-       Sequence_Source, 
-       Validation_Method, 
-       Score, 
-       BAM_File, 
-       Sequencer, 
-       Tumor_Aliquot_UUID, 
-       Matched_Norm_Aliquot_UUID, 
-       HGVSc, 
-       HGVSp, 
-       HGVSp_Short, 
-       Transcript_ID, 
-       Exon_Number, 
-       t_depth, 
-       t_ref_count, 
-       t_alt_count,
-       n_depth, 
-       n_ref_count, 
-       n_alt_count, 
-       all_effects, 
-       Allele, 
-       Gene, 
-       Feature, 
-       Feature_type, 
-       One_Consequence, 
-       Consequence, 
-       cDNA_position, 
-       CDS_position, 
-       Protein_position, 
-       Amino_acids, 
-       Codons, 
-       Existing_variation,
-       DISTANCE, 
-       TRANSCRIPT_STRAND, 
-       SYMBOL, 
-       SYMBOL_SOURCE, 
-       HGNC_ID, 
-       BIOTYPE, 
-       CANONICAL, 
-       CCDS, 
-       ENSP, 
-       SWISSPROT, 
-       TREMBL, 
-       UNIPARC, 
-       RefSeq, 
-       SIFT, 
-       PolyPhen, 
-       EXON, 
-       INTRON, 
-       DOMAINS, 
-       GMAF, 
-       AFR_MAF, 
-       AMR_MAF, 
-       ASN_MAF,
-       EAS_MAF, 
-       EUR_MAF, 
-       SAS_MAF, 
-       AA_MAF, 
-       EA_MAF, 
-       CLIN_SIG, 
-       SOMATIC, 
-       PUBMED, 
-       MOTIF_NAME, 
-       MOTIF_POS, 
-       HIGH_INF_POS, 
-       MOTIF_SCORE_CHANGE, 
-       IMPACT, 
-       PICK, 
-       VARIANT_CLASS, 
-       TSL, 
-       HGVS_OFFSET, 
-       PHENO, 
-       ExAC_AF, 
-       ExAC_AF_Adj,
-       ExAC_AF_AFR, 
-       ExAC_AF_AMR, 
-       ExAC_AF_EAS, 
-       ExAC_AF_FIN, 
-       ExAC_AF_NFE, 
-       ExAC_AF_OTH, 
-       ExAC_AF_SAS, 
-       nontcga_ExAC_AF, 
-       nontcga_ExAC_AF_Adj, 
-       nontcga_ExAC_AF_AFR, 
-       nontcga_ExAC_AF_AMR, 
-       nontcga_ExAC_AF_EAS,
-       nontcga_ExAC_AF_FIN, 
-       nontcga_ExAC_AF_NFE, 
-       nontcga_ExAC_AF_OTH, 
-       nontcga_ExAC_AF_SAS, 
-       GENE_PHENO, CONTEXT, 
-       tumor_submitter_uuid, 
-       normal_submitter_uuid,
-       case_id, 
-       GDC_FILTER, 
-       COSMIC, 
-       hotspot, 
-       callers,
-       file_gdc_id, 
-       muse, 
-       mutect2, 
-       pindel, 
-       somaticsniper, 
-       varscan2, 
-       string_agg(distinct sample_barcode_tumor, ';') as sample_barcode_tumor, 
-       string_agg(distinct sample_barcode_normal, ';') as sample_barcode_normal, 
-       aliquot_barcode_tumor, 
-       aliquot_barcode_normal
+        project_short_name,
+        case_barcode,
+        primary_site,
+        Hugo_Symbol,
+        Entrez_Gene_Id,
+        Center,
+        NCBI_Build,
+        Chromosome,
+        Start_Position,
+        End_Position,
+        Strand,
+        Variant_Classification,
+        Variant_Type,
+        Reference_Allele,
+        Tumor_Seq_Allele1,
+        Tumor_Seq_Allele2,
+        dbSNP_RS,
+        dbSNP_Val_Status,
+        Tumor_Aliquot_Barcode,
+        Matched_Norm_Aliquot_Barcode,
+        Match_Norm_Seq_Allele1,
+        Match_Norm_Seq_Allele2,
+        Tumor_Validation_Allele1,
+        Tumor_Validation_Allele2,
+        Match_Norm_Validation_Allele1,
+        Match_Norm_Validation_Allele2,
+        Verification_Status,
+        Validation_Status,
+        Mutation_Status,
+        Sequencing_Phase,
+        Sequence_Source,
+        Validation_Method,
+        Score,
+        BAM_File,
+        Sequencer,
+        Tumor_Aliquot_UUID,
+        Matched_Norm_Aliquot_UUID,
+        HGVSc,
+        HGVSp,
+        HGVSp_Short,
+        Transcript_ID,
+        Exon_Number,
+        t_depth,
+        t_ref_count,
+        t_alt_count,
+        n_depth,
+        n_ref_count,
+        n_alt_count,
+        all_effects,
+        Allele,
+        Gene,
+        Feature,
+        Feature_type,
+        One_Consequence,
+        Consequence,
+        cDNA_position,
+        CDS_position,
+        Protein_position,
+        Amino_acids,
+        Codons,
+        Existing_variation,
+        DISTANCE,
+        TRANSCRIPT_STRAND,
+        SYMBOL,
+        SYMBOL_SOURCE,
+        HGNC_ID,
+        BIOTYPE,
+        CANONICAL,
+        CCDS,
+        ENSP,
+        SWISSPROT,
+        TREMBL,
+        UNIPARC,
+        UNIPROT_ISOFORM,
+        RefSeq,
+        MANE,
+        APPRIS,
+        FLAGS,
+        SIFT,
+        PolyPhen,
+        EXON,
+        INTRON,
+        DOMAINS,
+        ThousG_AF,
+        ThousG_AFR_AF,
+        ThousG_AMR_AF,
+        ThousG_EAS_AF,
+        ThousG_EUR_AF,
+        ThousG_SAS_AF,
+        ESP_AA_AF,
+        ESP_EA_AF,
+        gnomAD_AF,
+        gnomAD_AFR_AF,
+        gnomAD_AMR_AF,
+        gnomAD_ASJ_AF,
+        gnomAD_EAS_AF,
+        gnomAD_FIN_AF,
+        gnomAD_NFE_AF,
+        gnomAD_OTH_AF,
+        gnomAD_SAS_AF,
+        MAX_AF,
+        MAX_AF_POPS,
+        gnomAD_non_cancer_AF,
+        gnomAD_non_cancer_AFR_AF,
+        gnomAD_non_cancer_AMI_AF,
+        gnomAD_non_cancer_AMR_AF,
+        gnomAD_non_cancer_ASJ_AF,
+        gnomAD_non_cancer_EAS_AF,
+        gnomAD_non_cancer_FIN_AF,
+        gnomAD_non_cancer_MID_AF,
+        gnomAD_non_cancer_NFE_AF,
+        gnomAD_non_cancer_OTH_AF,
+        gnomAD_non_cancer_SAS_AF,
+        gnomAD_non_cancer_MAX_AF_adj,
+        gnomAD_non_cancer_MAX_AF_POPS_adj,
+        CLIN_SIG,
+        SOMATIC,
+        PUBMED,
+        TRANSCRIPTION_FACTORS,
+        MOTIF_NAME,
+        MOTIF_POS,
+        HIGH_INF_POS,
+        MOTIF_SCORE_CHANGE,
+        miRNA,
+        IMPACT,
+        PICK,
+        VARIANT_CLASS,
+        TSL,
+        HGVS_OFFSET,
+        PHENO,
+        GENE_PHENO,
+        CONTEXT,
+        tumor_submitter_uuid,
+        normal_submitter_uuid,
+        case_id,
+        GDC_FILTER,
+        COSMIC,
+        hotspot,
+        RNA_Support,
+        RNA_depth,
+        RNA_ref_count,
+        RNA_alt_count,
+        callers,
+        file_gdc_id,
+        {joined_callers},
+        string_agg(distinct sample_barcode_tumor, ';') as sample_barcode_tumor, 
+        string_agg(distinct sample_barcode_normal, ';') as sample_barcode_normal, 
+        aliquot_barcode_tumor, 
+        aliquot_barcode_normal
     FROM 
-        `{0}`
+        `{input_table}`
     group by 
-        project_short_name, 
-         case_barcode, 
-         primary_site, 
-         Hugo_Symbol, 
-         Entrez_Gene_Id, 
-         Center, 
-         NCBI_Build, 
-         Chromosome, 
-         Start_Position, 
-         End_Position, 
-         Strand, 
-         Variant_Classification, 
-         Variant_Type,
-         Reference_Allele, 
-         Tumor_Seq_Allele1, 
-         Tumor_Seq_Allele2, 
-         dbSNP_RS, 
-         dbSNP_Val_Status, 
-         Tumor_Aliquot_Barcode, 
-         Matched_Norm_Aliquot_Barcode, 
-         Match_Norm_Seq_Allele1, 
-         Match_Norm_Seq_Allele2, 
-         Tumor_Validation_Allele1, 
-         Tumor_Validation_Allele2, 
-         Match_Norm_Validation_Allele1, 
-         Match_Norm_Validation_Allele2, 
-         Verification_Status, 
-         Validation_Status, 
-         Mutation_Status, 
-         Sequencing_Phase, 
-         Sequence_Source, 
-         Validation_Method, 
-         Score, 
-         BAM_File, 
-         Sequencer, 
-         Tumor_Aliquot_UUID, 
-         Matched_Norm_Aliquot_UUID, 
-         HGVSc, 
-         HGVSp, 
-         HGVSp_Short, 
-         Transcript_ID, 
-         Exon_Number, 
-         t_depth, 
-         t_ref_count, 
-         t_alt_count, 
-         n_depth, 
-         n_ref_count, 
-         n_alt_count, 
-         all_effects, 
-         Allele, 
-         Gene, 
-         Feature, 
-         Feature_type, 
-         One_Consequence, 
-         Consequence, 
-         cDNA_position, 
-         CDS_position, 
-         Protein_position, 
-         Amino_acids, 
-         Codons, 
-         Existing_variation, 
-         DISTANCE, 
-         TRANSCRIPT_STRAND, 
-         SYMBOL, 
-         SYMBOL_SOURCE, 
-         HGNC_ID, 
-         BIOTYPE, 
-         CANONICAL, 
-         CCDS, 
-         ENSP, 
-         SWISSPROT, 
-         TREMBL, 
-         UNIPARC, 
-         RefSeq, 
-         SIFT, 
-         PolyPhen, 
-         EXON, 
-         INTRON, 
-         DOMAINS, 
-         GMAF, 
-         AFR_MAF, 
-         AMR_MAF, 
-         ASN_MAF, 
-         EAS_MAF, 
-         EUR_MAF, 
-         SAS_MAF, 
-         AA_MAF, 
-         EA_MAF, 
-         CLIN_SIG, 
-         SOMATIC, 
-         PUBMED, 
-         MOTIF_NAME, 
-         MOTIF_POS, 
-         HIGH_INF_POS, 
-         MOTIF_SCORE_CHANGE, 
-         IMPACT, 
-         PICK, 
-         VARIANT_CLASS, 
-         TSL, 
-         HGVS_OFFSET, 
-         PHENO, 
-         ExAC_AF, 
-         ExAC_AF_Adj, 
-         ExAC_AF_AFR, 
-         ExAC_AF_AMR, 
-         ExAC_AF_EAS, 
-         ExAC_AF_FIN, 
-         ExAC_AF_NFE, 
-         ExAC_AF_OTH, 
-         ExAC_AF_SAS, 
-         nontcga_ExAC_AF, 
-         nontcga_ExAC_AF_Adj, 
-         nontcga_ExAC_AF_AFR, 
-         nontcga_ExAC_AF_AMR, 
-         nontcga_ExAC_AF_EAS, 
-         nontcga_ExAC_AF_FIN, 
-         nontcga_ExAC_AF_NFE, 
-         nontcga_ExAC_AF_OTH, 
-         nontcga_ExAC_AF_SAS, 
-         GENE_PHENO, CONTEXT,
-         case_id, 
-         tumor_submitter_uuid, 
-         normal_submitter_uuid,
-         GDC_FILTER, 
-         COSMIC, 
-         hotspot, 
-         callers, 
-         file_gdc_id, 
-         muse, 
-         mutect2, 
-         pindel, 
-         somaticsniper, 
-         varscan2,  
-         aliquot_barcode_tumor, 
-         aliquot_barcode_normal'''.format(input_table)			
+        project_short_name,
+        case_barcode,
+        primary_site,
+        Hugo_Symbol,
+        Entrez_Gene_Id,
+        Center,
+        NCBI_Build,
+        Chromosome,
+        Start_Position,
+        End_Position,
+        Strand,
+        Variant_Classification,
+        Variant_Type,
+        Reference_Allele,
+        Tumor_Seq_Allele1,
+        Tumor_Seq_Allele2,
+        dbSNP_RS,
+        dbSNP_Val_Status,
+        Tumor_Aliquot_Barcode,
+        Matched_Norm_Aliquot_Barcode,
+        Match_Norm_Seq_Allele1,
+        Match_Norm_Seq_Allele2,
+        Tumor_Validation_Allele1,
+        Tumor_Validation_Allele2,
+        Match_Norm_Validation_Allele1,
+        Match_Norm_Validation_Allele2,
+        Verification_Status,
+        Validation_Status,
+        Mutation_Status,
+        Sequencing_Phase,
+        Sequence_Source,
+        Validation_Method,
+        Score,
+        BAM_File,
+        Sequencer,
+        Tumor_Aliquot_UUID,
+        Matched_Norm_Aliquot_UUID,
+        HGVSc,
+        HGVSp,
+        HGVSp_Short,
+        Transcript_ID,
+        Exon_Number,
+        t_depth,
+        t_ref_count,
+        t_alt_count,
+        n_depth,
+        n_ref_count,
+        n_alt_count,
+        all_effects,
+        Allele,
+        Gene,
+        Feature,
+        Feature_type,
+        One_Consequence,
+        Consequence,
+        cDNA_position,
+        CDS_position,
+        Protein_position,
+        Amino_acids,
+        Codons,
+        Existing_variation,
+        DISTANCE,
+        TRANSCRIPT_STRAND,
+        SYMBOL,
+        SYMBOL_SOURCE,
+        HGNC_ID,
+        BIOTYPE,
+        CANONICAL,
+        CCDS,
+        ENSP,
+        SWISSPROT,
+        TREMBL,
+        UNIPARC,
+        UNIPROT_ISOFORM,
+        RefSeq,
+        MANE,
+        APPRIS,
+        FLAGS,
+        SIFT,
+        PolyPhen,
+        EXON,
+        INTRON,
+        DOMAINS,
+        ThousG_AF,
+        ThousG_AFR_AF,
+        ThousG_AMR_AF,
+        ThousG_EAS_AF,
+        ThousG_EUR_AF,
+        ThousG_SAS_AF,
+        ESP_AA_AF,
+        ESP_EA_AF,
+        gnomAD_AF,
+        gnomAD_AFR_AF,
+        gnomAD_AMR_AF,
+        gnomAD_ASJ_AF,
+        gnomAD_EAS_AF,
+        gnomAD_FIN_AF,
+        gnomAD_NFE_AF,
+        gnomAD_OTH_AF,
+        gnomAD_SAS_AF,
+        MAX_AF,
+        MAX_AF_POPS,
+        gnomAD_non_cancer_AF,
+        gnomAD_non_cancer_AFR_AF,
+        gnomAD_non_cancer_AMI_AF,
+        gnomAD_non_cancer_AMR_AF,
+        gnomAD_non_cancer_ASJ_AF,
+        gnomAD_non_cancer_EAS_AF,
+        gnomAD_non_cancer_FIN_AF,
+        gnomAD_non_cancer_MID_AF,
+        gnomAD_non_cancer_NFE_AF,
+        gnomAD_non_cancer_OTH_AF,
+        gnomAD_non_cancer_SAS_AF,
+        gnomAD_non_cancer_MAX_AF_adj,
+        gnomAD_non_cancer_MAX_AF_POPS_adj,
+        CLIN_SIG,
+        SOMATIC,
+        PUBMED,
+        TRANSCRIPTION_FACTORS,
+        MOTIF_NAME,
+        MOTIF_POS,
+        HIGH_INF_POS,
+        MOTIF_SCORE_CHANGE,
+        miRNA,
+        IMPACT,
+        PICK,
+        VARIANT_CLASS,
+        TSL,
+        HGVS_OFFSET,
+        PHENO,
+        GENE_PHENO,
+        CONTEXT,
+        tumor_submitter_uuid,
+        normal_submitter_uuid,
+        case_id,
+        GDC_FILTER,
+        COSMIC,
+        hotspot,
+        RNA_Support,
+        RNA_depth,
+        RNA_ref_count,
+        RNA_alt_count,
+        callers,
+        file_gdc_id,
+        {joined_callers},
+        aliquot_barcode_tumor, 
+        aliquot_barcode_normal"""
+
+
+def create_per_program_table(input_table, output_table, program, target_dataset, do_batch):
+    """
+    Split the combined table into tables per program
+    :param input_table: Combined draft table
+    :type input_table: basestring
+    :param output_table: name for the new table
+    :type output_table: basestring
+    :param program: Program to filter the table on
+    :type program: basestring
+    :param target_dataset: dataset to store the new table
+    :type target_dataset: basestring
+    :param do_batch: If the BQ job should be run in batch mode
+    :type do_batch: bool
+    :return: if the SQL query worked
+    :rtype: bool
+    """
+    sql = sql_create_per_program_table(input_table, program)
+    return generic_bq_harness(sql, target_dataset, output_table, do_batch, 'TRUE')
+
+
+def sql_create_per_program_table(input_table, program):
+    """
+    SQL for create_per_program_table
+    :param input_table: Combined draft table
+    :type input_table: basestring
+    :param program: Program to filter the table on
+    :type program: basestring
+    :return: formatted SQL query
+    :rtype: basestring
+    """
+    return f"""
+        SELECT *
+        FROM `{input_table}`
+        WHERE project_short_name LIKE '{program}%'
+    """
+
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -704,454 +690,223 @@ def main(args):
 
     if len(args) != 2:
         print(" ")
-        print(" Usage : {} <configuration_yaml>".format(args[0]))
+        print(f" Usage : {args[0]} <configuration_yaml>")
         return
 
     print('job started')
 
-    #
     # Get the YAML config loaded:
-    #
-
     with open(args[1], mode='r') as yaml_file:
-        params, filters, bq_filters, steps, callers, update_schema_tables, schema_tags = load_config(yaml_file.read())
+        params_dict, steps = load_config(yaml_file.read())
+        params = SimpleNamespace(**params_dict)
 
-    if params is None:
+    if params_dict is None:
         print("Bad YAML load")
         return
 
-    #
-    # BQ does not like to be given paths that have "~". So make all local paths absolute:
-    #
-
-    home = expanduser("~")
-    local_files_dir = "{}/{}".format(home, params['LOCAL_FILES_DIR'])
-    one_big_tsv = "{}/{}".format(home, params['ONE_BIG_TSV'])
-    manifest_file = "{}/{}".format(home, params['MANIFEST_FILE'])
-    local_pull_list = "{}/{}".format(home, params['LOCAL_PULL_LIST'])
-    file_traversal_list = "{}/{}".format(home, params['FILE_TRAVERSAL_LIST'])
-    hold_schema_dict = "{}/{}".format(home, params['HOLD_SCHEMA_DICT'])
-    hold_schema_list = "{}/{}".format(home, params['HOLD_SCHEMA_LIST'])
-
     # Which table are we building?
-    release = "".join(["r", str(params['RELEASE'])])
-    use_schema = params['VER_SCHEMA_FILE_NAME']
-    if 'current' in steps:
-        print('This workflow will update the schema for the "current" table')
-        release = 'current'
-        use_schema = params['SCHEMA_FILE_NAME']
+    release = f"r{str(params.RELEASE)}"
 
-    # Create table names
-    concat_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], 'concat'])
-    barcode_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], 'barcode'])
-    draft_table = '_'.join([params['PROGRAM'], params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
-    publication_table = '_'.join([params['DATA_TYPE'], params['BUILD'], 'gdc', '{}'])
-    manifest_table = '_'.join([params['PROGRAM'],params['DATA_TYPE'], 'manifest'])
+    # BQ does not like to be given paths that have "~". So make all local paths absolute:
+    home = expanduser("~")
 
-    if params['RELEASE'] < 21 and 'METADATA_REL' not in params:
-        print("The input release is before new metadata process, "
-              "please specify which release of the metadata to use.")
+    # Local Files
+    local_files_dir = f"{home}/mafs/mafFilesHold"
+    one_big_tsv = f"{home}/mafs/MAF-joinedData.tsv"
+    manifest_file = f"{home}/mafs/MAF-manifest.tsv"
+    local_pull_list = f"{home}/mafs/MAF-pull_list.tsv"
+    file_traversal_list = f"{home}/mafs/MAF-traversal_list.txt"
+    field_list = f"{home}/MAF-field_list.json"
+    table_metadata = f"{params.SCHEMA_REPO_LOCAL}/{params.SCHEMA_FILE_NAME}"
+    metadata_mapping = f"{params.SCHEMA_REPO_LOCAL}/{params.METADATA_MAPPINGS}"
+    field_desc_fp = f"{params.SCHEMA_REPO_LOCAL}/{params.FIELD_DESC_FILE}"
 
-    metadata_rel = "".join(["r", str(params['METADATA_REL'])]) if 'METADATA_REL' in params else release
+    # BigQuery Tables
+    manifest_table = f"{params.DATA_TYPE}_manifest_{release}"
+    pull_list_table = f"{params.DATA_TYPE}_pull_list_{release}"
+    concat_table = f"{params.DATA_TYPE}_concat_{release}"
+    barcode_table = f"{params.DATA_TYPE}_barcode_{release}"
+    combined_table = f"{params.DATA_TYPE}_combined_table_{release}"
+    standard_table = f"{params.DATA_TYPE}_hg38_gdc"
+    skel_table_id = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{concat_table}'
+    barcodes_table_id = f'{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{barcode_table}'
 
-    if 'build_manifest_from_filters' in steps:
+    draft_table = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{standard_table}"
 
-        max_files = params['MAX_FILES'] if 'MAX_FILES' in params else None
-        manifest_success = get_the_bq_manifest(params['FILE_TABLE'].format(metadata_rel),
-                                               bq_filters, max_files,
-                                               params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                               manifest_table, params['WORKING_BUCKET'],
-                                               params['BUCKET_MANIFEST_TSV'], manifest_file,
-                                               params['BQ_AS_BATCH'])
-        if not manifest_success:
-            print("Failure generating manifest")
-            return
+    # Google Bucket Locations
+    bucket_target_blob = f'{params.WORKING_BUCKET_DIR}/{release}-{params.DATA_TYPE}.tsv'
 
-    #
-    # Best practice is to clear out the directory where the files are going. Don't want anything left over:
-    #
+    # Workflow Steps
 
     if 'clear_target_directory' in steps:
+        # Best practice is to clear out the directory where the files are going. Don't want anything left over:
+        print('clear_target_directory')
         create_clean_target(local_files_dir)
 
-    #
-    # We need to create a "pull list" of gs:// URLs to pull from GDC buckets. If you have already
-    # created a pull list, just plunk it in 'LOCAL_PULL_LIST' and skip this step. If creating a pull
-    # list, you can do it using IndexD calls on a manifest file, OR using BQ as long as you have
-    # built the manifest using BQ (that route uses the BQ Manifest table that was created).
-    #
+    if 'pull_table_info_from_git' in steps:
+        print('pull_table_info_from_git')
+        update_dir_from_git(params.SCHEMA_REPO_LOCAL, params.SCHEMA_REPO_URL, params.SCHEMA_REPO_BRANCH)
+
+    if 'build_manifest' in steps:
+        # Use the filter set to build a manifest.
+        print('build_manifest_from_filters')
+        max_files = params.MAX_FILES if 'MAX_FILES' in params_dict else None
+        bq_filters = [{"access": "open"},
+                      {"data_format": "MAF"},
+                      {"data_type": "Masked Somatic Mutation"},
+                      {"program_name": params.PROGRAMS}]
+        manifest_success = get_the_bq_manifest(params.FILE_TABLE.format(release),
+                                               bq_filters, max_files,
+                                               params.WORKING_PROJECT, params.SCRATCH_DATASET,
+                                               manifest_table, params.WORKING_BUCKET,
+                                               params.BUCKET_MANIFEST_TSV, manifest_file,
+                                               params.BQ_AS_BATCH)
+        if not manifest_success:
+            sys.exit("Failure generating manifest")
 
     if 'build_pull_list' in steps:
+        # Create a "pull list" with BigQuery of gs:// URLs to pull from DCF
+        print('build_pull_list')
+        build_pull_list_with_bq(f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{manifest_table}",
+                                params.INDEXD_BQ_TABLE.format(release),
+                                params.WORKING_PROJECT, params.SCRATCH_DATASET,
+                                pull_list_table,
+                                params.WORKING_BUCKET,
+                                params.BUCKET_PULL_LIST,
+                                local_pull_list, params.BQ_AS_BATCH)
 
-        build_pull_list_with_bq("{}.{}.{}".format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'], manifest_table),
-                                params['INDEXD_BQ_TABLE'].format(metadata_rel),
-                                params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                "_".join([params['PROGRAM'], params['DATA_TYPE'], 'pull', 'list']),
-                                params['WORKING_BUCKET'],
-                                params['BUCKET_PULL_LIST'],
-                                local_pull_list, params['BQ_AS_BATCH'])
-
-    #
-    # Now hitting GDC cloud buckets, not "downloading". Get the files in the pull list:
-    #
-
-    if 'download_from_gdc' in steps:
+    if 'transfer_from_gdc' in steps:
+        # Bring the files to the local dir from DCF GDC Cloud Buckets
+        pull_list = []
         with open(local_pull_list, mode='r') as pull_list_file:
-            pull_list = pull_list_file.read().splitlines()
+            pull_list_raw = pull_list_file.read().splitlines()
+       
+        for x in pull_list_raw:
+            link = x.replace("[", "").replace("]", "").replace("'", "").split(", ")
+            print(link[2])
+            pull_list.append(link[2])
+       
         pull_from_buckets(pull_list, local_files_dir)
 
-    #
-    # Traverse the tree of downloaded files and create a flat list of all files:
-    #
-
-    if 'build_traversal_list' in steps:
         all_files = build_file_list(local_files_dir)
         with open(file_traversal_list, mode='w') as traversal_list:
             for line in all_files:
-                traversal_list.write("{}\n".format(line))
+                traversal_list.write(f"{line}\n")
 
     if 'concat_all_files' in steps:
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
-            concat_all_files(all_files, one_big_tsv, params['PROGRAM'], callers, params['FIELDS_TO_FIX'])
-    #
-    # Schemas and table descriptions are maintained in the github repo:
-    #
-
-    if 'pull_table_info_from_git' in steps:
-        print('pull_table_info_from_git')
-        try:
-            create_clean_target(params['SCHEMA_REPO_LOCAL'])
-            repo = Repo.clone_from(params['SCHEMA_REPO_URL'], params['SCHEMA_REPO_LOCAL'])
-            repo.git.checkout(params['SCHEMA_REPO_BRANCH'])
-        except Exception as ex:
-            print("pull_table_info_from_git failed: {}".format(str(ex)))
-            return
-
-    for table in update_schema_tables:
-        if table == 'current':
-            use_schema = params['SCHEMA_FILE_NAME']
-            schema_release = 'current'
-        else:
-            use_schema = params['VER_SCHEMA_FILE_NAME']
-            schema_release = release
-
-        if 'process_git_schemas' in steps:
-            print('process_git_schema')
-            # Where do we dump the schema git repository?
-            schema_file = "{}/{}/{}".format(params['SCHEMA_REPO_LOCAL'], params['RAW_SCHEMA_DIR'], use_schema)
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
-            # Write out the details
-            success = generate_table_detail_files(schema_file, full_file_prefix)
-            if not success:
-                print("process_git_schemas failed")
-                return
-
-        # Customize generic schema to this data program:
-
-        if 'replace_schema_tags' in steps:
-            print('replace_schema_tags')
-            pn = params['PROGRAM']
-            dataset_tuple = (pn, pn.replace(".", "_"))
-            tag_map_list = []
-            for tag_pair in schema_tags:
-                for tag in tag_pair:
-                    val = tag_pair[tag]
-                    use_pair = {}
-                    tag_map_list.append(use_pair)
-                    if val.find('~-') == 0 or val.find('~lc-') == 0 or val.find('~lcbqs-') == 0:
-                        chunks = val.split('-', 1)
-                        if chunks[1] == 'programs':
-                            if val.find('~lcbqs-') == 0:
-                                rep_val = dataset_tuple[1].lower()  # can't have "." in a tag...
-                            else:
-                                rep_val = dataset_tuple[0]
-                        elif chunks[1] == 'builds':
-                            rep_val = params['BUILD']
-                        else:
-                            raise Exception()
-                        if val.find('~lc-') == 0:
-                            rep_val = rep_val.lower()
-                        use_pair[tag] = rep_val
-                    else:
-                        use_pair[tag] = val
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
-
-            # Write out the details
-            success = customize_labels_and_desc(full_file_prefix, tag_map_list)
-
-            if not success:
-                print("replace_schema_tags failed")
-                return False
-
-        if 'analyze_the_schema' in steps:
-            print('analyze_the_schema')
-            typing_tups = build_schema(one_big_tsv, params['SCHEMA_SAMPLE_SKIPS'])
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], draft_table.format(schema_release))
-            schema_dict_loc = "{}_schema.json".format(full_file_prefix)
-            build_combined_schema(None, schema_dict_loc,
-                                  typing_tups, hold_schema_list, hold_schema_dict)
-
-    bucket_target_blob = '{}/{}-{}-{}.tsv'.format(params['WORKING_BUCKET_DIR'], params['DATE'], params['PROGRAM'],
-                                                  params['DATA_TYPE'])
+            concat_all_files(all_files, one_big_tsv, params.CALLERS, params.FIELDS_TO_FIX)
 
     if 'upload_to_bucket' in steps:
         print('upload_to_bucket')
-        upload_to_bucket(params['WORKING_BUCKET'], bucket_target_blob, one_big_tsv)
+        upload_to_bucket(params.WORKING_BUCKET, bucket_target_blob, one_big_tsv)
 
-    #
-    # Create the BQ table from the TSV:
-    #
+    if 'analyze_the_schema' in steps:
+        print('analyze_the_schema')
+        typing_tups = find_types(one_big_tsv, params.SCHEMA_SAMPLE_SKIPS)
 
+        create_schema_hold_list(typing_tups, field_desc_fp, field_list, True)
+
+    # Create the BQ table from the TSV
     if 'create_bq_from_tsv' in steps:
         print('create_bq_from_tsv')
-        bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], bucket_target_blob)
-        with open(hold_schema_list, mode='r') as schema_hold_dict:
-            typed_schema = json_loads(schema_hold_dict.read())
-        csv_to_bq(typed_schema, bucket_src_url, params['SCRATCH_DATASET'], concat_table, params['BQ_AS_BATCH'])
+        bucket_src_url = f'gs://{params.WORKING_BUCKET}/{bucket_target_blob}'
+        with open(field_list, mode='r') as schema_list:
+            typed_schema = json_loads(schema_list.read())
+        csv_to_bq(typed_schema, bucket_src_url, params.SCRATCH_DATASET, concat_table, params.BQ_AS_BATCH)
 
-    #
-    # Need to merge in aliquot and sample barcodes from other tables:
-    #
-
+    # Merge in aliquot and sample barcodes from other tables
     if 'collect_barcodes' in steps:
-        skel_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                       params['SCRATCH_DATASET'],
-                                       concat_table)
 
-        if params['RELEASE'] < 25:
-            case_table = params['CASE_TABLE'].format('25')
-        else:
-            case_table = params['CASE_TABLE'].format(release)
-
-        if params['PROGRAM'] == 'TCGA':
-            success = attach_aliquot_ids(skel_table, params['FILE_TABLE'].format(release),
-                                         params['SCRATCH_DATASET'],
-                                         '_'.join([barcode_table, 'pre']), params['BQ_AS_BATCH'])
-            if not success:
-                print("attach_aliquot_ids job failed")
-                return
-
-            step_1_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                             params['SCRATCH_DATASET'],
-                                             '_'.join([barcode_table, 'pre']))
-        else:
-            step_1_table = skel_table
-
-        success = attach_barcodes(step_1_table, params['ALIQUOT_TABLE'].format(release),
-                                  params['SCRATCH_DATASET'], barcode_table, params['BQ_AS_BATCH'],
-                                  params['PROGRAM'], case_table)
+        case_table = params.CASE_TABLE.format(release)
+        success = attach_barcodes(skel_table_id, params.ALIQUOT_TABLE.format(release),
+                                  params.SCRATCH_DATASET, barcode_table, params.BQ_AS_BATCH, case_table)
         if not success:
             print("attach_barcodes job failed")
             return
 
-    #
-    # Merge the barcode info into the final table we are building:
-    #
-
-    if 'create_final_table' in steps:
-        skel_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                       params['SCRATCH_DATASET'],
-                                       concat_table)
-        barcodes_table = '{}.{}.{}'.format(params['WORKING_PROJECT'],
-                                           params['SCRATCH_DATASET'],
-                                           barcode_table)
-        #For CPTAC, create an intermediate combined table, which will be used in the merge_same_aliq_samples step
-        if params['PROGRAM'] == 'CPTAC':
-            success = final_merge(skel_table, barcodes_table,
-                              params['SCRATCH_DATASET'], draft_table.format('combined_table'), params['BQ_AS_BATCH'],
-                              params['PROGRAM'])	
+    # Merge the barcode info into the final combo table we are building:
+    if 'create_combo_draft_table' in steps:
+        success_barcode = barcode_raw_table_merge(skel_table_id, barcodes_table_id,
+                                                  params.SCRATCH_DATASET, combined_table,
+                                                  params.BQ_AS_BATCH)
+        # Eliminate the duplicates by merging samples by aliquots
+        if success_barcode:
+            program_draft_table = f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{combined_table}"
+            success = merge_samples_by_aliquot(program_draft_table, f"{standard_table}_{release}", params.SCRATCH_DATASET,
+                                               params.CALLERS, params.BQ_AS_BATCH)
         else:
-           success = final_merge(skel_table, barcodes_table,
-                              params['SCRATCH_DATASET'], draft_table.format(release), params['BQ_AS_BATCH'],
-                              params['PROGRAM'])
+            print("Barcode & Raw table merge failed")
+
         if not success:
             print("Join job failed")
             return
-	
-    # For CPTAC there are instances where multiple samples are merged into the same aliquot
-    # for these cases we join the rows by concatenating the samples with semicolons
-    if 'merge_same_aliq_samples' in steps:
-        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'], draft_table.format('combined_table'))
-        merge_samples_by_aliquot( source_table, draft_table.format(release), params['SCRATCH_DATASET'], params['BQ_AS_BATCH'])	
-	
-    #
-    # Create second table
-    #
 
-    if 'create_current_table' in steps:
-        source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                         draft_table.format(release))
-        current_dest = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                         draft_table.format('current'))
+    # Split the merged table into distinct programs and create final draft tables
+    for program in params.PROGRAMS:
 
-        success = publish_table(source_table, current_dest)
+        with open(metadata_mapping) as program_mapping:
+            mappings = json_loads(program_mapping.read().rstrip())
+            bq_dataset = mappings[program]['bq_dataset']
 
-        if not success:
-            print("create current table failed")
-            return
+        if 'split_table_into_programs' in steps:
+            success = create_per_program_table(f"{draft_table}_{release}", f"{bq_dataset}_{standard_table}_{release}", program,
+                                               params.SCRATCH_DATASET, params.BQ_AS_BATCH)
 
-    #
-    # The derived table we generate has no field descriptions. Add them from the github json files:
-    #
-    for table in update_schema_tables:
-        schema_release = 'current' if table == 'current' else release
-        if 'update_final_schema' in steps:
-            success = update_schema(params['SCRATCH_DATASET'], draft_table.format(schema_release), hold_schema_dict)
             if not success:
-                print("Schema update failed")
-                return
+                print(f"split table into programs failed on {program}")
 
-        #
-        # Add the table description:
-        #
+        if 'update_table_schema' in steps:
+            print("update schema tags")
+            updated_schema_tags = update_schema_tags(metadata_mapping, params_dict, program)
+            print("update table schema")
+            write_table_schema_with_generic(
+                f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{standard_table}_{release}",
+                updated_schema_tags, table_metadata, field_desc_fp)
 
-        if 'add_table_description' in steps:
-            print('update_table_description')
-            full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'],
-                                              draft_table.format(schema_release))
-            success = install_labels_and_desc(params['SCRATCH_DATASET'],
-                                              draft_table.format(schema_release), full_file_prefix)
+        if 'qc_bigquery_tables' in steps:
+            print("QC BQ table")
+            print(qc_bq_table_metadata(
+                f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{standard_table}_{release}"))
+
+        if 'publish' in steps:
+            print('Attempting to publish tables')
+            success = publish_tables_and_update_schema(f"{params.WORKING_PROJECT}.{params.SCRATCH_DATASET}.{bq_dataset}_{standard_table}_{release}",
+                                                       f"{params.PUBLICATION_PROJECT}.{bq_dataset}_versioned.{standard_table}_{release}",
+                                                       f"{params.PUBLICATION_PROJECT}.{bq_dataset}.{standard_table}_current",
+                                                       f"REL {str(params.RELEASE)}",
+                                                       f"{standard_table}")
+
             if not success:
-                print("update_table_description failed")
-                return
+                print("Publication step did not work")
 
-    #
-    # compare and remove old current table
-    #
-
-    # compare the two tables
-    if 'compare_remove_old_current' in steps:
-        old_current_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'], params['PUBLICATION_DATASET'],
-                                              publication_table.format('current'))
-        previous_ver_table = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
-                                               "_".join([params['PUBLICATION_DATASET'], 'versioned']),
-                                               publication_table.format("".join(["r",
-                                                                                 str(params['PREVIOUS_RELEASE'])])))
-        table_temp = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                       "_".join([params['PROGRAM'],
-                                                 publication_table.format("".join(["r",
-                                                                                   str(params['PREVIOUS_RELEASE'])])),
-                                                 'backup']))
-
-        print('Compare {} to {}'.format(old_current_table, previous_ver_table))
-
-        compare = compare_two_tables(old_current_table, previous_ver_table, params['BQ_AS_BATCH'])
-
-        num_rows = compare.total_rows
-
-        if num_rows == 0:
-            print('the tables are the same')
-        else:
-            print('the tables are NOT the same and differ by {} rows'.format(num_rows))
-
-        if not compare:
-            print('compare_tables failed')
-            return
-        # move old table to a temporary location
-        elif compare and num_rows == 0:
-            print('Move old table to temp location')
-            table_moved = publish_table(old_current_table, table_temp)
-
-            if not table_moved:
-                print('Old Table was not moved and will not be deleted')
-            # remove old table
-            elif table_moved:
-                print('Deleting old table: {}'.format(old_current_table))
-                delete_table = delete_table_bq_job(params['PUBLICATION_DATASET'], publication_table.format('current'),
-                                                   params['PUBLICATION_PROJECT'])
-                if not delete_table:
-                    print('delete table failed')
-                    return
-
-    #
-    # publish table:
-    #
-
-    if 'publish' in steps:
-
-        tables = ['versioned', 'current']
-
-        for table in tables:
-            if table == 'versioned':
-                print(table)
-                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                                 draft_table.format(release))
-                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
-                                                     "_".join([params['PUBLICATION_DATASET'], 'versioned']),
-                                                     publication_table.format(release))
-            elif table == 'current':
-                print(table)
-                source_table = '{}.{}.{}'.format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
-                                                 draft_table.format('current'))
-                publication_dest = '{}.{}.{}'.format(params['PUBLICATION_PROJECT'],
-                                                     params['PUBLICATION_DATASET'],
-                                                     publication_table.format('current'))
-            success = publish_table(source_table, publication_dest)
-
-        if not success:
-            print("publish table failed")
-            return
-
-
-    #
-    # Update previous versioned table with archived tag
-    #
-
-    if 'update_status_tag' in steps:
-        print('Update previous table')
-
-        success = update_status_tag("_".join([params['PUBLICATION_DATASET'], 'versioned']),
-                                    publication_table.format("".join(["r", str(params['PREVIOUS_RELEASE'])])),
-                                    'archived', params['PUBLICATION_PROJECT'])
-
-        if not success:
-            print("update status tag table failed")
-            return
-
-    #
     # Clear out working temp tables:
-    #
-
     if 'dump_working_tables' in steps:
         dump_tables = [concat_table,
                        barcode_table,
-                       draft_table.format('current'),
-                       draft_table.format(release),
+                       f"{bq_dataset}_{standard_table}_current",
+                       f"{bq_dataset}_{standard_table}_{release}",
                        manifest_table]
         for table in dump_tables:
-            delete_table_bq_job(params['SCRATCH_DATASET'], table)
-    #
-    # Done!
-    #
-
-    print('job completed')
+            if bq_table_exists(params.SCRATCH_DATASET, table, params.WORKING_PROJECT):
+                delete_table_bq_job(params.SCRATCH_DATASET, table)
 
     if 'archive' in steps:
-
         print('archive files from VM')
-        archive_file_prefix = "{}_{}".format(date.today(), params['PUBLICATION_DATASET'])
-        if params['ARCHIVE_YAML']:
+        archive_file_prefix = f"{date.today()}_{params.PUBLICATION_DATASET}"
+        if params.ARCHIVE_YAML:
             yaml_file = re.search(r"\/(\w*.yaml)$", args[1])
-            archive_yaml = "{}/{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
-                                                params['ARCHIVE_CONFIG'],
-                                                archive_file_prefix,
-                                                yaml_file.group(1))
-            upload_to_bucket(params['ARCHIVE_BUCKET'],
-                         archive_yaml,
-                         args[1])
-        archive_pull_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
-                                              archive_file_prefix,
-                                              params['LOCAL_PULL_LIST'])
-        upload_to_bucket(params['ARCHIVE_BUCKET'],
-                         archive_pull_file,
-                         params['LOCAL_PULL_LIST'])
-        archive_manifest_file = "{}/{}_{}".format(params['ARCHIVE_BUCKET_DIR'],
-                                                  archive_file_prefix,
-                                                  params['MANIFEST_FILE'])
-        upload_to_bucket(params['ARCHIVE_BUCKET'],
+            archive_yaml = f"{params.ARCHIVE_BUCKET_DIR}/{params.ARCHIVE_CONFIG}/{archive_file_prefix}_{yaml_file.group(1)}"
+            upload_to_bucket(params.ARCHIVE_BUCKET, archive_yaml, args[1])
+        archive_pull_file = f"{params.ARCHIVE_BUCKET_DIR}/{archive_file_prefix}_{params.LOCAL_PULL_LIST}"
+        upload_to_bucket(params.ARCHIVE_BUCKET, archive_pull_file, params.LOCAL_PULL_LIST)
+        archive_manifest_file = f"{params.ARCHIVE_BUCKET_DIR}/{archive_file_prefix}_{params.MANIFEST_FILE}"
+        upload_to_bucket(params.ARCHIVE_BUCKET,
                          archive_manifest_file,
-                         params['MANIFEST_FILE'])
+                         params.MANIFEST_FILE)
+
+    print('job completed')
 
 if __name__ == "__main__":
     main(sys.argv)
