@@ -20,12 +20,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import sys
+from typing import Union
 
-from cda_bq_etl.bq_helpers import query_and_return_row_count
+from google.cloud import bigquery
+
+from cda_bq_etl.bq_helpers import query_and_return_row_count, update_friendly_name, copy_bq_table, \
+    change_status_to_archived, delete_bq_table, await_job
+
+Params = dict[str, Union[str, dict, int, bool]]
 
 
 def make_data_type_update_query(old_value, new_value):
-    table_id = "isb-project-zero.cda_gdc_legacy.fileData_legacy_r37_copy"
+    table_id = "isb-project-zero.cda_gdc_legacy.fileData_legacy_r37_v2"
 
     return f"""
         UPDATE `{table_id}`
@@ -34,7 +40,20 @@ def make_data_type_update_query(old_value, new_value):
     """
 
 
-def main(args):
+def copy_table(params: Params, src_table: str, dest_table: str):
+    client = bigquery.Client()
+    job_config = bigquery.CopyJobConfig()
+
+    delete_bq_table(dest_table)
+
+    bq_job = client.copy_table(src_table, dest_table, job_config=job_config)
+
+    if await_job(params, client, bq_job):
+        print(f"Successfully copied {src_table} -> ")
+        print(f"\t\t\t{dest_table}")
+
+
+def update_values():
     data_type_dict = {
         "ABI sequence trace": "ABI Sequence Trace",
         "Aligned reads": "Aligned Reads",
@@ -44,7 +63,7 @@ def main(args):
         "CGH array QC": "CGH Array QC",
         "Clinical data": "Clinical Data",
         "Copy number estimate": "Copy Number Estimate",
-        "Copy number QC metrics": "Copy number QC metrics",
+        "Copy number QC metrics": "Copy Number QC Metrics",
         "Copy number segmentation": "Copy Number Segmentation",
         "Copy number variation": "Copy Number Variation",
         "Diagnostic image": "Diagnostic Image",
@@ -83,6 +102,37 @@ def main(args):
             print(f"Updated {old_value} to {new_value}; {affected_row_count} rows affected.")
         else:
             print(f"Error updating {old_value} to {new_value}; None result returned.")
+
+
+def publish_table(table_ids: dict[str, str]):
+    params = {
+        'LOCATION': 'US'
+    }
+
+    print(f"Publishing {table_ids['versioned']}")
+    copy_table(params, table_ids['source'], dest_table=table_ids['versioned'])
+
+    print(f"Publishing {table_ids['current']}")
+    copy_table(params, table_ids['source'], dest_table=table_ids['current'])
+
+    current_friendly_name = 'FILE METADATA GDC LEGACY ARCHIVE'
+    print(f"Updating friendly name for {table_ids['current']}")
+    update_friendly_name(params, table_id=table_ids['current'], custom_name=current_friendly_name)
+
+    if table_ids['previous_versioned']:
+        print(f"Archiving {table_ids['previous_versioned']}")
+        change_status_to_archived(table_ids['previous_versioned'])
+
+
+def main(args):
+    table_ids = {
+        "source": "isb-project-zero.cda_gdc_legacy.fileData_legacy_r37_v2",
+        "versioned": "isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_legacy_r37_v2",
+        "current": "isb-cgc-bq.GDC_case_file_metadata.fileData_legacy_current",
+        "previous_versioned": "isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_legacy_r37"
+    }
+
+    publish_table(table_ids)
 
 
 if __name__ == "__main__":
