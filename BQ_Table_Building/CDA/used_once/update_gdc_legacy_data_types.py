@@ -21,7 +21,7 @@ SOFTWARE.
 """
 import sys
 
-from cda_bq_etl.bq_helpers import query_and_retrieve_result
+from cda_bq_etl.bq_helpers import query_and_return_row_count
 
 
 def make_data_type_update_query(old_value, new_value):
@@ -77,7 +77,7 @@ def main(args):
 
     for old_value, new_value in data_type_dict.items():
         update_query = make_data_type_update_query(old_value, new_value)
-        affected_row_count = query_and_retrieve_result(update_query)
+        affected_row_count = query_and_return_row_count(update_query)
 
         if affected_row_count:
             print(f"Updated {old_value} to {new_value}; {affected_row_count} rows affected.")
