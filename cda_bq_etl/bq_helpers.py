@@ -542,6 +542,36 @@ def query_and_retrieve_result(sql: str) -> Union[BQQueryResult, None]:
     return query_job.result()
 
 
+def query_and_return_row_count(sql: str) -> int:
+    """
+    Create and execute a BQ QueryJob, wait for and return affected row count. Useful for updating table values.
+    :param sql: the query for which to execute and return results
+    :return: number of rows affected, or None if query fails
+    """
+    client = bigquery.Client()
+    job_config = bigquery.QueryJobConfig()
+    location = 'US'
+
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
+    # Initialize QueryJob
+    query_job = client.query(query=sql, location=location, job_config=job_config)
+
+    while query_job.state != 'DONE':
+        query_job = client.get_job(job_id=query_job.job_id, location=location)
+
+        if query_job.state != 'DONE':
+            time.sleep(3)
+
+    query_job = client.get_job(job_id=query_job.job_id, location=location)
+
+    if query_job.error_result is not None:
+        logger.warning(f"Query failed: {query_job.error_result['message']}")
+        return None
+
+    return query_job.num_dml_affected_rows
+
+
 # todo should this be in data helpers?
 def create_schema_object(column_headers: list[str], data_types_dict: dict[str, str]) -> SchemaFieldFormat:
     """

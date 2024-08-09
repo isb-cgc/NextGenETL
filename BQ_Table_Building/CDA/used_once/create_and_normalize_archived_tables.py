@@ -30,6 +30,11 @@ API_PARAMS = dict()
 BQ_PARAMS = dict()
 YAML_HEADERS = ('api_params', 'bq_params', 'steps')
 
+# ******************************************************************
+# *** NOTE: THIS IS NO LONGER HOW THE LEGACY TABLES ARE BUILT. DON'T USE THIS.
+# THEY WERE CREATED USING FILES CREATED BY THE OLD PIPELINE, PULLED OFF THE GDC METADATA VM.
+# ******************************************************************
+
 
 def make_aliquot_to_case_legacy_filtered_query():
     working_project = BQ_PARAMS['WORKING_PROJECT']
