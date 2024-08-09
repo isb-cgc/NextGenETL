@@ -75,7 +75,7 @@ def main(args):
         "Unaligned reads": "Unaligned Reads"
     }
 
-    for old_value, new_value in data_type_dict:
+    for old_value, new_value in data_type_dict.items():
         update_query = make_data_type_update_query(old_value, new_value)
         affected_row_count = query_and_retrieve_result(update_query)
 
