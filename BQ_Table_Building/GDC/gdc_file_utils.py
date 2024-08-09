@@ -379,7 +379,7 @@ def bq_table_exists(table_id, dataset_id=None, project=None):
         if dataset_id is None:
             client.get_table(table_id)
         else:
-            client.dataset(dataset_id).get_table(table_id)
+            client.dataset(dataset_id).table(table_id)
         return True
 
     except NotFound:
