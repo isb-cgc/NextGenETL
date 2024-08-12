@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import json
+import logging
 import sys
 import time
 
@@ -27,11 +28,60 @@ from google.cloud import bigquery
 
 from cda_bq_etl.gcs_helpers import transfer_between_buckets
 from cda_bq_etl.utils import (load_config, format_seconds)
-from cda_bq_etl.bq_helpers import create_and_load_table_from_tsv
-from cda_bq_etl.data_helpers import initialize_logging
+from cda_bq_etl.bq_helpers import create_and_load_table_from_tsv, query_and_retrieve_result, \
+    create_and_load_table_from_jsonl
+from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
+
+
+def make_manifest_url_query(table_id) -> str:
+    return f"""
+    SELECT id, acl, gs_url
+    FROM `{table_id}`
+    """
+
+
+def parse_manifest_url_records(manifest_table_name) -> list[dict[str, str]]:
+    logger = logging.getLogger('base_script')
+    file_record_list = list()
+
+    table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{manifest_table_name}"
+    result = query_and_retrieve_result(make_manifest_url_query(table_id))
+
+    for row in result:
+        file_record_dict = {
+            'file_uuid': file_uuid,
+            'gdc_file_url_web': None,
+            'gdc_file_url_gcs': None,
+            'gdc_file_url_aws': None
+        }
+
+        file_uuid = row.get('id')
+        acl = row.get('acl')
+        gs_url = row.get('gs_url')
+
+        if '[' in gs_url:
+            url_list = json.loads(gs_url)
+        else:
+            url_list = [gs_url]
+
+        for url in url_list:
+            if 'https://' in url:
+                file_record_dict['gdc_file_url_web'] = url
+            else:
+                if 'open' in acl and 'phs' not in acl:
+                    if 'gs://' in url:
+                        file_record_dict['gdc_file_url_gcs'] = url
+                    elif 's3://' in url:
+                        file_record_dict['gdc_file_url_aws'] = url
+                    else:
+                        logger.critical(f"Invalid URL scheme: {url}")
+                        sys.exit(-1)
+        file_record_list.append(file_record_dict)
+
+    return file_record_list
 
 
 def main(args):
@@ -97,6 +147,26 @@ def main(args):
                                            table_id=table_id,
                                            num_header_rows=1,
                                            schema=manifest_table_schema)
+    if "create_file_mapping_table" in steps:
+        # query to retrieve id, acl, gs_url
+        # iterate over results and build json object dict
+        # - parse gs_url into list--either by converting string list representation or putting single value into a list
+        # create list of dicts containing id, gdc_file_url_web, gdc_file_url_aws, gdc_file_url_gcs
+        # - if acl isn't open, don't include gs or aws uris
+        for manifest_table_name in manifest_dict.keys():
+            parsed_table_name = f"{manifest_table_name}_{PARAMS['SPLIT_URL_TABLE_SUFFIX']}"
+            parsed_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{parsed_table_name}"
+
+            manifest_url_record_list = parse_manifest_url_records(manifest_table_name)
+
+            write_list_to_jsonl_and_upload(params=PARAMS,
+                                           prefix=parsed_table_name,
+                                           record_list=manifest_url_record_list)
+
+            create_and_load_table_from_jsonl(params=PARAMS,
+                                             jsonl_file=f"{parsed_table_name}_{PARAMS['RELEASE']}.jsonl",
+                                             table_id=parsed_table_id)
+
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
