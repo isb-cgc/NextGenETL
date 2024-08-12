@@ -146,3 +146,32 @@ def upload_to_bucket(params: Params, scratch_fp: str, delete_local: bool = False
     except FileNotFoundError as err:
         logger.critical(f"File not found, failed to access local file.\n{err}")
         sys.exit(err)
+
+
+def transfer_between_buckets(source_bucket_name, bucket_file, target_bucket_name, target_bucket_file=None):
+    """
+    todo
+    :param source_bucket_name:
+    :param bucket_file:
+    :param target_bucket_name:
+    :param target_bucket_file:
+    :return:
+    """
+    logger = logging.getLogger('base_script.cda_bq_etl.gcs_helpers')
+
+    try:
+        storage_client = storage.Client(project="")
+
+        source_bucket = storage_client.bucket(source_bucket_name)
+        source_blob = source_bucket.blob(bucket_file)
+
+        destination_bucket = storage_client.bucket(target_bucket_name)
+
+        if target_bucket_file is None:
+            target_bucket_file = bucket_file
+
+        source_bucket.copy_blob(source_blob, destination_bucket, target_bucket_file)
+
+    except exceptions.GoogleCloudError as err:
+        logger.critical(f"Failed to upload to bucket.\n{err}")
+        sys.exit(err)
