@@ -391,7 +391,8 @@ def copy_bq_table(source_table_id, dest_table_id, project=None, overwrite=False)
 
     if overwrite:
         if bq_table_exists(dest_table_id, None, project):
-            delete_bq_table(dest_table_id)
+            if not delete_bq_table(dest_table_id):
+                sys.exit(f'{dest_table_id} failed to delete')
         else:
             util_logger.info(f"table {dest_table_id} doesn't exists")
 
@@ -406,10 +407,17 @@ def copy_bq_table(source_table_id, dest_table_id, project=None, overwrite=False)
 
 
 def delete_bq_table(table_id, project=None):
-    client = bigquery.Client() if project is None else bigquery.Client(project=project)
+    try:
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
+        delete_job = client.delete_table(table_id, not_found_ok=True)  # Make an API request.
+        delete_job.result()
+        util_logger.info(f"Deleted table '{table_id}'.")
 
-    client.delete_table(table_id, not_found_ok=True)  # Make an API request.
-    util_logger.info(f"Deleted table '{table_id}'.")
+    except Exception as ex:
+        util_logger.error(ex)
+        sys.exit()
+
+    return True
 
 
 def query_bq(sql, dest_table_id=None, project=None):
