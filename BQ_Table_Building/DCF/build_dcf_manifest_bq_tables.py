@@ -51,16 +51,16 @@ def parse_manifest_url_records(manifest_table_name) -> list[dict[str, str]]:
     result = query_and_retrieve_result(make_manifest_url_query(table_id))
 
     for row in result:
+        file_uuid = row.get('id')
+        acl = row.get('acl')
+        gs_url = row.get('gs_url')
+
         file_record_dict = {
             'file_uuid': file_uuid,
             'gdc_file_url_web': None,
             'gdc_file_url_gcs': None,
             'gdc_file_url_aws': None
         }
-
-        file_uuid = row.get('id')
-        acl = row.get('acl')
-        gs_url = row.get('gs_url')
 
         if '[' in gs_url:
             url_list = json.loads(gs_url)
