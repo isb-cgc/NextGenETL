@@ -23,6 +23,7 @@ import json
 import logging
 import sys
 import time
+import ast
 
 from google.cloud import bigquery
 
@@ -63,7 +64,7 @@ def parse_manifest_url_records(manifest_table_name) -> list[dict[str, str]]:
         }
 
         if '[' in gs_url:
-            url_list = json.loads(gs_url)
+            url_list = list(map(str.strip, ast.literal_eval(gs_url)))
         else:
             url_list = [gs_url]
 
@@ -116,7 +117,7 @@ def main(args):
 
     manifest_dict = {
         # table name: tsv file name
-        f"gdc_{PARAMS['RELEASE']}_hg19": PARAMS['LEGACY_MANIFEST_TSV'],
+        # f"gdc_{PARAMS['RELEASE']}_hg19": PARAMS['LEGACY_MANIFEST_TSV'],
         f"gdc_{PARAMS['RELEASE']}_hg38": PARAMS['ACTIVE_MANIFEST_TSV']
     }
 
