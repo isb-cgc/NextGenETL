@@ -88,7 +88,7 @@ def main(args):
                                                         mode=use_mode,
                                                         description=schema_obj['description']))
 
-            manifest_table_schema = {"fields": schema_list}
+            manifest_table_schema = schema_list
         for manifest_table_name, manifest_file in manifest_dict.items():
             table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{manifest_table_name}"
 
