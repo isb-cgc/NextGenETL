@@ -72,7 +72,7 @@ def main(args):
 
     if "pull_manifest_from_data_node" in steps:
         for manifest_file_name in manifest_dict.values():
-            transfer_between_buckets(PARAMS['SOURCE_BUCKET'], manifest_file_name, PARAMS['WORKING_BUCKET'])
+            transfer_between_buckets(PARAMS, PARAMS['SOURCE_BUCKET'], manifest_file_name, PARAMS['WORKING_BUCKET'])
 
     # todo do we want to reload the BQEcosystem repo here, as in existing pipeline?
     #  Probably not necessary with generic schema
