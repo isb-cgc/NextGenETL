@@ -58,7 +58,7 @@ def parse_manifest_url_records(manifest_table_name) -> list[dict[str, str]]:
         gs_url = row.get('gs_url')
 
         file_record_dict = {
-            'file_uuid': file_uuid,
+            'file_gdc_id': file_uuid,
             'gdc_file_url_web': None,
             'gdc_file_url_gcs': None,
             'gdc_file_url_aws': None
