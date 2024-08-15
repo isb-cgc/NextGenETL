@@ -29,8 +29,9 @@ from google.cloud import bigquery
 
 from cda_bq_etl.gcs_helpers import transfer_between_buckets
 from cda_bq_etl.utils import (load_config, format_seconds)
-from cda_bq_etl.bq_helpers import create_and_load_table_from_tsv, query_and_retrieve_result, \
-    create_and_load_table_from_jsonl
+from cda_bq_etl.bq_helpers import (create_and_load_table_from_tsv, query_and_retrieve_result,
+                                   create_and_load_table_from_jsonl, create_table_from_query,
+                                   update_table_schema_from_generic)
 from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload
 
 PARAMS = dict()
@@ -85,6 +86,17 @@ def parse_manifest_url_records(manifest_table_name) -> list[dict[str, str]]:
     return file_record_list
 
 
+def make_combined_table_query(table_ids: list[str]) -> str:
+    table_id_0 = table_ids[0]
+    table_id_1 = table_ids[1]
+
+    return f"""
+        SELECT * FROM {table_id_0}
+        UNION ALL
+        SELECT * FROM {table_id_1}
+    """
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -117,7 +129,7 @@ def main(args):
 
     manifest_dict = {
         # table name: tsv file name
-        # f"gdc_{PARAMS['RELEASE']}_hg19": PARAMS['LEGACY_MANIFEST_TSV'],
+        f"gdc_{PARAMS['RELEASE']}_hg19": PARAMS['LEGACY_MANIFEST_TSV'],
         f"gdc_{PARAMS['RELEASE']}_hg38": PARAMS['ACTIVE_MANIFEST_TSV']
     }
 
@@ -168,6 +180,26 @@ def main(args):
                                              jsonl_file=f"{parsed_table_name}_{PARAMS['RELEASE']}.jsonl",
                                              table_id=parsed_table_id)
 
+    if "create_combined_table" in steps:
+        table_ids = list()
+
+        for manifest_table_name in manifest_dict.keys():
+            parsed_table_name = f"{manifest_table_name}_{PARAMS['SPLIT_URL_TABLE_SUFFIX']}"
+            parsed_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{parsed_table_name}"
+            table_ids.append(parsed_table_id)
+
+        gdc_release = PARAMS['RELEASE'][1:]
+
+        combined_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{gdc_release}_{PARAMS['COMBINED_TABLE']}"
+
+        create_table_from_query(params=PARAMS,
+                                table_id=combined_table_id,
+                                query=make_combined_table_query(table_ids))
+
+        update_table_schema_from_generic(params=PARAMS, table_id=combined_table_id)
+
+    if "publish_table" in steps:
+        print()
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
