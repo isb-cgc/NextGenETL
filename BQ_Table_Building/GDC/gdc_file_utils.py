@@ -409,8 +409,7 @@ def copy_bq_table(source_table_id, dest_table_id, project=None, overwrite=False)
 def delete_bq_table(table_id, project=None):
     try:
         client = bigquery.Client() if project is None else bigquery.Client(project=project)
-        delete_job = client.delete_table(table_id, not_found_ok=True)  # Make an API request.
-        delete_job.result()
+        client.delete_table(table_id, not_found_ok=True)  # Make an API request.
         util_logger.info(f"Deleted table '{table_id}'.")
 
     except Exception as ex:
