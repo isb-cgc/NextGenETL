@@ -36,8 +36,8 @@ from gdc_file_utils import (confirm_google_vm, format_seconds, update_dir_from_g
                             csv_to_bq, initialize_logging, bq_table_exists, publish_tables_and_update_schema)
 
 from open_somatic_mut import create_somatic_mut_table
-
 from RNA_seq import create_rna_seq_table
+from mirna_expr import create_mirna_expr_table
 
 
 def load_config(yaml_config):
@@ -198,7 +198,11 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
         intermediate_tables.extend(rna_seq_table)
 
     if datatype == "mRNA_seq":  # todo
-        print("mRNA_seq")
+        logger.info("Creating miRNA expr draft tables")
+
+        mirna_expr_table = create_mirna_expr_table(raw_data_table, draft_data_table, file_table, aliquot_table, case_table,
+                                             dev_project, dev_dataset, release)
+        intermediate_tables.extend(mirna_expr_table)
 
     return intermediate_tables
 
@@ -300,7 +304,6 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         logging.info("Running qc_tables Step")
 
     if 'publish_tables' in steps:
-        # todo
         # todo Create a list of tables published in the formatting for readthedocs
         logging.info("Running publish_tables Step")
 

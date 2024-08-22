@@ -203,6 +203,8 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
         rna_seq_logger.error("Creating RNA Seq aliquot id table failed")
         sys.exit()
 
+    # todo
+
     extract_platform_for_files_results = extract_platform_for_files(f"{project_id}.{dataset}.{step_1_table}",
                                                                     f"{file_table}_{release}",
                                                                     f"{project_id}.{dataset}.{step_2_table}")
