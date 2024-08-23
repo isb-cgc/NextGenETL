@@ -197,7 +197,7 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
                                              dev_project, dev_dataset, release)
         intermediate_tables.extend(rna_seq_table)
 
-    if datatype == "mRNA_seq":  # todo
+    if datatype == "miRNA_expr":  # todo
         logger.info("Creating miRNA expr draft tables")
 
         mirna_expr_table = create_mirna_expr_table(raw_data_table, draft_data_table, file_table, aliquot_table, case_table,
