@@ -38,7 +38,7 @@ def attach_aliquot_ids_sql(input_table, file_table):
         a1 AS (SELECT DISTINCT LEFT(file_name, 36) as file_gdc_id FROM `{input_table}`),        
         a2 AS (SELECT b.associated_entities__entity_gdc_id AS aliquot_gdc_id,
                       a1.file_gdc_id
-               FROM a1 JOIN `{file_table}` AS b ON a1.fileUUID= b.file_gdc_id
+               FROM a1 JOIN `{file_table}` AS b ON a1.file_gdc_id= b.file_gdc_id
                WHERE b.associated_entities__entity_type = 'aliquot')
         SELECT 
                c.project_short_name,
@@ -67,7 +67,7 @@ def attach_barcodes_sql(input_table, aliquot_table, case_table):
                c.case_barcode, 
                c.sample_barcode, 
                c.aliquot_barcode,
-               a.fileUUID,
+               a.file_gdc_id,
                c.case_gdc_id, 
                c.sample_gdc_id,
                a.aliquot_gdc_id,
@@ -81,7 +81,7 @@ def attach_barcodes_sql(input_table, aliquot_table, case_table):
             a1.aliquot_barcode,
             c.primary_site,
             a1.sample_type_name,
-            a1.fileUUID, 
+            a1.file_gdc_id, 
             a1.case_gdc_id, 
             a1.sample_gdc_id, 
             a1.aliquot_gdc_id
@@ -112,8 +112,8 @@ def final_join_sql(input_table, barcodes_table):
                a.case_gdc_id,
                a.sample_gdc_id,
                a.aliquot_gdc_id,
-               b.fileUUID as file_gdc_id,
-        FROM `{barcodes_table}` as a JOIN `{input_table}` as b ON a.fileUUID = b.fileUUID
+               b.file_gdc_id as file_gdc_id,
+        FROM `{barcodes_table}` as a JOIN `{input_table}` as b ON a.file_gdc_id = b.file_gdc_id
         '''
 
 def merge_samples_by_aliquot(input_table, output_table):
