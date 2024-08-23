@@ -107,7 +107,7 @@ def final_join_sql(input_table, barcodes_table):
                b.miRNA_ID as miRNA_id,
                b.read_count,
                b.reads_per_million_miRNA_mapped,
-               b.cross-mapped as cross_mapped,
+               b.`cross-mapped` as cross_mapped,
                a.sample_type_name,
                a.case_gdc_id,
                a.sample_gdc_id,
