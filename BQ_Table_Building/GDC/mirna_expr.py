@@ -112,7 +112,7 @@ def final_join_sql(input_table, barcodes_table):
                a.case_gdc_id,
                a.sample_gdc_id,
                a.aliquot_gdc_id,
-               b.file_gdc_id as file_gdc_id,
+               LEFT(b.file_name, 36) as file_gdc_id,
         FROM `{barcodes_table}` as a JOIN `{input_table}` as b ON a.file_gdc_id = b.file_gdc_id
         '''
 
