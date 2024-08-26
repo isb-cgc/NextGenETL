@@ -38,6 +38,7 @@ from gdc_file_utils import (confirm_google_vm, format_seconds, update_dir_from_g
 from open_somatic_mut import create_somatic_mut_table
 from RNA_seq import create_rna_seq_table
 from mirna_expr import create_mirna_expr_table
+from mirna_isoform_expr import create_mirna_isoform_expr_table
 
 
 def load_config(yaml_config):
@@ -203,6 +204,13 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
         mirna_expr_table = create_mirna_expr_table(raw_data_table, draft_data_table, file_table, aliquot_table, case_table,
                                              dev_project, dev_dataset, release)
         intermediate_tables.extend(mirna_expr_table)
+
+    if datatype == "miRNA_isoform_expr":  # todo
+        logger.info("Creating miRNA isoform expr draft tables")
+
+        mirna_isoform_expr_table = create_mirna_isoform_expr_table(raw_data_table, draft_data_table, file_table, aliquot_table, case_table,
+                                             dev_project, dev_dataset, release)
+        intermediate_tables.extend(mirna_isoform_expr_table)
 
     return intermediate_tables
 
