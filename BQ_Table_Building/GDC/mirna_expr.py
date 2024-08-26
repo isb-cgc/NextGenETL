@@ -29,11 +29,7 @@ using the file table that provides aliquot UUIDs for files.'''
 
 def attach_aliquot_ids(input_table, file_table, output_table):
 
-    sql = attach_aliquot_ids_sql(input_table, file_table)
-    return query_bq(sql, output_table)
-
-def attach_aliquot_ids_sql(input_table, file_table):
-    return f'''
+    sql = f'''
         WITH
         a1 AS (SELECT DISTINCT LEFT(file_name, 36) as file_gdc_id FROM `{input_table}`),        
         a2 AS (SELECT b.associated_entities__entity_gdc_id AS aliquot_gdc_id,
@@ -49,18 +45,17 @@ def attach_aliquot_ids_sql(input_table, file_table):
         WHERE c.associated_entities__entity_type = 'aliquot'       
         '''
 
+    return query_bq(sql, output_table)
+
 
 '''Add Barcodes
 With the aliquot UUIDs known, we can now use the aliquot table to glue in sample info'''
 def attach_barcodes(input_table, aliquot_table, case_table, output_table):
-    sql = attach_barcodes_sql(input_table, aliquot_table, case_table)
-    return query_bq(sql, output_table)
-
-def attach_barcodes_sql(input_table, aliquot_table, case_table):
     # ATTENTION! For rel16, 32 aliquots appear twice, with conflicting entries for the
     # sample_is_ffpe and sample_preservation_method fields. Previous release tables did not have these
     # fields. Added DISTINCT to avoid row duplication here:
-    return f'''
+
+    sql = f'''
         WITH a1 AS (
             SELECT DISTINCT
                a.project_short_name,
@@ -90,15 +85,14 @@ def attach_barcodes_sql(input_table, aliquot_table, case_table):
             AND a1.project_short_name = c.project_id
         '''
 
+    return query_bq(sql, output_table)
+
 
 '''Glue the New Info to the Original Table
 All the new info we have pulled together goes in the first columns of the final table'''
 def final_merge(input_table, barcode_table, output_table): # todo rename as it isn't the final merge
-    sql = final_join_sql(input_table, barcode_table)
-    return query_bq(sql, output_table) # todo
 
-def final_join_sql(input_table, barcodes_table):
-    return f'''
+    sql = f'''
         SELECT a.project_short_name,
                a.case_barcode,
                a.sample_barcode,
@@ -113,15 +107,14 @@ def final_join_sql(input_table, barcodes_table):
                a.sample_gdc_id,
                a.aliquot_gdc_id,
                LEFT(b.file_name, 36) as file_gdc_id,
-        FROM `{barcodes_table}` as a JOIN `{input_table}` as b ON a.file_gdc_id = LEFT(b.file_name, 36)
+        FROM `{barcode_table}` as a JOIN `{input_table}` as b ON a.file_gdc_id = LEFT(b.file_name, 36)
         '''
 
-def merge_samples_by_aliquot(input_table, output_table):
-    sql = merge_samples_by_aliquot_sql(input_table)
     return query_bq(sql, output_table) # todo
 
-def merge_samples_by_aliquot_sql(input_table):
-    return f'''
+
+def merge_samples_by_aliquot(input_table, output_table):
+    sql = f'''
         SELECT
             project_short_name,
             case_barcode,
@@ -152,6 +145,7 @@ def merge_samples_by_aliquot_sql(input_table):
             case_gdc_id,
             aliquot_gdc_id,
             file_gdc_id'''
+    return query_bq(sql, output_table) # todo
 
 
 # todo add a cluster step
