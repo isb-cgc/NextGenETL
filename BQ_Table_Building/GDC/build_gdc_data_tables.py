@@ -288,7 +288,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
     if 'update_table_schema' in steps:
         logging.info("Running update_table_schema Step")
 
-        if bq_table_exists({draft_table}, {params.DEV_DATASET}, {params.DEV_PROJECT}):
+        if bq_table_exists(draft_table, params.DEV_DATASET, params.DEV_PROJECT):
             updated_schema_tags = update_schema_tags(program_mappings, params.RELEASE, params.REL_DATE,
                                                      params.RELEASE_ANCHOR, program)
 
