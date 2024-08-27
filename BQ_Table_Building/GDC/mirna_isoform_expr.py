@@ -25,17 +25,17 @@ the aliquot IDs using the file table that provides aliquot UUIDs for files.'''
 def attach_aliquot_ids(input_table, file_table, output_table):
     sql = f'''
         WITH
-        a1 AS (SELECT DISTINCT fileUUID FROM `{input_table}`),        
+        a1 AS (SELECT DISTINCT LEFT(file_name, 36) as file_gdc_id FROM `{input_table}`),        
         a2 AS (SELECT b.associated_entities__entity_gdc_id AS aliquot_gdc_id,
-                      a1.fileUUID
-               FROM a1 JOIN `{file_table}` AS b ON a1.fileUUID= b.file_gdc_id
+                      a1.file_gdc_id
+               FROM a1 JOIN `{file_table}` AS b ON a1.file_gdc_id= b.file_gdc_id
                WHERE b.associated_entities__entity_type = 'aliquot')
         SELECT 
                c.project_short_name,
                c.case_gdc_id,
                c.associated_entities__entity_gdc_id AS aliquot_gdc_id,
-               a2.fileUUID
-        FROM a2 JOIN `{file_table}` AS c ON a2.fileUUID = c.file_gdc_id
+               a2.file_gdc_id
+        FROM a2 JOIN `{file_table}` AS c ON a2.file_gdc_id = c.file_gdc_id
         WHERE c.associated_entities__entity_type = 'aliquot'       
         '''
     return query_bq(sql, output_table)
