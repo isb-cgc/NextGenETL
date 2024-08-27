@@ -57,7 +57,7 @@ def attach_barcodes(input_table, aliquot_table, case_table, output_table):
                 c.case_gdc_id,
                 c.sample_gdc_id,
                 a.aliquot_gdc_id,
-                a.fileUUID 
+                a.file_gdc_id 
             FROM `{input_table}`as a JOIN `{aliquot_table}` AS c ON a.aliquot_gdc_id = c.aliquot_gdc_id 
             WHERE c.case_gdc_id = a.case_gdc_id)
         SELECT
@@ -70,7 +70,7 @@ def attach_barcodes(input_table, aliquot_table, case_table, output_table):
             a1.case_gdc_id,
             a1.sample_gdc_id,
             a1.aliquot_gdc_id,
-            a1.fileUUID
+            a1.file_gdc_id
         FROM a1 JOIN `{case_table}` as b ON a1.case_barcode = b.case_barcode and a1.project_short_name = b.project_id
         '''
 
