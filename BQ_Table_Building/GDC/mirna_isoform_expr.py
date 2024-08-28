@@ -85,27 +85,28 @@ All the new info we have pulled together goes in the first columns of the final 
 def final_merge(input_table, barcode_table, output_table):
 
     sql = f'''
-        SELECT a.project_short_name,
-               a.case_barcode,
-               a.sample_barcode,
-               a.aliquot_barcode,
-               a.primary_site,
-               b.miRNA_ID as miRNA_id,
-               b.chromosome,
-               b.start_pos,
-               b.end_pos,
-               b.strand,
-               b.read_count,
-               b.reads_per_million_miRNA_mapped,
-               b.cross_mapped,
-               b.miRNA_transcript,
-               b.miRNA_accession,
-               a.sample_type_name,
-               a.case_gdc_id,
-               a.sample_gdc_id,
-               a.aliquot_gdc_id,
-               b.fileUUID as file_gdc_id
-        FROM `{barcode_table}` as a JOIN `{input_table}` as b ON a.fileUUID = b.fileUUID
+        SELECT
+            a.project_short_name,
+            a.case_barcode,
+            a.sample_barcode,
+            a.aliquot_barcode,
+            a.primary_site,
+            b.miRNA_ID AS miRNA_id,
+            REGEXP_EXTRACT(b.isoform_coords, r"\S*:(chr\d*|\w*):") as chromosome,
+            REGEXP_EXTRACT(b.isoform_coords, r"(\d+)-") as start_pos,
+            REGEXP_EXTRACT(b.isoform_coords, r"-(\d+)") as end_pos,
+            RIGHT(b.isoform_coords, 1) as strand,
+            b.read_count,
+            b.reads_per_million_miRNA_mapped,
+            b.`cross-mapped` as cross_mapped,
+            REGEXP_EXTRACT(b.miRNA_region, r"(\w*),") as mirna_transcript,
+            REGEXP_EXTRACT(b.miRNA_region, r",(\S*)") as miRNA_accession,
+            a.sample_type_name,
+            a.case_gdc_id,
+            a.sample_gdc_id,
+            a.aliquot_gdc_id,
+            LEFT(b.file_name, 36) as file_gdc_id
+        FROM `{barcode_table}` as a JOIN `{input_table}` as b ON a.fileUUID = = LEFT(b.file_name, 36)
         '''
 
     return query_bq(sql, output_table)
