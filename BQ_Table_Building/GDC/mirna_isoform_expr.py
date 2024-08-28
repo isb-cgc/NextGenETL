@@ -106,7 +106,7 @@ def final_merge(input_table, barcode_table, output_table):
             a.sample_gdc_id,
             a.aliquot_gdc_id,
             LEFT(b.file_name, 36) as file_gdc_id
-        FROM `{barcode_table}` as a JOIN `{input_table}` as b ON a.fileUUID = LEFT(b.file_name, 36)
+        FROM `{barcode_table}` as a JOIN `{input_table}` as b ON a.file_gdc_id = LEFT(b.file_name, 36)
         '''
 
     return query_bq(sql, output_table)
