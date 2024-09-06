@@ -65,6 +65,16 @@ def load_config(yaml_config):
 
 
 def create_file_list(params, program, datatype, local_location, prefix, file_list, datatype_mappings):
+    """
+    Create a BQ table with a list of files based on a set of GDC keyword filters for a set of programs and data types.
+    :param params: Dictionary of parameters passed in from a YAML file
+    :param program: GDC program to filter on
+    :param datatype: Data type of the data to be collected
+    :param local_location: local storage location
+    :param prefix: BQ table naming prefix
+    :param file_list: name of the file for the file list on the local machine and in the Google Bucket
+    :param datatype_mappings: data type mapping file
+    """
     max_files = params.MAX_FILES if 'MAX_FILES' in vars(params) else None
     bucket_location = f"{params.DEV_BUCKET_DIR}/gdc_{params.RELEASE}"
 
@@ -83,6 +93,15 @@ def create_file_list(params, program, datatype, local_location, prefix, file_lis
 
 
 def create_file_list_sql(program, filters, file_table, gcs_url_table, max_files):
+    """
+    SQL string for the file list query
+    :param program: GDC program to filter on
+    :param filters: dictionary of file filters
+    :param file_table: BQ GDC file metadata table id
+    :param gcs_url_table: BQ GDC gcs metadata table id
+    :param max_files: max number of files to grab
+    :return: a string with the SQL statement
+    """
     formatted_filters = []
 
     for key, val in filters.items():
@@ -103,14 +122,16 @@ def create_file_list_sql(program, filters, file_table, gcs_url_table, max_files)
 
 
 def concat_all_files(all_files, one_big_tsv, all_files_local_location, headers_to_switch, columns_to_add):
-    # todo description to accurately reflect the function
     """
     Concatenate all Files
-    Gather up all files and glue them into one big one. The file name and path often include features
-    that we want to add into the table. The provided file_info_func returns a list of elements from
-    the file path, and the extra_cols list maps these to extra column names. Note if file is zipped,
+    Gather up all files and glue them into one big one. Note if file is zipped,
     we unzip it, concat it, then toss the unzipped version.
     THIS VERSION OF THE FUNCTION USES THE FIRST LINE OF THE FIRST FILE TO BUILD THE HEADER LINE!
+    :param all_files: file location of a list of files to glue together
+    :param one_big_tsv: name of file for concat file
+    :param all_files_local_location: local location of files to glue
+    :param headers_to_switch: list of headers to change the name of
+    :param columns_to_add: list of blank columns to add
     """
     logger = logging.getLogger('base_script')
     logger.info("building {}".format(one_big_tsv))
@@ -175,7 +196,23 @@ def concat_all_files(all_files, one_big_tsv, all_files_local_location, headers_t
     return
 
 
-def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table, case_table, file_table, gene_table, dev_project, dev_dataset, release):
+def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table, case_table, file_table, gene_table,
+                      dev_project, dev_dataset, release):
+    """
+    Transform the raw BigQuery with queries and subtables for each data type.
+
+    :param datatype: data type
+    :param raw_data_table: raw table to transform
+    :param draft_data_table: name for the final table
+    :param aliquot_table: metadata aliquot table
+    :param case_table: metadata case table
+    :param file_table: metadata file table
+    :param gene_table: metadata gene table
+    :param dev_project: working project id
+    :param dev_dataset: working dataset id
+    :param release: GDC release
+    :return: return a list of tables created
+    """
     logger = logging.getLogger('base_script')
     intermediate_tables = []
 
@@ -216,6 +253,17 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
 
 
 def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data_type, program):
+    """
+    Function to go through the steps to create BQ tables
+
+    :param params: Parameters supplied in the yaml
+    :param home: home directory
+    :param local_dir: local directory
+    :param workflow_run_ver: workflow run version
+    :param steps: steps from yaml file
+    :param data_type: data type to run the steps on
+    :param program: program to run the steps on
+    """
     logger = logging.getLogger('base_script')
 
     with open(f"{home}/{params.SCHEMA_REPO_LOCAL}/{params.PROGRAM_MAPPINGS}", mode='r') as program_mappings_file:
@@ -260,7 +308,6 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
                          raw_files_local_location, datatype_mappings[data_type]['headers_to_switch'],
                          datatype_mappings[data_type]['headers_to_add'])
         # todo future add header rows if needed (Methylation)
-        # todo future break up copy number files into each workflow (maybe)
 
         logging.info("Running analyze_the_schema Step")
 
