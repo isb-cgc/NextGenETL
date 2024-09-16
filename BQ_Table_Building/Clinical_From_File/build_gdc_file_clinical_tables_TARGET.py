@@ -410,6 +410,8 @@ def main(args):
         with open(tables_file, mode='r') as tables_fh:
             all_tables = tables_fh.read().splitlines()
 
+        print(f"all_tables: {all_tables} ")
+
         for table_id in all_tables:
             table_name = table_id.split(".")[2]
             file_id = table_name.split("__")[0]
