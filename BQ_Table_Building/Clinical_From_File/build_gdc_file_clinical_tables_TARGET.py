@@ -65,8 +65,9 @@ def make_file_pull_list(program: str, filters: dict[str, str]):
                f.md5sum,
                f.file_size,
                f.file_state,
-               gs.file_gdc_url
-            FROM `isb-project-zero.GDC_metadata.rel{rel_number}_fileData_current` f
+               f.project_short_name,
+               gs.gdc_file_url_gcs
+            FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_active_r{rel_number}` f
             LEFT JOIN `isb-project-zero.GDC_manifests.rel{rel_number}_GDCfileID_to_GCSurl` gs
                ON f.file_gdc_id = gs.file_gdc_id 
             {where_clause}
@@ -209,6 +210,14 @@ def create_table_name_from_file_name(file_path: str) -> str:
     return table_name
 
 
+def make_file_metadata_query(file_gdc_id: str) -> str:
+    return f"""
+        SELECT file_name, project_short_name
+        FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_active_r{PARAMS['RELEASE']}`
+        WHERE file_gdc_id = '{file_gdc_id}'
+    """
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -217,6 +226,9 @@ def main(args):
         PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         sys.exit(err)
+
+    # todo list:
+    # get file pull list
 
     log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
@@ -228,7 +240,6 @@ def main(args):
 
     local_program_dir = get_scratch_fp(PARAMS, program)
     local_files_dir = f"{local_program_dir}/files"
-    local_concat_dir = f"{local_program_dir}/concat_files"
     local_schemas_dir = f"{local_program_dir}/schemas"
     file_traversal_list = f"{local_program_dir}/{PARAMS['BASE_FILE_NAME']}_traversal_list_{program}.txt"
     tables_file = f"{local_program_dir}/{PARAMS['RELEASE']}_tables_{program}.txt"
@@ -247,9 +258,6 @@ def main(args):
         if not os.path.exists(local_files_dir):
             logger.info(f"Creating directory {local_files_dir}")
             os.makedirs(local_files_dir)
-        if not os.path.exists(local_concat_dir):
-            logger.info(f"Creating directory {local_concat_dir}")
-            os.makedirs(local_concat_dir)
         if not os.path.exists(local_schemas_dir):
             logger.info(f"Creating directory {local_schemas_dir}")
             os.makedirs(local_schemas_dir)
@@ -261,8 +269,10 @@ def main(args):
         for file_data in file_pull_list:
             file_name = file_data['file_name']
             file_id = file_data['file_gdc_id']
-            gs_uri = file_data['file_gdc_url']
+            gs_uri = file_data['gdc_file_url_gcs']
             md5sum = file_data['md5sum']
+            # todo use this to associate files by project
+            project = file_data['project_short_name']
 
             file_path = f"{local_files_dir}/{file_id}__{file_name}"
 
@@ -393,8 +403,34 @@ def main(args):
             logger.info(table)
         logger.info("")
 
-    '''
+    if 'merge_raw_tables' in steps:
 
+        table_dict = dict()
+
+        with open(tables_file, mode='r') as tables_fh:
+            all_tables = tables_fh.read().splitlines()
+
+        for table_name in all_tables:
+            file_id = table_name.split("__")[0]
+            file_id = file_id.replace(f"{PARAMS['RELEASE']}_", "")
+            file_id = file_id.replace("_", "-")
+
+            # look up project_short_name using file uuid
+
+            file_metadata_result = query_and_retrieve_result(make_file_metadata_query(file_gdc_id=file_id))
+
+            for row in file_metadata_result:
+                table_dict[file_id] = {
+                    "table_name": table_name,
+                    "project_short_name": row['project_short_name'],
+                    "file_name": row['file_name']
+                }
+
+                break
+
+        print(table_dict)
+
+    '''
     if 'analyze_tables' in steps:
         column_dict = dict()
 

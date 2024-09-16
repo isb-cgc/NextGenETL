@@ -349,7 +349,6 @@ def main(args):
                             # get project_short_name from file path
                             # add program and project short name to tsv rows
 
-
         with open(file_traversal_list, mode='w') as traversal_list_file:
             for tsv_file in concat_file_paths:
                 traversal_list_file.write(f"{tsv_file}\n")
