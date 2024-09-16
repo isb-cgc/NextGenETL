@@ -406,19 +406,16 @@ def main(args):
     if 'merge_raw_tables' in steps:
 
         table_dict = dict()
+        project_short_name_dict = dict()
 
         with open(tables_file, mode='r') as tables_fh:
             all_tables = tables_fh.read().splitlines()
-
-        print(f"all_tables: {all_tables} ")
 
         for table_id in all_tables:
             table_name = table_id.split(".")[2]
             file_id = table_name.split("__")[0]
             file_id = file_id.replace(f"{PARAMS['RELEASE']}_", "")
             file_id = file_id.replace("_", "-")
-
-            print(file_id)
 
             # look up project_short_name using file uuid
 
@@ -431,9 +428,16 @@ def main(args):
                     "file_name": row['file_name']
                 }
 
+                if row['project_short_name'] not in project_short_name_dict:
+                    project_short_name_dict[row['project_short_name']] = {table_id}
+                else:
+                    project_short_name_dict[row['project_short_name']].add(table_id)
+
                 break
 
-        print(table_dict)
+        print(project_short_name_dict)
+
+
 
     '''
     if 'analyze_tables' in steps:
