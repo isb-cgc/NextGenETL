@@ -428,14 +428,20 @@ def main(args):
                     "file_name": row['file_name']
                 }
 
-                if row['project_short_name'] not in project_short_name_dict:
-                    project_short_name_dict[row['project_short_name']] = {table_id}
-                else:
-                    project_short_name_dict[row['project_short_name']].add(table_id)
+                if 'CDE' not in row['file_name'] and 'Supplement' not in row['file_name']:
+                    if row['project_short_name'] not in project_short_name_dict:
+                        project_short_name_dict[row['project_short_name']] = {table_id}
+                    else:
+                        project_short_name_dict[row['project_short_name']].add(table_id)
 
                 break
 
-        print(project_short_name_dict)
+        for project_short_name, table_id_set in project_short_name_dict.items():
+
+            print(project_short_name)
+
+            for table_id in table_id_set:
+                print(f"\t{table_id}")
 
 
 
