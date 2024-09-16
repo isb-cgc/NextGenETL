@@ -410,10 +410,13 @@ def main(args):
         with open(tables_file, mode='r') as tables_fh:
             all_tables = tables_fh.read().splitlines()
 
-        for table_name in all_tables:
+        for table_id in all_tables:
+            table_name = table_id.split(".")[2]
             file_id = table_name.split("__")[0]
             file_id = file_id.replace(f"{PARAMS['RELEASE']}_", "")
             file_id = file_id.replace("_", "-")
+
+            print(file_id)
 
             # look up project_short_name using file uuid
 
@@ -421,7 +424,7 @@ def main(args):
 
             for row in file_metadata_result:
                 table_dict[file_id] = {
-                    "table_name": table_name,
+                    "table_name": table_id,
                     "project_short_name": row['project_short_name'],
                     "file_name": row['file_name']
                 }
