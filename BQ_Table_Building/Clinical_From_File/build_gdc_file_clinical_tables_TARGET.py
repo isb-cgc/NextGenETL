@@ -439,9 +439,6 @@ def main(args):
         records_dict = dict()
 
         for project_short_name, table_id_set in project_short_name_dict.items():
-
-            row_object_list = list()
-
             for table_id in table_id_set:
                 logger.info(table_id)
                 query = f"SELECT DISTINCT * FROM `{table_id}`"
@@ -477,7 +474,7 @@ def main(args):
                         if column not in records_dict[target_usi] or overwrite_existing_value:
                             # column doesn't exist yet, so add it and its value
                             records_dict[target_usi][column] = value
-                        elif column in record_dict[target_usi] and value != records_dict[target_usi][column]:
+                        elif column in records_dict[target_usi] and value != records_dict[target_usi][column]:
                             logger.warning(f"Record mismatch for {target_usi}: {value} != {records_dict[target_usi][column]}")
 
         # jsonl_fp = f"{local_files_dir}/merged.jsonl"
