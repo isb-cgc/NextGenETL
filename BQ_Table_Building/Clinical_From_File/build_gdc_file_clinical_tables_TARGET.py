@@ -439,32 +439,30 @@ def main(args):
             query_result = query_and_retrieve_result(query)
 
             for row in query_result:
-                record_dict = dict(row)
-                record_dict['disease_code'] = raw_tables_dict['project_short_name'].split('-')[1]
-                record_dict['project_short_name'] = raw_tables_dict['project_short_name']
-                target_usi = record_dict['target_usi']
+                row_dict = dict(row)
+                row_dict['disease_code'] = raw_tables_dict['project_short_name'].split('-')[1]
+                row_dict['project_short_name'] = raw_tables_dict['project_short_name']
+                target_usi = row_dict['target_usi']
+
+                int_comparison_columns = ['event_free_survival_time_in_days',
+                                          'year_of_last_follow_up',
+                                          'overall_survival_time_in_days']
 
                 if target_usi not in records_dict:
                     records_dict[target_usi] = dict()
 
-                for column, value in record_dict.items():
+                for column, value in row_dict.items():
                     if value is None:
                         continue
-                    elif column in ['event_free_survival_time_in_days',
-                                    'year_of_last_follow_up',
-                                    'overall_survival_time_in_days']:
-                        if column in records_dict[target_usi] \
-                                and column in record_dict \
-                                and record_dict[column] is not None:
-
-                            existing_value = int(records_dict[target_usi][column])
-                            new_value = int(value)
-
-                            if new_value > existing_value:
-                                records_dict[target_usi][column] = value
                     elif column not in records_dict[target_usi]:
                         # column doesn't exist yet, so add it and its value
                         records_dict[target_usi][column] = value
+                    elif column in int_comparison_columns:
+                        existing_value = int(records_dict[target_usi][column])
+                        new_value = int(value)
+
+                        if new_value > existing_value:
+                            records_dict[target_usi][column] = value
                     elif column in records_dict[target_usi] and value != records_dict[target_usi][column]:
                         # this already has a value for the column, and it differs from the new value
                         exempt_list = ['Not done', 'Not Done']
