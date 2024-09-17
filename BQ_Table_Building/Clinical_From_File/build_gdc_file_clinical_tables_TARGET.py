@@ -434,14 +434,15 @@ def main(args):
         # values from newer files are included preferentially
         for raw_tables_dict in sorted(table_list, key=lambda d: d['updated_datetime'], reverse=True):
             logger.info(raw_tables_dict['table_id'])
-            query = f"SELECT DISTINCT * FROM `{table_id}`"
 
-            query_result = query_and_retrieve_result(query)
+            project_short_name = raw_tables_dict['project_short_name']
+            disease_code = raw_tables_dict['project_short_name'].split('-')[1]
+            query_result = query_and_retrieve_result(f"SELECT DISTINCT * FROM `{table_id}`")
 
             for row in query_result:
                 row_dict = dict(row)
-                row_dict['disease_code'] = raw_tables_dict['project_short_name'].split('-')[1]
-                row_dict['project_short_name'] = raw_tables_dict['project_short_name']
+                row_dict['disease_code'] = disease_code
+                row_dict['project_short_name'] = project_short_name
                 target_usi = row_dict['target_usi']
 
                 int_comparison_columns = ['event_free_survival_time_in_days',
@@ -463,7 +464,7 @@ def main(args):
 
                         if new_value > existing_value:
                             records_dict[target_usi][column] = value
-                    elif column in records_dict[target_usi] and value != records_dict[target_usi][column]:
+                    elif value != records_dict[target_usi][column]:
                         # this already has a value for the column, and it differs from the new value
                         exempt_list = ['Not done', 'Not Done']
 
