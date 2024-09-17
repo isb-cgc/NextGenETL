@@ -33,7 +33,7 @@ from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq
                                    get_columns_in_table)
 from cda_bq_etl.gcs_helpers import upload_to_bucket
 from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, write_list_to_tsv,
-                                     create_normalized_tsv)
+                                     create_normalized_tsv, write_list_to_jsonl, write_list_to_jsonl_and_upload)
 from cda_bq_etl.utils import (format_seconds, get_filepath, load_config, get_scratch_fp, calculate_md5sum,
                               create_dev_table_id)
 
@@ -436,23 +436,53 @@ def main(args):
 
                 break
 
-        row_object_list = list()
+        records_dict = dict()
 
         for project_short_name, table_id_set in project_short_name_dict.items():
 
+            row_object_list = list()
+
             for table_id in table_id_set:
-                query = f"SELECT * FROM `{table_id}`"
+                logger.info(table_id)
+                query = f"SELECT DISTINCT * FROM `{table_id}`"
 
                 query_result = query_and_retrieve_result(query)
 
-                table_column_set = set()
-
                 for row in query_result:
-                    row_object_list.append(dict(row))
+                    record_dict = dict(row)
+                    record_dict['disease_code'] = project_short_name.split('-')[1]
+                    record_dict['project_short_name'] = project_short_name
+                    target_usi = record_dict['target_usi']
 
-            print(row_object_list)
-            break
+                    overwrite_existing_value = True
 
+                    if target_usi not in records_dict:
+                        records_dict[target_usi] = dict()
+                    else:
+                        # if a former file populated year_of_last_follow_up, and this file contains the field as well,
+                        # compare and favor values from the newer version.
+                        if 'year_of_last_follow_up' in records_dict[target_usi] \
+                                and 'year_of_last_follow_up' in record_dict \
+                                and record_dict['year_of_last_follow_up'] is not None:
+
+                            existing_year_of_last_follow_up = int(records_dict[target_usi]['year_of_last_follow_up'])
+                            additional_year_of_last_follow_up = int(record_dict['year_of_last_follow_up'])
+
+                            if additional_year_of_last_follow_up > existing_year_of_last_follow_up:
+                                overwrite_existing_value = False
+
+                    for column, value in record_dict.items():
+                        if value is None:
+                            continue
+                        if column not in records_dict[target_usi] or overwrite_existing_value:
+                            # column doesn't exist yet, so add it and its value
+                            records_dict[target_usi][column] = value
+                        elif column in record_dict[target_usi] and value != records_dict[target_usi][column]:
+                            logger.warning(f"Record mismatch for {target_usi}: {value} != {records_dict[target_usi][column]}")
+
+        # jsonl_fp = f"{local_files_dir}/merged.jsonl"
+        # write_list_to_jsonl(jsonl_fp=jsonl_fp, json_obj_list=records, mode='a')
+        # upload_to_bucket(PARAMS, scratch_fp=jsonl_fp)
 
 
     '''
