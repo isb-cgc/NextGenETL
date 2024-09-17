@@ -475,7 +475,7 @@ def main(args):
                             # column doesn't exist yet, so add it and its value
                             records_dict[target_usi][column] = value
                         elif column in records_dict[target_usi] and value != records_dict[target_usi][column]:
-                            logger.warning(f"Record mismatch for {target_usi}: {value} != {records_dict[target_usi][column]}")
+                            logger.warning(f"Record mismatch for {target_usi} in column {column}: {value} != {records_dict[target_usi][column]}")
 
         # jsonl_fp = f"{local_files_dir}/merged.jsonl"
         # write_list_to_jsonl(jsonl_fp=jsonl_fp, json_obj_list=records, mode='a')
