@@ -360,8 +360,8 @@ def main(args):
 
             create_and_upload_schema_for_tsv(PARAMS,
                                              tsv_fp=normalized_tsv_file_path,
-                                             header_row=0, 
-                                             skip_rows=1, 
+                                             header_row=0,
+                                             skip_rows=1,
                                              schema_fp=schema_file_path,
                                              delete_local=True)
 
@@ -451,41 +451,38 @@ def main(args):
                     record_dict['project_short_name'] = project_short_name
                     target_usi = record_dict['target_usi']
 
-                    overwrite_existing_value = True
-
                     if target_usi not in records_dict:
                         records_dict[target_usi] = dict()
-                    else:
-                        # if a former file populated year_of_last_follow_up, and this file contains the field as well,
-                        # compare and favor values from the newer version.
-                        if 'year_of_last_follow_up' in records_dict[target_usi] \
-                                and 'year_of_last_follow_up' in record_dict \
-                                and record_dict['year_of_last_follow_up'] is not None:
-
-                            existing_year_of_last_follow_up = int(records_dict[target_usi]['year_of_last_follow_up'])
-                            additional_year_of_last_follow_up = int(record_dict['year_of_last_follow_up'])
-
-                            if additional_year_of_last_follow_up > existing_year_of_last_follow_up:
-                                overwrite_existing_value = False
 
                     for column, value in record_dict.items():
                         if value is None:
                             continue
-                        if column not in records_dict[target_usi] or overwrite_existing_value:
+                        elif column in ['event_free_survival_time_in_days',
+                                        'year_of_last_follow_up',
+                                        'overall_survival_time_in_days']:
+                            if column in records_dict[target_usi] \
+                                    and column in record_dict \
+                                    and record_dict[column] is not None:
+
+                                existing_value = int(records_dict[target_usi][column])
+                                new_value = int(value)
+
+                                if new_value > existing_value:
+                                    records_dict[target_usi][column] = value
+                        elif column not in records_dict[target_usi]:
                             # column doesn't exist yet, so add it and its value
                             records_dict[target_usi][column] = value
                         elif column in records_dict[target_usi] and value != records_dict[target_usi][column]:
-                            if value != 'Not done' \
-                                and value != 'Not Done' \
-                                and records_dict[target_usi][column] != 'Not done' \
-                                and records_dict[target_usi][column] != 'Not Done':
+                            # this already has a value for the column, and it differs from the new value
+                            exempt_list = ['Not done', 'Not Done']
 
-                                logger.warning(f"Record mismatch for {target_usi} in column {column}: {value} != {records_dict[target_usi][column]}")
+                            if value not in exempt_list and records_dict[target_usi][column] not in exempt_list:
+                                logger.warning(f"Record mismatch for {target_usi} in column {column}: "
+                                               f"{value} != {records_dict[target_usi][column]}")
 
         # jsonl_fp = f"{local_files_dir}/merged.jsonl"
         # write_list_to_jsonl(jsonl_fp=jsonl_fp, json_obj_list=records, mode='a')
         # upload_to_bucket(PARAMS, scratch_fp=jsonl_fp)
-
 
     '''
     if 'analyze_tables' in steps:
