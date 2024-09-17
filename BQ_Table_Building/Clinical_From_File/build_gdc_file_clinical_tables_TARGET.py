@@ -436,30 +436,23 @@ def main(args):
 
                 break
 
+        row_object_list = list()
+
         for project_short_name, table_id_set in project_short_name_dict.items():
 
-            print(project_short_name)
-
-            table_columns_dict = dict()
-
             for table_id in table_id_set:
-                query = f"""
-                    SELECT column_name
-                    FROM `isb-project-zero.clinical_from_files_raw`.INFORMATION_SCHEMA.COLUMNS
-                    WHERE table_name = "{table_id.split('.')[2]}"
-                """
+                query = f"SELECT * FROM `{table_id}`"
 
                 query_result = query_and_retrieve_result(query)
 
                 table_column_set = set()
 
                 for row in query_result:
-                    table_column_set.add(row['column_name'])
+                    row_object_list.append(dict(row))
 
-                table_columns_dict[table_id] = table_column_set
+            print(row_object_list)
+            break
 
-            for table_id, column_set in table_columns_dict.items():
-                print(f"{table_id}: {column_set}")
 
 
     '''
