@@ -470,11 +470,11 @@ def main(args):
                             records_dict[target_usi][column] = f', {value}'
                     elif value != records_dict[target_usi][column]:
                         # this already has a value for the column, and it differs from the new value
-                        #exempt_list = ['Not done', 'Not Done']
+                        exempt_list = ['Not done', 'Not Done']
 
-                        # if value not in exempt_list and records_dict[target_usi][column] not in exempt_list:
-                        logger.warning(f"Record mismatch for {target_usi} in column {column}: "
-                                       f"{value} != {records_dict[target_usi][column]}")
+                        if value not in exempt_list and records_dict[target_usi][column] not in exempt_list:
+                            logger.warning(f"Record mismatch for {target_usi} in column {column}: "
+                                           f"{value} != {records_dict[target_usi][column]}")
 
         # jsonl_fp = f"{local_files_dir}/merged.jsonl"
         # write_list_to_jsonl(jsonl_fp=jsonl_fp, json_obj_list=records, mode='a')
