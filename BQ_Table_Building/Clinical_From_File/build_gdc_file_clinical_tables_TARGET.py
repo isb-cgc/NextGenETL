@@ -437,7 +437,7 @@ def main(args):
 
             project_short_name = raw_tables_dict['project_short_name']
             disease_code = raw_tables_dict['project_short_name'].split('-')[1]
-            query_result = query_and_retrieve_result(f"SELECT DISTINCT * FROM `{table_id}`")
+            query_result = query_and_retrieve_result(f"SELECT DISTINCT * FROM `{raw_tables_dict['table_id']}`")
 
             for row in query_result:
                 row_dict = dict(row)
