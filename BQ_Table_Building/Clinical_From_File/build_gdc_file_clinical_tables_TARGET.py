@@ -440,9 +440,26 @@ def main(args):
 
             print(project_short_name)
 
-            for table_id in table_id_set:
-                print(f"\t{table_id}")
+            table_columns_dict = dict()
 
+            for table_id in table_id_set:
+                query = """
+                    SELECT column_name
+                    FROM `isb-project-zero.clinical_from_files_raw`.INFORMATION_SCHEMA.COLUMNS
+                    WHERE table_name = table_id.split(".")[2]
+                """
+
+                query_result = query_and_retrieve_result(query)
+
+                table_column_set = set()
+
+                for row in query_result:
+                    table_column_set.add(row['column_name'])
+
+                table_columns_dict[table_id] = table_column_set
+
+            for table_id, column_set in table_columns_dict.items():
+                print(f"{table_id}: {column_set}")
 
 
     '''
