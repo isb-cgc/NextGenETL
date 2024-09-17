@@ -453,22 +453,22 @@ def main(args):
                     records_dict[target_usi] = dict()
 
                 for column, value in row_dict.items():
+                    if isinstance(value, str):
+                        value = value.strip()
+                    # column doesn't exist yet, so add it and its value
+
+                    if value == 'Induction failure':
+                        value = 'Induction Failure'
+                    elif value == 'Not done':
+                        value = 'Not Done'
+                    elif value == 'Death without Remission':
+                        value = 'Death without remission'
+                    elif value == 'unevaluable':
+                        value = 'Unevaluable'
+
                     if value is None:
                         continue
                     elif column not in records_dict[target_usi]:
-                        if isinstance(value, str):
-                            value = value.strip()
-                        # column doesn't exist yet, so add it and its value
-
-                        if value == 'Induction failure':
-                            value = 'Induction Failure'
-                        elif value == 'Not done':
-                            value = 'Not Done'
-                        elif value == 'Death without Remission':
-                            value == 'Death without remission'
-                        elif value == 'unevaluable':
-                            value = 'Unevaluable'
-
                         records_dict[target_usi][column] = value
                     elif column in int_comparison_columns:
                         existing_value = int(records_dict[target_usi][column])
