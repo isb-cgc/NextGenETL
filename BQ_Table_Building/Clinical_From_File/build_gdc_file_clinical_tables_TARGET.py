@@ -443,10 +443,10 @@ def main(args):
             table_columns_dict = dict()
 
             for table_id in table_id_set:
-                query = """
+                query = f"""
                     SELECT column_name
                     FROM `isb-project-zero.clinical_from_files_raw`.INFORMATION_SCHEMA.COLUMNS
-                    WHERE table_name = table_id.split(".")[2]
+                    WHERE table_name = "{table_id.split('.')[2]}"
                 """
 
                 query_result = query_and_retrieve_result(query)
