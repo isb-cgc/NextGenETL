@@ -465,6 +465,9 @@ def main(args):
 
                         if new_value > existing_value:
                             records_dict[target_usi][column] = value
+                    elif column in ['disease_code', 'project_short_name']:
+                        if value not in records_dict[target_usi][column]:
+                            records_dict[target_usi][column] = f', {value}'
                     elif value != records_dict[target_usi][column]:
                         # this already has a value for the column, and it differs from the new value
                         exempt_list = ['Not done', 'Not Done']
