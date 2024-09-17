@@ -456,7 +456,19 @@ def main(args):
                     if value is None:
                         continue
                     elif column not in records_dict[target_usi]:
+                        if isinstance(value, str):
+                            value = value.strip()
                         # column doesn't exist yet, so add it and its value
+
+                        if value == 'Induction failure':
+                            value = 'Induction Failure'
+                        elif value == 'Not done':
+                            value = 'Not Done'
+                        elif value == 'Death without Remission':
+                            value == 'Death without remission'
+                        elif value == 'unevaluable':
+                            value = 'Unevaluable'
+
                         records_dict[target_usi][column] = value
                     elif column in int_comparison_columns:
                         existing_value = int(records_dict[target_usi][column])
@@ -464,17 +476,17 @@ def main(args):
 
                         if new_value > existing_value:
                             records_dict[target_usi][column] = value
-                            logger.info(f"updating {column} value for {target_usi}: {existing_value} -> {new_value}")
+                            # logger.info(f"updating {column} value for {target_usi}: {existing_value} -> {new_value}")
                     elif column in ['disease_code', 'project_short_name']:
                         if value not in records_dict[target_usi][column]:
                             records_dict[target_usi][column] = f', {value}'
                     elif value != records_dict[target_usi][column]:
                         # this already has a value for the column, and it differs from the new value
-                        exempt_list = ['Not done', 'Not Done']
+                        # exempt_list = ['Not done', 'Not Done']
 
-                        if value not in exempt_list and records_dict[target_usi][column] not in exempt_list:
-                            logger.warning(f"Record mismatch for {target_usi} in column {column}: "
-                                           f"{value} != {records_dict[target_usi][column]}")
+                        # if value not in exempt_list and records_dict[target_usi][column] not in exempt_list:
+                        logger.warning(f"Record mismatch for {target_usi} in column {column}: "
+                                       f"{value} != {records_dict[target_usi][column]}")
 
         # jsonl_fp = f"{local_files_dir}/merged.jsonl"
         # write_list_to_jsonl(jsonl_fp=jsonl_fp, json_obj_list=records, mode='a')
