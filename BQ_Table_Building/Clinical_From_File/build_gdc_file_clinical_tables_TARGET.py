@@ -433,6 +433,7 @@ def main(args):
 
         # values from newer files are included preferentially
         for raw_tables_dict in sorted(table_list, key=lambda d: d['updated_datetime'], reverse=True):
+            print(raw_tables_dict)
             logger.info(raw_tables_dict['table_id'])
 
             project_short_name = raw_tables_dict['project_short_name']
