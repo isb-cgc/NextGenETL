@@ -464,89 +464,22 @@ def main(args):
 
                         if new_value > existing_value:
                             records_dict[target_usi][column] = value
+                            logger.info(f"updating {column} value for {target_usi}: {existing_value} -> {new_value}")
                     elif column in ['disease_code', 'project_short_name']:
                         if value not in records_dict[target_usi][column]:
                             records_dict[target_usi][column] = f', {value}'
                     elif value != records_dict[target_usi][column]:
                         # this already has a value for the column, and it differs from the new value
-                        exempt_list = ['Not done', 'Not Done']
+                        #exempt_list = ['Not done', 'Not Done']
 
-                        if value not in exempt_list and records_dict[target_usi][column] not in exempt_list:
-                            logger.warning(f"Record mismatch for {target_usi} in column {column}: "
-                                           f"{value} != {records_dict[target_usi][column]}")
+                        # if value not in exempt_list and records_dict[target_usi][column] not in exempt_list:
+                        logger.warning(f"Record mismatch for {target_usi} in column {column}: "
+                                       f"{value} != {records_dict[target_usi][column]}")
 
         # jsonl_fp = f"{local_files_dir}/merged.jsonl"
         # write_list_to_jsonl(jsonl_fp=jsonl_fp, json_obj_list=records, mode='a')
         # upload_to_bucket(PARAMS, scratch_fp=jsonl_fp)
 
-    '''
-    if 'analyze_tables' in steps:
-        column_dict = dict()
-
-        table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
-                                            filter_terms=f"{PARAMS['RELEASE']}_TARGET")
-
-        """
-        table_list = [
-            "r38_TARGET_AML_ClinicalData_AML1031_20211201",
-            "r38_TARGET_AML_ClinicalData_Discovery_20211201",
-            "r38_TARGET_AML_ClinicalData_Validation_20211201",
-            "r38_TARGET_AML_ClinicalData_AAML1031_AAML0631_additionalCasesForSortedCellsAndCBExperiment_20220330",
-            "r38_TARGET_AML_ClinicalData_LowDepthRNAseq_20220331",
-        ]
-        """
-
-        records_dict = dict()
-        mismatched_records_dict = dict()
-        # target_usi: {column: value, ...}
-
-        for table in sorted(table_list):
-            if 'Supplement' in table or 'CDE' in table:
-                continue
-
-            table_id = f"isb-project-zero.clinical_from_files_raw.{table}"
-
-            disease_code = table.split("_")[2]
-
-            sql = f"""
-                SELECT DISTINCT * 
-                FROM `{table_id}`
-            """
-
-            result = query_and_retrieve_result(sql)
-
-            for row in result:
-                record_dict = dict(row)
-                record_dict['disease_code'] = disease_code
-                target_usi = record_dict.pop('target_usi')
-
-                overwrite_existing_value = True
-
-                if target_usi not in records_dict:
-                    records_dict[target_usi] = dict()
-                else:
-                    # if a former file populated year_of_last_follow_up, and this file contains the field as well,
-                    # compare and favor values from the newer version.
-                    if 'year_of_last_follow_up' in records_dict[target_usi] \
-                            and 'year_of_last_follow_up' in record_dict \
-                            and record_dict['year_of_last_follow_up'] is not None:
-
-                        existing_year_of_last_follow_up = int(records_dict[target_usi]['year_of_last_follow_up'])
-                        additional_year_of_last_follow_up = int(record_dict['year_of_last_follow_up'])
-
-                        if additional_year_of_last_follow_up > existing_year_of_last_follow_up:
-                            overwrite_existing_value = False
-
-                for column, value in record_dict.items():
-                    if value is None:
-                        continue
-                    if column not in records_dict[target_usi] or overwrite_existing_value:
-                        # column doesn't exist yet, so add it and its value
-                        records_dict[target_usi][column] = value
-
-        for record in records_dict:
-            print(record)
-    '''
     end_time = time.time()
 
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
