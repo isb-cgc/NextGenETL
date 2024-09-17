@@ -212,7 +212,7 @@ def create_table_name_from_file_name(file_path: str) -> str:
 
 def make_file_metadata_query(file_gdc_id: str) -> str:
     return f"""
-        SELECT file_name, project_short_name
+        SELECT file_name, project_short_name, updated_datetime
         FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_active_{PARAMS['RELEASE']}`
         WHERE file_gdc_id = '{file_gdc_id}'
     """
@@ -405,8 +405,7 @@ def main(args):
 
     if 'merge_raw_tables' in steps:
 
-        table_dict = dict()
-        project_short_name_dict = dict()
+        table_list = list()
 
         with open(tables_file, mode='r') as tables_fh:
             all_tables = tables_fh.read().splitlines()
@@ -422,63 +421,57 @@ def main(args):
             file_metadata_result = query_and_retrieve_result(make_file_metadata_query(file_gdc_id=file_id))
 
             for row in file_metadata_result:
-                table_dict[file_id] = {
-                    "table_name": table_id,
-                    "project_short_name": row['project_short_name'],
-                    "file_name": row['file_name']
-                }
-
                 if 'CDE' not in row['file_name'] and 'Supplement' not in row['file_name']:
-                    if row['project_short_name'] not in project_short_name_dict:
-                        project_short_name_dict[row['project_short_name']] = {table_id}
-                    else:
-                        project_short_name_dict[row['project_short_name']].add(table_id)
-
-                break
+                    table_list.append({
+                        "table_id": table_id,
+                        "project_short_name": row['project_short_name'],
+                        "file_name": row['file_name'],
+                        "updated_datetime": row['updated_datetime']
+                    })
 
         records_dict = dict()
 
-        for project_short_name, table_id_set in project_short_name_dict.items():
-            for table_id in table_id_set:
-                logger.info(table_id)
-                query = f"SELECT DISTINCT * FROM `{table_id}`"
+        # values from newer files are included preferentially
+        for raw_tables_dict in sorted(table_list, key=lambda d: d['updated_datetime'], reverse=True):
+            logger.info(raw_tables_dict['table_id'])
+            query = f"SELECT DISTINCT * FROM `{table_id}`"
 
-                query_result = query_and_retrieve_result(query)
+            query_result = query_and_retrieve_result(query)
 
-                for row in query_result:
-                    record_dict = dict(row)
-                    record_dict['disease_code'] = project_short_name.split('-')[1]
-                    record_dict['project_short_name'] = project_short_name
-                    target_usi = record_dict['target_usi']
+            for row in query_result:
+                record_dict = dict(row)
+                record_dict['disease_code'] = raw_tables_dict['project_short_name'].split('-')[1]
+                record_dict['project_short_name'] = raw_tables_dict['project_short_name']
+                target_usi = record_dict['target_usi']
 
-                    if target_usi not in records_dict:
-                        records_dict[target_usi] = dict()
+                if target_usi not in records_dict:
+                    records_dict[target_usi] = dict()
 
-                    for column, value in record_dict.items():
-                        if value is None:
-                            continue
-                        elif column in ['event_free_survival_time_in_days',
-                                        'year_of_last_follow_up',
-                                        'overall_survival_time_in_days']:
-                            if column in records_dict[target_usi] \
-                                    and column in record_dict \
-                                    and record_dict[column] is not None:
+                for column, value in record_dict.items():
+                    if value is None:
+                        continue
+                    elif column in ['event_free_survival_time_in_days',
+                                    'year_of_last_follow_up',
+                                    'overall_survival_time_in_days']:
+                        if column in records_dict[target_usi] \
+                                and column in record_dict \
+                                and record_dict[column] is not None:
 
-                                existing_value = int(records_dict[target_usi][column])
-                                new_value = int(value)
+                            existing_value = int(records_dict[target_usi][column])
+                            new_value = int(value)
 
-                                if new_value > existing_value:
-                                    records_dict[target_usi][column] = value
-                        elif column not in records_dict[target_usi]:
-                            # column doesn't exist yet, so add it and its value
-                            records_dict[target_usi][column] = value
-                        elif column in records_dict[target_usi] and value != records_dict[target_usi][column]:
-                            # this already has a value for the column, and it differs from the new value
-                            exempt_list = ['Not done', 'Not Done']
+                            if new_value > existing_value:
+                                records_dict[target_usi][column] = value
+                    elif column not in records_dict[target_usi]:
+                        # column doesn't exist yet, so add it and its value
+                        records_dict[target_usi][column] = value
+                    elif column in records_dict[target_usi] and value != records_dict[target_usi][column]:
+                        # this already has a value for the column, and it differs from the new value
+                        exempt_list = ['Not done', 'Not Done']
 
-                            if value not in exempt_list and records_dict[target_usi][column] not in exempt_list:
-                                logger.warning(f"Record mismatch for {target_usi} in column {column}: "
-                                               f"{value} != {records_dict[target_usi][column]}")
+                        if value not in exempt_list and records_dict[target_usi][column] not in exempt_list:
+                            logger.warning(f"Record mismatch for {target_usi} in column {column}: "
+                                           f"{value} != {records_dict[target_usi][column]}")
 
         # jsonl_fp = f"{local_files_dir}/merged.jsonl"
         # write_list_to_jsonl(jsonl_fp=jsonl_fp, json_obj_list=records, mode='a')
