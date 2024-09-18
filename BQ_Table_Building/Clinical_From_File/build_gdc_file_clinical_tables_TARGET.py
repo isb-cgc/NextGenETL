@@ -467,7 +467,7 @@ def main(args):
                         value = 'Unevaluable'
 
                     if column == 'mrd_percent_at_end_of_course_1':
-                        if value == '.':
+                        if value == '.' or value is None:
                             value = None
                         else:
                             value = float(value)
