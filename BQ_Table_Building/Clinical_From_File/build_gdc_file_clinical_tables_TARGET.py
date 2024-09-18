@@ -466,6 +466,12 @@ def main(args):
                     elif value == 'unevaluable':
                         value = 'Unevaluable'
 
+                    if column == 'mrd_percent_at_end_of_course_1':
+                        if value == '.':
+                            value = None
+                        else:
+                            value = float(value)
+
                     if value is None:
                         continue
                     elif column not in records_dict[target_usi]:
