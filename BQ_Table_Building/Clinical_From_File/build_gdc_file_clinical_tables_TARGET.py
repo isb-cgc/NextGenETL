@@ -467,11 +467,13 @@ def main(args):
                     elif value == 'unevaluable':
                         value = 'Unevaluable'
 
+                    """
                     if column == 'mrd_percent_at_end_of_course_1':
                         if value == '.' or value is None:
                             value = None
                         else:
                             value = Decimal(value)
+                    """
 
                     if value is None:
                         continue
