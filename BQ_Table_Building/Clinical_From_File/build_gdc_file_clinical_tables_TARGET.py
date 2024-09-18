@@ -69,7 +69,8 @@ def make_file_pull_list(program: str, filters: dict[str, str]):
                f.project_short_name,
                gs.gdc_file_url_gcs
             FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_active_r{rel_number}` f
-            LEFT JOIN `isb-project-zero.GDC_manifests.rel{rel_number}_GDCfileID_to_GCSurl` gs
+            LEFT JOIN `isb-project-zero.law_GDC_manifests.r{rel_number}_GDCfileID_to_GCSurl` gs # todo change to published table
+            # LEFT JOIN `isb-project-zero.GDC_manifests.rel{rel_number}_GDCfileID_to_GCSurl` gs
                ON f.file_gdc_id = gs.file_gdc_id 
             {where_clause}
         """
