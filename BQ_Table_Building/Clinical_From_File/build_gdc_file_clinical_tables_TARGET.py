@@ -21,6 +21,7 @@ import shutil
 import logging
 import sys
 import time
+from decimal import Decimal
 
 import pandas as pd
 
@@ -470,7 +471,7 @@ def main(args):
                         if value == '.' or value is None:
                             value = None
                         else:
-                            value = float(value)
+                            value = Decimal(value)
 
                     if value is None:
                         continue
