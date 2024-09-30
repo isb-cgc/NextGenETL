@@ -817,7 +817,7 @@ def find_most_recent_published_table_id(params: Params, versioned_table_id: str,
         # note: this is only used for metadata table types in PDC
         return get_most_recent_published_table_version_pdc(params=params,
                                                            dataset=dataset,
-                                                           table_filter_str=table_type,
+                                                           table_filter_str=table_base_name,
                                                            is_metadata=True)
         '''
         if len(split_current_etl_release) == 3:
