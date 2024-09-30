@@ -769,7 +769,7 @@ def change_status_to_archived(archived_table_id: str):
         logger.warning("Couldn't find a table to archive. Likely this table's first release; otherwise an error.")
 
 
-def find_most_recent_published_table_id(params: Params, versioned_table_id: str, table_type: str = None):
+def find_most_recent_published_table_id(params: Params, versioned_table_id: str, table_base_name: str = None):
     """
     Function for locating published table id for dataset's previous release, if it exists
     :param table_type:

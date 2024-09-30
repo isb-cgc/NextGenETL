@@ -666,7 +666,7 @@ def find_missing_tables(dataset: str, table_type: str):
     return True
 
 
-def generate_metadata_table_id_list(table_params: TableParams, table_type: str) -> TableIDList:
+def generate_metadata_table_id_list(table_params: TableParams) -> TableIDList:
     prod_table_name = table_params['table_base_name']
     prod_project_dataset_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_METADATA_DATASET']}"
 
@@ -681,7 +681,9 @@ def generate_metadata_table_id_list(table_params: TableParams, table_type: str) 
     else:
         versioned_table_id = f"{prod_project_dataset_id}_versioned.{prod_table_name}_{PARAMS['RELEASE']}"
         source_table_id = create_metadata_table_id(PARAMS, table_params['table_base_name'])
-        previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, versioned_table_id, table_type)
+        previous_versioned_table_id = find_most_recent_published_table_id(params=PARAMS,
+                                                                          versioned_table_id=versioned_table_id,
+                                                                          table_base_name=table_params['table_base_name'])
 
     table_ids = {
         'current': current_table_id,
@@ -1351,7 +1353,7 @@ def main(args):
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
-            table_id_list = generate_metadata_table_id_list(table_params, table_type)
+            table_id_list = generate_metadata_table_id_list(table_params)
         else:
             # search for missing project tables for the given table type
             can_compare_type = find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
