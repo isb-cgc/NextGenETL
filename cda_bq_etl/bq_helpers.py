@@ -817,7 +817,8 @@ def find_most_recent_published_table_id(params: Params, versioned_table_id: str,
         # note: this is only used for metadata table types in PDC
         return get_most_recent_published_table_version_pdc(params=params,
                                                            dataset=dataset,
-                                                           table_filter_str=table_type)
+                                                           table_filter_str=table_type,
+                                                           is_metadata=True)
         '''
         if len(split_current_etl_release) == 3:
             last_dot_rel_num = int(split_current_etl_release[2])
@@ -1113,13 +1114,21 @@ def get_pdc_projects_metadata(params: Params, project_submitter_id: str = None) 
     return projects_list
 
 
-def get_most_recent_published_table_version_pdc(params: Params, dataset: str, table_filter_str: str):
+def get_most_recent_published_table_version_pdc(params: Params,
+                                                dataset: str,
+                                                table_filter_str: str,
+                                                is_metadata: bool = False):
+    if is_metadata:
+        node_table_name_clause = ""
+    else:
+        node_table_name_clause = f"AND table_name LIKE '%{params['NODE']}%'"
+
     def make_program_tables_query() -> str:
         return f"""
             SELECT table_name 
             FROM `{params['PROD_PROJECT']}.{dataset}_versioned`.INFORMATION_SCHEMA.TABLES
             WHERE table_name LIKE '%{table_filter_str}%'
-                AND table_name LIKE '%{params['NODE']}%'
+                {node_table_name_clause}
             ORDER BY creation_time DESC
             LIMIT 1
         """
