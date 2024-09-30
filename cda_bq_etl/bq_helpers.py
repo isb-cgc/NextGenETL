@@ -769,9 +769,10 @@ def change_status_to_archived(archived_table_id: str):
         logger.warning("Couldn't find a table to archive. Likely this table's first release; otherwise an error.")
 
 
-def find_most_recent_published_table_id(params, versioned_table_id):
+def find_most_recent_published_table_id(params: Params, versioned_table_id: str, table_type: str = None):
     """
     Function for locating published table id for dataset's previous release, if it exists
+    :param table_type:
     :param params: params supplied in yaml config
     :param versioned_table_id: public versioned table id for current release
     :return: last published table id, if any; otherwise None
@@ -799,6 +800,7 @@ def find_most_recent_published_table_id(params, versioned_table_id):
         # if there is no previously-published table, return None
         return None
     elif params['NODE'].lower() == 'pdc':
+        '''
         # Assuming PDC will use 2-digit minor releases--they said they didn't expect this to ever become 3 digits, and
         # making 900 extraneous calls to google seems wasteful.
         max_minor_release_num = 50
@@ -808,7 +810,14 @@ def find_most_recent_published_table_id(params, versioned_table_id):
         # set to current release initially, decremented in loop
         last_major_rel_num = int(split_current_etl_release[0])
         last_minor_rel_num = int(split_current_etl_release[1])
+        '''
+        versioned_dataset = versioned_table_id.split(".")[1]
 
+        # note: this is only used for metadata table types in PDC
+        return get_most_recent_published_table_version_pdc(params=params,
+                                                           dataset=versioned_dataset,
+                                                           table_filter_str=table_type)
+        '''
         if len(split_current_etl_release) == 3:
             last_dot_rel_num = int(split_current_etl_release[2])
         else:
@@ -836,6 +845,7 @@ def find_most_recent_published_table_id(params, versioned_table_id):
             if exists_bq_table(prev_release_table_id):
                 # found last release table, stop iterating
                 return prev_release_table_id
+        '''
     else:
         logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
         logger.critical(f"Need to create find_most_recent_published_table_id function for {params['NODE']}.")
