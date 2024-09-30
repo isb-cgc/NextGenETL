@@ -1371,8 +1371,8 @@ def main(args):
 
         if 'publish_tables' in steps:
             for table_ids in table_id_list:
-                logger.debug(table_ids)
-                # publish_table(table_ids)
+                # logger.debug(table_ids)
+                publish_table(table_ids)
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
