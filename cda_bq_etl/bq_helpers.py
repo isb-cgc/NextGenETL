@@ -812,10 +812,11 @@ def find_most_recent_published_table_id(params: Params, versioned_table_id: str,
         last_minor_rel_num = int(split_current_etl_release[1])
         '''
         versioned_dataset = versioned_table_id.split(".")[1]
+        dataset = versioned_dataset.replace("_versioned", "")
 
         # note: this is only used for metadata table types in PDC
         return get_most_recent_published_table_version_pdc(params=params,
-                                                           dataset=versioned_dataset,
+                                                           dataset=dataset,
                                                            table_filter_str=table_type)
         '''
         if len(split_current_etl_release) == 3:
