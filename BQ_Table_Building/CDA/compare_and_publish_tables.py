@@ -681,7 +681,9 @@ def generate_metadata_table_id_list(table_params: TableParams) -> TableIDList:
     else:
         versioned_table_id = f"{prod_project_dataset_id}_versioned.{prod_table_name}_{PARAMS['RELEASE']}"
         source_table_id = create_metadata_table_id(PARAMS, table_params['table_base_name'])
-        previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, versioned_table_id)
+        previous_versioned_table_id = find_most_recent_published_table_id(params=PARAMS,
+                                                                          versioned_table_id=versioned_table_id,
+                                                                          table_base_name=table_params['table_base_name'])
 
     table_ids = {
         'current': current_table_id,
@@ -1369,6 +1371,7 @@ def main(args):
 
         if 'publish_tables' in steps:
             for table_ids in table_id_list:
+                # logger.debug(table_ids)
                 publish_table(table_ids)
 
     end_time = time.time()

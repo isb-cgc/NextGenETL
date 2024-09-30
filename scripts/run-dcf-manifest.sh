@@ -16,6 +16,8 @@
 
 source ~/setEnvVars.sh
 
+CONFIG_FILE="DCFManifestBQBuild.yaml"
+
 export MY_VENV=~/virtualEnvETL3_9
 export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
 
