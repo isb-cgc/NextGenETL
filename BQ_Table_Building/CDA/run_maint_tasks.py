@@ -72,7 +72,7 @@ def restore_deleted_table(deleted_table_id, new_table_id, snapshot_epoch):
 
 
 def update_friendly_names(friendly_name_dict):
-    for table_id, friendly_name in friendly_name_dict:
+    for table_id, friendly_name in friendly_name_dict.items():
         update_friendly_name(PARAMS, table_id, friendly_name)
 
 
