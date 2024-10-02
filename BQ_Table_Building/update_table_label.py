@@ -114,7 +114,7 @@ def main(args):
               print(f'Updating table label for {table_id} with {label_name}:{params["UPDATE"][label_name][table_id]}')
              
               # Extract the project, dataset, and table name:
-              target_project, target_dataset, target_table = table.split('.')
+              target_project, target_dataset, target_table = table_id.split('.')
              
               # Write out the details
               success = update_table_label(target_dataset, target_table, label_name,
