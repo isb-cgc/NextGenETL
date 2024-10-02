@@ -111,7 +111,7 @@ def main(args):
            # Customize generic schema to this data program
            for table_id in params['UPDATE'][label_name]:
               
-              print(f'Updating table label for {table_id} with {label_name}:{params['UPDATE'][label_name][table_id]}')
+              print(f'Updating table label for {table_id} with {label_name}:{params["UPDATE"][label_name][table_id]}')
              
               # Extract the project, dataset, and table name:
               target_project, target_dataset, target_table = table.split('.')
