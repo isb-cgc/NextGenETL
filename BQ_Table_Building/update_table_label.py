@@ -1,6 +1,6 @@
 """
 
-Copyright 2019-2020, Institute for Systems Biology
+Copyright 2019-2024, Institute for Systems Biology
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -105,22 +105,23 @@ def main(args):
         print("Bad YAML load")
         return
 
-    for table in params['UPDATE_LIST']:
+    if 'update_table_label' in steps:
+        for label_name in params['UPDATE']:
 
-        # Extract the project, dataset, and table name:
-
-        target_project, target_dataset, target_table = table.split('.')
-
-        # Customize generic schema to this data program:
-
-        if 'update_table_label' in steps:
-            print(f'Updating table label for {table} with {params["LABEL_KEY"]}:{params["LABEL_VALUE"]}')
-            # Write out the details
-            success = update_table_label(target_dataset, target_table, params["LABEL_KEY"],
-                                         params["LABEL_VALUE"], target_project)
-            if not success:
-                print("update_table_label failed")
-                return False
+           # Customize generic schema to this data program
+           for table_id in params['UPDATE'][label_name]:
+              
+              print(f'Updating table label for {table_id} with {label_name}:{params["UPDATE"][label_name][table_id]}')
+             
+              # Extract the project, dataset, and table name:
+              target_project, target_dataset, target_table = table_id.split('.')
+             
+              # Write out the details
+              success = update_table_label(target_dataset, target_table, label_name,
+                                          params['UPDATE'][label_name][table_id], target_project)
+           if not success:
+              print("update_table_label failed")
+              return False
 
     print('job completed')
 
