@@ -1,6 +1,6 @@
 """
 
-Copyright 2019-2020, Institute for Systems Biology
+Copyright 2019-2024, Institute for Systems Biology
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -44,7 +44,6 @@ from mirna_isoform_expr import create_mirna_isoform_expr_table
 def load_config(yaml_config):
     """
     The configuration reader. Parses the YAML configuration into dictionaries
-
     :param yaml_config: Read in YAML file
     :type yaml_config: TextIO
     :return: Dictionaries with Configurations in YAML file
@@ -200,7 +199,6 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
                       dev_project, dev_dataset, release):
     """
     Transform the raw BigQuery with queries and subtables for each data type.
-
     :param datatype: data type
     :param raw_data_table: raw table to transform
     :param draft_data_table: name for the final table
@@ -255,7 +253,6 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
 def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data_type, program):
     """
     Function to go through the steps to create BQ tables
-
     :param params: Parameters supplied in the yaml
     :param home: home directory
     :param local_dir: local directory
