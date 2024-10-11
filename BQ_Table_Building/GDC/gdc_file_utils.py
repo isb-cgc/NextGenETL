@@ -1,6 +1,6 @@
 """
 
-Copyright 2019-2023, Institute for Systems Biology
+Copyright 2019-2024, Institute for Systems Biology
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 """
+
 import logging
 import sys
 import os
@@ -29,10 +30,8 @@ import re
 from distutils import util
 from json import loads as json_loads, dumps as json_dumps
 
-# todo fill in where the functions came from
-
+# Initiate logger
 util_logger = logging.getLogger(name='base_script.util')
-
 
 # General Utilities #
 
@@ -53,7 +52,7 @@ def format_seconds(seconds):
 
 def initialize_logging(log_filepath: str) -> logging.Logger:
     # initialize Logger object
-    # Borrowed from NextGenETL/cda_bq_etl/data_helpers.py by Lauren W on 11/20/23
+    # Function originally from NextGenETL/cda_bq_etl/data_helpers.py by Lauren W on 11/20/23
     logger = logging.getLogger(name='base_script')
     logger.setLevel(logging.DEBUG)
 
@@ -111,7 +110,8 @@ def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, lengt
 
 def clean_local_file_dir(local_files_dir):
     """
-    This routine clears the tree out if it exists. Original from support.py called 'create_clean_target'
+    This routine clears the tree out if it exists.
+    Function originally from support.py called 'create_clean_target'
     """
 
     if os.path.exists(local_files_dir):
@@ -130,6 +130,7 @@ def clean_local_file_dir(local_files_dir):
 def get_column_list_tsv(header_list=None, tsv_fp=None, header_row_index=None):
     """
     Return a list of column headers using header_list OR using a header_row index to retrieve column names from tsv_fp.
+    Function originally from utils.pyh called 'get_column_list_tsv'
         NOTE: Specifying both header_list and header_row in parent function triggers a fatal error.
     :param header_list: Optional ordered list of column headers corresponding to columns in dataset tsv file
     :type header_list: list
@@ -178,6 +179,7 @@ def build_file_list(local_files_dir):
     Using the tree of downloaded files, we build a file list. Note that we see the downloads
     (using the GDC download tool) bringing along logs and annotation.txt files, which we
     specifically omit.
+    Function originally from support.py called 'build_file_list'
     """
     print(f"building file list from {local_files_dir}")
     all_files = []
@@ -196,6 +198,7 @@ def build_file_list(local_files_dir):
 def update_dir_from_git(local_repo, repo_url, repo_branch):
     """
     This function deletes the old directory and replaces it with the most current from GitHub
+    Function originally from support.py called 'update_dir_from_git'
     :param local_repo: Where the local directory for the repository is
     :type local_repo: str
     :param repo_url: The URL for the directory to clone
@@ -221,6 +224,7 @@ def bucket_to_local(bucket_name, bucket_file, local_file):
     Get a Bucket File to Local
     Export a cloud bucket file to the local filesystem
     No leading / in bucket_file name!!
+    Function originally from support.py called 'bucket_to_local'
     """
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
@@ -235,6 +239,7 @@ def local_to_bucket(bucket, bucket_file, local_file):
     Upload to Google Bucket
     Large files have to be in a bucket for them to be ingested into Big Query. This does this.
     This function is also used to archive files.
+    Function originally from support.py called 'local_to_bucket'
     """
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(bucket)
@@ -244,7 +249,10 @@ def local_to_bucket(bucket, bucket_file, local_file):
 
 
 class BucketPuller(object):
-    """Multithreaded bucket puller"""
+    """
+    Multithreaded bucket puller
+    Function originally from support.py called 'BucketPuller'
+    """
 
     # todo make it output to logger
 
@@ -266,7 +274,6 @@ class BucketPuller(object):
         self._bar_bump = 0
 
     def pull_from_buckets(self, pull_list, local_files_dir):
-        # todo is this description accurate? It doesn't make sense
         """
           List of all project IDs
         """
@@ -316,9 +323,10 @@ class BucketPuller(object):
 def pull_from_buckets(pull_list, local_files_dir):
     """
     Run the "Download Client", which now just hauls stuff out of the cloud buckets
+    Function originally from support.py called 'pull_from_buckets'
     """
 
-    # Parse the manifest file for uids, pull out other data too as a sanity check:
+    # Parse the manifest file for uuids, pull out other data too as a sanity check:
 
     num_files = len(pull_list)
     print(f"Begin {num_files} bucket copies...") # todo make logger
@@ -350,7 +358,7 @@ def pull_from_buckets(pull_list, local_files_dir):
 
 def confirm_google_vm():
     # todo
-    # from support.py
+    # Function originally from support.py called 'confirm_google_vm'
     metadata_url = "http://metadata.google.internal/computeMetadata/v1/instance/id"
     meta_header = {"Metadata-Flavor": "Google"}
 
@@ -370,9 +378,9 @@ def confirm_google_vm():
 # BQ Utils #
 
 def bq_table_exists(table_id, dataset_id=None, project=None):
-    # todo should this be "Check if script is running on a VM?"
     """
-    Does table exist?
+    Does the BQ table exist?
+    Function originally from support.py called 'bq_table_exists'
     """
     client = bigquery.Client() if project is None else bigquery.Client(project=project)
     try:
@@ -387,6 +395,14 @@ def bq_table_exists(table_id, dataset_id=None, project=None):
 
 
 def copy_bq_table(source_table_id, dest_table_id, project=None, overwrite=False):
+    """
+    Copy an existing BQ table to another BQ table with an option to remove and replace the older table
+    Function adapted from publish_table in support.py and copy_bq_table in utils.py
+    :param source_table_id: BQ table id to be copied
+    :param dest_table_id: Name of the new BQ table id
+    :param project: Google project
+    :param overwrite: option to remove old table and replace with the new table
+    """
     client = bigquery.Client() if project is None else bigquery.Client(project=project)
 
     if overwrite:
@@ -407,6 +423,13 @@ def copy_bq_table(source_table_id, dest_table_id, project=None, overwrite=False)
 
 
 def delete_bq_table(table_id, project=None):
+    """
+    Delete a BQ table
+    Adapted from delete_bq_table in support.py
+    :param table_id: BQ table id to be deleted
+    :param project: Google project
+    :return: that the table was deleted
+    """
     try:
         client = bigquery.Client() if project is None else bigquery.Client(project=project)
         client.delete_table(table_id, not_found_ok=True)  # Make an API request.
@@ -420,6 +443,14 @@ def delete_bq_table(table_id, project=None):
 
 
 def query_bq(sql, dest_table_id=None, project=None):
+    """
+    Query BQ table and either create a new table or return results
+    Adapted from generic_bq_harness_write_depo in support.py
+    :param sql: SQL query string
+    :param dest_table_id: table to write query output to
+    :param project: Google project
+    :return: Return the state of the job or the query result
+    """
     client = bigquery.Client() if project is None else bigquery.Client(project=project)
 
     if dest_table_id is None:
@@ -455,6 +486,15 @@ def bq_to_bucket_tsv(src_table, project, dataset, bucket_name, bucket_file, do_b
     """
     Get a BQ Result to a Bucket TSV file
     Export BQ table to a cloud bucket
+    Function from bq_to_bucket_tsv in support.py
+    :param src_table: BQ table name
+    :param project: Google Project
+    :param dataset: BQ dataset
+    :param bucket_name: Google bucket name
+    :param bucket_file: File name
+    :param do_batch: Should this be batched?
+    :param do_header: Should the BQ table header be included in the TSV?
+    :return:
     """
     client = bigquery.Client()
     destination_uri = "gs://{}/{}".format(bucket_name, bucket_file)
@@ -492,7 +532,7 @@ def bq_to_bucket_tsv(src_table, project, dataset, bucket_name, bucket_file, do_b
 def csv_to_bq(schema, csv_uri, dataset_id, targ_table, do_batch, write_depo):
     """
     Loads a csv file into BigQuery with option to specify disposition
-
+    Function from csv_to_bq in support.py
     :param schema: Dictionary of field name (key) and description (value)
     :type schema: dict
     :param csv_uri: Bucket location of the file in the form of gs://working_bucket/filename.csv
@@ -557,6 +597,14 @@ def csv_to_bq(schema, csv_uri, dataset_id, targ_table, do_batch, write_depo):
 
 
 def cluster_table(input_table_id, output_table_id, cluster_fields):
+    """
+    CLuster the input table and create a new table
+    Function from cluster_table in support.py
+    :param input_table_id: Input table ID
+    :param output_table_id: output table ID
+    :param cluster_fields: fields to cluster on
+    :return: job status
+    """
     cluster_string = ", ".join(cluster_fields)
     cluster_sql = f"""
           CREATE TABLE `{output_table_id}` 
@@ -568,17 +616,15 @@ def cluster_table(input_table_id, output_table_id, cluster_fields):
 
 def find_most_recent_release(dataset, base_table, project=None):
     """
-
     This function iterates though all tables of a BigQuery versioned dataset to find the most recent release of version
     number of a certain data type. Function from support.py
-
+    Function from find_most_recent_release in support.py
     :param dataset: Dataset to search
     :type dataset: basestring
     :param base_table: The table name before the release number (must include _ before release number)
     :type base_table: basestring
     :param project: Which project is the data set in?
     :type project: basestring
-
     :returns: The highest version number of that table type in that dataset as a string
     """
     print('finding most recent release in ' + dataset)
@@ -604,7 +650,13 @@ def find_most_recent_release(dataset, base_table, project=None):
 
 
 def publish_table(source_table, target_table, overwrite=False):
-
+    """
+    Publish table by copying the table
+    :param source_table: Source table id
+    :param target_table: Target table id
+    :param overwrite: Should the old target table be deleted and replaced?
+    :return: If the function worked
+    """
     try:
         #
         # 3/11/20: Friendly names not copied across, so do it here!
@@ -651,8 +703,16 @@ def publish_table(source_table, target_table, overwrite=False):
 
 def publish_tables_and_update_schema(scratch_table_id, versioned_table_id, current_table_id, release_friendly_name,
                                      base_table=None):
-
-    # publish current and update old versioned. From support.py
+    """
+    Publish current and update old versioned
+    Function from publish_tables_and_update_schema in support.py
+    :param scratch_table_id:
+    :param versioned_table_id:
+    :param current_table_id:
+    :param release_friendly_name:
+    :param base_table:
+    :return:
+    """
     if base_table:
         project, dataset, curr_table = current_table_id.split('.')
 
@@ -691,6 +751,7 @@ def publish_tables_and_update_schema(scratch_table_id, versioned_table_id, curre
 def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_interval=1):
     """
     Open tsv file and aggregate data types for each column.
+    Function from aggregate_column_data_types_tsv in utils.py
     :param tsv_fp: tsv dataset filepath used to analyze the data types
     :type tsv_fp: str
     :param column_headers: list of ordered column headers
@@ -739,6 +800,7 @@ def check_value_type(value):
         - datetime formats: DATE, TIME, TIMESTAMP
         - number formats: INT64, FLOAT64, NUMERIC
         - misc formats: STRING, BOOL, ARRAY, RECORD
+    From check_value_type in utils.py
     :param value: value on which to perform data type analysis
     :return: data type in BigQuery Standard SQL format
     """
@@ -831,9 +893,10 @@ def resolve_type_conflict(field, types_set):
     Resolve BigQuery column data type precedence, where multiple types are detected. Rules for type conversion based on
     BigQuery's implicit conversion behavior.
     See https://cloud.google.com/bigquery/docs/reference/standard-sql/conversion_rules#coercion
+    From resolve_type_conflict in utils.py
     :param types_set: Set of BigQuery data types in string format
     :param field: field name
-    :return: BigQuery data type with highest precedence
+    :return: BigQuery data type with the highest precedence
     """
 
     datetime_types = {"TIMESTAMP", "DATE", "TIME"}
@@ -915,6 +978,7 @@ def resolve_type_conflict(field, types_set):
 def find_types(file, sample_interval):
     """
     Finds the field type for each column in the file
+    From find_types in support.py
     :param file: file name
     :type file: basestring
     :param sample_interval:sampling interval, used to skip rows in large datasets; defaults to checking every row
@@ -940,6 +1004,7 @@ def resolve_type_conflicts(types_dict):
     """
     Iteratively resolve data type conflicts for non-nested type dicts (e.g. if there is more than one data type found,
     select the superseding type.)
+    Function from resolve_type_conflicts in utils.py
     :param types_dict: dict containing columns and all detected data types
     :type types_dict: dict {str: set}
     :return dict containing the column name and its BigQuery data type.
@@ -953,8 +1018,16 @@ def resolve_type_conflicts(types_dict):
     return type_dict
 
 
-def create_schema_hold_list(typing_tups, field_schema, holding_list, static=True):  # todo docstrings
-    # todo Needs to be updated to using the simplename space things for params
+def create_schema_hold_list(typing_tups, field_schema, holding_list, static=True):
+    """
+    Create a file of schema
+    From create_schema_hold_list in support.py
+    :param typing_tups: dictionary of data types for each field
+    :param field_schema: File of field schema
+    :param holding_list: File for final schema
+    :param static: Whether to use the dynmaic typing from typing_tups or static from field_schema
+    :return: Whether the function worked
+    """
     with open(field_schema, mode='r') as field_schema_file:
         all_field_schema = json_loads(field_schema_file.read())
 
@@ -995,7 +1068,17 @@ def create_schema_hold_list(typing_tups, field_schema, holding_list, static=True
     return True
 
 
-def update_schema_tags(program_mappings, release=None, release_date=None, release_anchor=None, program=None):  # todo docstring
+def update_schema_tags(program_mappings, release=None, release_date=None, release_anchor=None, program=None):
+    """
+    Update a BQ table labels
+    Function from update_schema_tags in support.py
+    :param program_mappings:
+    :param release:
+    :param release_date:
+    :param release_anchor:
+    :param program:
+    :return:
+    """
 
     schema = dict()
 
@@ -1028,7 +1111,7 @@ def update_schema_tags(program_mappings, release=None, release_date=None, releas
 
 def install_table_field_desc(table_id, new_descriptions):
     """
-    Modify an existing table's field descriptions. Based on a function from utils.py called update_schema
+    Modify an existing table's field descriptions
     Function adapted from update_schema in utils.py and support.py
     :param table_id: table id in standard SQL format
     :param new_descriptions: dict of field names and new description strings
@@ -1059,8 +1142,8 @@ def install_table_field_desc(table_id, new_descriptions):
 
 def update_status_tag(target_dataset, dest_table, status, project=None):
     """
-    Update the status tag of a big query table once a new version of the table has been created. From support.py
-
+    Update the status tag of a big query table once a new version of the table has been created.
+    Function from update_status_tag in support.py
     :param target_dataset: Dataset name
     :type target_dataset: basestring
     :param dest_table: Table name
@@ -1081,19 +1164,15 @@ def update_status_tag(target_dataset, dest_table, status, project=None):
 
 
 def write_table_schema_with_generic(table_id, schema_tags=None, metadata_fp=None,
-                                    field_desc_fp=None):  # todo fill in docstring
+                                    field_desc_fp=None):
     """
     Create table metadata schema using generic schema files in BQEcosystem and schema tags defined in yaml config files.
+    Function from write_table_schema_with_generic in support.py
     :param table_id: Table id for which metadata will be added
-    :type table_id:
     :param schema_tags: dict of tags to substitute into generic schema file (used for customization)
-    :type schema_tags:
-    :param metadata_fp:
-    :type metadata_fp:
-    :param field_desc_fp:
-    :type field_desc_fp:
-    :return:
-    :rtype:
+    :param metadata_fp: File path for the metadata
+    :param field_desc_fp: File path for the field description file
+    :return: If the function worked
     """
 
     if metadata_fp is not None:
@@ -1107,16 +1186,13 @@ def write_table_schema_with_generic(table_id, schema_tags=None, metadata_fp=None
     return True
 
 
-def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags):  # todo fill in docstring
+def write_table_metadata_with_generic(metadata_fp, table_id, schema_tags):
     """
     Updates the tags in the generic schema file then writes the schema to the table metadata in BigQuery.
     This function is an adaption of the add_generic_table_metadata function in utils.py
-    :param metadata_fp:
-    :type metadata_fp:
-    :param table_id:
-    :type table_id:
-    :param schema_tags:
-    :type schema_tags:
+    :param metadata_fp: File path for the metadata
+    :param table_id: Table id for which metadata will be added
+    :param schema_tags: dict of tags to substitute into generic schema file
     """
     final_table_metadata = {}
 
@@ -1159,8 +1235,4 @@ def install_table_metadata(table_id, metadata):
     assert table.labels == metadata['labels']
     assert table.friendly_name == metadata['friendlyName']
     assert table.description == metadata['description']
-
-
-
-
 
