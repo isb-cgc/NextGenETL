@@ -297,7 +297,6 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
                 traversal_list.write(f"{line}\n")
 
     if 'create_concat_file' in steps:
-
         logging.info("Creating concat file")
         local_file_dir = f"{local_location}/concat_file"
         local_concat_file = f"{local_file_dir}/{raw_data}.tsv"
@@ -352,7 +351,6 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
 
     if 'qc_tables' in steps:
         # todo
-        # todo separate file for QC?
         logging.info("Running qc_tables Step")
 
     if 'publish_tables' in steps:
@@ -373,7 +371,6 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
 
     if 'clean_up' in steps:
         # todo
-        # should this be in the build_bq_tables_steps function?
         # This step will clean up the bigquery intermediate tables and create an archive of the files on the VM after
         logging.info("Running clean_up Step")
 
