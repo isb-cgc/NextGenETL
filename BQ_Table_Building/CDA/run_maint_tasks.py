@@ -25,7 +25,7 @@ import time
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, input_with_timeout
-from cda_bq_etl.bq_helpers import query_and_retrieve_result, delete_bq_table, copy_bq_table
+from cda_bq_etl.bq_helpers import query_and_retrieve_result, delete_bq_table, copy_bq_table, update_friendly_name
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -71,6 +71,13 @@ def restore_deleted_table(deleted_table_id, new_table_id, snapshot_epoch):
     copy_bq_table(PARAMS, src_table=snapshot_table_id, dest_table=new_table_id)
 
 
+def update_friendly_names(friendly_name_dict):
+    logger = logging.getLogger("base_script")
+    for table_id, friendly_name in friendly_name_dict.items():
+        update_friendly_name(PARAMS, table_id, friendly_name)
+        logger.info(f"Updated friendly name for {table_id} to {friendly_name}")
+
+
 def main(args):
     try:
         global PARAMS
@@ -93,6 +100,10 @@ def main(args):
         new_table_id = 'isb-project-zero.cda_gdc_imported.r37_case_metadata_legacy'
         snapshot_epoch = 1697655753782
         restore_deleted_table(deleted_table_id, new_table_id, snapshot_epoch)
+
+    if 'update_friendly_names' in steps:
+        friendly_name_dict = PARAMS['FRIENDLY_NAME_DICT']
+        update_friendly_names(friendly_name_dict)
 
 
 if __name__ == "__main__":

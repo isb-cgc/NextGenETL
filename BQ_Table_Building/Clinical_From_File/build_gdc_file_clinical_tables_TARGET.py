@@ -21,6 +21,7 @@ import shutil
 import logging
 import sys
 import time
+from decimal import Decimal
 
 import pandas as pd
 
@@ -33,7 +34,7 @@ from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq
                                    get_columns_in_table)
 from cda_bq_etl.gcs_helpers import upload_to_bucket
 from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, write_list_to_tsv,
-                                     create_normalized_tsv)
+                                     create_normalized_tsv, write_list_to_jsonl, write_list_to_jsonl_and_upload)
 from cda_bq_etl.utils import (format_seconds, get_filepath, load_config, get_scratch_fp, calculate_md5sum,
                               create_dev_table_id)
 
@@ -65,9 +66,11 @@ def make_file_pull_list(program: str, filters: dict[str, str]):
                f.md5sum,
                f.file_size,
                f.file_state,
-               gs.file_gdc_url
-            FROM `isb-project-zero.GDC_metadata.rel{rel_number}_fileData_current` f
-            LEFT JOIN `isb-project-zero.GDC_manifests.rel{rel_number}_GDCfileID_to_GCSurl` gs
+               f.project_short_name,
+               gs.gdc_file_url_gcs
+            FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_active_r{rel_number}` f
+            LEFT JOIN `isb-project-zero.law_GDC_manifests.r{rel_number}_GDCfileID_to_GCSurl` gs # todo change to published table
+            # LEFT JOIN `isb-project-zero.GDC_manifests.rel{rel_number}_GDCfileID_to_GCSurl` gs
                ON f.file_gdc_id = gs.file_gdc_id 
             {where_clause}
         """
@@ -209,6 +212,14 @@ def create_table_name_from_file_name(file_path: str) -> str:
     return table_name
 
 
+def make_file_metadata_query(file_gdc_id: str) -> str:
+    return f"""
+        SELECT file_name, project_short_name, updated_datetime
+        FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_active_{PARAMS['RELEASE']}`
+        WHERE file_gdc_id = '{file_gdc_id}'
+    """
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -217,6 +228,9 @@ def main(args):
         PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         sys.exit(err)
+
+    # todo list:
+    # get file pull list
 
     log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
@@ -228,7 +242,6 @@ def main(args):
 
     local_program_dir = get_scratch_fp(PARAMS, program)
     local_files_dir = f"{local_program_dir}/files"
-    local_concat_dir = f"{local_program_dir}/concat_files"
     local_schemas_dir = f"{local_program_dir}/schemas"
     file_traversal_list = f"{local_program_dir}/{PARAMS['BASE_FILE_NAME']}_traversal_list_{program}.txt"
     tables_file = f"{local_program_dir}/{PARAMS['RELEASE']}_tables_{program}.txt"
@@ -247,9 +260,6 @@ def main(args):
         if not os.path.exists(local_files_dir):
             logger.info(f"Creating directory {local_files_dir}")
             os.makedirs(local_files_dir)
-        if not os.path.exists(local_concat_dir):
-            logger.info(f"Creating directory {local_concat_dir}")
-            os.makedirs(local_concat_dir)
         if not os.path.exists(local_schemas_dir):
             logger.info(f"Creating directory {local_schemas_dir}")
             os.makedirs(local_schemas_dir)
@@ -261,8 +271,10 @@ def main(args):
         for file_data in file_pull_list:
             file_name = file_data['file_name']
             file_id = file_data['file_gdc_id']
-            gs_uri = file_data['file_gdc_url']
+            gs_uri = file_data['gdc_file_url_gcs']
             md5sum = file_data['md5sum']
+            # todo use this to associate files by project
+            project = file_data['project_short_name']
 
             file_path = f"{local_files_dir}/{file_id}__{file_name}"
 
@@ -350,8 +362,8 @@ def main(args):
 
             create_and_upload_schema_for_tsv(PARAMS,
                                              tsv_fp=normalized_tsv_file_path,
-                                             header_row=0, 
-                                             skip_rows=1, 
+                                             header_row=0,
+                                             skip_rows=1,
                                              schema_fp=schema_file_path,
                                              delete_local=True)
 
@@ -393,75 +405,103 @@ def main(args):
             logger.info(table)
         logger.info("")
 
-    '''
+    if 'merge_raw_tables' in steps:
 
-    if 'analyze_tables' in steps:
-        column_dict = dict()
+        table_list = list()
 
-        table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
-                                            filter_terms=f"{PARAMS['RELEASE']}_TARGET")
+        with open(tables_file, mode='r') as tables_fh:
+            all_tables = tables_fh.read().splitlines()
 
-        """
-        table_list = [
-            "r38_TARGET_AML_ClinicalData_AML1031_20211201",
-            "r38_TARGET_AML_ClinicalData_Discovery_20211201",
-            "r38_TARGET_AML_ClinicalData_Validation_20211201",
-            "r38_TARGET_AML_ClinicalData_AAML1031_AAML0631_additionalCasesForSortedCellsAndCBExperiment_20220330",
-            "r38_TARGET_AML_ClinicalData_LowDepthRNAseq_20220331",
-        ]
-        """
+        for table_id in all_tables:
+            table_name = table_id.split(".")[2]
+            file_id = table_name.split("__")[0]
+            file_id = file_id.replace(f"{PARAMS['RELEASE']}_", "")
+            file_id = file_id.replace("_", "-")
+
+            # look up project_short_name using file uuid
+
+            file_metadata_result = query_and_retrieve_result(make_file_metadata_query(file_gdc_id=file_id))
+
+            for row in file_metadata_result:
+                if 'CDE' not in row['file_name'] and 'Supplement' not in row['file_name']:
+                    table_list.append({
+                        "table_id": table_id,
+                        "project_short_name": row['project_short_name'],
+                        "file_name": row['file_name'],
+                        "updated_datetime": row['updated_datetime']
+                    })
 
         records_dict = dict()
-        mismatched_records_dict = dict()
-        # target_usi: {column: value, ...}
 
-        for table in sorted(table_list):
-            if 'Supplement' in table or 'CDE' in table:
-                continue
+        # values from newer files are included preferentially
+        for raw_tables_dict in sorted(table_list, key=lambda d: d['updated_datetime'], reverse=True):
+            logger.info(raw_tables_dict['table_id'])
 
-            table_id = f"isb-project-zero.clinical_from_files_raw.{table}"
+            project_short_name = raw_tables_dict['project_short_name']
+            disease_code = raw_tables_dict['project_short_name'].split('-')[1]
+            query_result = query_and_retrieve_result(f"SELECT DISTINCT * FROM `{raw_tables_dict['table_id']}`")
 
-            disease_code = table.split("_")[2]
+            for row in query_result:
+                row_dict = dict(row)
+                row_dict['disease_code'] = disease_code
+                row_dict['project_short_name'] = project_short_name
+                target_usi = row_dict['target_usi']
 
-            sql = f"""
-                SELECT DISTINCT * 
-                FROM `{table_id}`
-            """
-
-            result = query_and_retrieve_result(sql)
-
-            for row in result:
-                record_dict = dict(row)
-                record_dict['disease_code'] = disease_code
-                target_usi = record_dict.pop('target_usi')
-
-                overwrite_existing_value = True
+                int_comparison_columns = ['event_free_survival_time_in_days',
+                                          'year_of_last_follow_up',
+                                          'overall_survival_time_in_days']
 
                 if target_usi not in records_dict:
                     records_dict[target_usi] = dict()
-                else:
-                    # if a former file populated year_of_last_follow_up, and this file contains the field as well,
-                    # compare and favor values from the newer version.
-                    if 'year_of_last_follow_up' in records_dict[target_usi] \
-                            and 'year_of_last_follow_up' in record_dict \
-                            and record_dict['year_of_last_follow_up'] is not None:
 
-                        existing_year_of_last_follow_up = int(records_dict[target_usi]['year_of_last_follow_up'])
-                        additional_year_of_last_follow_up = int(record_dict['year_of_last_follow_up'])
+                for column, value in row_dict.items():
+                    if isinstance(value, str):
+                        value = value.strip()
+                    # column doesn't exist yet, so add it and its value
 
-                        if additional_year_of_last_follow_up > existing_year_of_last_follow_up:
-                            overwrite_existing_value = False
+                    if value == 'Induction failure':
+                        value = 'Induction Failure'
+                    elif value == 'Not done':
+                        value = 'Not Done'
+                    elif value == 'Death without Remission':
+                        value = 'Death without remission'
+                    elif value == 'unevaluable':
+                        value = 'Unevaluable'
 
-                for column, value in record_dict.items():
+                    """
+                    if column == 'mrd_percent_at_end_of_course_1':
+                        if value == '.' or value is None:
+                            value = None
+                        else:
+                            value = Decimal(value)
+                    """
+
                     if value is None:
                         continue
-                    if column not in records_dict[target_usi] or overwrite_existing_value:
-                        # column doesn't exist yet, so add it and its value
+                    elif column not in records_dict[target_usi]:
                         records_dict[target_usi][column] = value
+                    elif column in int_comparison_columns:
+                        existing_value = int(records_dict[target_usi][column])
+                        new_value = int(value)
 
-        for record in records_dict:
-            print(record)
-    '''
+                        if new_value > existing_value:
+                            records_dict[target_usi][column] = value
+                            # logger.info(f"updating {column} value for {target_usi}: {existing_value} -> {new_value}")
+                    elif column in ['disease_code', 'project_short_name']:
+                        if value not in records_dict[target_usi][column]:
+                            records_dict[target_usi][column] = f', {value}'
+                    elif value != records_dict[target_usi][column]:
+                        # this already has a value for the column, and it differs from the new value
+                        # exempt_list = ['Not done', 'Not Done']
+
+                        # if value not in exempt_list and records_dict[target_usi][column] not in exempt_list:
+                        logger.warning(f"Record mismatch for {target_usi} in column {column}: "
+                                       f"{value} != {records_dict[target_usi][column]}")
+
+        # jsonl_fp = f"{local_files_dir}/merged.jsonl"
+        # write_list_to_jsonl(jsonl_fp=jsonl_fp, json_obj_list=records, mode='a')
+        # upload_to_bucket(PARAMS, scratch_fp=jsonl_fp)
+
     end_time = time.time()
 
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")

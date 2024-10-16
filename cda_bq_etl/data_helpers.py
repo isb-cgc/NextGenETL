@@ -464,7 +464,7 @@ def normalize_value(value: Any, is_tsv: bool = False) -> Any:
         test_value = value.lower()
 
         if test_value in ('na', 'n/a', 'none', '', '--', '-', 'null', 'not reported', 'unknown', '[not available]',
-                          '[not applicable]', '[unknown]'):
+                          '[not applicable]', '[unknown]', '.'):
             # can't use None in the TSV files, it's interpreted as a string
             return '' if is_tsv else None
         elif test_value in ('false', 'no'):

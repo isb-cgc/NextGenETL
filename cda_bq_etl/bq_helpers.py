@@ -769,9 +769,10 @@ def change_status_to_archived(archived_table_id: str):
         logger.warning("Couldn't find a table to archive. Likely this table's first release; otherwise an error.")
 
 
-def find_most_recent_published_table_id(params, versioned_table_id):
+def find_most_recent_published_table_id(params: Params, versioned_table_id: str, table_base_name: str = None):
     """
     Function for locating published table id for dataset's previous release, if it exists
+    :param table_type:
     :param params: params supplied in yaml config
     :param versioned_table_id: public versioned table id for current release
     :return: last published table id, if any; otherwise None
@@ -799,43 +800,15 @@ def find_most_recent_published_table_id(params, versioned_table_id):
         # if there is no previously-published table, return None
         return None
     elif params['NODE'].lower() == 'pdc':
-        # Assuming PDC will use 2-digit minor releases--they said they didn't expect this to ever become 3 digits, and
-        # making 900 extraneous calls to google seems wasteful.
-        max_minor_release_num = 50
-        max_dot_release_num = 20
-        dc_release = params['RELEASE'].replace("V", "")
-        split_current_etl_release = dc_release.split("_")
-        # set to current release initially, decremented in loop
-        last_major_rel_num = int(split_current_etl_release[0])
-        last_minor_rel_num = int(split_current_etl_release[1])
+        # note: this function is only used for metadata table types in PDC--for other types,
+        # generate_table_id_list() in compare_and_publish_tables.py is used.
+        versioned_dataset = versioned_table_id.split(".")[1]
+        dataset = versioned_dataset.replace("_versioned", "")
 
-        if len(split_current_etl_release) == 3:
-            last_dot_rel_num = int(split_current_etl_release[2])
-        else:
-            last_dot_rel_num = 0
-
-        while True:
-            if last_dot_rel_num > 0 and last_major_rel_num >= 2:
-                last_dot_rel_num -= 1
-            elif last_dot_rel_num == 0 and last_minor_rel_num > 0 and last_major_rel_num >= 2:
-                last_minor_rel_num -= 1
-                last_dot_rel_num = max_dot_release_num
-            elif last_dot_rel_num == 0 and last_minor_rel_num == 0 and last_major_rel_num > 2:
-                last_major_rel_num -= 1
-                last_minor_rel_num = max_minor_release_num
-                last_dot_rel_num = max_dot_release_num
-            else:
-                return None
-
-            table_id_no_release = versioned_table_id.replace(f"_{params['RELEASE']}", '')
-            prev_release_table_id = f"{table_id_no_release}_V{last_major_rel_num}_{last_minor_rel_num}"
-
-            if last_dot_rel_num > 0:
-                prev_release_table_id = f"{prev_release_table_id}_{last_dot_rel_num}"
-
-            if exists_bq_table(prev_release_table_id):
-                # found last release table, stop iterating
-                return prev_release_table_id
+        return get_most_recent_published_table_version_pdc(params=params,
+                                                           dataset=dataset,
+                                                           table_filter_str=table_base_name,
+                                                           is_metadata=True)
     else:
         logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
         logger.critical(f"Need to create find_most_recent_published_table_id function for {params['NODE']}.")
@@ -897,6 +870,8 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, friendl
 
     if params['NODE'].lower() == 'gdc':
         release = release.replace('r', '')
+    elif params['NODE'].lower() == 'dcf':
+        release = release.replace('dr', '')
 
     # remove underscore, add decimal to version number
     schema_tags['version'] = ".".join(release.split('_'))
@@ -1100,13 +1075,21 @@ def get_pdc_projects_metadata(params: Params, project_submitter_id: str = None) 
     return projects_list
 
 
-def get_most_recent_published_table_version_pdc(params: Params, dataset: str, table_filter_str: str):
+def get_most_recent_published_table_version_pdc(params: Params,
+                                                dataset: str,
+                                                table_filter_str: str,
+                                                is_metadata: bool = False):
+    if is_metadata:
+        node_table_name_clause = ""
+    else:
+        node_table_name_clause = f"AND table_name LIKE '%{params['NODE']}%'"
+
     def make_program_tables_query() -> str:
         return f"""
             SELECT table_name 
             FROM `{params['PROD_PROJECT']}.{dataset}_versioned`.INFORMATION_SCHEMA.TABLES
             WHERE table_name LIKE '%{table_filter_str}%'
-                AND table_name LIKE '%{params['NODE']}%'
+                {node_table_name_clause}
             ORDER BY creation_time DESC
             LIMIT 1
         """
