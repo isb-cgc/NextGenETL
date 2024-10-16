@@ -111,16 +111,14 @@ def main(args):
            # Customize generic schema to this data program
            for table_id in params['UPDATE'][label_name]:
 
-              label_value = str(params["UPDATE"][label_name][table_id])
-              
-              print(f'Updating table label for {table_id} with {label_name}:{label_value}')
+              print(f'Updating table label for {table_id} with {label_name}:{params["UPDATE"][label_name][table_id]}')
              
               # Extract the project, dataset, and table name:
               target_project, target_dataset, target_table = table_id.split('.')
              
               # Write out the details
               success = update_table_label(target_dataset, target_table, label_name,
-                                          label_value, target_project)
+                                          params['UPDATE'][label_name][table_id], target_project)
            if not success:
               print("update_table_label failed")
               return False
