@@ -463,6 +463,7 @@ def main(args):
                     if column == 'wbc_at_diagnosis':
                         if value:
                             value = float(value)
+                            print(value)
                     # column_set.add(column)
                     if isinstance(value, str):
                         value = value.strip()
