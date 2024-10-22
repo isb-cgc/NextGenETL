@@ -500,7 +500,8 @@ def main(args):
                         logger.warning(f"Record mismatch for {target_usi} in column {column}: "
                                        f"{value} != {records_dict[target_usi][column]}")
 
-        logger.debug(sorted(column_set))
+        for column in sorted(column_set):
+            print(column)
 
         # jsonl_fp = f"{local_files_dir}/merged.jsonl"
         # write_list_to_jsonl(jsonl_fp=jsonl_fp, json_obj_list=records, mode='a')
