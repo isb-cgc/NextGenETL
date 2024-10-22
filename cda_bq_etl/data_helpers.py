@@ -422,6 +422,9 @@ def is_int_value(value: Any) -> bool:
         if val.startswith("0") and len(val) > 1 and ':' not in val and '-' not in val and '.' not in val:
             return True
 
+    if value is True or value is False:
+        return False
+
     if should_be_string(value):
         return False
 
