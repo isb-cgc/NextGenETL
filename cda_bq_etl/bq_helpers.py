@@ -231,6 +231,9 @@ def create_and_upload_schema_for_json(params: Params,
 
     data_types_dict = recursively_detect_object_structures(record_list)
 
+    # todo remove
+    print(data_types_dict)
+
     schema_list = convert_object_structure_dict_to_schema_dict(data_types_dict, list())
 
     schema_obj = {"fields": schema_list}
