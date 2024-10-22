@@ -460,7 +460,7 @@ def main(args):
                     records_dict[target_usi] = dict()
 
                 for column, value in row_dict.items():
-                    if column = "wbc_at_diagnosis":
+                    if column == "wbc_at_diagnosis":
                         logger.debug(value)
                     # column_set.add(column)
                     if isinstance(value, str):
