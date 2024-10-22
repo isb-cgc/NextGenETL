@@ -427,11 +427,12 @@ def is_int_value(value: Any) -> bool:
 
     if is_valid_decimal(value):
         try:
-            if math.isnan(float(value)):
-                return False
+            # if math.isnan(float(value)):
+            #    return False
 
             if float(value) == int(float(value)):
                 return True
+
         except OverflowError:
             return False
 
