@@ -31,12 +31,13 @@ from google.resumable_media import InvalidResponse
 
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
                                    create_and_load_table_from_tsv, query_and_retrieve_result, list_tables_in_dataset,
-                                   get_columns_in_table)
+                                   get_columns_in_table, create_and_upload_schema_for_json,
+                                   create_and_load_table_from_jsonl, update_table_schema_from_generic)
 from cda_bq_etl.gcs_helpers import upload_to_bucket
 from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, write_list_to_tsv,
                                      create_normalized_tsv, write_list_to_jsonl, write_list_to_jsonl_and_upload)
 from cda_bq_etl.utils import (format_seconds, get_filepath, load_config, get_scratch_fp, calculate_md5sum,
-                              create_dev_table_id)
+                              create_dev_table_id, create_metadata_table_id)
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -248,7 +249,7 @@ def main(args):
 
     if 'build_file_list_and_download' in steps:
         # create needed directories if they don't already exist
-        logger.info('build_file_pull_list')
+        logger.info('Entering build_file_list_and_download')
 
         if os.path.exists(local_program_dir):
             shutil.rmtree(local_program_dir)
@@ -307,7 +308,7 @@ def main(args):
     if 'convert_excel_to_csv' in steps:
         # If file suffix is xlsx or xls, convert to tsv.
         # Then modify traversal list file to point to the newly created tsv files.
-        logger.info('convert_excel_to_tsv')
+        logger.info('Entering convert_excel_to_tsv')
 
         file_names = os.listdir(local_files_dir)
 
@@ -326,7 +327,7 @@ def main(args):
                 traversal_list_file.write(f"{tsv_file}\n")
 
     if 'normalize_tsv_and_create_schema' in steps:
-        logger.info(f"upload_tsv_file_and_schema_to_bucket")
+        logger.info(f"Entering upload_tsv_file_and_schema_to_bucket")
 
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
@@ -372,6 +373,7 @@ def main(args):
             upload_to_bucket(PARAMS, normalized_tsv_file_path, delete_local=True, verbose=False)
 
     if 'build_raw_tables' in steps:
+        logger.info("Entering build_raw_tables")
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
 
@@ -405,8 +407,8 @@ def main(args):
             logger.info(table)
         logger.info("")
 
-    if 'merge_raw_tables' in steps:
-
+    if 'create_and_upload_merged_jsonl' in steps:
+        logger.info(f"Entering create_and_upload_merged_jsonl")
         table_list = list()
 
         with open(tables_file, mode='r') as tables_fh:
@@ -432,7 +434,7 @@ def main(args):
                     })
 
         records_dict = dict()
-        column_set = {"disease_code", "project_short_name"}
+        # column_set = {"disease_code", "project_short_name"}
 
         # values from newer files are included preferentially
         for raw_tables_dict in sorted(table_list, key=lambda d: d['updated_datetime'], reverse=True):
@@ -440,12 +442,14 @@ def main(args):
 
             project_short_name = raw_tables_dict['project_short_name']
             disease_code = raw_tables_dict['project_short_name'].split('-')[1]
+            program_name = PARAMS['program_name']
             query_result = query_and_retrieve_result(f"SELECT DISTINCT * FROM `{raw_tables_dict['table_id']}`")
 
             for row in query_result:
                 row_dict = dict(row)
                 row_dict['disease_code'] = disease_code
                 row_dict['project_short_name'] = project_short_name
+                row_dict['program_name'] = program_name
                 target_usi = row_dict['target_usi']
 
                 int_comparison_columns = ['event_free_survival_time_in_days',
@@ -456,7 +460,7 @@ def main(args):
                     records_dict[target_usi] = dict()
 
                 for column, value in row_dict.items():
-                    column_set.add(column)
+                    # column_set.add(column)
                     if isinstance(value, str):
                         value = value.strip()
                     # column doesn't exist yet, so add it and its value
@@ -500,12 +504,31 @@ def main(args):
                         logger.warning(f"Record mismatch for {target_usi} in column {column}: "
                                        f"{value} != {records_dict[target_usi][column]}")
 
-        for column in sorted(column_set):
-            print(column)
+        record_list = list()
 
-        # jsonl_fp = f"{local_files_dir}/merged.jsonl"
-        # write_list_to_jsonl(jsonl_fp=jsonl_fp, json_obj_list=records, mode='a')
-        # upload_to_bucket(PARAMS, scratch_fp=jsonl_fp)
+        for record in records_dict.values():
+            record_list.append(record)
+
+        write_list_to_jsonl_and_upload(PARAMS, "target_merged", record_list)
+
+        create_and_upload_schema_for_json(PARAMS,
+                                          record_list=record_list,
+                                          table_name='target_merged',
+                                          include_release=True)
+
+    if 'create_merged_table' in steps:
+        logger.info("Entering create_merged_table")
+
+        table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{PARAMS['RELEASE']}_{PARAMS['MERGED_TABLE_NAME']}"
+
+        # Download schema file from Google Cloud bucket
+        table_schema = retrieve_bq_schema_object(PARAMS, table_name='target_merged', include_release=True)
+
+        # Load jsonl data into BigQuery table
+        create_and_load_table_from_jsonl(PARAMS,
+                                         jsonl_file=f"target_merged_{PARAMS['RELEASE']}.jsonl",
+                                         table_id=table_id,
+                                         schema=table_schema)
 
     end_time = time.time()
 
