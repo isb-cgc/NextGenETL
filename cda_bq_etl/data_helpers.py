@@ -475,6 +475,7 @@ def normalize_value(value: Any, is_tsv: bool = False) -> Any:
     if is_int_value(value):
         try:
             cast_value = int(float(value))
+            print(f"value: {value}, cast_value: {cast_value}")
             return cast_value
         except OverflowError:
             pass
