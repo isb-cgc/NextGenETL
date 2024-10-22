@@ -461,7 +461,8 @@ def main(args):
 
                 for column, value in row_dict.items():
                     if column == 'wbc_at_diagnosis':
-                        value = float(value)
+                        if value:
+                            value = float(value)
                     # column_set.add(column)
                     if isinstance(value, str):
                         value = value.strip()
