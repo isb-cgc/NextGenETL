@@ -442,7 +442,7 @@ def main(args):
 
             project_short_name = raw_tables_dict['project_short_name']
             disease_code = raw_tables_dict['project_short_name'].split('-')[1]
-            program_name = PARAMS['program_name']
+            program_name = PARAMS['PROGRAM_NAME']
             query_result = query_and_retrieve_result(f"SELECT DISTINCT * FROM `{raw_tables_dict['table_id']}`")
 
             for row in query_result:
