@@ -432,6 +432,7 @@ def main(args):
                     })
 
         records_dict = dict()
+        column_set = {"disease_code", "project_short_name"}
 
         # values from newer files are included preferentially
         for raw_tables_dict in sorted(table_list, key=lambda d: d['updated_datetime'], reverse=True):
@@ -455,6 +456,7 @@ def main(args):
                     records_dict[target_usi] = dict()
 
                 for column, value in row_dict.items():
+                    column_set.add(column)
                     if isinstance(value, str):
                         value = value.strip()
                     # column doesn't exist yet, so add it and its value
@@ -498,7 +500,7 @@ def main(args):
                         logger.warning(f"Record mismatch for {target_usi} in column {column}: "
                                        f"{value} != {records_dict[target_usi][column]}")
 
-        logger.debug(records_dict)
+        logger.debug(column_set)
 
         # jsonl_fp = f"{local_files_dir}/merged.jsonl"
         # write_list_to_jsonl(jsonl_fp=jsonl_fp, json_obj_list=records, mode='a')
