@@ -35,7 +35,8 @@ from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq
                                    create_and_load_table_from_jsonl, update_table_schema_from_generic)
 from cda_bq_etl.gcs_helpers import upload_to_bucket
 from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, write_list_to_tsv,
-                                     create_normalized_tsv, write_list_to_jsonl, write_list_to_jsonl_and_upload)
+                                     create_normalized_tsv, write_list_to_jsonl, write_list_to_jsonl_and_upload,
+                                     normalize_flat_json_values)
 from cda_bq_etl.utils import (format_seconds, get_filepath, load_config, get_scratch_fp, calculate_md5sum,
                               create_dev_table_id, create_metadata_table_id)
 
@@ -512,10 +513,12 @@ def main(args):
         for record in records_dict.values():
             record_list.append(record)
 
-        write_list_to_jsonl_and_upload(PARAMS, "target_merged", record_list)
+        normalized_record_list = normalize_flat_json_values(record_list)
+
+        write_list_to_jsonl_and_upload(PARAMS, "target_merged", normalized_record_list)
 
         create_and_upload_schema_for_json(PARAMS,
-                                          record_list=record_list,
+                                          record_list=normalized_record_list,
                                           table_name='target_merged',
                                           include_release=True)
 
