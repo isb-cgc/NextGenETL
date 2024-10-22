@@ -524,6 +524,8 @@ def main(args):
         # Download schema file from Google Cloud bucket
         table_schema = retrieve_bq_schema_object(PARAMS, table_name='target_merged', include_release=True)
 
+        logger.info(table_schema)
+
         # Load jsonl data into BigQuery table
         create_and_load_table_from_jsonl(PARAMS,
                                          jsonl_file=f"target_merged_{PARAMS['RELEASE']}.jsonl",
