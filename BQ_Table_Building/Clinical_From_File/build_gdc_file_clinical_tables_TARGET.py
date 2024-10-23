@@ -455,15 +455,16 @@ def main(args):
 
                 int_comparison_columns = ['event_free_survival_time_in_days',
                                           'year_of_last_follow_up',
-                                          'overall_survival_time_in_days']
+                                          'overall_survival_time_in_days',
+                                          'age_at_diagnosis_in_days']
 
                 if target_usi not in records_dict:
                     records_dict[target_usi] = dict()
 
                 for column, value in row_dict.items():
-                    if column == 'wbc_at_diagnosis':
-                        if value:
-                            value = float(value)
+                    # if column == 'wbc_at_diagnosis':
+                    #     if value:
+                    #         value = float(value)
                     # column_set.add(column)
                     if isinstance(value, str):
                         value = value.strip()
@@ -489,6 +490,8 @@ def main(args):
                     if value is None:
                         continue
                     elif column not in records_dict[target_usi]:
+                        if column in int_comparison_columns:
+                            value = int(value)
                         records_dict[target_usi][column] = value
                     elif column in int_comparison_columns:
                         existing_value = int(records_dict[target_usi][column])
