@@ -183,8 +183,20 @@ def merge_samples_by_aliquot(input_table, output_table):
     return query_bq(sql, output_table)
 
 
-def create_mirna_isoform_expr_table(raw_isoform_mirna_expr, draft_mirna_isoform_expr, file_table, aliquot_table, case_table,
-                            project_id, dataset, release):
+def create_mirna_isoform_expr_table(raw_isoform_mirna_expr, draft_mirna_isoform_expr, file_table, aliquot_table,
+                            case_table, project_id, dataset, release):
+    """
+    Run through the SQL queries to create the final draft table.
+    :param raw_isoform_mirna_expr: Initial miRNA isoform expression table name
+    :param draft_mirna_isoform_expr: Draft miRNA isoform expression table name
+    :param file_table: Metadata table with file data
+    :param aliquot_table: Metadata table with aliquot data
+    :param case_table: Metadata table with case data
+    :param project_id: Project of where the tables are to be created
+    :param dataset: Dataset of where the tables are to be created
+    :param release: GDC release
+    :return: list of tables created
+    """
 
     mirna_isoform_expr_logger.info("Creating {draft_mirna_isoform_expr}")
 

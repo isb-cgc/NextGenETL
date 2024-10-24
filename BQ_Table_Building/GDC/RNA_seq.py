@@ -182,7 +182,20 @@ def merge_samples_by_aliquot(input_table, output_table):
     return query_bq(sql, output_table)
 
 
-def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, case_table, project_id, dataset, release):
+def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, case_table, project_id,
+                         dataset, release):
+    """
+    Run through the SQL queries to create the final draft table.
+    :param raw_rna_seq: Initial RNA sequence table name
+    :param draft_rna_seq: Draft RNA sequence table name
+    :param file_table: Metadata table with file data
+    :param aliquot_table: Metadata table with aliquot data
+    :param case_table: Metadata table with case data
+    :param project_id: Project of where the tables are to be created
+    :param dataset: Dataset of where the tables are to be created
+    :param release: GDC release
+    :return: list of tables created
+    """
     rna_seq_logger.info("Creating {draft_rna_seq}")
 
     created_tables = []
@@ -192,8 +205,6 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
     step_4_table = f"{raw_rna_seq}_step_4"
     step_5_table = f"{raw_rna_seq}_step_5"
 
-
-    # todo describe
     gather_aliquot_ids_results = gather_aliquot_ids(f"{project_id}.{dataset}.{raw_rna_seq}",
                                                     f"{file_table}_{release}",
                                                     f"{project_id}.{dataset}.{step_1_table}")
@@ -202,8 +213,6 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
     else:
         rna_seq_logger.error("Creating RNA Seq aliquot id table failed")
         sys.exit()
-
-    # todo
 
     extract_platform_for_files_results = extract_platform_for_files(f"{project_id}.{dataset}.{step_1_table}",
                                                                     f"{file_table}_{release}",
@@ -214,7 +223,6 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
         rna_seq_logger.error("Creating platform table failed")
         sys.exit()
 
-    # todo describe
     add_barcodes_to_aliquot_results = add_barcodes_to_aliquot(f"{project_id}.{dataset}.{step_2_table}",
                                                               f"{aliquot_table}_{release}",
                                                               f"{case_table}_{release}",
@@ -226,7 +234,6 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
         rna_seq_logger.error("Creating RNA seq barcodes table failed")
         sys.exit()
 
-    # todo describe
     glue_metadata_results = glue_metadata(f"{project_id}.{dataset}.{step_3_table}",
                                           f"{project_id}.{dataset}.{raw_rna_seq}",
                                           f"{project_id}.{dataset}.{step_4_table}")
@@ -236,7 +243,6 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
         rna_seq_logger.error("Creating add metadata table failed")
         sys.exit()
 
-    # todo describe
     merge_samples_by_aliquot_results = merge_samples_by_aliquot(f"{project_id}.{dataset}.{step_4_table}",
                                                                 f"{project_id}.{dataset}.{step_5_table}")
     if merge_samples_by_aliquot_results == 'DONE':
@@ -245,7 +251,6 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
         rna_seq_logger.error("Creating merge table failed")
         sys.exit()
 
-    # todo describe
     cluster_fields = ["project_short_name", "case_barcode", "sample_barcode", "aliquot_barcode"]
     cluster_table_result = cluster_table(f"{project_id}.{dataset}.{step_5_table}",
                                          f"{project_id}.{dataset}.{draft_rna_seq}", cluster_fields)

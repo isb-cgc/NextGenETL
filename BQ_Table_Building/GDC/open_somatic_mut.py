@@ -75,7 +75,7 @@ def collect_barcodes(maf_table, aliquot_table, case_table, dest_table):
 
 def barcode_raw_table_merge(maf_table, barcode_table, dest_table):
     """
-    Glue the New Info to the Raw Data Table
+    Glue the New Info to the Raw Data Table.
     :param maf_table: table id for the draft maf table
     :type maf_table: basestring
     :param barcode_table: table id for the barcode table
@@ -450,6 +450,17 @@ def merge_samples_by_aliquot(input_table, output_table):
 
 def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, aliquot_table, case_table, project_id, dataset,
                              release):
+    """
+    Run through the SQL queries to create the final draft table.
+    :param raw_somatic_mut: Initial Somatic Mutation table name
+    :param draft_somatic_mut: Draft Somatic Mutation table name
+    :param aliquot_table: Metadata table with aliquot data
+    :param case_table: Metadata table with case data
+    :param project_id: Project of where the tables are to be created
+    :param dataset: Dataset of where the tables are to be created
+    :param release: GDC release
+    :return: list of tables created
+    """
     som_mut_logger.info(f"Creating {draft_somatic_mut}")
 
     created_tables = []
@@ -457,7 +468,6 @@ def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, aliquot_table, 
     step_2_table = f"{raw_somatic_mut}_step_2"
     step_3_table = f"{raw_somatic_mut}_step_3"
 
-    # todo describe
     collect_barcodes_result = collect_barcodes(f"{project_id}.{dataset}.{raw_somatic_mut}",
                                                f"{aliquot_table}_{release}",
                                                f"{case_table}_{release}",
@@ -468,7 +478,6 @@ def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, aliquot_table, 
         som_mut_logger.error("Creating MAF barcodes table failed")
         sys.exit()
 
-    # todo describe
     barcode_raw_table_merge_result = barcode_raw_table_merge(f"{project_id}.{dataset}.{raw_somatic_mut}",
                                                              f"{project_id}.{dataset}.{step_1_table}",
                                                              f"{project_id}.{dataset}.{step_2_table}")
@@ -478,7 +487,6 @@ def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, aliquot_table, 
         som_mut_logger.error("Creating MAF intermediate table failed")
         sys.exit()
 
-    # todo describe
     merge_samples_by_aliquot_result = merge_samples_by_aliquot(f"{project_id}.{dataset}.{step_2_table}",
                                                                f"{project_id}.{dataset}.{step_3_table}")
     if merge_samples_by_aliquot_result == 'DONE':
@@ -487,7 +495,6 @@ def create_somatic_mut_table(raw_somatic_mut, draft_somatic_mut, aliquot_table, 
         som_mut_logger.error("Creating MAF merge table failed")
         sys.exit()
 
-    # todo describe
     cluster_fields = ["project_short_name", "case_barcode", "sample_barcode_tumor", "aliquot_barcode_tumor"]
     cluster_table_result = cluster_table(f"{project_id}.{dataset}.{step_3_table}",
                                          f"{project_id}.{dataset}.{draft_somatic_mut}", cluster_fields)
