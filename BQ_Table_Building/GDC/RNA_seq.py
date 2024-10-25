@@ -19,7 +19,13 @@ rna_seq_logger = logging.getLogger(name='base_script.rna_seq')
 
 
 def gather_aliquot_ids(input_table, file_table, output_table):
-    # todo Is this actually gather file data?
+    """
+    Collect aliquot ids from RNA seq table
+    :param input_table: Initial RNA seq table
+    :param file_table: Metadata table id with file information
+    :param output_table: Table id to create
+    :return: if the SQL query worked
+    """
     sql = f'''
         WITH a1 AS (SELECT DISTINCT LEFT(file_name, 36) as file_gdc_id
                 FROM `{input_table}`)
@@ -37,7 +43,14 @@ def gather_aliquot_ids(input_table, file_table, output_table):
 
 
 def add_barcodes_to_aliquot(step_2_table, aliquot_table, case_table, step_3_table):
-    # todo Is this actually gathering case data? why are we bringing in the aliquot table again?
+    """
+    Gather barcode and sample information to the aliquot ids
+    :param step_2_table: table id of the RNA seq aliquot table
+    :param aliquot_table: Metadata table id with aliquot information
+    :param case_table: Metadata table id with case information
+    :param step_3_table: Table id to create
+    :return: if the SQL query worked
+    """
     sql = f'''
         WITH a1 AS (
           SELECT a.project_short_name,
@@ -74,6 +87,13 @@ def add_barcodes_to_aliquot(step_2_table, aliquot_table, case_table, step_3_tabl
 
 
 def glue_metadata(step_3_table, raw_rna_seq, step_4_able):
+    """
+    Add metadata to the raw RNA seq table
+    :param step_3_table: RNA seq metadata table id
+    :param raw_rna_seq: Raw RNA seq table id
+    :param step_4_able: Table id for the output table
+    :return: if the SQL query worked
+    """
     sql = f"""
         SELECT a.project_short_name,
                a.case_barcode,
@@ -109,6 +129,13 @@ def glue_metadata(step_3_table, raw_rna_seq, step_4_able):
 
 
 def extract_platform_for_files(step_1_table, file_table, step_2_table):
+    """
+    Collect the platform used for the analysis and create a table
+    :param step_1_table: RNA seq metadata table id
+    :param file_table: GDC file metadata table id
+    :param step_2_table: Output table id to create
+    :return: if the SQL query worked
+    """
     sql = f'''
         WITH
             a1 AS (SELECT DISTINCT analysis_input_file_gdc_ids
@@ -132,6 +159,12 @@ def extract_platform_for_files(step_1_table, file_table, step_2_table):
 
 
 def merge_samples_by_aliquot(input_table, output_table):
+    """
+    Some samples are pooled and their lines need to be merged by aliquot
+    :param input_table: Table id to merge samples
+    :param output_table: Output table id to create
+    :return: if the SQL query worked
+    """
     sql = f"""
     SELECT 
         project_short_name,
