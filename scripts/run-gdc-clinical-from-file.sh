@@ -13,5 +13,5 @@ pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 cd ..
-python3.9 ./BQ_Table_Building/build_gdc_file_clinical_tables.py ~/config/GDCFileClinicalTablesBuild.yaml
+python3.9 ./BQ_Table_Building/Clinical_From_File/build_gdc_file_clinical_tables.py ~/config/GDCFileClinicalTablesBuild.yaml
 deactivate

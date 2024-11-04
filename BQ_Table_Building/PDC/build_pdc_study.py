@@ -24,7 +24,8 @@ import time
 import json
 
 from common_etl.utils import (get_filepath, format_seconds, get_graphql_api_response, has_fatal_error, load_config,
-                              load_table_from_query, publish_table, test_table_for_version_changes)
+                              load_table_from_query, publish_table, test_table_for_version_changes,
+                              recursively_normalize_field_values)
 from BQ_Table_Building.PDC.pdc_utils import (build_obj_from_pdc_api, build_table_from_jsonl, write_jsonl_and_upload,
                                              get_prefix, update_table_schema_from_generic_pdc, get_publish_table_ids,
                                              find_most_recent_published_table_id)
@@ -228,14 +229,20 @@ def main(args):
         has_fatal_error(err, ValueError)
 
     if 'build_studies_jsonl' in steps:
-        joined_record_list = build_obj_from_pdc_api(API_PARAMS,
-                                                    endpoint='allPrograms',
-                                                    request_function=make_all_programs_query,
-                                                    alter_json_function=alter_all_programs_json)
+        raw_joined_record_list = build_obj_from_pdc_api(API_PARAMS,
+                                                        endpoint='allPrograms',
+                                                        request_function=make_all_programs_query,
+                                                        alter_json_function=alter_all_programs_json)
+
+        norm_joined_record_list = recursively_normalize_field_values(raw_joined_record_list)
 
         write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
                                prefix=get_prefix(API_PARAMS, 'allPrograms'),
-                               joined_record_list=joined_record_list)
+                               joined_record_list=norm_joined_record_list)
+
+        write_jsonl_and_upload(API_PARAMS, BQ_PARAMS,
+                               prefix=get_prefix(API_PARAMS, 'allPrograms') + "_raw",
+                               joined_record_list=raw_joined_record_list)
 
     if 'build_studies_table' in steps:
         build_table_from_jsonl(API_PARAMS, BQ_PARAMS, endpoint='allPrograms', infer_schema=True)

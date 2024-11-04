@@ -29,6 +29,7 @@ import datetime
 import requests
 import yaml
 import select
+import csv
 from distutils import util
 import traceback
 
@@ -662,8 +663,13 @@ def create_and_load_table_from_tsv(bq_params, tsv_file, table_id, num_header_row
     """
     client = bigquery.Client()
     job_config = bigquery.LoadJobConfig()
-    job_config.schema = schema
-    job_config.skip_leading_rows = num_header_rows
+
+    if schema:
+        job_config.schema = schema
+        job_config.skip_leading_rows = num_header_rows
+    else:
+        job_config.autodetect = True
+
     job_config.source_format = bigquery.SourceFormat.CSV
     job_config.field_delimiter = '\t'
     job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
@@ -770,8 +776,9 @@ def load_create_table_job(bq_params, data_file, client, table_id, job_config):
     gs_uri = f"gs://{bq_params['WORKING_BUCKET']}/{bq_params['WORKING_BUCKET_DIR']}/{data_file}"
 
     try:
-        load_job = client.load_table_from_uri(gs_uri, table_id, job_config=job_config)
-
+        load_job = client.load_table_from_uri(source_uris=gs_uri,
+                                              destination=table_id,
+                                              job_config=job_config)
         print(f' - Inserting into {table_id}... ', end="")
         await_insert_job(bq_params, client, table_id, load_job)
     except TypeError as err:
@@ -779,13 +786,14 @@ def load_create_table_job(bq_params, data_file, client, table_id, job_config):
 
 #   GOOGLE CLOUD STORAGE UTILS
 
+def upload_to_bucket(bq_params, scratch_fp, delete_local=False, verbose=True):
 
-def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
     """
     Upload file to a Google storage bucket (bucket/directory location specified in YAML config).
     :param bq_params: bq param object from yaml config
     :param scratch_fp: name of file to upload to bucket
     :param delete_local: delete scratch file created on VM
+    :param verbose: if True, print a confirmation for each file uploaded
     """
     if not os.path.exists(scratch_fp):
         has_fatal_error(f"Invalid filepath: {scratch_fp}", FileNotFoundError)
@@ -801,13 +809,16 @@ def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
         blob = bucket.blob(blob_name)
         blob.upload_from_filename(scratch_fp)
 
-        print(f"Successfully uploaded file to {bucket_name}/{blob_name}. ", end="")
+        if verbose:
+            print(f"Successfully uploaded file to {bucket_name}/{blob_name}. ", end="")
 
         if delete_local:
             os.remove(scratch_fp)
-            print("Local file deleted.")
+            if verbose:
+                print("Local file deleted.")
         else:
-            print(f"Local file not deleted.")
+            if verbose:
+                print(f"Local file not deleted.")
 
     except exceptions.GoogleCloudError as err:
         has_fatal_error(f"Failed to upload to bucket.\n{err}")
@@ -815,27 +826,52 @@ def upload_to_bucket(bq_params, scratch_fp, delete_local=False):
         has_fatal_error(f"File not found, failed to access local file.\n{err}")
 
 
-def download_from_bucket(bq_params, filename, dir_path=None):
+def download_from_bucket(bq_params, filename, bucket_path=None, dir_path=None, timeout=None):
     """
     Download file from Google storage bucket onto VM.
-    :param bq_params: BigQuery params
+    :param bq_params: BigQuery params, used to retrieve default bucket directory path
     :param filename: Name of file to download
+    :param bucket_path: Optional, override default bucket directory path
+    :param dir_path: Optional, location in which to download file; if not specified, defaults to scratch folder defined in bq_params
+    :param timeout: Optional, integer value in seconds--how long to wait before file download is considered a failure
     """
+    if not dir_path:
+        file_path = get_scratch_fp(bq_params, filename)
+    else:
+        file_path = f"{dir_path}/{filename}"
+
+    if os.path.isfile(file_path):
+        os.remove(file_path)
+
     storage_client = storage.Client(project="")
-    blob_name = f"{bq_params['WORKING_BUCKET_DIR']}/{filename}"
+    if bucket_path:
+        blob_name = f"{bucket_path}/{filename}"
+    else:
+        blob_name = f"{bq_params['WORKING_BUCKET_DIR']}/{filename}"
     bucket = storage_client.bucket(bq_params['WORKING_BUCKET'])
     blob = bucket.blob(blob_name)
 
-    if not dir_path:
-        fp = get_scratch_fp(bq_params, filename)
-    else:
-        fp = (f"{dir_path}/{filename}")
-    with open(fp, 'wb') as file_obj:
+    with open(file_path, 'wb') as file_obj:
         blob.download_to_file(file_obj)
+
+    start_time = time.time()
+
+    """
+    if timeout:
+        while not os.path.isfile(file_path):
+            if time.time() - start_time > timeout:
+                print(f"ERROR: File download from bucket failed. Source: {blob_name}, Destination: {file_path}")
+                exit()
+            else:
+                print(f"File {filename} not yet downloaded, waiting.")
+                time.sleep(2)
+    """
+
+    if os.path.isfile(file_path):
+        print(f"File successfully downloaded from bucket to {file_path}")
 
 
 #   I/O - FILESYSTEM HELPERS
-
 
 def get_filepath(dir_path, filename=None):
     """
@@ -891,6 +927,16 @@ def write_list_to_jsonl(jsonl_fp, json_obj_list, mode='w'):
             file_obj.write('\n')
 
 
+def write_line_to_jsonl(jsonl_fp, json_line):
+    """
+    Append dict to jsonl file.
+    :param jsonl_fp: local VM jsonl filepath
+    """
+    with open(jsonl_fp, 'a') as file_obj:
+        json.dump(obj=json_line, fp=file_obj, default=json_datetime_to_str_converter)
+        file_obj.write('\n')
+
+
 def write_list_to_jsonl_and_upload(api_params, bq_params, prefix, record_list, local_filepath=None):
     """
     Write joined_record_list to file name specified by prefix and uploads to scratch Google Cloud bucket.
@@ -898,11 +944,10 @@ def write_list_to_jsonl_and_upload(api_params, bq_params, prefix, record_list, l
     :param bq_params: bq_params supplied in yaml config
     :param prefix: string representing base file name (release string is appended to generate filename)
     :param record_list: list of record objects to insert into jsonl file
+    :param local_filepath: todo
     """
     if not local_filepath:
-        jsonl_filename = get_filename(api_params,
-                                      file_extension='jsonl',
-                                      prefix=prefix)
+        jsonl_filename = get_filename(api_params, file_extension='jsonl', prefix=prefix)
         local_filepath = get_scratch_fp(bq_params, jsonl_filename)
 
     write_list_to_jsonl(local_filepath, record_list)
@@ -962,24 +1007,82 @@ def get_filename(api_params, file_extension, prefix, suffix=None, include_releas
 #   SCHEMA UTILS
 
 
-def normalize_value(value):
+def normalize_value(value, is_tsv=False):
     """
     If value is variation of null or boolean value, converts to single form (None, True, False);
     otherwise returns original value.
     :param value: value to convert
     :return: normalized (or original) value
     """
+
+    if value is None:
+        return value
+
     if isinstance(value, str):
         value = value.strip()
 
-    if value in ('NA', 'N/A', 'null', 'None', '', 'NULL', 'Null', 'Not Reported'):
-        return None
-    elif value in ('False', 'false', 'FALSE', 'No', 'no', 'NO'):
-        return "False"
-    elif value in ('True', 'true', 'TRUE', 'YES', 'yes', 'Yes'):
-        return "True"
+        if value in ('NA', 'N/A', 'n/a',
+                     'None', '', '--', '-',
+                     'NULL', 'Null', 'null',
+                     'Not Reported', 'not reported', 'Not reported',
+                     'unknown', 'Unknown'):
+            if is_tsv:
+                return ''
+            else:
+                return None
+        elif value in ('False', 'false', 'FALSE', 'No', 'no', 'NO'):
+            return "False"
+        elif value in ('True', 'true', 'TRUE', 'Yes', 'yes', 'YES'):
+            return "True"
 
-    return value
+    if is_int_value(value):
+        try:
+            cast_value = int(float(value))
+            return cast_value
+        except OverflowError:
+            pass
+    else:
+        return value
+
+
+def is_int_value(value):
+    """
+    todo
+    :param value:
+    :return:
+    """
+    def is_valid_decimal(val):
+        try:
+            float(val)
+        except ValueError:
+            return False
+        except TypeError:
+            return False
+        else:
+            return True
+
+    def should_be_string(val):
+        val = str(val)
+        if val.startswith("0") and len(val) > 1 and ':' not in val and '-' not in val and '.' not in val:
+            return True
+
+    if should_be_string(value):
+        return False
+
+    if is_valid_decimal(value):
+        try:
+            if float(value) == int(float(value)):
+                return True
+        except OverflowError:
+            return False
+
+    try:
+        int(value)
+        return True
+    except ValueError:
+        return False
+    except TypeError:
+        return False
 
 
 def check_value_type(value):
@@ -988,13 +1091,37 @@ def check_value_type(value):
         - datetime formats: DATE, TIME, TIMESTAMP
         - number formats: INT64, FLOAT64, NUMERIC
         - misc formats: STRING, BOOL, ARRAY, RECORD
+    :param is_tsv: todo
     :param value: value on which to perform data type analysis
     :return: data type in BigQuery Standard SQL format
     """
+    def is_valid_decimal(val):
+        try:
+            float(val)
+        except ValueError:
+            return False
+        except TypeError:
+            return False
+        else:
+            return True
+
     if isinstance(value, bool):
         return "BOOL"
-    if isinstance(value, int):
-        return "INT64"
+    # currently not working for tsv because we don't normalize those files prior to upload yet
+    if is_valid_decimal(value):
+        # If you don't cast a string to float before casting to int, it will throw a TypeError
+        try:
+            str_val = str(value)
+
+            if str_val.startswith("0") and len(str_val) > 1 and ':' not in str_val \
+                    and '-' not in str_val and '.' not in str_val:
+                return "STRING"
+
+            if float(value) == int(float(value)):
+                return "INT64"
+        except OverflowError:
+            # can't cast float infinity to int
+            pass
     if isinstance(value, float):
         return "FLOAT64"
     if value != value:  # NaN case
@@ -1005,11 +1132,18 @@ def check_value_type(value):
         return "RECORD"
     if not value:
         return None
+    if isinstance(value, datetime.datetime):
+        return "TIMESTAMP"
+    if isinstance(value, datetime.date):
+        return "DATE"
+    if isinstance(value, datetime.time):
+        return "TIME"
 
     # A sequence of numbers starting with a 0 represents a string id,
     # but int() check will pass and data loss would occur.
-    if value.startswith("0") and len(value) > 1 and ':' not in value and '-' not in value and '.' not in value:
-        return "STRING"
+    if isinstance(value, str):
+        if value.startswith("0") and len(value) > 1 and ':' not in value and '-' not in value and '.' not in value:
+            return "STRING"
 
     # check to see if value is numeric, float or int;
     # differentiates between these types and datetime or ids, which may be composed of only numbers or symbols
@@ -1033,28 +1167,35 @@ def check_value_type(value):
     elif value.isnumeric() and not value.isdigit() and not value.isdecimal():
         return "NUMERIC"
 
+    # no point in performing regex for this, it's just a string
+    if value.count("-") > 2:
+        return "STRING"
+
     """
     BIGQUERY'S CANONICAL DATE/TIME FORMATS:
     (see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types)
     """
 
-    # Check for BigQuery DATE format: 'YYYY-[M]M-[D]D'
-    date_re_str = r"[0-9]{4}-(0[1-9]|1[0-2]|[0-9])-(0[1-9]|[1-2][0-9]|[3][0-1]|[1-9])"
-    date_pattern = re.compile(date_re_str)
-    if re.fullmatch(date_pattern, value):
-        return "DATE"
+    if value.count("-") == 2 or value.count(":") == 2:
+        # Check for BigQuery DATE format: 'YYYY-[M]M-[D]D'
+        date_re_str = r"[0-9]{4}-(0[1-9]|1[0-2]|[0-9])-(0[1-9]|[1-2][0-9]|[3][0-1]|[1-9])"
+        date_pattern = re.compile(date_re_str)
+        if re.fullmatch(date_pattern, value):
+            return "DATE"
 
-    # Check for BigQuery TIME format: [H]H:[M]M:[S]S[.DDDDDD]
-    time_re_str = r"([0-1][0-9]|[2][0-3]|[0-9]{1}):([0-5][0-9]|[0-9]{1}):([0-5][0-9]|[0-9]{1}])(\.[0-9]{1,6}|)"
-    time_pattern = re.compile(time_re_str)
-    if re.fullmatch(time_pattern, value):
-        return "TIME"
+        # Check for BigQuery TIME format: [H]H:[M]M:[S]S[.DDDDDD]
+        time_re_str = r"([0-1][0-9]|[2][0-3]|[0-9]{1}):([0-5][0-9]|[0-9]{1}):([0-5][0-9]|[0-9]{1}])(\.[0-9]{1,6}|)"
+        time_pattern = re.compile(time_re_str)
+        if re.fullmatch(time_pattern, value):
+            return "TIME"
 
-    # Check for BigQuery TIMESTAMP format: YYYY-[M]M-[D]D[( |T)[H]H:[M]M:[S]S[.DDDDDD]][time zone]
-    timestamp_re_str = date_re_str + r'( |T)' + time_re_str + r"([ \-:A-Za-z0-9]*)"
-    timestamp_pattern = re.compile(timestamp_re_str)
-    if re.fullmatch(timestamp_pattern, value):
-        return "TIMESTAMP"
+        # Check for BigQuery TIMESTAMP format: YYYY-[M]M-[D]D[( |T)[H]H:[M]M:[S]S[.DDDDDD]][time zone]
+        timestamp_re_str = date_re_str + r'( |T)' + time_re_str + r"([ \-:A-Za-z0-9]*)"
+        timestamp_pattern = re.compile(timestamp_re_str)
+        if re.fullmatch(timestamp_pattern, value):
+            return "TIMESTAMP"
+
+        return "STRING"
 
     try:
         util.strtobool(value)
@@ -1062,8 +1203,8 @@ def check_value_type(value):
     except ValueError:
         pass
 
-    # Final check for int and float values. This will catch a simple integers
-    # or edge case float values, like infinity, scientific notation, etc.
+    # Final check for int and float values.
+    # This will catch simple integers or edge case float values (infinity, scientific notation, etc.)
     try:
         int(value)
         return "INT64"
@@ -1082,11 +1223,15 @@ def resolve_type_conflict(field, types_set):
     See https://cloud.google.com/bigquery/docs/reference/standard-sql/conversion_rules#coercion
     :param types_set: Set of BigQuery data types in string format
     :param field: field name
-    :return: BigQuery data type with highest precedence
+    :return: BigQuery data type with the highest precedence
     """
 
     datetime_types = {"TIMESTAMP", "DATE", "TIME"}
     number_types = {"INT64", "FLOAT64", "NUMERIC"}
+
+    # remove null type value from set
+    none_set = {None}
+    types_set = types_set - none_set
 
     # fix to make even proper INT64 ids into STRING ids
     if "_id" in field:
@@ -1177,6 +1322,76 @@ def resolve_type_conflicts(types_dict):
     return type_dict
 
 
+def normalize_flat_json_values(records):
+    normalized_json_list = list()
+
+    for record in records:
+        normalized_record = dict()
+        for key in record.keys():
+            value = normalize_value(record[key])
+            normalized_record[key] = value
+        normalized_json_list.append(normalized_record)
+
+    return normalized_json_list
+
+
+def recursively_normalize_field_values(json_records, is_single_record=False):
+    """
+    Recursively explores and normalizes a list of json objects. Useful when there's arbitrary nesting of dicts and
+    lists with varying depths.
+    :param json_records: list of json objects
+    :param is_single_record: If true, json_records contains a single json object,
+    otherwise contains a list of json objects
+    :return: if is_single_record, returns normalized copy of the json object.
+    if multiple records, returns a list of json objects.
+    """
+    def recursively_normalize_field_value(_obj, _data_set_dict):
+        """
+        Recursively explore a part of the supplied object. Traverses parent nodes, replicating existing data structures
+        and normalizing values when reaching a "leaf" node.
+        :param _obj: object in current location of recursion
+        :param _data_set_dict: dict of fields and type sets
+        """
+        for key, value in _obj.items():
+            if isinstance(_obj[key], dict):
+                if key not in _data_set_dict:
+                    # this is a dict, so use dict to nest values
+                    _data_set_dict[key] = dict()
+
+                recursively_normalize_field_value(_obj[key], _data_set_dict[key])
+            elif isinstance(_obj[key], list) and len(_obj[key]) > 0 and isinstance(_obj[key][0], dict):
+                if key not in _data_set_dict:
+                    _data_set_dict[key] = list()
+
+                idx = 0
+                for _record in _obj[key]:
+                    _data_set_dict[key].append(dict())
+                    recursively_normalize_field_value(_record, _data_set_dict[key][idx])
+                    idx += 1
+            elif not isinstance(_obj[key], list) or (isinstance(_obj[key], list) and len(_obj[key]) > 0):
+                # create set of Data type values
+                if key not in _data_set_dict:
+                    _data_set_dict[key] = dict()
+
+                value = normalize_value(value)
+                _data_set_dict[key] = value
+
+    if is_single_record:
+        record_dict = dict()
+        recursively_normalize_field_value(json_records, record_dict)
+        return record_dict
+    else:
+        new_record_jsonl_list = list()
+
+        for record in json_records:
+            record_dict = dict()
+            recursively_normalize_field_value(record, record_dict)
+
+            new_record_jsonl_list.append(record_dict)
+
+        return new_record_jsonl_list
+
+
 def recursively_detect_object_structures(nested_obj):
     """
     Traverse a dict or list of objects, analyzing the structure. Order not guaranteed (if anything, it'll be
@@ -1239,6 +1454,7 @@ def convert_object_structure_dict_to_schema_dict(data_types_dict, dataset_format
     :param dataset_format_obj: dataset format obj
     :param descriptions: (optional) dictionary of field: description string pairs for inclusion in schema definition
     """
+
     for k, v in data_types_dict.items():
         if descriptions and k in descriptions:
             description = descriptions[k]
@@ -1340,7 +1556,7 @@ def generate_bq_schema_fields(schema_obj_list):
     return schema_fields_obj
 
 
-def retrieve_bq_schema_object(api_params, bq_params, table_name, release=None, include_release=True,
+def retrieve_bq_schema_object(api_params, bq_params, table_name=None, release=None, include_release=True,
                               schema_filename=None, schema_dir=None):
     """
     todo
@@ -1473,6 +1689,73 @@ def get_column_list_tsv(header_list=None, tsv_fp=None, header_row_index=None):
     return column_list
 
 
+def normalize_header_row(header_row):
+    new_header_row = list()
+
+    for value in header_row:
+        value = value.lower()
+        test_value = value
+        suffix_value = 1
+
+        # if column header is a duplicate, append numeric suffix
+        while test_value in new_header_row:
+            test_value = f"{value}_{str(suffix_value)}"
+            suffix_value += 1
+
+        if value != test_value:
+            print(f"Changing header value {value} to {test_value} (due to encountering duplicate header).")
+
+        new_header_row.append(test_value)
+
+    return new_header_row
+
+
+def create_normalized_tsv(raw_tsv_fp, normalized_tsv_fp):
+    """
+    Opens a raw tsv file, normalizes its data, then writes to new tsv file.
+    :param raw_tsv_fp: path to non-normalized data file
+    :param normalized_tsv_fp: destination file for normalized data
+    """
+    with open(normalized_tsv_fp, mode="w", newline="") as normalized_tsv_file:
+        tsv_writer = csv.writer(normalized_tsv_file, delimiter="\t")
+
+        with open(raw_tsv_fp, mode="r", newline="") as tsv_file:
+            tsv_reader = csv.reader(tsv_file, delimiter="\t")
+
+            raw_row_count = 0
+
+            for row in tsv_reader:
+                normalized_record = list()
+
+                if raw_row_count == 0:
+                    header_row = normalize_header_row(row)
+                    tsv_writer.writerow(header_row)
+                    raw_row_count += 1
+                    continue
+
+                for value in row:
+                    new_value = normalize_value(value, is_tsv=True)
+                    normalized_record.append(new_value)
+
+                tsv_writer.writerow(normalized_record)
+                raw_row_count += 1
+                if raw_row_count % 500000 == 0:
+                    print(f"Normalized {raw_row_count} rows.")
+
+            print(f"Normalized {raw_row_count} rows.")
+
+    with open(normalized_tsv_fp, mode="r", newline="") as normalized_tsv_file:
+        tsv_reader = csv.reader(normalized_tsv_file, delimiter="\t")
+        normalized_row_count = 0
+
+        for row in tsv_reader:
+            normalized_row_count += 1
+
+    if normalized_row_count != raw_row_count:
+        print(f"ERROR: Row count changed. Original: {raw_row_count}; Normalized: {normalized_row_count}")
+        exit()
+
+
 def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_interval=1):
     """
     Open tsv file and aggregate data types for each column.
@@ -1510,6 +1793,8 @@ def aggregate_column_data_types_tsv(tsv_fp, column_headers, skip_rows, sample_in
 
                 for idx, value in enumerate(row_list):
                     value = value.strip()
+                    # convert non-standard null or boolean value to None, "True" or "False", otherwise return original
+                    value = normalize_value(value)
                     value_type = check_value_type(value)
                     data_types_dict[column_headers[idx]].add(value_type)
 
@@ -1546,9 +1831,36 @@ def create_schema_object(column_headers, data_types_dict):
         "fields": schema_field_object_list
     }
 
+def find_types(file, sample_interval):
+    """
+    Finds the field type for each column in the file
+    :param file: file name
+    :type file: basestring
+    :param sample_interval:sampling interval, used to skip rows in large datasets; defaults to checking every row
+        example: sample_interval == 10 will sample every 10th row
+    :type sample_interval: int
+    :return: a tuple with a list of [field, field type]
+    :rtype: tuple ([field, field_type])
+    """
+    column_list = get_column_list_tsv(tsv_fp=file, header_row_index=0)
+    field_types = aggregate_column_data_types_tsv(file, column_list,
+                                                  sample_interval=sample_interval,
+                                                  skip_rows=1)
+    final_field_types = resolve_type_conflicts(field_types)
+    typing_tups = []
+    for column in column_list:
+        # Assign columns with no data with type STRING
+        if final_field_types[column] is None:
+            tup = (column, "STRING")
+        else:
+            tup = (column, final_field_types[column])
+        typing_tups.append(tup)
 
-def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, header_list=None, header_row=None,
-                                     skip_rows=0, row_check_interval=1, release=None, schema_fp=None, delete_local=True):
+    return typing_tups
+
+def create_and_upload_schema_for_tsv(api_params, bq_params, tsv_fp, table_name=None, header_list=None, header_row=None,
+                                     skip_rows=0, row_check_interval=1, release=None, schema_fp=None,
+                                     delete_local=True):
     """
     Create and upload schema for a file in tsv format.
     :param api_params: api_params supplied in yaml config
@@ -1560,8 +1872,10 @@ def create_and_upload_schema_for_tsv(api_params, bq_params, table_name, tsv_fp, 
     :param skip_rows: integer representing number of non-data rows at the start of the file, defaults to 0
     :param row_check_interval: how many rows to sample in order to determine type; defaults to 1 (check every row)
     :param release: string value representing release, in cases where api_params['RELEASE'] should be overridden
+    :param schema_fp: todo
+    :param delete_local: todo
     """
-    print(f"Creating schema for {table_name}")
+    print(f"Creating schema for {tsv_fp}")
 
     # third condition required to account for header row at 0 index
 

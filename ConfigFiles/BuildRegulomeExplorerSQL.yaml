@@ -1,0 +1,57 @@
+
+version: 1
+files_and_buckets_and_tables:
+
+ # What bucket is going to get the text file heading to BQ?
+  WORKING_BUCKET: your-text-bucket
+
+  # What will be the file in the bucket (TSV):
+  FEATURE_TSV: mysql/tcga/{}_features.txt # DO NOT HAVE A LEADING /
+
+  # What will be the file in the bucket (SQL):
+  FEATURE_SQL: mysql/tcga/{}_features.sql # DO NOT HAVE A LEADING /
+
+  # What will be the file in the bucket (SQL):
+  PATIENT_TSV: mysql/tcga/{}_patients.txt # DO NOT HAVE A LEADING /
+
+  # What project are we in:
+  WORKING_PROJECT: your-working-project
+
+  # Where is scratch BQ table dataset holding mappings
+  ASSOC_SCRATCH_DATASET: your_mapping_scratch_dataset
+
+  # Where is scratch BQ table dataset:
+  SCRATCH_DATASET: your_scratch_dataset
+
+  # Where is the BQ table dataset:
+  TARGET_DATASET: your_staging_dataset
+
+  # Where will we download files for analysis:
+  LOCAL_FILES_DIR: /Users/your_username/re_sql
+
+  # column summary file
+  SUMMARY_FILE: column_summary.tsv
+
+  # Where is the mappings table:
+  MAPPINGS_TABLE: re_mappings
+
+  # All the features (in raw form):
+  RAW_FULL_FEATURE_TABLE: raw_features
+
+  # Final full feature table:
+  FINAL_FULL_FEATURE_TABLE: re_features
+
+
+steps:
+
+  - create_feature_bq_from_tsv
+
+  - create_patient_bq_from_tsv
+
+  - build_raw_table
+
+  - glue_features_together
+
+  - build_final_cluster_table
+
+  - massage_raw_table

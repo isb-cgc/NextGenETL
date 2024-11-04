@@ -16,7 +16,7 @@
 
 source ~/setEnvVars.sh
 
-export MY_VENV=~/virtualEnvETL
+export MY_VENV=~/virtualEnvETL3_9
 export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
 
 mkdir -p ~/config
@@ -28,5 +28,5 @@ pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 cd ..
-python3 ./BQ_Table_Building/build_open_somatic_mut_bq_table.py ~/config/OpenSomaticMutBQBuild.yaml
+python3.9 ./BQ_Table_Building/build_open_somatic_mut_bq_table.py ~/config/OpenSomaticMutBQBuild.yaml
 deactivate

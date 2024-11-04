@@ -33,8 +33,6 @@ import threading
 from json import loads as json_loads, dumps as json_dumps
 from git import Repo
 
-from common_etl.utils import aggregate_column_data_types_tsv, resolve_type_conflicts
-
 
 def checkToken(aToken):
     """
@@ -385,6 +383,9 @@ def get_the_bq_manifest(file_table, filter_dict, max_files, project, tmp_dataset
     """
 
     sql = manifest_builder_sql(file_table, filter_dict, max_files)
+
+    print(sql)
+
     success = generic_bq_harness(sql, tmp_dataset, tmp_bq, do_batch, True)
     if not success:
         return False
@@ -435,7 +436,7 @@ def bq_to_bucket_tsv(src_table, project, dataset, bucket_name, bucket_file, do_b
     Get a BQ Result to a Bucket TSV file
     Export BQ table to a cloud bucket
     """
-    client = bigquery.Client()
+    client = bigquery.Client(project=project)
     destination_uri = "gs://{}/{}".format(bucket_name, bucket_file)
     dataset_ref = client.dataset(dataset, project=project)
     table_ref = dataset_ref.table(src_table)
@@ -771,23 +772,21 @@ def build_file_list(local_files_dir):
     return all_files
 
 
-def generic_bq_harness(sql, target_dataset, dest_table, do_batch, do_replace):
+def generic_bq_harness(sql, target_dataset, dest_table, do_batch, do_replace, project=None):
     """
     Handles all the boilerplate for running a BQ job
     """
-    client = bigquery.Client()
     job_config = bigquery.QueryJobConfig()
     if do_batch:
         job_config.priority = bigquery.QueryPriority.BATCH
     write_depo = "WRITE_TRUNCATE" if do_replace else None
-    return generic_bq_harness_write_depo(sql, target_dataset, dest_table, do_batch, write_depo)
+    return generic_bq_harness_write_depo(sql, target_dataset, dest_table, do_batch, write_depo, project=project)
 
-
-def generic_bq_harness_write_depo(sql, target_dataset, dest_table, do_batch, write_depo):
+def generic_bq_harness_write_depo(sql, target_dataset, dest_table, do_batch, write_depo, project=None):
     """
     Handles all the boilerplate for running a BQ job
     """
-    client = bigquery.Client()
+    client = bigquery.Client() if project is None else bigquery.Client(project=project)
     job_config = bigquery.QueryJobConfig()
     if do_batch:
         job_config.priority = bigquery.QueryPriority.BATCH
@@ -820,19 +819,17 @@ def generic_bq_harness_write_depo(sql, target_dataset, dest_table, do_batch, wri
         return False
     return True
 
-
 '''
 ----------------------------------------------------------------------------------------------
 Use to run queries where we want to get the result back to use (not write into a table)
 '''
 
-
-def bq_harness_with_result(sql, do_batch, verbose=True):
+def bq_harness_with_result(sql, do_batch, verbose=True, project=None):
     """
     Handles all the boilerplate for running a BQ job
     """
 
-    client = bigquery.Client()
+    client = bigquery.Client() if project is None else bigquery.Client(project=project)
     job_config = bigquery.QueryJobConfig()
     if do_batch:
         job_config.priority = bigquery.QueryPriority.BATCH
@@ -877,7 +874,7 @@ def upload_to_bucket(target_tsv_bucket, target_tsv_file, local_tsv_file):
     blob.upload_from_filename(local_tsv_file)
 
 
-def csv_to_bq(schema, csv_uri, dataset_id, targ_table, do_batch):
+def csv_to_bq(schema, csv_uri, dataset_id, targ_table, do_batch, project=None):
     """
     Loads a csv file into BigQuery
 
@@ -895,10 +892,10 @@ def csv_to_bq(schema, csv_uri, dataset_id, targ_table, do_batch):
     :rtype: bool
     """
     return csv_to_bq_write_depo(schema, csv_uri, dataset_id, targ_table,
-                                do_batch, bigquery.WriteDisposition.WRITE_TRUNCATE)
+                                do_batch, bigquery.WriteDisposition.WRITE_TRUNCATE, project=project)
 
 
-def csv_to_bq_write_depo(schema, csv_uri, dataset_id, targ_table, do_batch, write_depo):
+def csv_to_bq_write_depo(schema, csv_uri, dataset_id, targ_table, do_batch, write_depo, project=None):
     """
     Loads a csv file into BigQuery with option to specify disposition
 
@@ -917,7 +914,7 @@ def csv_to_bq_write_depo(schema, csv_uri, dataset_id, targ_table, do_batch, writ
     :return: Whether the BQ job was completed
     :rtype: bool
     """
-    client = bigquery.Client()
+    client = bigquery.Client() if project is None else bigquery.Client(project=project)
 
     dataset_ref = client.dataset(dataset_id)
     job_config = bigquery.LoadJobConfig()
@@ -926,8 +923,9 @@ def csv_to_bq_write_depo(schema, csv_uri, dataset_id, targ_table, do_batch, writ
 
     schema_list = []
     for mydict in schema:
+        use_mode = mydict['mode'] if "mode" in mydict else 'NULLABLE'
         schema_list.append(bigquery.SchemaField(mydict['name'], mydict['type'].upper(),
-                                                mode='NULLABLE', description=mydict['description']))
+                                                mode=use_mode, description=mydict['description']))
 
     job_config.schema = schema_list
     job_config.skip_leading_rows = 1
@@ -1440,10 +1438,12 @@ def update_schema_with_dict(target_dataset, dest_table, full_schema, project=Non
     return True
 
 
-def update_description(target_dataset, dest_table, desc):
+def update_description(target_dataset, dest_table, desc, project=None):
     """
     Update the description of a table
 
+    :param project: Project setting for BQ Client
+    :type dest_table: basestring
     :param target_dataset: Dataset name
     :type target_dataset: basestring
     :param dest_table: Table name
@@ -1453,7 +1453,7 @@ def update_description(target_dataset, dest_table, desc):
     :return: Whether the function succeeded
     :rtype: bool
     """
-    client = bigquery.Client()
+    client = bigquery.Client() if project is None else bigquery.Client(project=project)
     table_ref = client.dataset(target_dataset).table(dest_table)
     table = client.get_table(table_ref)
     table.description = desc
@@ -1497,11 +1497,11 @@ def bq_table_exists(target_dataset, dest_table, project=None):
         return False
 
 
-def bq_table_is_empty(target_dataset, dest_table):
+def bq_table_is_empty(target_dataset, dest_table, project=None):
     """
     Is table empty?
     """
-    client = bigquery.Client()
+    client = bigquery.Client() if project is None else bigquery.Client(project=project)
     table_ref = client.dataset(target_dataset).table(dest_table)
     table = client.get_table(table_ref)
     return table.num_rows == 0
@@ -1565,7 +1565,7 @@ def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, lengt
     return
 
 
-def transfer_schema(target_dataset, dest_table, source_dataset, source_table):
+def transfer_schema(target_dataset, dest_table, source_dataset, source_table, project=None):
     """
     Transfer description of schema from e.g. table to view
 
@@ -1597,7 +1597,7 @@ def transfer_schema(target_dataset, dest_table, source_dataset, source_table):
 
     """
 
-    client = bigquery.Client()
+    client = bigquery.Client() if project is None else bigquery.Client(project=project)
     src_table_ref = client.dataset(source_dataset).table(source_table)
     trg_table_ref = client.dataset(target_dataset).table(dest_table)
     src_table = client.get_table(src_table_ref)
@@ -1611,7 +1611,7 @@ def transfer_schema(target_dataset, dest_table, source_dataset, source_table):
     client.update_table(trg_table, ["schema"])
     return True
 
-def list_schema(source_dataset, source_table):
+def list_schema(source_dataset, source_table, project=None):
     """
     List schema
 
@@ -1623,7 +1623,7 @@ def list_schema(source_dataset, source_table):
     :rtype: bool
     """
 
-    client = bigquery.Client()
+    client = bigquery.Client() if project is None else bigquery.Client(project=project)
     src_table_ref = client.dataset(source_dataset).table(source_table)
     src_table = client.get_table(src_table_ref)
     src_schema = src_table.schema
@@ -1631,28 +1631,6 @@ def list_schema(source_dataset, source_table):
         print(src_sf.name, src_sf.field_type, src_sf.description)
     return True
 
-def find_types(file, sample_interval):
-    """
-    Finds the field type for each column in the file
-    :param file: file name
-    :type file: basestring
-    :param sample_interval:sampling interval, used to skip rows in large datasets; defaults to checking every row
-        example: sample_interval == 10 will sample every 10th row
-    :type sample_interval: int
-    :return: a tuple with a list of [field, field type]
-    :rtype: tuple ([field, field_type])
-    """
-    column_list = get_column_list_tsv(tsv_fp=file, header_row_index=0)
-    field_types = aggregate_column_data_types_tsv(file, column_list,
-                                                  sample_interval=sample_interval,
-                                                  skip_rows=1)
-    final_field_types = resolve_type_conflicts(field_types)
-    typing_tups = []
-    for column in column_list:
-        tup = (column, final_field_types[column])
-        typing_tups.append(tup)
-
-    return typing_tups
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -2022,14 +2000,10 @@ def publish_table(source_table, target_table, overwrite=False):
 
         src_client = bigquery.Client(src_proj)
 
-        if overwrite:
-            job_config = bigquery.CopyJobConfig()
-            job_config.write_disposition = "WRITE_TRUNCATE"
-            job = src_client.copy_table(source_table, target_table, job_config=job_config)
-            job.result()
-        else:
-            job = src_client.copy_table(source_table, target_table)
-            job.result()
+        job_config = bigquery.CopyJobConfig()
+        if overwrite == True: job_config.write_disposition = "WRITE_TRUNCATE"
+        job = src_client.copy_table(source_table, target_table, job_config=job_config)
+        job.result()
 
         src_table_ref = src_client.dataset(src_dset).table(src_tab)
         s_table = src_client.get_table(src_table_ref)
@@ -2089,7 +2063,7 @@ def compare_two_tables_sql(old_table, new_table):
 
 
 def evaluate_table_union(bq_results):
-    """Evaluate whether two tables are identical by
+    """Evaluate whether two tables are identical by 
     using the count of distinct rows in their union
     return True/False"""
     if not bq_results:
@@ -2177,4 +2151,37 @@ def publish_tables_and_update_schema(scratch_table_id, versioned_table_id, curre
 
     return True
 
+'''
+QC of BQ tables
+'''
 
+def qc_bq_table_metadata(table_id):
+    project, dataset, table = table_id.split(".")
+
+    table_properties = retrieve_table_properties(dataset, table, project)
+
+    qc_string = f"""------------------
+    QC for BigQuery Table: {table_id}
+    \tCreated on {table_properties.created}
+    \tNumber of Rows: {table_properties.num_rows}
+    \tTable Friendly Name: {table_properties.friendly_name}
+    \tTable Description: \n\t\t{table_properties.description}
+    \tTable Tags:\n"""
+    for label_name, label in table_properties.labels.items():
+        qc_string = qc_string + f"\t\t{label_name}: {label}\n"
+
+    return qc_string
+
+def qc_bq_table_counts(fields, table_id):
+    print(fields, table_id)
+
+def sql_count_distinct_field(fields, table_id):
+
+    formatted_fields = [f"COUNT(DISTINCT({field}))" for field in fields]
+
+    sql_query= f"""
+    SELECT {", ".join(formatted_fields)} 
+    FROM `{table_id}` 
+    """
+
+    return sql_query

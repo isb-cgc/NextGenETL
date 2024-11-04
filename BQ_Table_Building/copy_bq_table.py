@@ -28,7 +28,7 @@ import yaml
 import io
 from json import loads as json_loads
 
-from common_etl.support import confirm_google_vm, publish_table
+from common_etl.support import confirm_google_vm, delete_table_bq_job, publish_table
 
 
 '''
@@ -85,10 +85,19 @@ def main(args):
 
         from_table, to_table = next(iter(mydict.items()))
 
+        if 'delete' in steps:
+            print('Deleting {}'.format(to_table))
+            to_project, to_dataset, to_table_name = to_table.split(".")
+            success = delete_table_bq_job(to_dataset, to_table_name, to_project)
+
+            if not success:
+                print("delete failed")
+                return
+       
         if 'publish' in steps:
             print('Copy Table from {} to {}'.format(from_table, to_table))
-            
-            success = publish_table(from_table, to_table, overwrite=params['OVERWRITE'])
+
+            success = publish_table(from_table, to_table)
 
             if not success:
                 print("publish table failed")

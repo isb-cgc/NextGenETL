@@ -1,0 +1,23 @@
+version: 1
+
+######################################################################################
+#
+#   params: configuration settings
+#
+######################################################################################
+
+params:
+  # name of view created linking cases with their project and program
+  TABLE_NAME: case_project_program
+
+######################################################################################
+#
+#   steps: toggle script functions on and off (off = commented out).
+#          note: the order of steps here doesn't alter the order of execution,
+#          which is fixed.
+#
+######################################################################################
+
+steps:
+  # creates case project program view
+  - create_case_project_program_view
