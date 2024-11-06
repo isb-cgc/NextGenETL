@@ -67,7 +67,7 @@ def write_list_to_tsv(fp: str, tsv_list: list[str]):
     :param tsv_list:
     :return:
     """
-    def create_tsv_row(row_list, null_marker="None"):
+    def _create_tsv_row(row_list, null_marker="None"):
         """
         Convert list of row values into a tab-delimited string.
         :param row_list: list of row values for conversion
@@ -88,7 +88,7 @@ def write_list_to_tsv(fp: str, tsv_list: list[str]):
 
     with open(fp, "w") as tsv_file:
         for row in tsv_list:
-            tsv_file.write(create_tsv_row(row))
+            tsv_file.write(_create_tsv_row(row))
 
     print(f"{len(tsv_list)} rows written to {fp}!")
 
@@ -344,7 +344,7 @@ def resolve_type_conflict(field: str, types_set: Union[set[str], ColumnTypes]):
     if "ARRAY" in types_set or "RECORD" in types_set:
         # these types cannot be implicitly converted to any other, exit
         logger = logging.getLogger('base_script.cda_bq_etl.data_helpers')
-        logging.critical(f"Invalid datatype combination for {field}: {types_set}")
+        logger.critical(f"Invalid datatype combination for {field}: {types_set}")
         sys.exit(-1)
 
     if "STRING" in types_set:
@@ -430,6 +430,9 @@ def is_int_value(value: Any) -> bool:
 
     if is_valid_decimal(value):
         try:
+            if math.isnan(float(value)):
+                return False
+
             if float(value) != int(float(value)):
                 return False
         except OverflowError:
@@ -437,12 +440,8 @@ def is_int_value(value: Any) -> bool:
 
     if is_valid_decimal(value):
         try:
-            if math.isnan(float(value)):
-                return False
-
             if float(value) == int(float(value)):
                 return True
-
         except OverflowError:
             return False
 

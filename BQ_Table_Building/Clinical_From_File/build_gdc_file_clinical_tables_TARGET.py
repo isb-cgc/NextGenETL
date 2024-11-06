@@ -231,9 +231,6 @@ def main(args):
     except ValueError as err:
         sys.exit(err)
 
-    # todo list:
-    # get file pull list
-
     log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
@@ -435,7 +432,6 @@ def main(args):
                     })
 
         records_dict = dict()
-        # column_set = {"disease_code", "project_short_name"}
 
         # values from newer files are included preferentially
         for raw_tables_dict in sorted(table_list, key=lambda d: d['updated_datetime'], reverse=True):
@@ -462,10 +458,6 @@ def main(args):
                     records_dict[target_usi] = dict()
 
                 for column, value in row_dict.items():
-                    # if column == 'wbc_at_diagnosis':
-                    #     if value:
-                    #         value = float(value)
-                    # column_set.add(column)
                     if isinstance(value, str):
                         value = value.strip()
                     # column doesn't exist yet, so add it and its value
@@ -479,14 +471,6 @@ def main(args):
                     elif value == 'unevaluable':
                         value = 'Unevaluable'
 
-                    """
-                    if column == 'mrd_percent_at_end_of_course_1':
-                        if value == '.' or value is None:
-                            value = None
-                        else:
-                            value = Decimal(value)
-                    """
-
                     if value is None:
                         continue
                     elif column not in records_dict[target_usi]:
@@ -499,14 +483,10 @@ def main(args):
 
                         if new_value > existing_value:
                             records_dict[target_usi][column] = value
-                            # logger.info(f"updating {column} value for {target_usi}: {existing_value} -> {new_value}")
                     elif column in ['disease_code', 'project_short_name']:
                         if value not in records_dict[target_usi][column]:
                             records_dict[target_usi][column] = f', {value}'
                     elif value != records_dict[target_usi][column]:
-                        # this already has a value for the column, and it differs from the new value
-                        # exempt_list = ['Not done', 'Not Done']
-
                         # if value not in exempt_list and records_dict[target_usi][column] not in exempt_list:
                         logger.warning(f"Record mismatch for {target_usi} in column {column}: "
                                        f"{value} != {records_dict[target_usi][column]}")
@@ -532,8 +512,6 @@ def main(args):
 
         # Download schema file from Google Cloud bucket
         table_schema = retrieve_bq_schema_object(PARAMS, table_name='target_merged', include_release=True)
-
-        logger.info(table_schema)
 
         # Load jsonl data into BigQuery table
         create_and_load_table_from_jsonl(PARAMS,
