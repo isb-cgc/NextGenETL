@@ -49,9 +49,22 @@ def extract_tarfile(src_path: str, dest_path: str, print_contents: bool = False,
     :param bool print_contents: if True, print contents of archive
     :param bool overwrite: if True, overwrite any existing files in destination path
     """
+    logger = logging.getLogger('base_script')
+
     tar = tarfile.open(name=src_path, mode="r:gz")
 
-    logger = logging.getLogger('base_script')
+    tar_members = tar.getmembers()
+
+    if len(tar_members) > 1:
+        logger.error("More than one file or directory found in tar file; exiting.")
+        sys.exit(-1)
+
+    for member in tar_members:
+        archived_dir_name = member.name
+        break
+
+    if archived_dir_name != PARAMS['TAR_FILE'].split(".")[0]:
+        logger.warning(f"tgz file name is {PARAMS['TAR_FILE']}, folder inside is {archived_dir_name}.")
 
     if print_contents:
         logging.info(f"Contents of {src_path}:")
@@ -184,7 +197,7 @@ def get_normalized_file_names() -> list[str]:
 
     normalized_file_names = list()
 
-    if PARAMS['NODE'] == "pdc":
+    if PARAMS['NODE'] == "pdc" or PARAMS['NODE'] == "gdc":
         dir_file_dict, dest_path = scan_directories_and_create_file_dict(dest_path)
 
         for directory, file_list in dir_file_dict.items():
@@ -197,6 +210,7 @@ def get_normalized_file_names() -> list[str]:
             if file_list:
                 directory_normalized_file_names = normalize_files(file_list=file_list, dest_path=local_directory)
                 normalized_file_names.extend(directory_normalized_file_names)
+    """
     elif PARAMS['NODE'] == "gdc":
         extracted_folder = ".".join(PARAMS['TAR_FILE'].split('.')[:-1])
         dest_path += f"/{extracted_folder}"
@@ -210,6 +224,7 @@ def get_normalized_file_names() -> list[str]:
         file_list.sort()
 
         normalized_file_names = normalize_files(file_list=file_list, dest_path=dest_path)
+    """
 
     return normalized_file_names
 
