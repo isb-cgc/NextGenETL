@@ -59,11 +59,24 @@ def extract_tarfile(src_path: str, dest_path: str, print_contents: bool = False,
     # if archived_dir_name != PARAMS['TAR_FILE'].split(".")[0]:
     #     logger.warning(f"tgz file name is {PARAMS['TAR_FILE']}, folder inside is {archived_dir_name}.")
 
+    src_dir_set = set()
+
     if print_contents:
         logger.info(f"Contents of {src_path}:")
         for tar_info in tar:
             if tar_info.isreg():
                 logger.info(f"{tar_info.name}, {tar_info.size} bytes")
+                src_dir_set.add(tar_info.name.split("/")[0])
+
+    if dir_set > 1:
+        logger.critical(f"More than one base directory found: {src_dir_set}")
+        sys.exit(-1)
+
+    for item in dir_set:
+        unarchived_dir = item
+        break
+
+    logger.info(f"unarchived_dir: {unarchived_dir}")
 
     """
     # create file list
