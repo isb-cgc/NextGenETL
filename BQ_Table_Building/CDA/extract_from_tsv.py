@@ -56,9 +56,6 @@ def extract_tarfile(src_path: str, dest_path: str, print_contents: bool = False,
 
     logger.info(f"print_contents: {print_contents}")
 
-    # if archived_dir_name != PARAMS['TAR_FILE'].split(".")[0]:
-    #     logger.warning(f"tgz file name is {PARAMS['TAR_FILE']}, folder inside is {archived_dir_name}.")
-
     src_dir_set = set()
 
     if print_contents:
@@ -76,9 +73,6 @@ def extract_tarfile(src_path: str, dest_path: str, print_contents: bool = False,
         unarchived_dir = item
         break
 
-    logger.info(f"unarchived_dir: {unarchived_dir}")
-
-    """
     # create file list
     for tar_info in tar:
         if tar_info.isreg():
@@ -87,8 +81,9 @@ def extract_tarfile(src_path: str, dest_path: str, print_contents: bool = False,
                 sys.exit(-1)
 
     tar.extractall(dest_path)
-    """
     tar.close()
+
+    return unarchived_dir
 
 
 def get_data_row_count(filepath: str) -> int:
@@ -177,7 +172,7 @@ def create_table_name(file_name: str) -> str:
     return table_name
 
 
-def get_normalized_file_names() -> list[str]:
+def get_normalized_file_names(unarchived_dir: str) -> list[str]:
     def delete_empty_tsv_files() -> list[str]:
         new_file_list = list()
 
@@ -205,7 +200,7 @@ def get_normalized_file_names() -> list[str]:
 
     normalized_file_names = list()
 
-    if PARAMS['NODE'] == "pdc" or PARAMS['NODE'] == "gdc":
+    if PARAMS['NODE'] == "pdc":
         dir_file_dict, dest_path = scan_directories_and_create_file_dict(dest_path)
 
         for directory, file_list in dir_file_dict.items():
@@ -218,10 +213,9 @@ def get_normalized_file_names() -> list[str]:
             if file_list:
                 directory_normalized_file_names = normalize_files(file_list=file_list, dest_path=local_directory)
                 normalized_file_names.extend(directory_normalized_file_names)
-    """
     elif PARAMS['NODE'] == "gdc":
-        extracted_folder = ".".join(PARAMS['TAR_FILE'].split('.')[:-1])
-        dest_path += f"/{extracted_folder}"
+        # extracted_folder = ".".join(PARAMS['TAR_FILE'].split('.')[:-1])
+        dest_path += f"/{unarchived_dir}"
 
         file_list = list()
 
@@ -232,7 +226,6 @@ def get_normalized_file_names() -> list[str]:
         file_list.sort()
 
         normalized_file_names = normalize_files(file_list=file_list, dest_path=dest_path)
-    """
 
     return normalized_file_names
 
@@ -423,7 +416,7 @@ def main(args):
         download_from_external_bucket(uri_path=PARAMS['BLOB_URI_PATH'], dir_path=PARAMS['LOCAL_TAR_DIR'],
                                       filename=PARAMS['TAR_FILE'], project=PARAMS['CDA_BUCKET_PROJECT'])
 
-    if "extract_cda_archive_file" in steps:
+    if "extract_normalize_upload_tsvs" in steps:
         logger.info("*** Extracting archive file!")
         local_tar_dir = get_filepath(PARAMS['LOCAL_TAR_DIR'])
 
@@ -433,13 +426,11 @@ def main(args):
         if os.path.exists(dest_path):
             shutil.rmtree(dest_path)
 
-        extract_tarfile(src_path, dest_path, print_contents=True, overwrite=True)
-        exit()
+        unarchived_dir = extract_tarfile(src_path, dest_path, print_contents=True, overwrite=True)
 
-    if "normalize_and_upload_tsvs" in steps:
         logger.info("*** Normalizing and uploading tsvs!")
 
-        normalized_file_names = get_normalized_file_names()
+        normalized_file_names = get_normalized_file_names(unarchived_dir)
 
         with open(index_txt_file_name, mode="w", newline="") as txt_file:
             txt_file.writelines(normalized_file_names)
