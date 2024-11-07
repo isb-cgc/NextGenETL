@@ -55,14 +55,6 @@ def extract_tarfile(src_path: str, dest_path: str, print_contents: bool = False,
 
     tar_members = tar.getmembers()
 
-    if len(tar_members) > 1:
-        logger.error("More than one file or directory found in tar file; exiting.")
-        sys.exit(-1)
-
-    for member in tar_members:
-        archived_dir_name = member.name
-        break
-
     if archived_dir_name != PARAMS['TAR_FILE'].split(".")[0]:
         logger.warning(f"tgz file name is {PARAMS['TAR_FILE']}, folder inside is {archived_dir_name}.")
 
@@ -425,7 +417,7 @@ def main(args):
         if os.path.exists(dest_path):
             shutil.rmtree(dest_path)
 
-        extract_tarfile(src_path, dest_path, overwrite=True)
+        extract_tarfile(src_path, dest_path, print_contents=True, overwrite=True)
 
     if "normalize_and_upload_tsvs" in steps:
         logger.info("*** Normalizing and uploading tsvs!")
