@@ -428,7 +428,7 @@ def main(args):
         unarchived_dir = extract_tarfile(src_path, dest_path, print_contents=True, overwrite=True)
 
         if unarchived_dir != PARAMS['TAR_FILE'].split(".")[0]:
-            logger.info(f"unarchived directory differs from tgz filename: {unarchived_dir} -> {PARAMS['TAR_FILE']}")
+            logger.warning(f"Unarchived directory differs from tgz filename: {unarchived_dir} -> {PARAMS['TAR_FILE']}")
 
         logger.info("*** Normalizing and uploading tsvs!")
 
