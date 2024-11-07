@@ -53,8 +53,6 @@ def extract_tarfile(src_path: str, dest_path: str, print_contents: bool = False,
 
     tar = tarfile.open(name=src_path, mode="r:gz")
 
-    tar_members = tar.getmembers()
-
     # if archived_dir_name != PARAMS['TAR_FILE'].split(".")[0]:
     #     logger.warning(f"tgz file name is {PARAMS['TAR_FILE']}, folder inside is {archived_dir_name}.")
 
@@ -418,6 +416,7 @@ def main(args):
             shutil.rmtree(dest_path)
 
         extract_tarfile(src_path, dest_path, print_contents=True, overwrite=True)
+        exit()
 
     if "normalize_and_upload_tsvs" in steps:
         logger.info("*** Normalizing and uploading tsvs!")
