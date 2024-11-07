@@ -50,6 +50,7 @@ def extract_tarfile(src_path: str, dest_path: str, print_contents: bool = False,
     :param bool overwrite: if True, overwrite any existing files in destination path
     """
     logger = logging.getLogger('base_script')
+    logger.info('In extract_tarfile')
 
     tar = tarfile.open(name=src_path, mode="r:gz")
 
@@ -414,6 +415,8 @@ def main(args):
 
         if os.path.exists(dest_path):
             shutil.rmtree(dest_path)
+
+        logger.info("Here")
 
         extract_tarfile(src_path, dest_path, print_contents=True, overwrite=True)
         exit()
