@@ -60,10 +60,10 @@ def extract_tarfile(src_path: str, dest_path: str, print_contents: bool = False,
     #     logger.warning(f"tgz file name is {PARAMS['TAR_FILE']}, folder inside is {archived_dir_name}.")
 
     if print_contents:
-        logging.info(f"Contents of {src_path}:")
-        #for tar_info in tar:
-        #    if tar_info.isreg():
-        #        logging.info(f"{tar_info.name}, {tar_info.size} bytes")
+        logger.info(f"Contents of {src_path}:")
+        for tar_info in tar:
+            if tar_info.isreg():
+                logger.info(f"{tar_info.name}, {tar_info.size} bytes")
 
     """
     # create file list
