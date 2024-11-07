@@ -31,12 +31,14 @@ from google.resumable_media import InvalidResponse
 
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
                                    create_and_load_table_from_tsv, query_and_retrieve_result, list_tables_in_dataset,
-                                   get_columns_in_table)
+                                   get_columns_in_table, create_and_upload_schema_for_json,
+                                   create_and_load_table_from_jsonl, update_table_schema_from_generic)
 from cda_bq_etl.gcs_helpers import upload_to_bucket
 from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, write_list_to_tsv,
-                                     create_normalized_tsv, write_list_to_jsonl, write_list_to_jsonl_and_upload)
+                                     create_normalized_tsv, write_list_to_jsonl, write_list_to_jsonl_and_upload,
+                                     normalize_flat_json_values)
 from cda_bq_etl.utils import (format_seconds, get_filepath, load_config, get_scratch_fp, calculate_md5sum,
-                              create_dev_table_id)
+                              create_dev_table_id, create_metadata_table_id)
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -229,9 +231,6 @@ def main(args):
     except ValueError as err:
         sys.exit(err)
 
-    # todo list:
-    # get file pull list
-
     log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
@@ -248,7 +247,7 @@ def main(args):
 
     if 'build_file_list_and_download' in steps:
         # create needed directories if they don't already exist
-        logger.info('build_file_pull_list')
+        logger.info('Entering build_file_list_and_download')
 
         if os.path.exists(local_program_dir):
             shutil.rmtree(local_program_dir)
@@ -307,7 +306,7 @@ def main(args):
     if 'convert_excel_to_csv' in steps:
         # If file suffix is xlsx or xls, convert to tsv.
         # Then modify traversal list file to point to the newly created tsv files.
-        logger.info('convert_excel_to_tsv')
+        logger.info('Entering convert_excel_to_tsv')
 
         file_names = os.listdir(local_files_dir)
 
@@ -326,7 +325,7 @@ def main(args):
                 traversal_list_file.write(f"{tsv_file}\n")
 
     if 'normalize_tsv_and_create_schema' in steps:
-        logger.info(f"upload_tsv_file_and_schema_to_bucket")
+        logger.info(f"Entering upload_tsv_file_and_schema_to_bucket")
 
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
@@ -372,6 +371,7 @@ def main(args):
             upload_to_bucket(PARAMS, normalized_tsv_file_path, delete_local=True, verbose=False)
 
     if 'build_raw_tables' in steps:
+        logger.info("Entering build_raw_tables")
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
 
@@ -405,8 +405,8 @@ def main(args):
             logger.info(table)
         logger.info("")
 
-    if 'merge_raw_tables' in steps:
-
+    if 'create_and_upload_merged_jsonl' in steps:
+        logger.info(f"Entering create_and_upload_merged_jsonl")
         table_list = list()
 
         with open(tables_file, mode='r') as tables_fh:
@@ -439,17 +439,20 @@ def main(args):
 
             project_short_name = raw_tables_dict['project_short_name']
             disease_code = raw_tables_dict['project_short_name'].split('-')[1]
+            program_name = PARAMS['PROGRAM']
             query_result = query_and_retrieve_result(f"SELECT DISTINCT * FROM `{raw_tables_dict['table_id']}`")
 
             for row in query_result:
                 row_dict = dict(row)
                 row_dict['disease_code'] = disease_code
                 row_dict['project_short_name'] = project_short_name
+                row_dict['program_name'] = program_name
                 target_usi = row_dict['target_usi']
 
                 int_comparison_columns = ['event_free_survival_time_in_days',
                                           'year_of_last_follow_up',
-                                          'overall_survival_time_in_days']
+                                          'overall_survival_time_in_days',
+                                          'age_at_diagnosis_in_days']
 
                 if target_usi not in records_dict:
                     records_dict[target_usi] = dict()
@@ -468,17 +471,11 @@ def main(args):
                     elif value == 'unevaluable':
                         value = 'Unevaluable'
 
-                    """
-                    if column == 'mrd_percent_at_end_of_course_1':
-                        if value == '.' or value is None:
-                            value = None
-                        else:
-                            value = Decimal(value)
-                    """
-
                     if value is None:
                         continue
                     elif column not in records_dict[target_usi]:
+                        if column in int_comparison_columns:
+                            value = int(value)
                         records_dict[target_usi][column] = value
                     elif column in int_comparison_columns:
                         existing_value = int(records_dict[target_usi][column])
@@ -486,21 +483,41 @@ def main(args):
 
                         if new_value > existing_value:
                             records_dict[target_usi][column] = value
-                            # logger.info(f"updating {column} value for {target_usi}: {existing_value} -> {new_value}")
                     elif column in ['disease_code', 'project_short_name']:
                         if value not in records_dict[target_usi][column]:
                             records_dict[target_usi][column] = f', {value}'
                     elif value != records_dict[target_usi][column]:
-                        # this already has a value for the column, and it differs from the new value
-                        # exempt_list = ['Not done', 'Not Done']
-
                         # if value not in exempt_list and records_dict[target_usi][column] not in exempt_list:
                         logger.warning(f"Record mismatch for {target_usi} in column {column}: "
                                        f"{value} != {records_dict[target_usi][column]}")
 
-        # jsonl_fp = f"{local_files_dir}/merged.jsonl"
-        # write_list_to_jsonl(jsonl_fp=jsonl_fp, json_obj_list=records, mode='a')
-        # upload_to_bucket(PARAMS, scratch_fp=jsonl_fp)
+        record_list = list()
+
+        for record in records_dict.values():
+            record_list.append(record)
+
+        normalized_record_list = normalize_flat_json_values(record_list)
+
+        write_list_to_jsonl_and_upload(PARAMS, "target_merged", normalized_record_list)
+
+        create_and_upload_schema_for_json(PARAMS,
+                                          record_list=normalized_record_list,
+                                          table_name='target_merged',
+                                          include_release=True)
+
+    if 'create_merged_table' in steps:
+        logger.info("Entering create_merged_table")
+
+        table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{PARAMS['RELEASE']}_{PARAMS['MERGED_TABLE_NAME']}"
+
+        # Download schema file from Google Cloud bucket
+        table_schema = retrieve_bq_schema_object(PARAMS, table_name='target_merged', include_release=True)
+
+        # Load jsonl data into BigQuery table
+        create_and_load_table_from_jsonl(PARAMS,
+                                         jsonl_file=f"target_merged_{PARAMS['RELEASE']}.jsonl",
+                                         table_id=table_id,
+                                         schema=table_schema)
 
     end_time = time.time()
 
