@@ -50,11 +50,8 @@ def extract_tarfile(src_path: str, dest_path: str, print_contents: bool = False,
     :param bool overwrite: if True, overwrite any existing files in destination path
     """
     logger = logging.getLogger('base_script')
-    logger.info('In extract_tarfile')
 
     tar = tarfile.open(name=src_path, mode="r:gz")
-
-    logger.info(f"print_contents: {print_contents}")
 
     src_dir_set = set()
 
@@ -68,6 +65,8 @@ def extract_tarfile(src_path: str, dest_path: str, print_contents: bool = False,
     if len(src_dir_set) > 1:
         logger.critical(f"More than one base directory found: {src_dir_set}")
         sys.exit(-1)
+
+    unarchived_dir = ""
 
     for item in src_dir_set:
         unarchived_dir = item
@@ -427,6 +426,9 @@ def main(args):
             shutil.rmtree(dest_path)
 
         unarchived_dir = extract_tarfile(src_path, dest_path, print_contents=True, overwrite=True)
+
+        if unarchived_dir != PARAMS['TAR_FILE'].split(".")[0]:
+            logger.info(f"unarchived directory differs from tgz filename: {unarchived_dir} -> {PARAMS['TAR_FILE']}")
 
         logger.info("*** Normalizing and uploading tsvs!")
 
