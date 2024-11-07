@@ -55,8 +55,8 @@ def extract_tarfile(src_path: str, dest_path: str, print_contents: bool = False,
 
     tar_members = tar.getmembers()
 
-    if archived_dir_name != PARAMS['TAR_FILE'].split(".")[0]:
-        logger.warning(f"tgz file name is {PARAMS['TAR_FILE']}, folder inside is {archived_dir_name}.")
+    # if archived_dir_name != PARAMS['TAR_FILE'].split(".")[0]:
+    #     logger.warning(f"tgz file name is {PARAMS['TAR_FILE']}, folder inside is {archived_dir_name}.")
 
     if print_contents:
         logging.info(f"Contents of {src_path}:")
