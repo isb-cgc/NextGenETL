@@ -65,6 +65,7 @@ def extract_tarfile(src_path: str, dest_path: str, print_contents: bool = False,
         #    if tar_info.isreg():
         #        logging.info(f"{tar_info.name}, {tar_info.size} bytes")
 
+    """
     # create file list
     for tar_info in tar:
         if tar_info.isreg():
@@ -73,6 +74,7 @@ def extract_tarfile(src_path: str, dest_path: str, print_contents: bool = False,
                 sys.exit(-1)
 
     tar.extractall(dest_path)
+    """
     tar.close()
 
 
