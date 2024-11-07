@@ -61,9 +61,9 @@ def extract_tarfile(src_path: str, dest_path: str, print_contents: bool = False,
 
     if print_contents:
         logging.info(f"Contents of {src_path}:")
-        for tar_info in tar:
-            if tar_info.isreg():
-                logging.info(f"{tar_info.name}, {tar_info.size} bytes")
+        #for tar_info in tar:
+        #    if tar_info.isreg():
+        #        logging.info(f"{tar_info.name}, {tar_info.size} bytes")
 
     # create file list
     for tar_info in tar:
