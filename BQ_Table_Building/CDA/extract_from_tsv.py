@@ -68,11 +68,11 @@ def extract_tarfile(src_path: str, dest_path: str, print_contents: bool = False,
                 logger.info(f"{tar_info.name}, {tar_info.size} bytes")
                 src_dir_set.add(tar_info.name.split("/")[0])
 
-    if dir_set > 1:
+    if src_dir_set > 1:
         logger.critical(f"More than one base directory found: {src_dir_set}")
         sys.exit(-1)
 
-    for item in dir_set:
+    for item in src_dir_set:
         unarchived_dir = item
         break
 
