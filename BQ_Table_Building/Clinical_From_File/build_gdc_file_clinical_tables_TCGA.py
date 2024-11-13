@@ -473,23 +473,25 @@ def main(args):
             for row in project_result:
                 project_counts[row[0]] = row[1]
 
-            for column in column_list:
-                for project_short_name, project_count in project_counts.items():
+            for project_short_name, project_count in project_counts.items():
+                logger.info(f"Retrieving column counts for {project_short_name}")
 
-                    distinct_query = f"""
-                    SELECT count({column})
-                    FROM {table_id}
+                nulls_sql = f"""
+                    SELECT column_name, COUNT(1) AS nulls_count
+                    FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}` as clinical,
+                    UNNEST(REGEXP_EXTRACT_ALL(TO_JSON_STRING(clinical), r'\"(\\w+)\":null')) column_name
                     WHERE project_short_name = '{project_short_name}'
-                        AND {column} IS NOT NULL
-                    """
+                    GROUP BY column_name
+                    ORDER BY nulls_count
+                """
 
-                    non_null_count_result = query_and_retrieve_result(distinct_query)
+                non_null_count_result = query_and_retrieve_result(nulls_sql)
 
-                    for row in non_null_count_result:
-                        non_null_count = row[0]
-                        non_null_percentage = non_null_count / project_count
-                        non_null_percentage_list.append([column, project_short_name, non_null_percentage])
-                        break
+                for row in non_null_count_result:
+                    column_name = row[0]
+                    non_null_count = row[1]
+                    non_null_percentage = non_null_count / project_count
+                    non_null_percentage_list.append([column_name, project_short_name, non_null_percentage])
 
         for row in non_null_percentage_list:
             print(row)
