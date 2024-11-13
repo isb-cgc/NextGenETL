@@ -152,7 +152,7 @@ def create_table_name_from_file_name(file_path: str) -> str:
 
     return table_name
 
-
+"""
 def create_program_tables_dict() -> dict[str, list[str]]:
     prefix = f"{PARAMS['RELEASE']}_TCGA"
 
@@ -173,6 +173,7 @@ def create_program_tables_dict() -> dict[str, list[str]]:
         project_tables[project].append(table)
 
     return project_tables
+"""
 
 
 def build_a_header(all_files: list[str]) -> list[str]:
@@ -436,62 +437,62 @@ def main(args):
     if 'create_cohort_builder_view' in steps:
         pass
 
-    '''
-    if 'output_distinct_values' in steps:
+    if 'output_non_null_percentages_by_project' in steps:
         table_suffixes = ['patient']
+
+        non_null_percentage_list = list()
 
         for table_suffix in table_suffixes:
             table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_{table_suffix}"
             table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}"
 
-            sql = f"""
+            column_sql = f"""
                 SELECT column_name
                 FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}`.INFORMATION_SCHEMA.COLUMNS
                 WHERE table_name = '{table_name}'
                 AND data_type = 'STRING'
             """
 
-            result = query_and_retrieve_result(sql)
+            column_result = query_and_retrieve_result(column_sql)
 
             column_list = list()
 
-            for row in result:
+            for row in column_result:
                 column_list.append(row[0])
 
+            project_sql = f"""
+                SELECT project_short_name, count(*)
+                FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}`
+                GROUP BY project_short_name
+            """
+
+            project_result = query_and_retrieve_result(project_sql)
+
+            project_counts = dict()
+
+            for row in project_result:
+                project_counts[row[0]] = row[1]
+
             for column in column_list:
-                distinct_query = f"""
-                SELECT distinct {column}
-                FROM {table_id}
-                """
+                for project_short_name, project_count in project_counts.items():
 
-                distinct_result = query_and_retrieve_result(distinct_query)
+                    distinct_query = f"""
+                    SELECT count({column})
+                    FROM {table_id}
+                    WHERE project_short_name = '{project_short_name}'
+                        AND {column} IS NOT NULL
+                    """
 
-                logger.info(column)
+                    non_null_count_result = query_and_retrieve_result(distinct_query)
 
-                for row in distinct_result:
-                    logger.info(row[0])
+                    for row in non_null_count_result:
+                        non_null_count = row[0]
+                        non_null_percentage = non_null_count / project_count
+                        non_null_percentage_list.append([column, project_short_name, non_null_percentage])
+                        break
 
-                time.sleep(3)
-
-    if 'print_non_null_values' in steps:
-        # todo if we use this, should not be hardcoded. Likely candidate for removal.
-        sql = f"""
-        SELECT *
-        FROM `isb-project-zero.clinical_from_files_raw.r36_TCGA_patient`
-        WHERE bcr_patient_barcode = 'TCGA-FC-A8O0'
-        """
-
-        result = query_and_retrieve_result(sql)
-        record = dict()
-
-        for row in result:
-            record = dict(row)
-            break
-
-        for key, value in record.items():
-            if value:
-                logger.info(f"{key}: {value}")
-    '''
+        for row in non_null_percentage_list:
+            print(row)
 
     end_time = time.time()
 
