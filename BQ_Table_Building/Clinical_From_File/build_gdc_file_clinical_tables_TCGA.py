@@ -441,7 +441,7 @@ def main(args):
     if 'output_non_null_percentages_by_project' in steps:
         table_suffixes = ['patient']
 
-        non_null_percentage_list = list(['column_name', 'project_short_name', 'non_null_percentage'])
+        non_null_percentage_list = list()
 
         for table_suffix in table_suffixes:
             table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_{table_suffix}"
@@ -491,8 +491,8 @@ def main(args):
                 for row in non_null_count_result:
                     column_name = row[0]
                     null_count = row[1]
-                    null_percentage = round((null_count / project_count) * 100, 2)
-                    non_null_percentage = 100 - null_percentage
+                    null_percentage = (null_count / project_count) * 100
+                    non_null_percentage = round(100 - null_percentage, 2)
                     non_null_percentage = f"{str(non_null_percentage)}%"
                     non_null_percentage_list.append([column_name, project_short_name, non_null_percentage])
 
