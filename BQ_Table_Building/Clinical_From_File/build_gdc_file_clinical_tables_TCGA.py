@@ -490,8 +490,9 @@ def main(args):
 
                 for row in non_null_count_result:
                     column_name = row[0]
-                    non_null_count = row[1]
-                    non_null_percentage = round((non_null_count / project_count) * 100, 2)
+                    null_count = row[1]
+                    null_percentage = round((null_count / project_count) * 100, 2)
+                    non_null_percentage = 100 - null_percentage
                     non_null_percentage = f"{str(non_null_percentage)}%"
                     non_null_percentage_list.append([column_name, project_short_name, non_null_percentage])
 
@@ -499,7 +500,7 @@ def main(args):
 
         with open(non_null_percentage_tsv_path, 'w', newline='') as f:
             writer = csv.writer(f, delimiter='\t')
-            writer.write_rows(non_null_percentage_list)
+            writer.writerows(non_null_percentage_list)
 
         upload_to_bucket(PARAMS, non_null_percentage_tsv_path, delete_local=True, verbose=False)
 
