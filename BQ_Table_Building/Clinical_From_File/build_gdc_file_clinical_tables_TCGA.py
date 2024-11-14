@@ -16,6 +16,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import csv
 import logging
 import os
 import shutil
@@ -440,7 +441,7 @@ def main(args):
     if 'output_non_null_percentages_by_project' in steps:
         table_suffixes = ['patient']
 
-        non_null_percentage_list = list()
+        non_null_percentage_list = list(['column_name', 'project_short_name', 'non_null_percentage'])
 
         for table_suffix in table_suffixes:
             table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_{table_suffix}"
@@ -490,11 +491,17 @@ def main(args):
                 for row in non_null_count_result:
                     column_name = row[0]
                     non_null_count = row[1]
-                    non_null_percentage = non_null_count / project_count
+                    non_null_percentage = round((non_null_count / project_count) * 100, 2)
+                    non_null_percentage = f"{str(non_null_percentage)}%"
                     non_null_percentage_list.append([column_name, project_short_name, non_null_percentage])
 
-        for row in non_null_percentage_list:
-            print(row)
+        non_null_percentage_tsv_path = f"{local_files_dir}/{PARAMS['RELEASE']}_TCGA_non_null_percentages.tsv"
+
+        with open(non_null_percentage_tsv_path, 'w', newline='') as f:
+            writer = csv.writer(f, delimiter='\t')
+            writer.write_rows(non_null_percentage_list)
+
+        upload_to_bucket(PARAMS, non_null_percentage_tsv_path, delete_local=True, verbose=False)
 
     end_time = time.time()
 
