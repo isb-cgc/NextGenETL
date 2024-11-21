@@ -525,7 +525,7 @@ def main(args):
                 else:
                     logger.info(f"Description not in {column} values.")
 
-                if column in column_definition_dict:
+                if column in column_definition_dict and column_definition_dict[column] != description:
                     logger.warning(f"Column {column} is already in the dictionary.")
                     logger.warning(f"Existing description: {column_definition_dict[column]}")
                     logger.warning(f"New description: {description}")
