@@ -22,6 +22,7 @@ import os
 import shutil
 import sys
 import time
+import requests
 
 from google.cloud import storage
 from google.cloud.exceptions import Forbidden
@@ -503,6 +504,32 @@ def main(args):
             writer.writerows(non_null_percentage_list)
 
         upload_to_bucket(PARAMS, non_null_percentage_tsv_path, delete_local=True, verbose=False)
+
+    if 'import_data_definitions' in steps:
+        gdc_api_url = "https://api.gdc.cancer.gov/v0/submission/_dictionary/_all"
+        response = requests.get(gdc_api_url)
+        dict_json = response.json()
+
+        column_definition_dict = dict()
+
+        categories = ['clinical', 'demographic', 'diagnosis', 'exposure', 'family_history', 'follow_up',
+                      'molecular_test', 'other_clinical_attribute', 'pathology_detail', 'treatment']
+
+        for category in categories:
+            column_properties = dict_json[category]["properties"]
+
+            for column in column_properties:
+                if column in column_definition_dict:
+                    logger.warning(f"Column {column} is already in the dictionary.")
+                    logger.warning(f"Existing description: {column_definition_dict[column]}")
+                    logger.warning(f"New description: {column['description']}")
+                else:
+                    column_definition_dict[column] = column['description']
+
+        for column, description in column_definition_dict.items():
+            print(f"{column}: {description}")
+
+
 
     end_time = time.time()
 
