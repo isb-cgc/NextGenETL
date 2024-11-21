@@ -510,8 +510,6 @@ def main(args):
         response = requests.get(gdc_api_url)
         dict_json = response.json()
 
-        print(dict_json['clinical'])
-
         column_definition_dict = dict()
 
         categories = ['clinical', 'demographic', 'diagnosis', 'exposure', 'family_history', 'follow_up',
@@ -520,13 +518,14 @@ def main(args):
         for category in categories:
             column_properties = dict_json[category]["properties"]
 
-            for column in column_properties:
+            for column, values in column_properties.items():
+
                 if column in column_definition_dict:
                     logger.warning(f"Column {column} is already in the dictionary.")
                     logger.warning(f"Existing description: {column_definition_dict[column]}")
-                    logger.warning(f"New description: {column['description']}")
+                    logger.warning(f"New description: {values['description']}")
                 else:
-                    column_definition_dict[column] = column['description']
+                    column_definition_dict[column] = values['description']
 
         for column, description in column_definition_dict.items():
             print(f"{column}: {description}")
