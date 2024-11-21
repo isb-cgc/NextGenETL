@@ -520,6 +520,8 @@ def main(args):
 
             for column, values in column_properties.items():
 
+                print(values)
+
                 if column in column_definition_dict:
                     logger.warning(f"Column {column} is already in the dictionary.")
                     logger.warning(f"Existing description: {column_definition_dict[column]}")
