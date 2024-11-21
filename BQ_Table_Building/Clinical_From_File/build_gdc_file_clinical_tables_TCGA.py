@@ -520,9 +520,6 @@ def main(args):
             column_properties = dict_json[category]["properties"]
 
             for column, values in column_properties.items():
-
-                print(values)
-
                 if 'description' in values:
                     description = values['description']
                 else:
@@ -535,11 +532,8 @@ def main(args):
                 else:
                     column_definition_dict[column] = description
 
-        """
         for column, description in column_definition_dict.items():
             print(f"{column}: {description}")
-        """
-
 
     end_time = time.time()
 
