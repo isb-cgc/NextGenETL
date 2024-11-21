@@ -516,22 +516,29 @@ def main(args):
                       'molecular_test', 'other_clinical_attribute', 'pathology_detail', 'treatment']
 
         for category in categories:
+            logger.info(f"Parsing {category}!")
             column_properties = dict_json[category]["properties"]
 
             for column, values in column_properties.items():
 
                 print(values)
 
+                if 'description' in values:
+                    description = values['description']
+                else:
+                    logger.info(f"Description not in {column} values. Values: {values}")
+
                 if column in column_definition_dict:
                     logger.warning(f"Column {column} is already in the dictionary.")
                     logger.warning(f"Existing description: {column_definition_dict[column]}")
-                    logger.warning(f"New description: {values['description']}")
+                    logger.warning(f"New description: {description}")
                 else:
-                    column_definition_dict[column] = values['description']
+                    column_definition_dict[column] = description
 
+        """
         for column, description in column_definition_dict.items():
             print(f"{column}: {description}")
-
+        """
 
 
     end_time = time.time()
