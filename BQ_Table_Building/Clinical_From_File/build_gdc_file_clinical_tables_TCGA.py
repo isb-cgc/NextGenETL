@@ -510,6 +510,8 @@ def main(args):
         response = requests.get(gdc_api_url)
         dict_json = response.json()
 
+        print(dict_json)
+
         column_definition_dict = dict()
 
         categories = ['clinical', 'demographic', 'diagnosis', 'exposure', 'family_history', 'follow_up',
