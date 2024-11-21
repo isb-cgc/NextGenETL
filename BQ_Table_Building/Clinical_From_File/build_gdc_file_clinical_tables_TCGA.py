@@ -510,7 +510,7 @@ def main(args):
         response = requests.get(gdc_api_url)
         dict_json = response.json()
 
-        print(dict_json)
+        print(dict_json['clinical'])
 
         column_definition_dict = dict()
 
