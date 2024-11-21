@@ -520,10 +520,14 @@ def main(args):
             column_properties = dict_json[category]["properties"]
 
             for column, values in column_properties.items():
-                if 'description' not in values:
-                    logger.info(f"Description not in {column} values.")
+                if (('description' not in values and 'common' not in values) or
+                        ('common' in values and 'description' not in values['common'])):
+                    logger.info(f"No description found for column {column}.")
                 else:
-                    description = values['description']
+                    if 'description' in values:
+                        description = values['description']
+                    else:
+                        description = values['common']['description']
 
                     if column in column_definition_dict and column_definition_dict[column] != description:
                         logger.warning(f"Column {column} is already in the dictionary.")
