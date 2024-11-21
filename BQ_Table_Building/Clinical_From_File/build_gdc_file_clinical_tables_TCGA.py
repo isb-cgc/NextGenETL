@@ -533,7 +533,7 @@ def main(args):
                     column_definition_dict[column] = description
 
         logger.info("DESCRIPTIONS!!!")
-        for column, description in column_definition_dict.items():
+        for column, description in sorted(column_definition_dict.items()):
             print(f"{column}: {description}")
 
     end_time = time.time()
