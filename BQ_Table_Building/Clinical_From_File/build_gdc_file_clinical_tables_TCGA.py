@@ -532,6 +532,7 @@ def main(args):
                 else:
                     column_definition_dict[column] = description
 
+        logger.info("DESCRIPTIONS!!!")
         for column, description in column_definition_dict.items():
             print(f"{column}: {description}")
 
