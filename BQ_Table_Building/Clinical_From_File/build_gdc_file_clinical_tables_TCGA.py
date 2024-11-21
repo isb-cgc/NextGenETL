@@ -512,8 +512,8 @@ def main(args):
 
         column_definition_dict = dict()
 
-        categories = ['clinical', 'demographic', 'diagnosis', 'exposure', 'family_history', 'follow_up',
-                      'molecular_test', 'other_clinical_attribute', 'pathology_detail', 'treatment']
+        categories = ['demographic', 'diagnosis', 'exposure', 'family_history', 'follow_up',
+                      'molecular_test', 'other_clinical_attribute', 'pathology_detail', 'treatment', 'clinical']
 
         for category in categories:
             logger.info(f"Parsing {category}!")
@@ -530,17 +530,15 @@ def main(args):
                         description = values['common']['description']
 
                     if column in column_definition_dict and column_definition_dict[column] != description:
-                        logger.warning(f"Column {column} is already in the dictionary.")
-                        logger.warning(f"Existing description: {column_definition_dict[column]}")
-                        logger.warning(f"New description: {description}")
+                        logger.info(f"Column {column} is already in the dictionary.")
+                        logger.info(f"Existing description: {column_definition_dict[column]}")
+                        logger.info(f"New description: {description}")
                     else:
                         column_definition_dict[column] = description
 
-        """
         logger.info("DESCRIPTIONS!!!")
         for column, description in sorted(column_definition_dict.items()):
-            print(f"{column}: {description}")
-        """
+            print(f"{column}\t{description}")
 
     end_time = time.time()
 
