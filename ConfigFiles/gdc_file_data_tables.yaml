@@ -1,0 +1,76 @@
+version: 0
+
+# Parameters for the workflow
+
+## Which GDC Program and data types are we grabbing data from?
+
+data_to_gather:
+  masked_somatic_mutation:
+    #- PROGRAM1
+    #- PROGRAM2
+
+  RNAseq:
+    #- PROGRAM3
+
+  miRNA_expr:
+    #- PROGRAM1
+
+  miRNA_isoform_expr:
+    #- PROGRAM1
+
+## Workflow Steps
+
+steps:
+  - update_schema_dir_from_git
+
+  ### Build BQ Tables Steps: runs once per program/datatype listed in PROGRAMS_AND_DATASETS
+  - create_file_list
+  - transfer_from_gdc
+  - create_concat_file
+  - create_bq_from_tsv
+  - transform_bq_data
+  - update_table_schema
+  - publish_tables
+
+## Parameters for files, buckets, and tables
+
+parameters:
+  BQ_AS_BATCH: False        # Run all BQ jobs in Batch mode? Slower but uses less of quotas
+  #MAX_FILES: 100            # Max files to download, for testing before running in full
+  WORKFLOW_RUN_VER: v0
+
+  ## About this workflow run
+  DATE: MONTH, YYYY       # What month/year was the pipeline started in?
+  RELEASE: rXX            # Release (rXX or rXXpX)
+  REL_DATE: MONTH, YYYY    # What month/year was the release date?
+  RELEASE_ANCHOR: XXX     # Release anchor for GDC release notes
+
+  ## BQ Projects, Datasets and Tables
+  PUBLICATION_PROJECT: publication_project_id
+  DEV_PROJECT: bq_scratch_project
+  DEV_DATASET: bq_scratch_dataset
+  GSC_URL_TABLE: project_name.dataset_name.GDCfileID_to_GCSurl
+  FILE_TABLE: project_name.dataset_name.filedata_active_table
+  CASE_TABLE: project_name.dataset_name.caseData
+  ALIQUOT_TABLE: project_name.dataset_name.aliquot2caseIDmap
+  GENE_NAMES_TABLE: project_name.dataset_name.annotation_gtf_hg38_v36
+
+  ## local files paths
+  LOCAL_DIR: directory_root_for_files    # where to put the files with the data
+  LOGFILE_DIR: directory_root_for_log_files  # Where to put all the logs
+
+  ## Google Buckets
+  DEV_BUCKET: bq_staging_bucket_name # DO NOT HAVE A LEADING /
+  DEV_BUCKET_DIR: google_bucket/location
+
+  ## Schema (Github & local file)
+  SCHEMA_REPO_URL: https://github.com/schema_repo_url
+  SCHEMA_REPO_BRANCH: schema_git_repo
+  SCHEMA_REPO_LOCAL: schema_git_repo_local
+  TABLE_DESC_DIR: table_description_schema.json
+  FIELD_DESC_DIR: table_field_schema.json
+  PROGRAM_MAPPINGS: dir/gdc_program_metadata.json
+  DATATYPE_MAPPINGS: dir/gdc_data_type_metadata.json
+
+  # Number of rows to skip while sampling big TSV to generate schema:
+  SCHEMA_SAMPLE_SKIPS: 500
