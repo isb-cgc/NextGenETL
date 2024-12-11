@@ -472,6 +472,8 @@ def main(args):
             FROM `{source_table_id}`
         """
 
+        print(sql)
+
         final_table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}"
         destination_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{final_table_name}"
         create_table_from_query(PARAMS, destination_table_id, sql)
