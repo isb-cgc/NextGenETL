@@ -457,7 +457,9 @@ def main(args):
         select_columns_str = ""
 
         for column_name in columns:
-            if column_name in PARAMS['COLUMN_RENAMING']:
+            if column_name = 'program_name':
+                continue
+            elif column_name in PARAMS['COLUMN_RENAMING']:
                 select_columns_str += f"{PARAMS['COLUMN_RENAMING'][column_name]} AS {column_name}, "
             else:
                 select_columns_str += f"{column_name}, "
@@ -471,8 +473,6 @@ def main(args):
                 {select_columns_str}
             FROM `{source_table_id}`
         """
-
-        print(sql)
 
         final_table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}"
         destination_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{final_table_name}"
