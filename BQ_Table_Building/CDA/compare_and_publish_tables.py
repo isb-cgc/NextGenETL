@@ -1262,11 +1262,11 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
                         secondary_key_val = None
 
                     if table_params['secondary_key'] is None:
-                        output_str += f"{primary_key_val:45} {mismatched_record['old_table_value']:45} " \
+                        output_str += f"{primary_key_val:45} {mismatched_record['old_table_value']:45} -> " \
                                       f"{mismatched_record['new_table_value']}\n"
                     else:
                         output_str += f"{primary_key_val:45} {secondary_key_val:45} " \
-                                      f"{mismatched_record['old_table_value']:45} " \
+                                      f"{mismatched_record['old_table_value']:45} -> " \
                                       f"{mismatched_record['new_table_value']}\n"
 
                     i += 1

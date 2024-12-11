@@ -17,6 +17,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import csv
+import json
 import logging
 import os
 import shutil
@@ -198,6 +199,20 @@ def build_a_header(all_files: list[str]) -> list[str]:
     header_values_list = sorted(list(header_values))
 
     return header_values_list
+
+
+def import_column_names() -> list[str]:
+    logger = logging.getLogger('base_script')
+    column_desc_fp = f"{PARAMS['BQ_REPO']}/{PARAMS['COLUMN_DESCRIPTION_FILEPATH']}"
+    column_desc_fp = get_filepath(column_desc_fp)
+
+    if not os.path.exists(column_desc_fp):
+        logger.critical("BQEcosystem column description path not found")
+        sys.exit(-1)
+    with open(column_desc_fp) as column_output:
+        descriptions = json.load(column_output)
+
+        return descriptions.keys()
 
 
 def main(args):
@@ -435,6 +450,15 @@ def main(args):
         for table in table_list:
             logger.info(table)
         logger.info("")
+
+    if 'build_final_table' in steps:
+        columns = import_column_names()
+        print(columns)
+        pass
+        # build a modified table using the column definitions file as the column list
+        # * add program to the columns
+        # add the column definitions
+        # also need the table info -- friendly name, table description, etc.
 
     if 'create_cohort_builder_view' in steps:
         pass
