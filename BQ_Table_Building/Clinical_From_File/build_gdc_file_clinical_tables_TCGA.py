@@ -457,7 +457,7 @@ def main(args):
         select_columns_str = ""
 
         for column_name in columns:
-            if column_name = 'program_name':
+            if column_name == 'program_name':
                 continue
             elif column_name in PARAMS['COLUMN_RENAMING']:
                 select_columns_str += f"{PARAMS['COLUMN_RENAMING'][column_name]} AS {column_name}, "
