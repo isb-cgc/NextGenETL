@@ -475,7 +475,7 @@ def main(args):
         """
 
         final_table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}"
-        destination_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{final_table_name}"
+        destination_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{final_table_name}"
         create_table_from_query(PARAMS, destination_table_id, sql)
 
         # build a modified table using the column definitions file as the column list
