@@ -212,7 +212,7 @@ def import_column_names() -> list[str]:
     with open(column_desc_fp) as column_output:
         descriptions = json.load(column_output)
 
-        return descriptions.keys()
+        return list(descriptions.keys())
 
 
 def main(args):
