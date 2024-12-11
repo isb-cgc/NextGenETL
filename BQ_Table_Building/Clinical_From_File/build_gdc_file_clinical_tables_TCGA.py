@@ -32,7 +32,7 @@ from google.resumable_media import InvalidResponse
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
                                    create_and_load_table_from_tsv, query_and_retrieve_result, list_tables_in_dataset,
                                    get_columns_in_table, create_and_upload_schema_for_json,
-                                   create_and_load_table_from_jsonl)
+                                   create_and_load_table_from_jsonl, create_table_from_query)
 from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket, download_from_external_bucket
 from cda_bq_etl.data_helpers import initialize_logging, make_string_bq_friendly, write_list_to_tsv, \
     create_normalized_tsv, write_list_to_jsonl_and_upload
@@ -453,8 +453,29 @@ def main(args):
 
     if 'build_final_table' in steps:
         columns = import_column_names()
-        print(columns)
-        pass
+
+        select_columns_str = ""
+
+        for column_name in columns:
+            if column_name in PARAMS['COLUMN_RENAMING']:
+                select_columns_str += f"{column_name} AS {PARAMS['COLUMN_RENAMING'][column_name]}, "
+            else:
+                select_columns_str += f"{column_name}, "
+
+        select_columns_str = select_columns_str[:-2]
+        patient_table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_patient"
+        source_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{patient_table_name}"
+
+        sql = f"""
+            SELECT '{PARAMS['PROGRAM']}' AS program_name,
+                {select_columns_str}
+            FROM `{source_table_id}`
+        """
+
+        final_table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}"
+        destination_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{final_table_name}"
+        create_table_from_query(PARAMS, destination_table_id, sql)
+
         # build a modified table using the column definitions file as the column list
         # * add program to the columns
         # add the column definitions
