@@ -458,7 +458,7 @@ def main(args):
 
         for column_name in columns:
             if column_name in PARAMS['COLUMN_RENAMING']:
-                select_columns_str += f"{column_name} AS {PARAMS['COLUMN_RENAMING'][column_name]}, "
+                select_columns_str += f"{PARAMS['COLUMN_RENAMING'][column_name]} AS {column_name}, "
             else:
                 select_columns_str += f"{column_name}, "
 
