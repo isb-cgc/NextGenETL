@@ -519,6 +519,10 @@ def main(args):
                                          table_id=table_id,
                                          schema=table_schema)
 
+        update_table_schema_from_generic(params=PARAMS,
+                                         table_id=table_id,
+                                         metadata_file=PARAMS['METADATA_FILE_SINGLE_PROGRAM'])
+
     end_time = time.time()
 
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
