@@ -490,7 +490,7 @@ def main(args):
                         # if value not in exempt_list and records_dict[target_usi][column] not in exempt_list:
                         logger.warning(f"Record mismatch for {target_usi} in column {column}: "
                                        f"{value} != {records_dict[target_usi][column]}")
-                    elif column in PARAMS['excluded_columns']:
+                    elif column in PARAMS['EXCLUDED_COLUMNS']:
                         del records_dict[target_usi][column]
 
         record_list = list()
