@@ -490,6 +490,8 @@ def main(args):
                         # if value not in exempt_list and records_dict[target_usi][column] not in exempt_list:
                         logger.warning(f"Record mismatch for {target_usi} in column {column}: "
                                        f"{value} != {records_dict[target_usi][column]}")
+                    elif column in PARAMS['excluded_columns']:
+                        del records_dict[target_usi][column]
 
         record_list = list()
 
@@ -508,7 +510,7 @@ def main(args):
     if 'create_merged_table' in steps:
         logger.info("Entering create_merged_table")
 
-        table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{PARAMS['RELEASE']}_{PARAMS['MERGED_TABLE_NAME']}"
+        table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{PARAMS['RELEASE']}_{PARAMS['MERGED_TABLE_NAME']}"
 
         # Download schema file from Google Cloud bucket
         table_schema = retrieve_bq_schema_object(PARAMS, table_name='target_merged', include_release=True)
