@@ -444,6 +444,11 @@ def main(args):
 
             for row in query_result:
                 row_dict = dict(row)
+
+                for column in PARAMS['EXCLUDED_COLUMNS']:
+                    if column in row_dict:
+                        del row_dict[column]
+
                 row_dict['disease_code'] = disease_code
                 row_dict['project_short_name'] = project_short_name
                 row_dict['program_name'] = program_name
@@ -490,8 +495,6 @@ def main(args):
                         # if value not in exempt_list and records_dict[target_usi][column] not in exempt_list:
                         logger.warning(f"Record mismatch for {target_usi} in column {column}: "
                                        f"{value} != {records_dict[target_usi][column]}")
-                    elif column in PARAMS['EXCLUDED_COLUMNS']:
-                        del records_dict[target_usi][column]
 
         record_list = list()
 
