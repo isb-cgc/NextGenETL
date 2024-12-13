@@ -64,7 +64,7 @@ def parse_manifest_url_records(manifest_table_name) -> list[dict[str, str]]:
             'gdc_file_url_aws': None
         }
 
-        if '[' in gs_url:
+        if gs_url and '[' in gs_url:
             url_list = list(map(str.strip, ast.literal_eval(gs_url)))
         else:
             url_list = [gs_url]
@@ -115,7 +115,7 @@ def main(args):
     # transfer manifest files from source bucket to our bucket
     # clear directory and import table schemas from BQEcosystem
     # create manifest BQ tables using tsv
-    # todo add step -- create modified manifest BQ table to split out file_gdc_url into multiple columns
+    # create modified manifest BQ table to split out file_gdc_url into multiple columns
     # create file map BQ tables via sql query
     # update file map BQ table schemas using imported schema
     # create combined legacy and active file map table
@@ -134,12 +134,12 @@ def main(args):
     }
 
     if "pull_manifest_from_data_node" in steps:
+        logger.info("Entering pull_manifest_from_data_node")
         for manifest_file_name in manifest_dict.values():
             transfer_between_buckets(PARAMS, PARAMS['SOURCE_BUCKET'], manifest_file_name, PARAMS['WORKING_BUCKET'])
 
-    # todo do we want to reload the BQEcosystem repo here, as in existing pipeline?
-    #  Probably not necessary with generic schema
     if "create_bq_manifest_table" in steps:
+        logger.info("Entering create_bq_manifest_table")
         with open(PARAMS['MANIFEST_SCHEMA_LIST'], mode='r') as schema_hold_dict:
             schema_list = []
             typed_schema = json.loads(schema_hold_dict.read())
@@ -161,6 +161,7 @@ def main(args):
                                            num_header_rows=1,
                                            schema=manifest_table_schema)
     if "create_file_mapping_table" in steps:
+        logger.info("Entering create_file_mapping_table")
         # query to retrieve id, acl, gs_url
         # iterate over results and build json object dict
         # - parse gs_url into list--either by converting string list representation or putting single value into a list
@@ -181,6 +182,7 @@ def main(args):
                                              table_id=parsed_table_id)
 
     if "create_combined_table" in steps:
+        logger.info("Entering create_combined_table")
         table_ids = list()
 
         for manifest_table_name in manifest_dict.keys():
