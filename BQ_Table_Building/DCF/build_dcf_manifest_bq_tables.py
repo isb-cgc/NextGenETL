@@ -70,6 +70,8 @@ def parse_manifest_url_records(manifest_table_name) -> list[dict[str, str]]:
             url_list = [gs_url]
 
         for url in url_list:
+            if not url:
+                continue
             if 'https://' in url:
                 file_record_dict['gdc_file_url_web'] = url
             else:
