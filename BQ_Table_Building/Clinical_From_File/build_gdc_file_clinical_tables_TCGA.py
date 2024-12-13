@@ -32,7 +32,8 @@ from google.resumable_media import InvalidResponse
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
                                    create_and_load_table_from_tsv, query_and_retrieve_result, list_tables_in_dataset,
                                    get_columns_in_table, create_and_upload_schema_for_json,
-                                   create_and_load_table_from_jsonl, create_table_from_query)
+                                   create_and_load_table_from_jsonl, create_table_from_query,
+                                   update_table_schema_from_generic, get_program_schema_tags_gdc)
 from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket, download_from_external_bucket
 from cda_bq_etl.data_helpers import initialize_logging, make_string_bq_friendly, write_list_to_tsv, \
     create_normalized_tsv, write_list_to_jsonl_and_upload
@@ -478,13 +479,9 @@ def main(args):
         destination_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{final_table_name}"
         create_table_from_query(PARAMS, destination_table_id, sql)
 
-        # build a modified table using the column definitions file as the column list
-        # * add program to the columns
-        # add the column definitions
-        # also need the table info -- friendly name, table description, etc.
-
-    if 'create_cohort_builder_view' in steps:
-        pass
+        update_table_schema_from_generic(params=PARAMS,
+                                         table_id=destination_table_id,
+                                         metadata_file=PARAMS['METADATA_FILE_SINGLE_PROGRAM'])
 
     if 'output_non_null_percentages_by_project' in steps:
         table_suffixes = ['patient']
