@@ -16,11 +16,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import csv
+import json
 import logging
 import os
 import shutil
 import sys
 import time
+import requests
 
 from google.cloud import storage
 from google.cloud.exceptions import Forbidden
@@ -29,7 +32,8 @@ from google.resumable_media import InvalidResponse
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
                                    create_and_load_table_from_tsv, query_and_retrieve_result, list_tables_in_dataset,
                                    get_columns_in_table, create_and_upload_schema_for_json,
-                                   create_and_load_table_from_jsonl)
+                                   create_and_load_table_from_jsonl, create_table_from_query,
+                                   update_table_schema_from_generic, get_program_schema_tags_gdc)
 from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket, download_from_external_bucket
 from cda_bq_etl.data_helpers import initialize_logging, make_string_bq_friendly, write_list_to_tsv, \
     create_normalized_tsv, write_list_to_jsonl_and_upload
@@ -152,7 +156,7 @@ def create_table_name_from_file_name(file_path: str) -> str:
 
     return table_name
 
-
+"""
 def create_program_tables_dict() -> dict[str, list[str]]:
     prefix = f"{PARAMS['RELEASE']}_TCGA"
 
@@ -173,6 +177,7 @@ def create_program_tables_dict() -> dict[str, list[str]]:
         project_tables[project].append(table)
 
     return project_tables
+"""
 
 
 def build_a_header(all_files: list[str]) -> list[str]:
@@ -195,6 +200,20 @@ def build_a_header(all_files: list[str]) -> list[str]:
     header_values_list = sorted(list(header_values))
 
     return header_values_list
+
+
+def import_column_names() -> list[str]:
+    logger = logging.getLogger('base_script')
+    column_desc_fp = f"{PARAMS['BQ_REPO']}/{PARAMS['COLUMN_DESCRIPTION_FILEPATH']}"
+    column_desc_fp = get_filepath(column_desc_fp)
+
+    if not os.path.exists(column_desc_fp):
+        logger.critical("BQEcosystem column description path not found")
+        sys.exit(-1)
+    with open(column_desc_fp) as column_output:
+        descriptions = json.load(column_output)
+
+        return list(descriptions.keys())
 
 
 def main(args):
@@ -433,65 +452,137 @@ def main(args):
             logger.info(table)
         logger.info("")
 
-    if 'create_cohort_builder_view' in steps:
-        pass
+    if 'build_final_table' in steps:
+        columns = import_column_names()
 
-    '''
-    if 'output_distinct_values' in steps:
+        select_columns_str = ""
+
+        for column_name in columns:
+            if column_name == 'program_name':
+                continue
+            elif column_name in PARAMS['COLUMN_RENAMING']:
+                select_columns_str += f"{PARAMS['COLUMN_RENAMING'][column_name]} AS {column_name}, "
+            else:
+                select_columns_str += f"{column_name}, "
+
+        select_columns_str = select_columns_str[:-2]
+        patient_table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_patient"
+        source_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{patient_table_name}"
+
+        sql = f"""
+            SELECT '{PARAMS['PROGRAM']}' AS program_name,
+                {select_columns_str}
+            FROM `{source_table_id}`
+        """
+
+        final_table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}"
+        destination_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{final_table_name}"
+        create_table_from_query(PARAMS, destination_table_id, sql)
+
+        update_table_schema_from_generic(params=PARAMS,
+                                         table_id=destination_table_id,
+                                         metadata_file=PARAMS['METADATA_FILE_SINGLE_PROGRAM'])
+
+    if 'output_non_null_percentages_by_project' in steps:
         table_suffixes = ['patient']
+
+        non_null_percentage_list = list()
 
         for table_suffix in table_suffixes:
             table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_{table_suffix}"
             table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}"
 
-            sql = f"""
+            column_sql = f"""
                 SELECT column_name
                 FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}`.INFORMATION_SCHEMA.COLUMNS
                 WHERE table_name = '{table_name}'
                 AND data_type = 'STRING'
             """
 
-            result = query_and_retrieve_result(sql)
+            column_result = query_and_retrieve_result(column_sql)
 
             column_list = list()
 
-            for row in result:
+            for row in column_result:
                 column_list.append(row[0])
 
-            for column in column_list:
-                distinct_query = f"""
-                SELECT distinct {column}
-                FROM {table_id}
+            project_sql = f"""
+                SELECT project_short_name, count(*)
+                FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}`
+                GROUP BY project_short_name
+            """
+
+            project_result = query_and_retrieve_result(project_sql)
+
+            project_counts = dict()
+
+            for row in project_result:
+                project_counts[row[0]] = row[1]
+
+            for project_short_name, project_count in project_counts.items():
+                logger.info(f"Retrieving column counts for {project_short_name}")
+
+                nulls_sql = f"""
+                    SELECT column_name, COUNT(1) AS nulls_count
+                    FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}` as clinical,
+                    UNNEST(REGEXP_EXTRACT_ALL(TO_JSON_STRING(clinical), r'\"(\\w+)\":null')) column_name
+                    WHERE project_short_name = '{project_short_name}'
+                    GROUP BY column_name
+                    ORDER BY nulls_count
                 """
 
-                distinct_result = query_and_retrieve_result(distinct_query)
+                non_null_count_result = query_and_retrieve_result(nulls_sql)
 
-                logger.info(column)
+                for row in non_null_count_result:
+                    column_name = row[0]
+                    null_count = row[1]
+                    null_percentage = (null_count / project_count) * 100
+                    non_null_percentage = round(100 - null_percentage, 2)
+                    non_null_percentage = f"{str(non_null_percentage)}%"
+                    non_null_percentage_list.append([column_name, project_short_name, non_null_percentage])
 
-                for row in distinct_result:
-                    logger.info(row[0])
+        non_null_percentage_tsv_path = f"{local_files_dir}/{PARAMS['RELEASE']}_TCGA_non_null_percentages.tsv"
 
-                time.sleep(3)
+        with open(non_null_percentage_tsv_path, 'w', newline='') as f:
+            writer = csv.writer(f, delimiter='\t')
+            writer.writerows(non_null_percentage_list)
 
-    if 'print_non_null_values' in steps:
-        # todo if we use this, should not be hardcoded. Likely candidate for removal.
-        sql = f"""
-        SELECT *
-        FROM `isb-project-zero.clinical_from_files_raw.r36_TCGA_patient`
-        WHERE bcr_patient_barcode = 'TCGA-FC-A8O0'
-        """
+        upload_to_bucket(PARAMS, non_null_percentage_tsv_path, delete_local=True, verbose=False)
 
-        result = query_and_retrieve_result(sql)
-        record = dict()
+    if 'import_data_definitions' in steps:
+        gdc_api_url = "https://api.gdc.cancer.gov/v0/submission/_dictionary/_all"
+        response = requests.get(gdc_api_url)
+        dict_json = response.json()
 
-        for row in result:
-            record = dict(row)
-            break
+        column_definition_dict = dict()
 
-        for key, value in record.items():
-            if value:
-                logger.info(f"{key}: {value}")
-    '''
+        categories = ['demographic', 'diagnosis', 'exposure', 'family_history', 'follow_up',
+                      'molecular_test', 'other_clinical_attribute', 'pathology_detail', 'treatment', 'clinical']
+
+        for category in categories:
+            logger.info(f"Parsing {category}!")
+            column_properties = dict_json[category]["properties"]
+
+            for column, values in column_properties.items():
+                if (('description' not in values and 'common' not in values) or
+                        ('common' in values and 'description' not in values['common'])):
+                    logger.info(f"No description found for column {column}.")
+                else:
+                    if 'description' in values:
+                        description = values['description']
+                    else:
+                        description = values['common']['description']
+
+                    if column in column_definition_dict and column_definition_dict[column] != description:
+                        logger.info(f"Column {column} is already in the dictionary.")
+                        logger.info(f"Existing description: {column_definition_dict[column]}")
+                        logger.info(f"New description: {description}")
+                    else:
+                        column_definition_dict[column] = description
+
+        logger.info("DESCRIPTIONS!!!")
+        for column, description in sorted(column_definition_dict.items()):
+            print(f"{column}\t{description}")
 
     end_time = time.time()
 
