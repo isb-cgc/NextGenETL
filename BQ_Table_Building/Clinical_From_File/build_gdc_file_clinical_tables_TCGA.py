@@ -124,7 +124,7 @@ def make_file_pull_list():
                f.md5sum,
                f.file_size,
                f.file_state,
-               gs.file_gdc_url,
+               gs.gdc_file_url_gcs,
                f.project_short_name
             # todo change to published table ids
             FROM `isb-project-zero.cda_gdc_metadata.r{rel_number}_fileData_active` f
