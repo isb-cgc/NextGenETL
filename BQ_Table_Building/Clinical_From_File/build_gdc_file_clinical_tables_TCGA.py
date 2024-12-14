@@ -265,7 +265,7 @@ def main(args):
 
         for file_data in file_pull_list:
             file_name = file_data['file_name']
-            gs_uri = file_data['file_gdc_url_gcs']
+            gs_uri = file_data['gdc_file_url_gcs']
             md5sum = file_data['md5sum']
             project_short_name = file_data['project_short_name']
 
