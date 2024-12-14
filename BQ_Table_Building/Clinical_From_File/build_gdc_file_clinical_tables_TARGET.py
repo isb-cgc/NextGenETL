@@ -68,7 +68,7 @@ def make_file_pull_list(program: str, filters: dict[str, str]):
                f.file_state,
                f.project_short_name,
                gs.gdc_file_url_gcs
-            FROM `isb-project-zero.cda_gdc_metadata.r{rel_number}_fileData_active`
+            FROM `isb-project-zero.cda_gdc_metadata.r{rel_number}_fileData_active` f
             # todo change both ids to published tables
             # FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_active_r{rel_number}` f
             LEFT JOIN `isb-project-zero.GDC_manifests.rel{rel_number}_GDCfileID_to_GCSurl` gs 
