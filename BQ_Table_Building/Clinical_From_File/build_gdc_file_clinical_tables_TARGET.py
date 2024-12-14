@@ -214,9 +214,13 @@ def create_table_name_from_file_name(file_path: str) -> str:
 
 
 def make_file_metadata_query(file_gdc_id: str) -> str:
+    rel_number = PARAMS['RELEASE'].strip('r')
+
     return f"""
         SELECT file_name, project_short_name, updated_datetime
-        FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_active_{PARAMS['RELEASE']}`
+        FROM `isb-project-zero.cda_gdc_metadata.r{rel_number}_fileData_active`
+        # todo change to published table
+        # FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_active_r{PARAMS['RELEASE']}`
         WHERE file_gdc_id = '{file_gdc_id}'
     """
 
