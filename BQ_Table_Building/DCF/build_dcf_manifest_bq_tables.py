@@ -192,9 +192,9 @@ def main(args):
             parsed_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{parsed_table_name}"
             table_ids.append(parsed_table_id)
 
-        gdc_release = PARAMS['RELEASE'][1:]
+        gdc_release = PARAMS['RELEASE'][2:]
 
-        combined_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{gdc_release}_{PARAMS['COMBINED_TABLE']}"
+        combined_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.rel{gdc_release}_{PARAMS['COMBINED_TABLE']}"
 
         create_table_from_query(params=PARAMS,
                                 table_id=combined_table_id,
