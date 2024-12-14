@@ -490,8 +490,8 @@ def main(args):
                         if new_value > existing_value:
                             records_dict[target_usi][column] = value
                     elif column in ['disease_code', 'project_short_name']:
-                        if value not in records_dict[target_usi][column]:
-                            records_dict[target_usi][column] = f', {value}'
+                        if value and value not in records_dict[target_usi][column]:
+                            records_dict[target_usi][column] += f', {value}'
                     elif value != records_dict[target_usi][column]:
                         # if value not in exempt_list and records_dict[target_usi][column] not in exempt_list:
                         logger.warning(f"Record mismatch for {target_usi} in column {column}: "
