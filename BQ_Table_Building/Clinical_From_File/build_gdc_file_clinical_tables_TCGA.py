@@ -127,7 +127,7 @@ def make_file_pull_list():
                gs.file_gdc_url,
                f.project_short_name
             # todo change to published table ids
-            FROM `isb-project-zero.GDC_metadata.rel{rel_number}_fileData_current` f
+            FROM `isb-project-zero.GDC_metadata.r{rel_number}_fileData_current` f
             LEFT JOIN `isb-project-zero.GDC_manifests.rel{rel_number}_GDCfileID_to_GCSurl` gs
                ON f.file_gdc_id = gs.file_gdc_id 
             {where_clause}
