@@ -31,14 +31,12 @@ from google.resumable_media import InvalidResponse
 
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
                                    create_and_load_table_from_tsv, query_and_retrieve_result, list_tables_in_dataset,
-                                   get_columns_in_table, create_and_upload_schema_for_json,
-                                   create_and_load_table_from_jsonl, update_table_schema_from_generic)
+                                   create_and_upload_schema_for_json, create_and_load_table_from_jsonl,
+                                   update_table_schema_from_generic)
 from cda_bq_etl.gcs_helpers import upload_to_bucket
-from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, write_list_to_tsv,
-                                     create_normalized_tsv, write_list_to_jsonl, write_list_to_jsonl_and_upload,
-                                     normalize_flat_json_values)
-from cda_bq_etl.utils import (format_seconds, get_filepath, load_config, get_scratch_fp, calculate_md5sum,
-                              create_dev_table_id, create_metadata_table_id)
+from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, create_normalized_tsv,
+                                     write_list_to_jsonl_and_upload, normalize_flat_json_values)
+from cda_bq_etl.utils import (format_seconds, load_config, get_scratch_fp, calculate_md5sum, create_dev_table_id)
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -272,8 +270,6 @@ def main(args):
             file_id = file_data['file_gdc_id']
             gs_uri = file_data['gdc_file_url_gcs']
             md5sum = file_data['md5sum']
-            # todo use this to associate files by project
-            project = file_data['project_short_name']
 
             file_path = f"{local_files_dir}/{file_id}__{file_name}"
 
