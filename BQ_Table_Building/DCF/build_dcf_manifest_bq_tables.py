@@ -31,7 +31,7 @@ from cda_bq_etl.gcs_helpers import transfer_between_buckets
 from cda_bq_etl.utils import (load_config, format_seconds)
 from cda_bq_etl.bq_helpers import (create_and_load_table_from_tsv, query_and_retrieve_result,
                                    create_and_load_table_from_jsonl, create_table_from_query,
-                                   update_table_schema_from_generic)
+                                   update_table_schema_from_generic, create_view_from_query)
 from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload
 
 PARAMS = dict()
@@ -202,8 +202,28 @@ def main(args):
 
         update_table_schema_from_generic(params=PARAMS, table_id=combined_table_id)
 
-    if "publish_table" in steps:
-        print()
+    if "create_paths_views" in steps:
+        for manifest_table_name in manifest_dict.keys():
+            parsed_table_name = f"{manifest_table_name}_{PARAMS['SPLIT_URL_TABLE_SUFFIX']}"
+            parsed_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{parsed_table_name}"
+
+            sql = f"""SELECT file_gdc_id AS file_uuid, 
+                   gdc_file_url_gcs AS gcs_path
+                   FROM `{parsed_table_id}`
+                   """
+
+            if "hg19" in manifest_table_name:
+                data_type = 'legacy'
+            elif "hg38" in manifest_table_name:
+                data_type = 'active'
+            else:
+                logger.critical("Can't parse the manifest table name.")
+                exit()
+
+            view_table_name = f"{PARAMS['RELEASE']}_paths_{data_type}"
+            view_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{view_table_name}"
+
+            create_view_from_query(view_id=view_table_id, view_query=sql)
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
