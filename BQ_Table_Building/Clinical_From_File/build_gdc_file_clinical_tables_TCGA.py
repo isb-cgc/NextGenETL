@@ -620,7 +620,7 @@ def main(args):
 
             project_counts = dict()
 
-            column_renaming_dict = PARAMS['COLUMN_NAMING']
+            column_renaming_dict = PARAMS['COLUMN_RENAMING']
             reversed_column_renaming_dict = {value: key for key, value in column_renaming_dict.items()}
 
             for row in project_result:
