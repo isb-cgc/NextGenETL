@@ -586,6 +586,86 @@ def main(args):
 
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
 
+    if 'null_column_comparison' in steps:
+        table_suffixes = ['patient']
+
+        included_columns_list = list()
+        included_columns_set = set()
+
+        for table_suffix in table_suffixes:
+            table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_{table_suffix}"
+            table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}"
+
+            column_sql = f"""
+                SELECT column_name
+                FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}`.INFORMATION_SCHEMA.COLUMNS
+                WHERE table_name = '{table_name}'
+                AND data_type = 'STRING'
+            """
+
+            column_result = query_and_retrieve_result(column_sql)
+
+            column_list = list()
+
+            for row in column_result:
+                column_list.append(row[0])
+
+            project_sql = f"""
+                SELECT project_short_name, count(*)
+                FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}`
+                GROUP BY project_short_name
+            """
+
+            project_result = query_and_retrieve_result(project_sql)
+
+            project_counts = dict()
+
+            column_renaming_dict = PARAMS['COLUMN_NAMING']
+            reversed_column_renaming_dict = {value: key for key, value in column_renaming_dict.items()}
+
+            for row in project_result:
+                project_counts[row[0]] = row[1]
+
+            for project_short_name, project_count in project_counts.items():
+                logger.info(f"Retrieving column counts for {project_short_name}")
+
+                nulls_sql = f"""
+                    SELECT column_name, COUNT(1) AS nulls_count
+                    FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}` as clinical,
+                    UNNEST(REGEXP_EXTRACT_ALL(TO_JSON_STRING(clinical), r'\"(\\w+)\":null')) column_name
+                    WHERE project_short_name = '{project_short_name}'
+                    GROUP BY column_name
+                    ORDER BY nulls_count
+                """
+
+                non_null_count_result = query_and_retrieve_result(nulls_sql)
+
+                for row in non_null_count_result:
+                    column_name = row[0]
+                    null_count = row[1]
+                    null_percentage = (null_count / project_count) * 100
+                    non_null_percentage = round(100 - null_percentage, 2)
+
+                    if non_null_percentage >= 50.0:
+
+                        if column_name in reversed_column_renaming_dict:
+                            included_columns_set.add(reversed_column_renaming_dict[column_name])
+                        else:
+                            included_columns_set.add(column_name)
+
+            defined_column_set = set(import_column_names())
+
+            columns_missing_definitions = included_columns_set - defined_column_set
+            columns_below_threshold = defined_column_set - included_columns_set
+
+            print("Columns that are missing definitions:")
+            for column in columns_missing_definitions:
+                print(f"{column}")
+
+            print("\nDefined columns that fall below threshold:")
+            for column in columns_below_threshold:
+                print(f"{column}")
+
 
 if __name__ == '__main__':
     main(sys.argv)
