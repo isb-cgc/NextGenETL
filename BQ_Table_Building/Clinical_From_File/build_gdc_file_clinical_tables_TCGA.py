@@ -582,10 +582,6 @@ def main(args):
         for column, description in sorted(column_definition_dict.items()):
             print(f"{column}\t{description}")
 
-    end_time = time.time()
-
-    logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
-
     if 'null_column_comparison' in steps:
         table_suffixes = ['patient']
 
@@ -665,6 +661,10 @@ def main(args):
             print("\nDefined columns that fall below threshold:")
             for column in columns_below_threshold:
                 print(f"{column}")
+
+    end_time = time.time()
+
+    logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
 
 
 if __name__ == '__main__':

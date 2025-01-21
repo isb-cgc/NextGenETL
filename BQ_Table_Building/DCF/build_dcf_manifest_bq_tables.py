@@ -31,7 +31,7 @@ from cda_bq_etl.gcs_helpers import transfer_between_buckets
 from cda_bq_etl.utils import (load_config, format_seconds)
 from cda_bq_etl.bq_helpers import (create_and_load_table_from_tsv, query_and_retrieve_result,
                                    create_and_load_table_from_jsonl, create_table_from_query,
-                                   update_table_schema_from_generic, create_view_from_query)
+                                   update_table_schema_from_generic, create_view_from_query, delete_bq_table)
 from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload
 
 PARAMS = dict()
@@ -60,7 +60,7 @@ def parse_manifest_url_records(manifest_table_name) -> list[dict[str, str]]:
         file_record_dict = {
             'file_gdc_id': file_uuid,
             'gdc_file_url_web': None,
-            'gdc_file_url_gcs': None,
+            'gdc_file_url': None,
             'gdc_file_url_aws': None
         }
 
@@ -77,7 +77,7 @@ def parse_manifest_url_records(manifest_table_name) -> list[dict[str, str]]:
             else:
                 if 'open' in acl and 'phs' not in acl:
                     if 'gs://' in url:
-                        file_record_dict['gdc_file_url_gcs'] = url
+                        file_record_dict['gdc_file_url'] = url
                     elif 's3://' in url:
                         file_record_dict['gdc_file_url_aws'] = url
                     else:
@@ -98,6 +98,16 @@ def make_combined_table_query(table_ids: list[str]) -> str:
         SELECT * FROM {table_id_1}
     """
 
+
+def make_reordered_table_query(combined_table_id) -> str:
+    return f"""
+    SELECT file_gdc_id,
+            gdc_file_url,
+            gdc_file_url_aws,
+            gdc_file_url_web
+    FROM 
+            
+    """
 
 def main(args):
     try:
@@ -170,7 +180,7 @@ def main(args):
         # create list of dicts containing id, gdc_file_url_web, gdc_file_url_aws, gdc_file_url_gcs
         # - if acl isn't open, don't include gs or aws uris
         for manifest_table_name in manifest_dict.keys():
-            parsed_table_name = f"{manifest_table_name}_{PARAMS['SPLIT_URL_TABLE_SUFFIX']}"
+            parsed_table_name = f"temp_{manifest_table_name}_{PARAMS['SPLIT_URL_TABLE_SUFFIX']}"
             parsed_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{parsed_table_name}"
 
             manifest_url_record_list = parse_manifest_url_records(manifest_table_name)
@@ -182,6 +192,15 @@ def main(args):
             create_and_load_table_from_jsonl(params=PARAMS,
                                              jsonl_file=f"{parsed_table_name}_{PARAMS['RELEASE']}.jsonl",
                                              table_id=parsed_table_id)
+
+    if "reorder_file_mapping_table" in steps:
+        logger.info("Entering reorder_file_mapping_table")
+        parsed_table_name = f"{manifest_table_name}_{PARAMS['SPLIT_URL_TABLE_SUFFIX']}"
+        parsed_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.temp_{parsed_table_name}"
+        reordered_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{parsed_table_name}"
+        create_table_from_query(PARAMS, table_id=reordered_table_id, query=make_reordered_table_query(parsed_table_id))
+
+        delete_bq_table(PARAMS, parsed_table_id)
 
     if "create_combined_table" in steps:
         logger.info("Entering create_combined_table")
@@ -208,7 +227,7 @@ def main(args):
             parsed_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{parsed_table_name}"
 
             sql = f"""SELECT file_gdc_id AS file_uuid, 
-                   gdc_file_url_gcs AS gcs_path
+                   gdc_file_url AS gcs_path
                    FROM `{parsed_table_id}`
                    """
 
