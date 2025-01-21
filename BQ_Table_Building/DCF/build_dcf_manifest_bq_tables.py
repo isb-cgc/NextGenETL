@@ -105,8 +105,7 @@ def make_reordered_table_query(combined_table_id) -> str:
             gdc_file_url,
             gdc_file_url_aws,
             gdc_file_url_web
-    FROM 
-            
+    FROM `{combined_table_id}`  
     """
 
 def main(args):
