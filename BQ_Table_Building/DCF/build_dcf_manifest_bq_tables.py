@@ -199,7 +199,7 @@ def main(args):
         reordered_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{parsed_table_name}"
         create_table_from_query(PARAMS, table_id=reordered_table_id, query=make_reordered_table_query(parsed_table_id))
 
-        delete_bq_table(PARAMS, parsed_table_id)
+        delete_bq_table(parsed_table_id)
 
     if "create_combined_table" in steps:
         logger.info("Entering create_combined_table")
