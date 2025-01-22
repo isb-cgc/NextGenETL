@@ -32,7 +32,8 @@ from google.cloud.exceptions import NotFound
 from google.cloud.bigquery import SchemaField, Client, LoadJobConfig, QueryJob
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
-from cda_bq_etl.utils import get_filename, get_scratch_fp, get_filepath, create_dev_table_id, create_metadata_table_id
+from cda_bq_etl.utils import get_filename, get_scratch_fp, get_filepath, create_dev_table_id, create_metadata_table_id, \
+    input_with_timeout
 from cda_bq_etl.gcs_helpers import download_from_bucket, upload_to_bucket
 from cda_bq_etl.data_helpers import (recursively_detect_object_structures, get_column_list_tsv,
                                      aggregate_column_data_types_tsv, resolve_type_conflicts, resolve_type_conflict)
@@ -769,6 +770,34 @@ def change_status_to_archived(archived_table_id: str):
         logger.warning("Couldn't find a table to archive. Likely this table's first release; otherwise an error.")
 
 
+def update_table_labels(table_id: str, label_dict: dict[str, str]) -> None:
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+    try:
+        client = bigquery.Client()
+        table_obj = client.get_table(table_id)
+
+        for label, value in label_dict.items():
+            table_obj.labels[label] = value
+
+        delay = 5
+
+        logger.info(f"Altering {table_id}. Labels after change: {table_obj.labels}")
+        logger.info(f"Proceed? Y/n (continues automatically in {delay} seconds)")
+
+        response = str(input_with_timeout(seconds=delay)).lower()
+
+        if response == 'n' or response == 'N':
+            exit("Publish aborted; exiting.")
+
+        client.update_table(table_obj, ["labels"])
+
+        for label, value in label_dict.items():
+            assert table_obj.labels[label] == value
+    except NotFound:
+        logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+        logger.warning(f"Couldn't apply table label {label}: {value}. Is this expected?")
+
+
 def find_most_recent_published_table_id(params: Params, versioned_table_id: str, table_base_name: str = None):
     """
     Function for locating published table id for dataset's previous release, if it exists
@@ -872,6 +901,8 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, friendl
         release = release.replace('r', '')
     elif params['NODE'].lower() == 'dcf':
         release = release.replace('dr', '')
+    elif params['NODE'].lower() == 'pdc':
+        schema_tags['underscore-version'] = release.lower()
 
     # remove underscore, add decimal to version number
     schema_tags['version'] = ".".join(release.split('_'))

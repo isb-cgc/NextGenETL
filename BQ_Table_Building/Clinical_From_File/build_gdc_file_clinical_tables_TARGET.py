@@ -31,14 +31,12 @@ from google.resumable_media import InvalidResponse
 
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
                                    create_and_load_table_from_tsv, query_and_retrieve_result, list_tables_in_dataset,
-                                   get_columns_in_table, create_and_upload_schema_for_json,
-                                   create_and_load_table_from_jsonl, update_table_schema_from_generic)
+                                   create_and_upload_schema_for_json, create_and_load_table_from_jsonl,
+                                   update_table_schema_from_generic)
 from cda_bq_etl.gcs_helpers import upload_to_bucket
-from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, write_list_to_tsv,
-                                     create_normalized_tsv, write_list_to_jsonl, write_list_to_jsonl_and_upload,
-                                     normalize_flat_json_values)
-from cda_bq_etl.utils import (format_seconds, get_filepath, load_config, get_scratch_fp, calculate_md5sum,
-                              create_dev_table_id, create_metadata_table_id)
+from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, create_normalized_tsv,
+                                     write_list_to_jsonl_and_upload, normalize_flat_json_values)
+from cda_bq_etl.utils import (format_seconds, load_config, get_scratch_fp, calculate_md5sum, create_dev_table_id)
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -70,9 +68,10 @@ def make_file_pull_list(program: str, filters: dict[str, str]):
                f.file_state,
                f.project_short_name,
                gs.gdc_file_url_gcs
-            FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_active_r{rel_number}` f
-            LEFT JOIN `isb-project-zero.law_GDC_manifests.r{rel_number}_GDCfileID_to_GCSurl` gs # todo change to published table
-            # LEFT JOIN `isb-project-zero.GDC_manifests.rel{rel_number}_GDCfileID_to_GCSurl` gs
+            FROM `isb-project-zero.cda_gdc_metadata.r{rel_number}_fileData_active` f
+            # todo change both ids to published tables
+            # FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_active_r{rel_number}` f
+            LEFT JOIN `isb-project-zero.GDC_manifests.rel{rel_number}_GDCfileID_to_GCSurl` gs 
                ON f.file_gdc_id = gs.file_gdc_id 
             {where_clause}
         """
@@ -215,9 +214,13 @@ def create_table_name_from_file_name(file_path: str) -> str:
 
 
 def make_file_metadata_query(file_gdc_id: str) -> str:
+    rel_number = PARAMS['RELEASE'].strip('r')
+
     return f"""
         SELECT file_name, project_short_name, updated_datetime
-        FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_active_{PARAMS['RELEASE']}`
+        FROM `isb-project-zero.cda_gdc_metadata.r{rel_number}_fileData_active`
+        # todo change to published table
+        # FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_active_r{PARAMS['RELEASE']}`
         WHERE file_gdc_id = '{file_gdc_id}'
     """
 
@@ -272,8 +275,6 @@ def main(args):
             file_id = file_data['file_gdc_id']
             gs_uri = file_data['gdc_file_url_gcs']
             md5sum = file_data['md5sum']
-            # todo use this to associate files by project
-            project = file_data['project_short_name']
 
             file_path = f"{local_files_dir}/{file_id}__{file_name}"
 
@@ -444,6 +445,11 @@ def main(args):
 
             for row in query_result:
                 row_dict = dict(row)
+
+                for column in PARAMS['EXCLUDED_COLUMNS']:
+                    if column in row_dict:
+                        del row_dict[column]
+
                 row_dict['disease_code'] = disease_code
                 row_dict['project_short_name'] = project_short_name
                 row_dict['program_name'] = program_name
@@ -484,8 +490,8 @@ def main(args):
                         if new_value > existing_value:
                             records_dict[target_usi][column] = value
                     elif column in ['disease_code', 'project_short_name']:
-                        if value not in records_dict[target_usi][column]:
-                            records_dict[target_usi][column] = f', {value}'
+                        if value and value not in records_dict[target_usi][column]:
+                            records_dict[target_usi][column] += f', {value}'
                     elif value != records_dict[target_usi][column]:
                         # if value not in exempt_list and records_dict[target_usi][column] not in exempt_list:
                         logger.warning(f"Record mismatch for {target_usi} in column {column}: "
@@ -508,7 +514,7 @@ def main(args):
     if 'create_merged_table' in steps:
         logger.info("Entering create_merged_table")
 
-        table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{PARAMS['RELEASE']}_{PARAMS['MERGED_TABLE_NAME']}"
+        table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{PARAMS['RELEASE']}_{PARAMS['MERGED_TABLE_NAME']}"
 
         # Download schema file from Google Cloud bucket
         table_schema = retrieve_bq_schema_object(PARAMS, table_name='target_merged', include_release=True)
@@ -518,6 +524,10 @@ def main(args):
                                          jsonl_file=f"target_merged_{PARAMS['RELEASE']}.jsonl",
                                          table_id=table_id,
                                          schema=table_schema)
+
+        update_table_schema_from_generic(params=PARAMS,
+                                         table_id=table_id,
+                                         metadata_file=PARAMS['METADATA_FILE_SINGLE_PROGRAM'])
 
     end_time = time.time()
 
