@@ -192,15 +192,6 @@ def main(args):
                                              jsonl_file=f"{parsed_table_name}_{PARAMS['RELEASE']}.jsonl",
                                              table_id=parsed_table_id)
 
-    if "reorder_file_mapping_table" in steps:
-        logger.info("Entering reorder_file_mapping_table")
-        parsed_table_name = f"{manifest_table_name}_{PARAMS['SPLIT_URL_TABLE_SUFFIX']}"
-        parsed_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.temp_{parsed_table_name}"
-        reordered_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{parsed_table_name}"
-        create_table_from_query(PARAMS, table_id=reordered_table_id, query=make_reordered_table_query(parsed_table_id))
-
-        delete_bq_table(parsed_table_id)
-
     if "create_combined_table" in steps:
         logger.info("Entering create_combined_table")
         table_ids = list()
@@ -212,13 +203,29 @@ def main(args):
 
         gdc_release = PARAMS['RELEASE'][2:]
 
-        combined_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.rel{gdc_release}_{PARAMS['COMBINED_TABLE']}"
+        combined_table_name = f"temp_rel{gdc_release}_{PARAMS['COMBINED_TABLE']}"
+        combined_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{combined_table_name}"
 
         create_table_from_query(params=PARAMS,
                                 table_id=combined_table_id,
                                 query=make_combined_table_query(table_ids))
 
         update_table_schema_from_generic(params=PARAMS, table_id=combined_table_id)
+
+    if "reorder_combined_table" in steps:
+        logger.info("Entering reorder_combined_table")
+
+        combined_table_name = f"rel{gdc_release}_{PARAMS['COMBINED_TABLE']}"
+        combined_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.temp_{combined_table_name}"
+        reordered_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{combined_table_name}"
+
+        create_table_from_query(PARAMS,
+                                table_id=reordered_table_id,
+                                query=make_reordered_table_query(combined_table_id))
+
+        update_table_schema_from_generic(params=PARAMS, table_id=combined_table_id)
+
+        delete_bq_table(combined_table_id)
 
     if "create_paths_views" in steps:
         for manifest_table_name in manifest_dict.keys():
