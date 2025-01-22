@@ -102,7 +102,7 @@ def make_combined_table_query(table_ids: list[str]) -> str:
 def make_reordered_table_query(combined_table_id) -> str:
     return f"""
     SELECT file_gdc_id,
-            gdc_file_url,
+            gdc_file_url_gcs AS gdc_file_url,
             gdc_file_url_aws,
             gdc_file_url_web
     FROM `{combined_table_id}`  
