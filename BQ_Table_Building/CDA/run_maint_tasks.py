@@ -133,7 +133,7 @@ def main(args):
         column_label_dict = PARAMS['UPDATE_LABELS']['labels']
         table_ids = PARAMS['UPDATE_LABELS']['table_ids']
 
-        update_labels(table_ids, column_label_dict)
+        update_labels(table_ids=table_ids, column_label_dict=column_label_dict)
 
 
 if __name__ == "__main__":
