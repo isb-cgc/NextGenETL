@@ -902,7 +902,7 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, friendl
     elif params['NODE'].lower() == 'dcf':
         release = release.replace('dr', '')
     elif params['NODE'].lower() == 'pdc':
-        schema_tags['underscore-version'] = release
+        schema_tags['underscore-version'] = release.lower()
 
     # remove underscore, add decimal to version number
     schema_tags['version'] = ".".join(release.split('_'))
