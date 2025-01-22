@@ -82,9 +82,8 @@ def update_friendly_names(friendly_name_dict):
 def update_labels(column_label_dict: dict[str, str], table_ids: list[str]):
     for table_id in table_ids:
         logger = logging.getLogger("base_script")
-        logger.info(column_label_dict)
-        logger.info(table_ids)
-        # update_table_labels(table_id=table_id, label_dict=column_label_dict)
+
+        update_table_labels(table_id=table_id, label_dict=column_label_dict)
 
 
 def main(args):
