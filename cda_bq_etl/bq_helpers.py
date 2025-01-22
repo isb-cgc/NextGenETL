@@ -778,17 +778,16 @@ def update_table_labels(table_id: str, label_dict: dict[str, str]) -> None:
 
         for label, value in label_dict.items():
             table_obj.labels[label] = value
-            logger.info(table_obj.labels)
 
-            delay = 5
+        delay = 5
 
-            logger.info(f"Altering {table_id}. Labels after change: {table_obj.labels}")
-            logger.info(f"Proceed? Y/n (continues automatically in {delay} seconds)")
+        logger.info(f"Altering {table_id}. Labels after change: {table_obj.labels}")
+        logger.info(f"Proceed? Y/n (continues automatically in {delay} seconds)")
 
-            response = str(input_with_timeout(seconds=delay)).lower()
+        response = str(input_with_timeout(seconds=delay)).lower()
 
-            if response == 'n' or response == 'N':
-                exit("Publish aborted; exiting.")
+        if response == 'n' or response == 'N':
+            exit("Publish aborted; exiting.")
 
         client.update_table(table_obj, ["labels"])
 
@@ -902,6 +901,8 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, friendl
         release = release.replace('r', '')
     elif params['NODE'].lower() == 'dcf':
         release = release.replace('dr', '')
+    elif params['NODE'].lower() == 'pdc':
+        schema_tags['underscore-version'] = release
 
     # remove underscore, add decimal to version number
     schema_tags['version'] = ".".join(release.split('_'))
