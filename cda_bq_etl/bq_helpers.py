@@ -745,6 +745,9 @@ def update_friendly_name(params: Params, table_id: str, custom_name: Optional[st
         if params['NODE'].lower() == 'gdc':
             release = params['RELEASE'].replace('r', '')
             friendly_name = f"{table.friendly_name} REL{release} VERSIONED"
+        elif params['NODE'].lower() == 'dcf':
+            release = params['RELEASE'].replace('dr', '')
+            friendly_name = f"{table.friendly_name} REL{release} VERSIONED"
         else:
             friendly_name = f"{table.friendly_name} {params['RELEASE']} VERSIONED"
 
