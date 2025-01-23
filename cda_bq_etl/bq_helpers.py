@@ -838,6 +838,14 @@ def find_most_recent_published_table_id(params: Params, versioned_table_id: str,
                                                            dataset=dataset,
                                                            table_filter_str=table_base_name,
                                                            is_metadata=True)
+    elif params['NODE'].lower() == 'dcf':
+        versioned_dataset = versioned_table_id.split(".")[1]
+        dataset = versioned_dataset.replace("_versioned", "")
+
+        return get_most_recent_published_table_version_dcf(params=params,
+                                                           dataset=dataset,
+                                                           table_filter_str=table_base_name)
+
     else:
         logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
         logger.critical(f"Need to create find_most_recent_published_table_id function for {params['NODE']}.")
@@ -1121,6 +1129,28 @@ def get_most_recent_published_table_version_pdc(params: Params,
             FROM `{params['PROD_PROJECT']}.{dataset}_versioned`.INFORMATION_SCHEMA.TABLES
             WHERE table_name LIKE '%{table_filter_str}%'
                 {node_table_name_clause}
+            ORDER BY creation_time DESC
+            LIMIT 1
+        """
+
+    previous_versioned_table_name_result = query_and_retrieve_result(make_program_tables_query())
+
+    if previous_versioned_table_name_result is None:
+        return None
+    for previous_versioned_table_name in previous_versioned_table_name_result:
+        table_name = previous_versioned_table_name[0]
+        return f"{params['PROD_PROJECT']}.{dataset}_versioned.{table_name}"
+
+
+def get_most_recent_published_table_version_dcf(params: Params,
+                                                dataset: str,
+                                                table_filter_str: str):
+
+    def make_program_tables_query() -> str:
+        return f"""
+            SELECT table_name 
+            FROM `{params['PROD_PROJECT']}.{dataset}_versioned`.INFORMATION_SCHEMA.TABLES
+            WHERE table_name LIKE '%{table_filter_str}%'
             ORDER BY creation_time DESC
             LIMIT 1
         """
