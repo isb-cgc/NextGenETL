@@ -256,8 +256,6 @@ def main(args):
                                 table_id=combined_table_id,
                                 query=make_combined_table_query(table_ids))
 
-        update_table_schema_from_generic(params=PARAMS, table_id=combined_table_id)
-
     if "reorder_combined_table" in steps:
         logger.info("Entering reorder_combined_table")
 
