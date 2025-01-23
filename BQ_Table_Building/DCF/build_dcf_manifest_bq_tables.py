@@ -270,7 +270,7 @@ def main(args):
                                 table_id=reordered_table_id,
                                 query=make_reordered_table_query(combined_table_id))
 
-        update_table_schema_from_generic(params=PARAMS, table_id=combined_table_id)
+        update_table_schema_from_generic(params=PARAMS, table_id=reordered_table_id)
 
         delete_bq_table(combined_table_id)
 
