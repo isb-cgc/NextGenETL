@@ -306,13 +306,16 @@ def main(args):
         versioned_table_name = f"{PARAMS['COMBINED_TABLE']}_{PARAMS['RELEASE'][1:]}"
         versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}_versioned.{versioned_table_name}"
 
+        previous_versioned_table_id = find_most_recent_published_table_id(PARAMS, table_ids["versioned"])
+
+
         table_ids = {
             "source": combined_table_id,
             "current": current_table_id,
-            "versioned": versioned_table_id
+            "versioned": versioned_table_id,
+            "previous_versioned": previous_versioned_table_id
         }
 
-        find_most_recent_published_table_id(PARAMS, table_ids["versioned"])
 
         publish_table(table_ids)
 
