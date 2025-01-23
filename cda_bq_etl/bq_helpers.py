@@ -924,6 +924,7 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, friendl
         schema_tags['release-notes-url'] = params['RELEASE_NOTES_URL']
 
     logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+    logger.info(f"Schema tags: {schema_tags}")
 
     add_generic_table_metadata(params=params,
                                table_id=table_id,
