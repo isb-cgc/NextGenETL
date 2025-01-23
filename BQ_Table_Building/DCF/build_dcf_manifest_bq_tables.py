@@ -296,6 +296,7 @@ def main(args):
             create_view_from_query(view_id=view_table_id, view_query=sql)
 
     if "publish_combined_table" in steps:
+        gdc_release = PARAMS['RELEASE'][2:]
         combined_table_name = f"rel{gdc_release}_{PARAMS['COMBINED_TABLE']}"
         combined_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{combined_table_name}"
 
