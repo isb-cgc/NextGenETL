@@ -903,6 +903,8 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, friendl
     :param friendly_name_suffix: todo
     :param metadata_file: name of generic table metadata file
     """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
     if schema_tags is None:
         schema_tags = dict()
 
@@ -923,7 +925,6 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, friendl
     if 'RELEASE_NOTES_URL' in params:
         schema_tags['release-notes-url'] = params['RELEASE_NOTES_URL']
 
-    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
     logger.info(f"Schema tags: {schema_tags}")
 
     add_generic_table_metadata(params=params,
@@ -947,6 +948,7 @@ def add_generic_table_metadata(params: Params,
     :param friendly_name_suffix: todo
     :param metadata_file: todo
     """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
     generic_schema_path = f"{params['BQ_REPO']}/{params['GENERIC_SCHEMA_DIR']}"
 
     if not metadata_file:
@@ -967,13 +969,15 @@ def add_generic_table_metadata(params: Params,
 
         table_metadata = json.loads(table_schema)
 
+        logger.info(f"table_metadata: {table_metadata}")
+
         if friendly_name_suffix:
             table_metadata['friendlyName'] += f" - {friendly_name_suffix}"
 
-        update_table_metadata_pdc(table_id, table_metadata)
+        update_table_metadata(table_id, table_metadata)
 
 
-def update_table_metadata_pdc(table_id: str, metadata: dict[str, str]):
+def update_table_metadata(table_id: str, metadata: dict[str, str]):
     """
     Modify an existing BigQuery table's metadata (labels, friendly name, description) using metadata dict argument
     :param table_id: table id in standard SQL format
