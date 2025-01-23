@@ -1304,7 +1304,7 @@ def publish_table(table_ids: dict[str, str]):
 
             response = str(input_with_timeout(seconds=delay)).lower()
 
-            if response == 'n':
+            if response == 'n' or response == 'N':
                 exit("Publish aborted; exiting.")
 
             logger.info(f"Publishing {table_ids['versioned']}")

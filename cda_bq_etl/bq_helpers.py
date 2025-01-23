@@ -745,6 +745,9 @@ def update_friendly_name(params: Params, table_id: str, custom_name: Optional[st
         if params['NODE'].lower() == 'gdc':
             release = params['RELEASE'].replace('r', '')
             friendly_name = f"{table.friendly_name} REL{release} VERSIONED"
+        elif params['NODE'].lower() == 'dcf':
+            release = params['RELEASE'].replace('dr', '')
+            friendly_name = f"{table.friendly_name} REL{release} VERSIONED"
         else:
             friendly_name = f"{table.friendly_name} {params['RELEASE']} VERSIONED"
 
@@ -838,6 +841,14 @@ def find_most_recent_published_table_id(params: Params, versioned_table_id: str,
                                                            dataset=dataset,
                                                            table_filter_str=table_base_name,
                                                            is_metadata=True)
+    elif params['NODE'].lower() == 'dcf':
+        versioned_dataset = versioned_table_id.split(".")[1]
+        dataset = versioned_dataset.replace("_versioned", "")
+
+        return get_most_recent_published_table_version_dcf(params=params,
+                                                           dataset=dataset,
+                                                           table_filter_str=table_base_name)
+
     else:
         logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
         logger.critical(f"Need to create find_most_recent_published_table_id function for {params['NODE']}.")
@@ -892,6 +903,8 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, friendl
     :param friendly_name_suffix: todo
     :param metadata_file: name of generic table metadata file
     """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
     if schema_tags is None:
         schema_tags = dict()
 
@@ -911,6 +924,8 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, friendl
     # gdc uses this
     if 'RELEASE_NOTES_URL' in params:
         schema_tags['release-notes-url'] = params['RELEASE_NOTES_URL']
+
+    logger.info(f"Schema tags: {schema_tags}")
 
     add_generic_table_metadata(params=params,
                                table_id=table_id,
@@ -933,6 +948,7 @@ def add_generic_table_metadata(params: Params,
     :param friendly_name_suffix: todo
     :param metadata_file: todo
     """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
     generic_schema_path = f"{params['BQ_REPO']}/{params['GENERIC_SCHEMA_DIR']}"
 
     if not metadata_file:
@@ -953,13 +969,15 @@ def add_generic_table_metadata(params: Params,
 
         table_metadata = json.loads(table_schema)
 
+        logger.info(f"table_metadata: {table_metadata}")
+
         if friendly_name_suffix:
             table_metadata['friendlyName'] += f" - {friendly_name_suffix}"
 
-        update_table_metadata_pdc(table_id, table_metadata)
+        update_table_metadata(table_id, table_metadata)
 
 
-def update_table_metadata_pdc(table_id: str, metadata: dict[str, str]):
+def update_table_metadata(table_id: str, metadata: dict[str, str]):
     """
     Modify an existing BigQuery table's metadata (labels, friendly name, description) using metadata dict argument
     :param table_id: table id in standard SQL format
@@ -1121,6 +1139,28 @@ def get_most_recent_published_table_version_pdc(params: Params,
             FROM `{params['PROD_PROJECT']}.{dataset}_versioned`.INFORMATION_SCHEMA.TABLES
             WHERE table_name LIKE '%{table_filter_str}%'
                 {node_table_name_clause}
+            ORDER BY creation_time DESC
+            LIMIT 1
+        """
+
+    previous_versioned_table_name_result = query_and_retrieve_result(make_program_tables_query())
+
+    if previous_versioned_table_name_result is None:
+        return None
+    for previous_versioned_table_name in previous_versioned_table_name_result:
+        table_name = previous_versioned_table_name[0]
+        return f"{params['PROD_PROJECT']}.{dataset}_versioned.{table_name}"
+
+
+def get_most_recent_published_table_version_dcf(params: Params,
+                                                dataset: str,
+                                                table_filter_str: str):
+
+    def make_program_tables_query() -> str:
+        return f"""
+            SELECT table_name 
+            FROM `{params['PROD_PROJECT']}.{dataset}_versioned`.INFORMATION_SCHEMA.TABLES
+            WHERE table_name LIKE '%{table_filter_str}%'
             ORDER BY creation_time DESC
             LIMIT 1
         """

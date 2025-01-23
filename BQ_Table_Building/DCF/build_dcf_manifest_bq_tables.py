@@ -28,10 +28,12 @@ import ast
 from google.cloud import bigquery
 
 from cda_bq_etl.gcs_helpers import transfer_between_buckets
-from cda_bq_etl.utils import (load_config, format_seconds)
+from cda_bq_etl.utils import (load_config, format_seconds, input_with_timeout)
 from cda_bq_etl.bq_helpers import (create_and_load_table_from_tsv, query_and_retrieve_result,
                                    create_and_load_table_from_jsonl, create_table_from_query,
-                                   update_table_schema_from_generic, create_view_from_query, delete_bq_table)
+                                   update_table_schema_from_generic, create_view_from_query, delete_bq_table,
+                                   copy_bq_table, update_friendly_name, change_status_to_archived,
+                                   find_most_recent_published_table_id)
 from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload
 
 PARAMS = dict()
@@ -108,6 +110,50 @@ def make_reordered_table_query(combined_table_id) -> str:
     FROM `{combined_table_id}`  
     """
 
+
+def publish_table(table_ids: dict[str, str]):
+    """
+    Publish production BigQuery tables using source_table_id:
+        - create current/versioned table ids
+        - publish tables
+        - update friendly name for versioned table
+        - change last version tables' status labels to archived
+    :param table_ids: dict of table ids: 'source' (dev table), 'versioned' and 'current' (future published ids)
+
+    """
+    logger = logging.getLogger('base_script')
+
+    delay = 5
+    logger.info(f"Publishing the following tables:")
+    logger.info(f"\t- {table_ids['versioned']}")
+    logger.info(f"\t- {table_ids['current']}")
+    logger.info(f"Proceed? Y/n (continues automatically in {delay} seconds)")
+
+    response = str(input_with_timeout(seconds=delay)).lower()
+
+    if response == 'n' or response == 'N':
+        exit("Publish aborted; exiting.")
+
+    logger.info(f"Publishing {table_ids['versioned']}")
+    copy_bq_table(params=PARAMS,
+                  src_table=table_ids['source'],
+                  dest_table=table_ids['versioned'],
+                  replace_table=PARAMS['OVERWRITE_PROD_TABLE'])
+
+    logger.info(f"Publishing {table_ids['current']}")
+    copy_bq_table(params=PARAMS,
+                  src_table=table_ids['source'],
+                  dest_table=table_ids['current'],
+                  replace_table=PARAMS['OVERWRITE_PROD_TABLE'])
+
+    logger.info(f"Updating friendly name for {table_ids['versioned']}")
+    update_friendly_name(PARAMS, table_id=table_ids['versioned'])
+
+    if table_ids['previous_versioned']:
+        logger.info(f"Archiving {table_ids['previous_versioned']}")
+        change_status_to_archived(table_ids['previous_versioned'])
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -176,10 +222,10 @@ def main(args):
         # query to retrieve id, acl, gs_url
         # iterate over results and build json object dict
         # - parse gs_url into list--either by converting string list representation or putting single value into a list
-        # create list of dicts containing id, gdc_file_url_web, gdc_file_url_aws, gdc_file_url_gcs
+        # create list of dicts containing id, gdc_file_url_web, gdc_file_url_aws, gdc_file_url
         # - if acl isn't open, don't include gs or aws uris
         for manifest_table_name in manifest_dict.keys():
-            parsed_table_name = f"temp_{manifest_table_name}_{PARAMS['SPLIT_URL_TABLE_SUFFIX']}"
+            parsed_table_name = f"{manifest_table_name}_{PARAMS['SPLIT_URL_TABLE_SUFFIX']}"
             parsed_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{parsed_table_name}"
 
             manifest_url_record_list = parse_manifest_url_records(manifest_table_name)
@@ -192,15 +238,6 @@ def main(args):
                                              jsonl_file=f"{parsed_table_name}_{PARAMS['RELEASE']}.jsonl",
                                              table_id=parsed_table_id)
 
-    if "reorder_file_mapping_table" in steps:
-        logger.info("Entering reorder_file_mapping_table")
-        parsed_table_name = f"{manifest_table_name}_{PARAMS['SPLIT_URL_TABLE_SUFFIX']}"
-        parsed_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.temp_{parsed_table_name}"
-        reordered_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{parsed_table_name}"
-        create_table_from_query(PARAMS, table_id=reordered_table_id, query=make_reordered_table_query(parsed_table_id))
-
-        delete_bq_table(parsed_table_id)
-
     if "create_combined_table" in steps:
         logger.info("Entering create_combined_table")
         table_ids = list()
@@ -212,13 +249,28 @@ def main(args):
 
         gdc_release = PARAMS['RELEASE'][2:]
 
-        combined_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.rel{gdc_release}_{PARAMS['COMBINED_TABLE']}"
+        combined_table_name = f"temp_rel{gdc_release}_{PARAMS['COMBINED_TABLE']}"
+        combined_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{combined_table_name}"
 
         create_table_from_query(params=PARAMS,
                                 table_id=combined_table_id,
                                 query=make_combined_table_query(table_ids))
 
-        update_table_schema_from_generic(params=PARAMS, table_id=combined_table_id)
+    if "reorder_combined_table" in steps:
+        logger.info("Entering reorder_combined_table")
+
+        gdc_release = PARAMS['RELEASE'][2:]
+        combined_table_name = f"rel{gdc_release}_{PARAMS['COMBINED_TABLE']}"
+        combined_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.temp_{combined_table_name}"
+        reordered_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{combined_table_name}"
+
+        create_table_from_query(PARAMS,
+                                table_id=reordered_table_id,
+                                query=make_reordered_table_query(combined_table_id))
+
+        update_table_schema_from_generic(params=PARAMS, table_id=reordered_table_id)
+
+        delete_bq_table(combined_table_id)
 
     if "create_paths_views" in steps:
         for manifest_table_name in manifest_dict.keys():
@@ -242,6 +294,29 @@ def main(args):
             view_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{view_table_name}"
 
             create_view_from_query(view_id=view_table_id, view_query=sql)
+
+    if "publish_combined_table" in steps:
+        gdc_release = PARAMS['RELEASE'][2:]
+        combined_table_name = f"rel{gdc_release}_{PARAMS['COMBINED_TABLE']}"
+        combined_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{combined_table_name}"
+
+        current_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}.{PARAMS['COMBINED_TABLE']}_current"
+
+        versioned_table_name = f"{PARAMS['COMBINED_TABLE']}_{PARAMS['RELEASE'][1:]}"
+        versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}_versioned.{versioned_table_name}"
+
+        previous_versioned_table_id = find_most_recent_published_table_id(PARAMS,
+                                                                          versioned_table_id=versioned_table_id,
+                                                                          table_base_name=PARAMS['COMBINED_TABLE'])
+
+        table_ids = {
+            "source": combined_table_id,
+            "current": current_table_id,
+            "versioned": versioned_table_id,
+            "previous_versioned": previous_versioned_table_id
+        }
+
+        publish_table(table_ids)
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
