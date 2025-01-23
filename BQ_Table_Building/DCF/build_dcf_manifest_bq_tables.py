@@ -261,6 +261,7 @@ def main(args):
     if "reorder_combined_table" in steps:
         logger.info("Entering reorder_combined_table")
 
+        gdc_release = PARAMS['RELEASE'][2:]
         combined_table_name = f"rel{gdc_release}_{PARAMS['COMBINED_TABLE']}"
         combined_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.temp_{combined_table_name}"
         reordered_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{combined_table_name}"
