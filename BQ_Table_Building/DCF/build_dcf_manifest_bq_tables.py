@@ -32,7 +32,8 @@ from cda_bq_etl.utils import (load_config, format_seconds, input_with_timeout)
 from cda_bq_etl.bq_helpers import (create_and_load_table_from_tsv, query_and_retrieve_result,
                                    create_and_load_table_from_jsonl, create_table_from_query,
                                    update_table_schema_from_generic, create_view_from_query, delete_bq_table,
-                                   copy_bq_table, update_friendly_name, change_status_to_archived)
+                                   copy_bq_table, update_friendly_name, change_status_to_archived,
+                                   find_most_recent_published_table_id)
 from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload
 
 PARAMS = dict()
@@ -310,6 +311,8 @@ def main(args):
             "current": current_table_id,
             "versioned": versioned_table_id
         }
+
+        find_most_recent_published_table_id(PARAMS, table_ids["versioned"])
 
         publish_table(table_ids)
 
