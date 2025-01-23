@@ -103,7 +103,7 @@ def make_combined_table_query(table_ids: list[str]) -> str:
 def make_reordered_table_query(combined_table_id) -> str:
     return f"""
     SELECT file_gdc_id,
-            gdc_file_url_gcs AS gdc_file_url,
+            gdc_file_url,
             gdc_file_url_aws,
             gdc_file_url_web
     FROM `{combined_table_id}`  
@@ -221,7 +221,7 @@ def main(args):
         # query to retrieve id, acl, gs_url
         # iterate over results and build json object dict
         # - parse gs_url into list--either by converting string list representation or putting single value into a list
-        # create list of dicts containing id, gdc_file_url_web, gdc_file_url_aws, gdc_file_url_gcs
+        # create list of dicts containing id, gdc_file_url_web, gdc_file_url_aws, gdc_file_url
         # - if acl isn't open, don't include gs or aws uris
         for manifest_table_name in manifest_dict.keys():
             parsed_table_name = f"{manifest_table_name}_{PARAMS['SPLIT_URL_TABLE_SUFFIX']}"
@@ -278,7 +278,7 @@ def main(args):
             parsed_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{parsed_table_name}"
 
             sql = f"""SELECT file_gdc_id AS file_uuid, 
-                   gdc_file_url_gcs AS gcs_path
+                   gdc_file_url AS gcs_path
                    FROM `{parsed_table_id}`
                    """
 
@@ -311,7 +311,6 @@ def main(args):
         }
 
         publish_table(table_ids)
-
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
