@@ -299,13 +299,17 @@ def main(args):
         combined_table_name = f"rel{gdc_release}_{PARAMS['COMBINED_TABLE']}"
         combined_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{combined_table_name}"
 
-        current_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}.}"
+        current_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}.{PARAMS['COMBINED_TABLE']}_current"
+
+        versioned_table_name = f"{PARAMS['COMBINED_TABLE']}_{PARAMS['RELEASE'][1:]}"
+        versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}_versioned.{versioned_table_name}"
 
         table_ids = {
             "source": combined_table_id,
-            "current": "",
-            "versioned": ""
+            "current": current_table_id,
+            "versioned": versioned_table_id
         }
+
         publish_table(table_ids)
 
 
