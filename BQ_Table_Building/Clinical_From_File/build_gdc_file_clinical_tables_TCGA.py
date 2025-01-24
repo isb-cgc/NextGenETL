@@ -290,9 +290,9 @@ def get_non_null_column_percentages_by_project(table_id: str) -> dict[str, dict[
 
     non_null_percentage_dict = dict()
 
-    for project_short_name, project_count in project_row_counts.items():
-        logger.info(f"Retrieving column counts for {table_id}: {project_short_name}")
+    logger.info(f"Retrieving column counts for {table_id}")
 
+    for project_short_name, project_count in project_row_counts.items():
         column_null_counts_sql = f"""
             SELECT column_name, COUNT(1) AS nulls_count
             FROM `{table_id}` AS clinical,
@@ -606,15 +606,6 @@ def main(args):
         pass
 
     if 'build_column_metadata_table' in steps:
-        """
-        column_metadata_dict = {
-            column_name: {
-                table_list: [],
-                project_list:
-            } 
-        }
-        """
-
         column_metadata_dict = dict()
 
         for table_id in get_renamed_table_ids():
@@ -624,20 +615,22 @@ def main(args):
 
             non_null_by_project_dict = get_non_null_column_percentages_by_project(table_id)
 
-            for column, projects in non_null_by_project_dict.items():
-                print(f"{column}: {projects}")
-
-            """
             for column in column_set:
                 if column not in column_metadata_dict.keys():
                     column_metadata_dict[column] = dict()
-                    column_metadata_dict[column]['table_type'] = list()
-                column_metadata_dict[column]['table_type'].append(table_type)
-                
-        for column, column_metadata in column_metadata_dict.items():
-            if len(column_metadata['table_type']) > 1:
-                print(f"More than one table type for {column}: {column_metadata['table_type']}")
-        """
+                column_metadata_dict[column].append(table_type)
+
+                if column in non_null_by_project_dict:
+                    projects = list(sorted(non_null_by_project_dict[column].keys()))
+                    highest_non_null = list(sorted(non_null_by_project_dict[column].values(), reverse=True))[0]
+                    column_metadata_dict[column][table_type]['projects'] = projects
+                    column_metadata_dict[column][table_type]['highest_non_null'] = highest_non_null
+
+        for column, table_types in column_metadata_dict.items():
+            print(f"***** {column}:")
+
+            for table_type, metadata in table_types.items():
+                print(f"\t{table_type}-- highest non-null %: {highest_non_null}, projects: {projects}")
 
     if 'output_non_null_percentages_by_project' in steps:
         table_suffixes = ['patient']
