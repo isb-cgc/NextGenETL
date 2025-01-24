@@ -606,7 +606,7 @@ def main(args):
         pass
 
     if 'build_column_metadata_table' in steps:
-        column_metadata_dict = dict()
+        column_metadata_list = list()
 
         for table_id in get_renamed_table_ids():
             column_set = get_table_columns(table_id)
@@ -617,6 +617,19 @@ def main(args):
 
             print(non_null_by_project_dict)
 
+            for column, metadata in non_null_by_project_dict.items():
+                for project_short_name, non_null_percent in metadata.items():
+                    column_metadata_list.append({
+                        'column': column,
+                        'table_type': table_type,
+                        'project_short_name': project_short_name,
+                        'non_null_percent': non_null_percent
+                    })
+
+        for row in column_metadata_list:
+            print(row)
+
+        """
             for column in column_set:
                 if column not in column_metadata_dict.keys():
                     column_metadata_dict[column] = dict()
@@ -635,6 +648,7 @@ def main(args):
 
             for table_type, metadata in table_types.items():
                 print(f"\t{table_type}-- highest non-null %: {highest_non_null}, projects: {projects}")
+        """
 
     if 'output_non_null_percentages_by_project' in steps:
         table_suffixes = ['patient']
