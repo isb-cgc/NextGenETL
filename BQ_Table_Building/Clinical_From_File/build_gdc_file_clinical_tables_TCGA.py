@@ -368,7 +368,7 @@ def main(args):
         for data_type, files in files_by_type.items():
             logger.info(data_type)
             concat_header_row_list = build_a_header(files)
-            concat_header_row_list.append('program')
+            concat_header_row_list.append('program_name')
             concat_header_row_list.append('project_short_name')
 
             new_file_path = f"{local_concat_dir}/{PARAMS['RELEASE']}_TCGA_{data_type}_raw.tsv"
@@ -401,7 +401,7 @@ def main(args):
                                 if column in header_row_list:
                                     value_idx = header_row_list.index(column)
                                     big_tsv_fh.write(f"{record[value_idx]}\t")
-                                elif column == 'program':
+                                elif column == 'program_name':
                                     big_tsv_fh.write(f"{PARAMS['PROGRAM']}\t")
                                 elif column == 'project_short_name':
                                     project_short_name = file_path.split('__')[0].split('/')[-1]
