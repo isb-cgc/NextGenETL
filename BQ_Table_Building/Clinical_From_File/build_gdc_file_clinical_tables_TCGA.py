@@ -490,9 +490,10 @@ def main(args):
                             AND data_type = 'STRING'
                         """
 
-            column_result = query_and_retrieve_result(column_sql)
+            column_results = query_and_retrieve_result(column_sql)
 
-            for column in column_result:
+            for row in column_results:
+                column = row[0]
                 if column not in column_metadata_dict.keys():
                     column_metadata_dict[column] = dict()
                     column_metadata_dict[column]['table_type'] = list()
