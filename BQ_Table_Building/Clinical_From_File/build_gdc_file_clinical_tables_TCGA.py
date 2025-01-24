@@ -31,9 +31,10 @@ from google.resumable_media import InvalidResponse
 
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
                                    create_and_load_table_from_tsv, query_and_retrieve_result, create_table_from_query,
-                                   update_table_schema_from_generic)
+                                   update_table_schema_from_generic, create_and_load_table_from_jsonl)
 from cda_bq_etl.gcs_helpers import upload_to_bucket
-from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, create_normalized_tsv)
+from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, create_normalized_tsv,
+                                     write_list_to_jsonl_and_upload)
 from cda_bq_etl.utils import (format_seconds, get_filepath, load_config, get_scratch_fp, calculate_md5sum,
                               create_dev_table_id)
 
@@ -615,8 +616,6 @@ def main(args):
 
             non_null_by_project_dict = get_non_null_column_percentages_by_project(table_id)
 
-            print(non_null_by_project_dict)
-
             for column, metadata in non_null_by_project_dict.items():
                 for project_short_name, non_null_percent in metadata.items():
                     column_metadata_list.append({
@@ -626,8 +625,16 @@ def main(args):
                         'non_null_percent': non_null_percent
                     })
 
-        for row in column_metadata_list:
-            print(row)
+        write_list_to_jsonl_and_upload(PARAMS, 'column_metadata', column_metadata_list)
+        metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['COLUMN_METADATA_TABLE_NAME']}"
+        metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}"
+
+        create_and_load_table_from_jsonl(PARAMS,
+                                         jsonl_file=f"column_metadata_{PARAMS['RELEASE']}.jsonl",
+                                         table_id=metadata_table_id)
+
+        # update_table_schema_from_generic(params=PARAMS, table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']))
+
 
         """
             for column in column_set:
