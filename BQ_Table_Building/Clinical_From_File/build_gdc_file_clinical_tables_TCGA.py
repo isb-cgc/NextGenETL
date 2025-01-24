@@ -316,7 +316,7 @@ def get_non_null_column_percentages_by_project(table_id: str) -> dict[str, dict[
 
             non_null_percentage_dict[column_name][project_short_name] = non_null_percentage
 
-        return non_null_percentage_dict
+    return non_null_percentage_dict
 
 
 def main(args):
