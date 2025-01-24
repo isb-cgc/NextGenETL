@@ -450,6 +450,60 @@ def main(args):
             logger.info(table)
         logger.info("")
 
+    if 'build_column_metadata_table' in steps:
+        with open(file_traversal_list, mode='r') as traversal_list_file:
+            all_files = traversal_list_file.read().splitlines()
+
+        table_list = []
+
+        for tsv_file_path in all_files:
+            normalized_tsv_file_path = tsv_file_path.replace("_raw.tsv", ".tsv")
+            table_name = create_table_name_from_file_name(normalized_tsv_file_path)
+            table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}"
+
+            table_list.append(table_id)
+
+        """
+        column_metadata_dict = {
+            column_name: {
+                table_list: [],
+                project_list:
+                
+            } 
+        }
+        """
+
+        column_metadata_dict = dict()
+
+        for table_id in table_list:
+            table_name = table_id.split(".")[-1]
+            table_type = "_".join(table_name.split("_")[2:])
+
+            # get all columns from the table
+            # check dict for column name. if doesn't exist, add it
+            # add the table type
+
+            column_sql = f"""
+                            SELECT column_name
+                            FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}`.INFORMATION_SCHEMA.COLUMNS
+                            WHERE table_name = '{table_name}'
+                            AND data_type = 'STRING'
+                        """
+
+            column_result = query_and_retrieve_result(column_sql)
+
+            for column in column_result:
+                if column not in column_metadata_dict:
+                    column_metadata_dict[column] = dict()
+                    column_metadata_dict[column]['table_type'] = list()
+                column_metadata_dict[column]['table_type'].append(table_type)
+
+        for column, column_metadata in column_metadata_dict.items():
+            print(f"{column}: {column_metadata['table_type']}")
+
+            if len(column_metadata['table_type']) > 1:
+                print("**** MORE THAN ONE TABLE TYPE****")
+
     if 'build_final_table' in steps:
         columns = import_column_names()
 
@@ -546,41 +600,6 @@ def main(args):
             writer.writerows(non_null_percentage_list)
 
         upload_to_bucket(PARAMS, non_null_percentage_tsv_path, delete_local=True, verbose=False)
-
-    if 'import_data_definitions' in steps:
-        gdc_api_url = "https://api.gdc.cancer.gov/v0/submission/_dictionary/_all"
-        response = requests.get(gdc_api_url)
-        dict_json = response.json()
-
-        column_definition_dict = dict()
-
-        categories = ['demographic', 'diagnosis', 'exposure', 'family_history', 'follow_up',
-                      'molecular_test', 'other_clinical_attribute', 'pathology_detail', 'treatment', 'clinical']
-
-        for category in categories:
-            logger.info(f"Parsing {category}!")
-            column_properties = dict_json[category]["properties"]
-
-            for column, values in column_properties.items():
-                if (('description' not in values and 'common' not in values) or
-                        ('common' in values and 'description' not in values['common'])):
-                    logger.info(f"No description found for column {column}.")
-                else:
-                    if 'description' in values:
-                        description = values['description']
-                    else:
-                        description = values['common']['description']
-
-                    if column in column_definition_dict and column_definition_dict[column] != description:
-                        logger.info(f"Column {column} is already in the dictionary.")
-                        logger.info(f"Existing description: {column_definition_dict[column]}")
-                        logger.info(f"New description: {description}")
-                    else:
-                        column_definition_dict[column] = description
-
-        logger.info("DESCRIPTIONS!!!")
-        for column, description in sorted(column_definition_dict.items()):
-            print(f"{column}\t{description}")
 
     if 'null_column_comparison' in steps:
         table_suffixes = ['patient']
