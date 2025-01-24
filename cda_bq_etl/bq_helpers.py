@@ -894,7 +894,11 @@ def find_most_recent_published_refseq_table_id(params, versioned_table_id):
             return prev_release_table_id
 
 
-def update_table_schema_from_generic(params, table_id, schema_tags=None, friendly_name_suffix=None, metadata_file=None):
+def update_table_schema_from_generic(params, table_id,
+                                     schema_tags=None,
+                                     friendly_name_suffix=None,
+                                     metadata_file=None,
+                                     generate_definitions=False):
     """
     Insert schema tags into generic schema (currently located in BQEcosystem repo).
     :param params: params from YAML config
@@ -932,7 +936,10 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, friendl
                                schema_tags=schema_tags,
                                friendly_name_suffix=friendly_name_suffix,
                                metadata_file=metadata_file)
-    add_column_descriptions(params=params, table_id=table_id)
+    if generate_definitions:
+        generate_and_add_column_descriptions(params=params, table_id=table_id)
+    else:
+        add_column_descriptions(params=params, table_id=table_id)
 
 
 def add_generic_table_metadata(params: Params,
@@ -1017,6 +1024,49 @@ def add_column_descriptions(params: Params, table_id: str):
         descriptions = json.load(column_output)
 
     update_schema(table_id, descriptions)
+
+
+def generate_and_add_column_descriptions(params: Params, table_id: str):
+    """
+    Alter an existing table's schema (currently, only column descriptions are mutable without a table rebuild,
+    Google's restriction).
+    :param params: params supplied in yaml config
+    :param table_id: table id in standard SQL format
+    """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+    logger.info("\t - Adding/generating column descriptions!")
+
+    column_desc_fp = f"{params['BQ_REPO']}/{params['COLUMN_DESCRIPTION_FILEPATH']}"
+    column_desc_fp = get_filepath(column_desc_fp)
+
+    if not os.path.exists(column_desc_fp):
+        logger.critical("BQEcosystem column description path not found")
+        sys.exit(-1)
+    with open(column_desc_fp) as column_output:
+        descriptions = json.load(column_output)
+
+    client = bigquery.Client()
+    table = client.get_table(table_id)
+
+    new_schema = []
+
+    for schema_field in table.schema:
+        column = schema_field.to_api_repr()
+
+        if column['name'] in descriptions.keys():
+            name = column['name']
+            column['description'] = descriptions[name]
+        else:
+            generated_definition = " ".join(column['name'].split("_"))
+            generated_definition = generated_definition.capitalize()
+            column['description'] = generated_definition
+
+        mod_column = bigquery.SchemaField.from_api_repr(column)
+        new_schema.append(mod_column)
+
+    table.schema = new_schema
+
+    client.update_table(table, ['schema'])
 
 
 def update_schema(table_id: str, new_descriptions: dict[str, str]):

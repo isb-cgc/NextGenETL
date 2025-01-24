@@ -214,6 +214,32 @@ def import_column_names() -> list[str]:
         return list(descriptions.keys())
 
 
+def retrieve_table_columns(table_id: str) -> set[str]:
+    table_name = table_id.split(".")[-1]
+    table_type = "_".join(table_name.split("_")[2:])
+
+    # get all columns from the table
+    # check dict for column name. if doesn't exist, add it
+    # add the table type
+
+    column_sql = f"""
+                    SELECT column_name
+                    FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}`.INFORMATION_SCHEMA.COLUMNS
+                    WHERE table_name = '{table_name}'
+                    AND data_type = 'STRING'
+                """
+
+    column_results = query_and_retrieve_result(column_sql)
+
+    column_set = set()
+
+    for row in column_results:
+        column_set.add(row[0])
+
+    return column_set
+
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -450,6 +476,38 @@ def main(args):
             logger.info(table)
         logger.info("")
 
+    if 'build_renamed_tables' in steps:
+        for raw_table_id in table_list:
+            column_set = retrieve_table_columns(raw_table_id)
+            table_name = raw_table_id.split(".")[-1]
+            table_type = "_".join(table_name.split("_")[2:])
+
+            select_columns_str = ""
+
+            # alter the column name if necessary
+            for column_name in column_set:
+                if column_name in PARAMS['COLUMN_RENAMING']:
+                    select_columns_str += f"{PARAMS['COLUMN_RENAMING'][column_name]} AS {column_name}, "
+                else:
+                    select_columns_str += f"{column_name}, "
+
+            # remove trailing comma
+            select_columns_str = select_columns_str[:-2]
+
+            sql = f"""
+                SELECT '{PARAMS['PROGRAM']}' AS program_name,
+                    {select_columns_str}
+                FROM `{raw_table_id}`
+            """
+
+            destination_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RENAMED_DATASET']}.{table_name}"
+            create_table_from_query(PARAMS, destination_table_id, sql)
+
+            update_table_schema_from_generic(params=PARAMS,
+                                             table_id=destination_table_id,
+                                             metadata_file=PARAMS[table_type]['METADATA_FILE_SINGLE_PROGRAM'],
+                                             generate_definitions=True)
+
     if 'build_column_metadata_table' in steps:
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
@@ -468,7 +526,6 @@ def main(args):
             column_name: {
                 table_list: [],
                 project_list:
-                
             } 
         }
         """
@@ -476,65 +533,19 @@ def main(args):
         column_metadata_dict = dict()
 
         for table_id in table_list:
+            column_set = retrieve_table_columns(table_id)
             table_name = table_id.split(".")[-1]
             table_type = "_".join(table_name.split("_")[2:])
 
-            # get all columns from the table
-            # check dict for column name. if doesn't exist, add it
-            # add the table type
-
-            column_sql = f"""
-                            SELECT column_name
-                            FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}`.INFORMATION_SCHEMA.COLUMNS
-                            WHERE table_name = '{table_name}'
-                            AND data_type = 'STRING'
-                        """
-
-            column_results = query_and_retrieve_result(column_sql)
-
-            for row in column_results:
-                column = row[0]
+            for column in column_set:
                 if column not in column_metadata_dict.keys():
                     column_metadata_dict[column] = dict()
                     column_metadata_dict[column]['table_type'] = list()
                 column_metadata_dict[column]['table_type'].append(table_type)
 
         for column, column_metadata in column_metadata_dict.items():
-            print(f"{column}: {column_metadata['table_type']}")
-
             if len(column_metadata['table_type']) > 1:
-                print("**** MORE THAN ONE TABLE TYPE****")
-
-    if 'build_final_table' in steps:
-        columns = import_column_names()
-
-        select_columns_str = ""
-
-        for column_name in columns:
-            if column_name == 'program_name':
-                continue
-            elif column_name in PARAMS['COLUMN_RENAMING']:
-                select_columns_str += f"{PARAMS['COLUMN_RENAMING'][column_name]} AS {column_name}, "
-            else:
-                select_columns_str += f"{column_name}, "
-
-        select_columns_str = select_columns_str[:-2]
-        patient_table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_patient"
-        source_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{patient_table_name}"
-
-        sql = f"""
-            SELECT '{PARAMS['PROGRAM']}' AS program_name,
-                {select_columns_str}
-            FROM `{source_table_id}`
-        """
-
-        final_table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}"
-        destination_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{final_table_name}"
-        create_table_from_query(PARAMS, destination_table_id, sql)
-
-        update_table_schema_from_generic(params=PARAMS,
-                                         table_id=destination_table_id,
-                                         metadata_file=PARAMS['METADATA_FILE_SINGLE_PROGRAM'])
+                print(f"More than one table type for {column}: {column_metadata['table_type']}")
 
     if 'output_non_null_percentages_by_project' in steps:
         table_suffixes = ['patient']
