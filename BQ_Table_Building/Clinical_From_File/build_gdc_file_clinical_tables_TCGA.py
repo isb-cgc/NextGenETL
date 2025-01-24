@@ -533,9 +533,11 @@ def main(args):
             destination_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RENAMED_DATASET']}.{table_name}"
             create_table_from_query(PARAMS, destination_table_id, sql)
 
+            metadata_file_name = PARAMS['TABLE_TYPES'][table_type]['METADATA_FILE_SINGLE_PROGRAM']
+
             update_table_schema_from_generic(params=PARAMS,
                                              table_id=destination_table_id,
-                                             metadata_file=PARAMS[table_type]['METADATA_FILE_SINGLE_PROGRAM'],
+                                             metadata_file=metadata_file_name,
                                              generate_definitions=True)
 
     if 'build_column_metadata_table' in steps:
