@@ -976,8 +976,6 @@ def add_generic_table_metadata(params: Params,
 
         table_metadata = json.loads(table_schema)
 
-        logger.info(f"table_metadata: {table_metadata}")
-
         if friendly_name_suffix:
             table_metadata['friendlyName'] += f" - {friendly_name_suffix}"
 

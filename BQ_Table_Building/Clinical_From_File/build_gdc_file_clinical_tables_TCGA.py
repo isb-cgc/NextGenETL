@@ -525,7 +525,7 @@ def main(args):
             select_columns_str = select_columns_str[:-2]
 
             sql = f"""
-                SELECT '{PARAMS['PROGRAM']}' AS program_name,
+                SELECT 
                     {select_columns_str}
                 FROM `{raw_table_id}`
             """
