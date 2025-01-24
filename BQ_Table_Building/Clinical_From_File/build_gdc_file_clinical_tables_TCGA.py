@@ -290,8 +290,6 @@ def get_non_null_column_percentages_by_project(table_id: str) -> dict[str, dict[
 
     non_null_percentage_dict = dict()
 
-    print(project_row_counts)
-
     for project_short_name, project_count in project_row_counts.items():
         logger.info(f"Retrieving column counts for {table_id}: {project_short_name}")
 
@@ -309,6 +307,11 @@ def get_non_null_column_percentages_by_project(table_id: str) -> dict[str, dict[
         for row in null_count_result:
             column_name = row[0]
             null_count = row[1]
+
+            # drop any projects with only null values
+            if project_count - null_count == 0:
+                continue
+
             null_percentage = (null_count / project_count) * 100
             non_null_percentage = round(100 - null_percentage, 2)
             if column_name not in non_null_percentage_dict:
