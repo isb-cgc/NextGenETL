@@ -239,6 +239,26 @@ def retrieve_table_columns(table_id: str) -> set[str]:
     return column_set
 
 
+def get_raw_table_ids() -> list[str]:
+    program = PARAMS['PROGRAM']
+
+    local_program_dir = get_scratch_fp(PARAMS, program)
+    file_traversal_list = f"{local_program_dir}/{PARAMS['BASE_FILE_NAME']}_traversal_list_{program}.txt"
+
+    with open(file_traversal_list, mode='r') as traversal_list_file:
+        all_files = traversal_list_file.read().splitlines()
+
+    table_list = []
+
+    for tsv_file_path in all_files:
+        normalized_tsv_file_path = tsv_file_path.replace("_raw.tsv", ".tsv")
+        table_name = create_table_name_from_file_name(normalized_tsv_file_path)
+        table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}"
+
+        table_list.append(table_id)
+
+    return table_list
+
 
 def main(args):
     try:
@@ -477,15 +497,25 @@ def main(args):
         logger.info("")
 
     if 'build_renamed_tables' in steps:
-        for raw_table_id in table_list:
-            column_set = retrieve_table_columns(raw_table_id)
+        for raw_table_id in get_raw_table_ids():
+            column_list = list(retrieve_table_columns(raw_table_id))
+            first_column_list = list()
+
+            # reorder columns
+            for column in PARAMS['COLUMN_ORDERING']:
+                if column in column_list:
+                    first_column_list.append(column)
+                    column_list.remove(column)
+
+            column_list = first_column_list + column_list
+
             table_name = raw_table_id.split(".")[-1]
             table_type = "_".join(table_name.split("_")[2:])
 
             select_columns_str = ""
 
             # alter the column name if necessary
-            for column_name in column_set:
+            for column_name in column_list:
                 if column_name in PARAMS['COLUMN_RENAMING']:
                     select_columns_str += f"{PARAMS['COLUMN_RENAMING'][column_name]} AS {column_name}, "
                 else:
@@ -509,18 +539,6 @@ def main(args):
                                              generate_definitions=True)
 
     if 'build_column_metadata_table' in steps:
-        with open(file_traversal_list, mode='r') as traversal_list_file:
-            all_files = traversal_list_file.read().splitlines()
-
-        table_list = []
-
-        for tsv_file_path in all_files:
-            normalized_tsv_file_path = tsv_file_path.replace("_raw.tsv", ".tsv")
-            table_name = create_table_name_from_file_name(normalized_tsv_file_path)
-            table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}"
-
-            table_list.append(table_id)
-
         """
         column_metadata_dict = {
             column_name: {
@@ -532,7 +550,7 @@ def main(args):
 
         column_metadata_dict = dict()
 
-        for table_id in table_list:
+        for table_id in get_raw_table_ids():
             column_set = retrieve_table_columns(table_id)
             table_name = table_id.split(".")[-1]
             table_type = "_".join(table_name.split("_")[2:])
