@@ -493,7 +493,7 @@ def main(args):
             column_result = query_and_retrieve_result(column_sql)
 
             for column in column_result:
-                if column not in column_metadata_dict:
+                if column not in column_metadata_dict.keys():
                     column_metadata_dict[column] = dict()
                     column_metadata_dict[column]['table_type'] = list()
                 column_metadata_dict[column]['table_type'].append(table_type)
