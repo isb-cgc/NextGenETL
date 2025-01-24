@@ -214,7 +214,7 @@ def import_column_names() -> list[str]:
         return list(descriptions.keys())
 
 
-def retrieve_table_columns(table_id: str) -> set[str]:
+def get_table_columns(table_id: str) -> set[str]:
     table_name = table_id.split(".")[-1]
     table_type = "_".join(table_name.split("_")[2:])
 
@@ -258,6 +258,63 @@ def get_raw_table_ids() -> list[str]:
         table_list.append(table_id)
 
     return table_list
+
+
+def get_renamed_table_ids() -> list[str]:
+    raw_table_ids = get_raw_table_ids()
+    renamed_table_ids = list()
+
+    for raw_table_id in raw_table_ids:
+        raw_table_name = raw_table_id.split(".")[-1]
+        renamed_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RENAMED_DATASET']}.{raw_table_name}"
+        renamed_table_ids.append(renamed_table_id)
+
+    return renamed_table_ids
+
+
+def get_non_null_column_percentages_by_project(table_id: str) -> dict[str, dict[str, float]]:
+    logger = logging.getLogger('base_script')
+
+    project_row_count_sql = f"""
+        SELECT project_short_name, count(*)
+        FROM `{table_id}`
+        GROUP BY project_short_name
+    """
+
+    project_row_count_result = query_and_retrieve_result(project_row_count_sql)
+
+    project_row_counts = dict()
+
+    for row in project_row_count_result:
+        project_row_counts[row[0]] = row[1]
+
+    for project_short_name, project_count in project_row_counts.items():
+        logger.info(f"Retrieving column counts for {project_short_name}")
+
+        column_null_counts_sql = f"""
+            SELECT column_name, COUNT(1) AS nulls_count
+            FROM `{table_id}` AS clinical,
+            UNNEST(REGEXP_EXTRACT_ALL(TO_JSON_STRING(clinical), r'\"(\\w+)\":null')) column_name
+            WHERE project_short_name = '{project_short_name}'
+            GROUP BY column_name
+            ORDER BY nulls_count
+        """
+
+        null_count_result = query_and_retrieve_result(column_null_counts_sql)
+
+        non_null_percentage_dict = dict()
+
+        for row in null_count_result:
+            column_name = row[0]
+            null_count = row[1]
+            null_percentage = (null_count / project_count) * 100
+            non_null_percentage = round(100 - null_percentage, 2)
+            if column_name not in non_null_percentage_dict:
+                non_null_percentage_dict[column_name] = dict()
+
+            non_null_percentage_dict[column_name][project_short_name] = non_null_percentage
+
+        return non_null_percentage_dict
 
 
 def main(args):
@@ -498,7 +555,7 @@ def main(args):
 
     if 'build_renamed_tables' in steps:
         for raw_table_id in get_raw_table_ids():
-            column_list = list(retrieve_table_columns(raw_table_id))
+            column_list = list(get_table_columns(raw_table_id))
             first_column_list = list()
 
             # reorder columns
@@ -540,6 +597,9 @@ def main(args):
                                              metadata_file=metadata_file_name,
                                              generate_definitions=True)
 
+    if 'build_selected_column_tables' in steps:
+        pass
+
     if 'build_column_metadata_table' in steps:
         """
         column_metadata_dict = {
@@ -552,20 +612,27 @@ def main(args):
 
         column_metadata_dict = dict()
 
-        for table_id in get_raw_table_ids():
-            column_set = retrieve_table_columns(table_id)
+        for table_id in get_renamed_table_ids():
+            column_set = get_table_columns(table_id)
             table_name = table_id.split(".")[-1]
             table_type = "_".join(table_name.split("_")[2:])
 
+            non_null_by_project_dict = get_non_null_column_percentages_by_project(table_id)
+
+            for column, projects in non_null_by_project_dict.items():
+                print(f"{column}: {projects}")
+
+            """
             for column in column_set:
                 if column not in column_metadata_dict.keys():
                     column_metadata_dict[column] = dict()
                     column_metadata_dict[column]['table_type'] = list()
                 column_metadata_dict[column]['table_type'].append(table_type)
-
+                
         for column, column_metadata in column_metadata_dict.items():
             if len(column_metadata['table_type']) > 1:
                 print(f"More than one table type for {column}: {column_metadata['table_type']}")
+        """
 
     if 'output_non_null_percentages_by_project' in steps:
         table_suffixes = ['patient']
