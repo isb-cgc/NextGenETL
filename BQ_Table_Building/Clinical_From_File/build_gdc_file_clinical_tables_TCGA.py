@@ -289,7 +289,7 @@ def get_non_null_column_percentages_by_project(table_id: str) -> dict[str, dict[
         project_row_counts[row[0]] = row[1]
 
     for project_short_name, project_count in project_row_counts.items():
-        logger.info(f"Retrieving column counts for {project_short_name}")
+        logger.info(f"Retrieving column counts for {table_id}: {project_short_name}")
 
         column_null_counts_sql = f"""
             SELECT column_name, COUNT(1) AS nulls_count
