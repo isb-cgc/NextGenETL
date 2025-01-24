@@ -615,6 +615,8 @@ def main(args):
 
             non_null_by_project_dict = get_non_null_column_percentages_by_project(table_id)
 
+            print(non_null_by_project_dict)
+
             for column in column_set:
                 if column not in column_metadata_dict.keys():
                     column_metadata_dict[column] = dict()
