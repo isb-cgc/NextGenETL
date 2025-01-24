@@ -618,7 +618,9 @@ def main(args):
             for column in column_set:
                 if column not in column_metadata_dict.keys():
                     column_metadata_dict[column] = dict()
-                column_metadata_dict[column].append(table_type)
+
+                # add table type: drug, ablation, etc
+                column_metadata_dict[column][table_type] = dict()
 
                 if column in non_null_by_project_dict:
                     projects = list(sorted(non_null_by_project_dict[column].keys()))
