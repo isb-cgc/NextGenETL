@@ -310,8 +310,8 @@ def get_non_null_column_percentages_by_project(table_id: str) -> dict[str, dict[
             null_count = row[1]
 
             # drop any projects with only null values
-            if project_count - null_count == 0:
-                continue
+            # if project_count - null_count == 0:
+            #    continue
 
             null_percentage = (null_count / project_count) * 100
             non_null_percentage = round(100 - null_percentage, 2)
