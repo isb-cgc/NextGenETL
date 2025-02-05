@@ -227,7 +227,6 @@ def get_table_columns(table_id: str) -> set[str]:
                     SELECT column_name
                     FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}`.INFORMATION_SCHEMA.COLUMNS
                     WHERE table_name = '{table_name}'
-                    AND data_type = 'STRING'
                 """
 
     column_results = query_and_retrieve_result(column_sql)
@@ -296,8 +295,8 @@ def get_non_null_column_percentages_by_project(table_id: str) -> dict[str, dict[
     for project_short_name, project_count in project_row_counts.items():
         column_null_counts_sql = f"""
             SELECT column_name, COUNT(1) AS nulls_count
-            FROM `{table_id}` AS clinical,
-            UNNEST(REGEXP_EXTRACT_ALL(TO_JSON_STRING(clinical), r'\"(\\w+)\":null')) column_name
+            FROM `{table_id}` AS t,
+            UNNEST(REGEXP_EXTRACT_ALL(TO_JSON_STRING(t), r'\"(\\w+)\":null')) column_name
             WHERE project_short_name = '{project_short_name}'
             GROUP BY column_name
             ORDER BY nulls_count
@@ -570,7 +569,7 @@ def main(args):
                     first_column_list.append(column)
                     column_list.remove(column)
 
-            column_list = first_column_list + column_list
+            combined_column_list = first_column_list + column_list
 
             table_name = raw_table_id.split(".")[-1]
             table_type = "_".join(table_name.split("_")[2:])
@@ -578,9 +577,9 @@ def main(args):
             select_columns_str = ""
 
             # alter the column name if necessary
-            for column_name in column_list:
+            for column_name in combined_column_list:
                 if column_name in PARAMS['COLUMN_RENAMING']:
-                    select_columns_str += f"{PARAMS['COLUMN_RENAMING'][column_name]} AS {column_name}, "
+                    select_columns_str += f"{column_name} AS {PARAMS['COLUMN_RENAMING'][column_name]}, "
                 else:
                     select_columns_str += f"{column_name}, "
 
@@ -604,7 +603,26 @@ def main(args):
                                              generate_definitions=True)
 
     if 'build_selected_column_tables' in steps:
-        pass
+        sql = f"""
+            WITH combined_projects AS (
+              SELECT ANY_VALUE((SELECT AS STRUCT column_name, table_type FROM UNNEST([t]))).*,
+                STRING_AGG(project_short_name, ', ') project_short_name
+              FROM `isb-project-zero.clinical_from_files_final.r41_TCGA_column_metadata` t
+              GROUP BY TO_JSON_STRING((SELECT AS STRUCT column_name, table_type FROM UNNEST([t])))
+            ), highest_non_null AS (
+              SELECT column_name, table_type, MAX(non_null_percent) OVER (
+                PARTITION BY column_name, table_type
+              ) AS highest_non_null_percent
+              FROM `isb-project-zero.clinical_from_files_final.r41_TCGA_column_metadata`
+              GROUP BY column_name, table_type, non_null_percent
+            )
+            
+            SELECT c.column_name, c.table_type, h.highest_non_null_percent, c.project_short_name  
+            FROM combined_projects c
+            JOIN highest_non_null h ON c.column_name = h.column_name AND c.table_type = h.table_type
+            GROUP BY c.column_name, c.table_type, h.highest_non_null_percent, c.project_short_name
+            ORDER BY c.column_name
+        """
 
     if 'build_column_metadata_table' in steps:
         column_metadata_list = list()
