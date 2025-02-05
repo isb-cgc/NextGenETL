@@ -637,7 +637,7 @@ def main(args):
             for column, metadata in non_null_by_project_dict.items():
                 for project_short_name, non_null_percent in metadata.items():
                     column_metadata_list.append({
-                        'column': column,
+                        'column_name': column,
                         'table_type': table_type,
                         'project_short_name': project_short_name,
                         'non_null_percent': non_null_percent
