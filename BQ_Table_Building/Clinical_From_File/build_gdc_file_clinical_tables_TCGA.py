@@ -316,19 +316,13 @@ def get_non_null_column_percentages_by_project(table_id: str) -> dict[str, dict[
             SELECT * FROM null_count_table
             UNION ALL
             SELECT * FROM no_null_columns
-            """
+        """
 
         null_count_result = query_and_retrieve_result(column_null_counts_sql)
 
         for row in null_count_result:
             column_name = row[0]
             null_count = row[1]
-
-            logger.info(f"{column_name} - {null_count}")
-
-            # drop any projects with only null values
-            # if project_count - null_count == 0:
-            #    continue
 
             null_percentage = (null_count / project_count) * 100
             non_null_percentage = round(100 - null_percentage, 2)
@@ -620,28 +614,6 @@ def main(args):
                                              metadata_file=metadata_file_name,
                                              generate_definitions=True)
 
-    if 'build_selected_column_tables' in steps:
-        sql = f"""
-            WITH combined_projects AS (
-              SELECT ANY_VALUE((SELECT AS STRUCT column_name, table_type FROM UNNEST([t]))).*,
-                STRING_AGG(project_short_name, ', ') project_short_name
-              FROM `isb-project-zero.clinical_from_files_final.r41_TCGA_column_metadata` t
-              GROUP BY TO_JSON_STRING((SELECT AS STRUCT column_name, table_type FROM UNNEST([t])))
-            ), highest_non_null AS (
-              SELECT column_name, table_type, MAX(non_null_percent) OVER (
-                PARTITION BY column_name, table_type
-              ) AS highest_non_null_percent
-              FROM `isb-project-zero.clinical_from_files_final.r41_TCGA_column_metadata`
-              GROUP BY column_name, table_type, non_null_percent
-            )
-            
-            SELECT c.column_name, c.table_type, h.highest_non_null_percent, c.project_short_name
-            FROM combined_projects c
-            JOIN highest_non_null h ON c.column_name = h.column_name AND c.table_type = h.table_type
-            GROUP BY c.column_name, c.table_type, h.highest_non_null_percent, c.project_short_name
-            ORDER BY c.column_name
-        """
-
     if 'build_column_metadata_table' in steps:
         column_metadata_list = list()
 
@@ -664,34 +636,43 @@ def main(args):
         write_list_to_jsonl_and_upload(PARAMS, 'column_metadata', column_metadata_list)
         metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['COLUMN_METADATA_TABLE_NAME']}"
         metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}"
+        selected_metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SELECTED_FINAL_DATASET']}.{metadata_table_name}"
 
         create_and_load_table_from_jsonl(PARAMS,
                                          jsonl_file=f"column_metadata_{PARAMS['RELEASE']}.jsonl",
                                          table_id=metadata_table_id)
 
-        # update_table_schema_from_generic(params=PARAMS, table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']))
+        selected_column_sql = f"""
+            WITH combined_projects AS (
+              SELECT ANY_VALUE((SELECT AS STRUCT column_name, table_type FROM UNNEST([t]))).*,
+                STRING_AGG(project_short_name, ', ') project_short_name
+              FROM `{metadata_table_id}` t
+              GROUP BY TO_JSON_STRING((SELECT AS STRUCT column_name, table_type FROM UNNEST([t])))
+            ), highest_non_null AS (
+              SELECT column_name, table_type, MAX(non_null_percent) OVER (
+                PARTITION BY column_name, table_type
+              ) AS highest_non_null_percent
+              FROM `{metadata_table_id}`
+              GROUP BY column_name, table_type, non_null_percent
+            ), all_null_percents AS (
+                SELECT c.column_name, c.table_type, h.highest_non_null_percent, c.project_short_name
+                FROM combined_projects c
+                JOIN highest_non_null h ON c.column_name = h.column_name AND c.table_type = h.table_type
+                GROUP BY c.column_name, c.table_type, h.highest_non_null_percent, c.project_short_name
+                ORDER BY c.column_name
+            )
 
-
+            SELECT * from all_null_percents
+            WHERE highest_non_null_percent >= 50
         """
-            for column in column_set:
-                if column not in column_metadata_dict.keys():
-                    column_metadata_dict[column] = dict()
 
-                # add table type: drug, ablation, etc
-                column_metadata_dict[column][table_type] = dict()
+        create_table_from_query(PARAMS, table_id=selected_metadata_table_id, query=selected_column_sql)
 
-                if column in non_null_by_project_dict:
-                    projects = list(sorted(non_null_by_project_dict[column].keys()))
-                    highest_non_null = list(sorted(non_null_by_project_dict[column].values(), reverse=True))[0]
-                    column_metadata_dict[column][table_type]['projects'] = projects
-                    column_metadata_dict[column][table_type]['highest_non_null'] = highest_non_null
+        # todo add this
+        # update_table_schema_from_generic(params=PARAMS, table_id=selected_metadata_table_id)
 
-        for column, table_types in column_metadata_dict.items():
-            print(f"***** {column}:")
-
-            for table_type, metadata in table_types.items():
-                print(f"\t{table_type}-- highest non-null %: {highest_non_null}, projects: {projects}")
-        """
+    if 'build_selected_column_tables' in steps:
+        pass
 
     if 'output_non_null_percentages_by_project' in steps:
         table_suffixes = ['patient']
@@ -729,16 +710,31 @@ def main(args):
             for row in project_result:
                 project_counts[row[0]] = row[1]
 
+            dataset_id = ".".join(table_id.split(".")[0:2])
+
             for project_short_name, project_count in project_counts.items():
                 logger.info(f"Retrieving column counts for {project_short_name}")
 
                 nulls_sql = f"""
-                    SELECT column_name, COUNT(1) AS nulls_count
-                    FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}` as clinical,
-                    UNNEST(REGEXP_EXTRACT_ALL(TO_JSON_STRING(clinical), r'\"(\\w+)\":null')) column_name
-                    WHERE project_short_name = '{project_short_name}'
-                    GROUP BY column_name
-                    ORDER BY nulls_count
+                    WITH null_count_table AS (
+                        SELECT column_name, COUNT(1) AS nulls_count
+                        FROM `{table_id}` AS t,
+                        UNNEST(REGEXP_EXTRACT_ALL(TO_JSON_STRING(t), r'\"(\\w+)\":null')) column_name
+                        WHERE project_short_name = '{project_short_name}'
+                        GROUP BY column_name
+                    ),
+                    no_null_columns AS (
+                        SELECT column_name, 0 AS nulls_count
+                        FROM `{dataset_id}`.INFORMATION_SCHEMA.COLUMNS
+                        WHERE table_name = '{table_name}'
+                        AND column_name NOT IN (
+                            SELECT column_name 
+                            FROM null_count_table
+                        )
+                    )
+                    SELECT * FROM null_count_table
+                    UNION ALL
+                    SELECT * FROM no_null_columns
                 """
 
                 non_null_count_result = query_and_retrieve_result(nulls_sql)
