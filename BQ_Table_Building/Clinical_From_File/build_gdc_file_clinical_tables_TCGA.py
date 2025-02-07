@@ -698,7 +698,7 @@ def main(args):
 
             first_column_list = list()
 
-            for column_name in PARAMS['COLUMN_REORDERING']:
+            for column_name in PARAMS['COLUMN_ORDERING']:
                 if column_name in column_list:
                     column_list.remove(column_name)
                     first_column_list.append(column_name)
@@ -718,7 +718,6 @@ def main(args):
             """
 
             create_table_from_query(PARAMS, table_id=destination_table_id, query=destination_table_sql)
-
 
     if 'output_non_null_percentages_by_project' in steps:
         table_suffixes = ['patient']
