@@ -635,8 +635,8 @@ def main(args):
 
         write_list_to_jsonl_and_upload(PARAMS, 'column_metadata', column_metadata_list)
         metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['COLUMN_METADATA_TABLE_NAME']}"
-        metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}"
-        selected_metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_SELECTED_FINAL_DATASET']}.{metadata_table_name}"
+        metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}_all"
+        selected_metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}"
 
         create_and_load_table_from_jsonl(PARAMS,
                                          jsonl_file=f"column_metadata_{PARAMS['RELEASE']}.jsonl",
