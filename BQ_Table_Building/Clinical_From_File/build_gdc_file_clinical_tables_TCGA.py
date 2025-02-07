@@ -302,6 +302,7 @@ def get_non_null_column_percentages_by_project(table_id: str) -> dict[str, dict[
                 FROM `{table_id}` AS t,
                 UNNEST(REGEXP_EXTRACT_ALL(TO_JSON_STRING(t), r'\"(\\w+)\":null')) column_name
                 WHERE project_short_name = '{project_short_name}'
+                GROUP BY column_name
             ),
             no_null_columns AS (
                 SELECT column_name, 0 AS nulls_count
