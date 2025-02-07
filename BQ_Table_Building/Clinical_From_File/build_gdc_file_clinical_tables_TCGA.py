@@ -673,18 +673,22 @@ def main(args):
         # update_table_schema_from_generic(params=PARAMS, table_id=selected_metadata_table_id)
 
     if 'build_selected_column_tables' in steps:
-
         metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['COLUMN_METADATA_TABLE_NAME']}"
         selected_metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}"
 
         for table_type in PARAMS['TABLE_TYPES']:
-            sql = f"""
+
+            table_type_name = f"{PARAMS['RELEASE']}_{table_type}"
+            table_type_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RENAMED_DATASET']}.{table_type_name}"
+            destination_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{table_type_name}"
+
+            column_sql = f"""
                 SELECT column_name 
-                FROM `selected_metadata_table_id`
+                FROM `{selected_metadata_table_id}`
                 WHERE table_type = '{table_type}'
             """
 
-            result = query_and_retrieve_result(sql)
+            result = query_and_retrieve_result(sql=column_sql)
 
             column_list = list()
 
@@ -692,10 +696,28 @@ def main(args):
                 column_name = row[0]
                 column_list.append(column_name)
 
-            pass
-            # get table types and build table ids
-            # get columns from selected_metadata_table_id by table type
-            # build a query that returns only columns found in selected_metadata_table_id, with column ordering intact
+            first_column_list = list()
+
+            for column_name in PARAMS['COLUMN_REORDERING']:
+                if column_name in column_list:
+                    column_list.remove(column_name)
+                    first_column_list.append(column_name)
+
+            column_list = first_column_list + column_list
+
+            select_str = "SELECT "
+
+            for column_name in column_list:
+                select_str += f"{column_name}, "
+
+            select_str = select_str[:-2]
+
+            destination_table_sql = f"""
+                {select_str}
+                FROM `{table_type_id}`
+            """
+
+            create_table_from_query(PARAMS, table_id=destination_table_id, query=destination_table_sql)
 
 
     if 'output_non_null_percentages_by_project' in steps:
