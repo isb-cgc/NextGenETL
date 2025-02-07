@@ -292,15 +292,30 @@ def get_non_null_column_percentages_by_project(table_id: str) -> dict[str, dict[
 
     logger.info(f"Retrieving column counts for {table_id}")
 
+    table_name = table_id.split(".")[-1]
+    dataset_id = ".".join(table_id.split(".")[0:2])
+
     for project_short_name, project_count in project_row_counts.items():
         column_null_counts_sql = f"""
-            SELECT column_name, COUNT(1) AS nulls_count
-            FROM `{table_id}` AS t,
-            UNNEST(REGEXP_EXTRACT_ALL(TO_JSON_STRING(t), r'\"(\\w+)\":null')) column_name
-            WHERE project_short_name = '{project_short_name}'
-            GROUP BY column_name
-            ORDER BY nulls_count
-        """
+            WITH null_count_table AS (
+                SELECT column_name, COUNT(1) AS nulls_count
+                FROM `{table_id}` AS t,
+                UNNEST(REGEXP_EXTRACT_ALL(TO_JSON_STRING(t), r'\"(\\w+)\":null')) column_name
+                WHERE project_short_name = '{project_short_name}'
+            ),
+            no_null_columns AS (
+                SELECT column_name, 0 AS nulls_count
+                FROM `{dataset_id}`.INFORMATION_SCHEMA.COLUMNS
+                WHERE table_name = '{table_name}'
+                AND column_name NOT IN (
+                    SELECT column_name 
+                    FROM null_count_table
+                )
+            ),
+            SELECT * FROM null_count_table
+            UNION ALL
+            SELECT * FROM no_null_columns
+            """
 
         null_count_result = query_and_retrieve_result(column_null_counts_sql)
 
