@@ -719,6 +719,14 @@ def main(args):
 
             create_table_from_query(PARAMS, table_id=destination_table_id, query=destination_table_sql)
 
+            metadata_file_name = PARAMS['TABLE_TYPES'][table_type]['METADATA_FILE_SINGLE_PROGRAM']
+
+            update_table_schema_from_generic(params=PARAMS,
+                                             table_id=destination_table_id,
+                                             metadata_file=metadata_file_name,
+                                             generate_definitions=True)
+
+
     if 'output_non_null_percentages_by_project' in steps:
         table_suffixes = ['patient']
 
