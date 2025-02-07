@@ -678,7 +678,7 @@ def main(args):
 
         for table_type in PARAMS['TABLE_TYPES']:
 
-            table_type_name = f"{PARAMS['RELEASE']}_{table_type}"
+            table_type_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_{table_type}"
             table_type_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RENAMED_DATASET']}.{table_type_name}"
             destination_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{table_type_name}"
 
