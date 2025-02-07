@@ -308,6 +308,8 @@ def get_non_null_column_percentages_by_project(table_id: str) -> dict[str, dict[
             column_name = row[0]
             null_count = row[1]
 
+            logger.info(f"{column_name} - {null_count}")
+
             # drop any projects with only null values
             # if project_count - null_count == 0:
             #    continue
@@ -617,7 +619,7 @@ def main(args):
               GROUP BY column_name, table_type, non_null_percent
             )
             
-            SELECT c.column_name, c.table_type, h.highest_non_null_percent, c.project_short_name  
+            SELECT c.column_name, c.table_type, h.highest_non_null_percent, c.project_short_name
             FROM combined_projects c
             JOIN highest_non_null h ON c.column_name = h.column_name AND c.table_type = h.table_type
             GROUP BY c.column_name, c.table_type, h.highest_non_null_percent, c.project_short_name
