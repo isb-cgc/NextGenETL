@@ -311,7 +311,7 @@ def get_non_null_column_percentages_by_project(table_id: str) -> dict[str, dict[
                     SELECT column_name 
                     FROM null_count_table
                 )
-            ),
+            )
             SELECT * FROM null_count_table
             UNION ALL
             SELECT * FROM no_null_columns
