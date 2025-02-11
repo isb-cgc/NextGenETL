@@ -644,20 +644,22 @@ def main(args):
 
         selected_column_sql = f"""
             WITH combined_projects AS (
-              SELECT ANY_VALUE((SELECT AS STRUCT column_name, table_type FROM UNNEST([t]))).*,
-                STRING_AGG(project_short_name, ', ') project_short_name
-              FROM `{metadata_table_id}` t
-              GROUP BY TO_JSON_STRING((SELECT AS STRUCT column_name, table_type FROM UNNEST([t])))
+                SELECT ANY_VALUE((SELECT AS STRUCT column_name, table_type FROM UNNEST([t]))).*,
+                    STRING_AGG(project_short_name, ', ') project_short_name
+                FROM `{metadata_table_id}` t
+                GROUP BY TO_JSON_STRING((SELECT AS STRUCT column_name, table_type FROM UNNEST([t])))
             ), highest_non_null AS (
-              SELECT column_name, table_type, MAX(non_null_percent) OVER (
-                PARTITION BY column_name, table_type
-              ) AS highest_non_null_percent
-              FROM `{metadata_table_id}`
-              GROUP BY column_name, table_type, non_null_percent
+                SELECT column_name, table_type, MAX(non_null_percent) OVER (
+                    PARTITION BY column_name, table_type
+                ) AS highest_non_null_percent
+                FROM `{metadata_table_id}`
+                GROUP BY column_name, table_type, non_null_percent
             ), all_null_percents AS (
                 SELECT c.column_name, c.table_type, h.highest_non_null_percent, c.project_short_name
                 FROM combined_projects c
-                JOIN highest_non_null h ON c.column_name = h.column_name AND c.table_type = h.table_type
+                JOIN highest_non_null h 
+                    ON c.column_name = h.column_name 
+                    AND c.table_type = h.table_type
                 GROUP BY c.column_name, c.table_type, h.highest_non_null_percent, c.project_short_name
                 ORDER BY c.column_name
             )
@@ -671,6 +673,23 @@ def main(args):
 
         # todo add this
         # update_table_schema_from_generic(params=PARAMS, table_id=selected_metadata_table_id)
+
+    if 'build_distinct_column_values_table' in steps:
+        for table_type in PARAMS['TABLE_TYPES']:
+
+            table_type_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_{table_type}"
+            table_type_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{table_type_name}"
+
+            sql = f"""
+            SELECT * 
+            FROM `{table_type_id}`
+            """
+
+            result = query_and_retrieve_result(sql=sql)
+
+            for row in result:
+                row_dict = dict(row.items())
+                print(row_dict)
 
     if 'build_selected_column_tables' in steps:
         metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['COLUMN_METADATA_TABLE_NAME']}"
