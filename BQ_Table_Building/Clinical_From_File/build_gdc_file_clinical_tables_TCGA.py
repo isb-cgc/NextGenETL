@@ -694,12 +694,12 @@ def main(args):
                 for column_name, value in row_dict.items():
                     if column_name not in table_column_value_dict[table_type]:
                         table_column_value_dict[table_type][column_name] = set()
-                    if value:
-                        table_column_value_dict[table_type][column_name].add(value)
+                    table_column_value_dict[table_type][column_name].add(value)
 
         for table_type, column_dict in table_column_value_dict.items():
             for column_name, value_set in column_dict.items():
-                print(f"{table_type}\t{column_name}\t{sorted(value_set)}")
+                if len(value_set) <= 50:
+                    print(f"{table_type}\t{column_name}\t{sorted(value_set)}")
 
     if 'build_selected_column_tables' in steps:
         metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['COLUMN_METADATA_TABLE_NAME']}"
