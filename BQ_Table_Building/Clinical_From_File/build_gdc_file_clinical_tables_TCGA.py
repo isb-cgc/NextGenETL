@@ -675,7 +675,9 @@ def main(args):
         # update_table_schema_from_generic(params=PARAMS, table_id=selected_metadata_table_id)
 
     if 'build_distinct_column_values_table' in steps:
+        table_column_value_dict = dict()
         for table_type in PARAMS['TABLE_TYPES']:
+            table_column_value_dict[table_type] = dict()
 
             table_type_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_{table_type}"
             table_type_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{table_type_name}"
@@ -689,7 +691,15 @@ def main(args):
 
             for row in result:
                 row_dict = dict(row.items())
-                print(row_dict)
+                for column_name, value in row_dict.items():
+                    if column_name not in table_column_value_dict[table_type]:
+                        table_column_value_dict[table_type][column_name] = set()
+                    if value:
+                        table_column_value_dict[table_type][column_name].add(value)
+
+        for table_type, column_dict in table_column_value_dict.items():
+            for column_name, value_set in column_dict.items():
+                print(f"{table_type}\t{column_name}\t{sorted(value_set)}")
 
     if 'build_selected_column_tables' in steps:
         metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['COLUMN_METADATA_TABLE_NAME']}"
