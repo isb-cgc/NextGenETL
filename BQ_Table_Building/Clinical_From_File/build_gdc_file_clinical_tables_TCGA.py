@@ -707,7 +707,14 @@ def main(args):
                         value_str += f"{value}; "
                     value_str = value_str[:-2]
                 else:
-                    value_str = "*** More than 50 distinct values"
+                    i = 0
+                    value_str = "More than 50 distinct values. Example values: "
+                    for value in sorted(value_set):
+                        value_str += f"{value}; "
+                        i += 1
+                        if i == 3:
+                            break
+                    value_str = value_str[:-2]
 
                 value_dict = {
                     "table_type": table_type,
