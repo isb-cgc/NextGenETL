@@ -708,7 +708,7 @@ def main(args):
                     value_str = value_str[:-2]
                 else:
                     i = 0
-                    value_str = "More than 50 distinct values. Example values: "
+                    value_str = "*** More than 50 distinct values. Example values: "
                     for value in sorted(value_set):
                         value_str += f"{value}; "
                         i += 1
@@ -731,6 +731,25 @@ def main(args):
         create_and_load_table_from_jsonl(PARAMS,
                                          jsonl_file=f"column_distinct_values_{PARAMS['RELEASE']}.jsonl",
                                          table_id=value_table_id)
+
+        metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['COLUMN_METADATA_TABLE_NAME']}"
+        selected_metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}"
+
+        merged_sql = f"""
+            SELECT  m.table_type, 
+                    m.column_name, 
+                    m.highest_non_null_percent, 
+                    m.project_short_name AS project_short_names, 
+                    m.distinct_non_null_values 
+            FROM `{selected_metadata_table_id}` m
+            JOIN `{value_table_id}` v
+            ON m.table_type = v.table_type 
+                AND m.column_name = v.column_name
+        """
+
+        merged_table_id = selected_metadata_table_id + "_with_distinct_values"
+
+        create_table_from_query(params=PARAMS, table_id=merged_table_id, query=merged_sql)
 
     if 'build_selected_column_tables' in steps:
         metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['COLUMN_METADATA_TABLE_NAME']}"
