@@ -740,7 +740,7 @@ def main(args):
                     m.column_name, 
                     m.highest_non_null_percent, 
                     m.project_short_name AS project_short_names, 
-                    m.distinct_non_null_values 
+                    v.distinct_non_null_values 
             FROM `{selected_metadata_table_id}` m
             JOIN `{value_table_id}` v
             ON m.table_type = v.table_type 
