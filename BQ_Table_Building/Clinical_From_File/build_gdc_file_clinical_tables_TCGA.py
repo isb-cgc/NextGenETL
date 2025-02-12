@@ -702,7 +702,7 @@ def main(args):
                 value_str = ""
                 if len(value_set) <= 50:
                     for value in sorted(value_set):
-                        value_str += f"{value}, "
+                        value_str += f"{value}; "
                     value_str = value_str[:-2]
                 else:
                     value_str = "*** More than 50 distinct values"
