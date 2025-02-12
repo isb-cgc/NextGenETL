@@ -698,7 +698,9 @@ def main(args):
 
         for table_type, column_dict in table_column_value_dict.items():
             for column_name, value_set in column_dict.items():
-                if len(value_set) <= 50:
+                if value_set and len(value_set) <= 50:
+                    print(f"{table_type}\t{column_name}\t{sorted(value_set)}")
+                if not value_set:
                     print(f"{table_type}\t{column_name}\t{sorted(value_set)}")
 
     if 'build_selected_column_tables' in steps:
