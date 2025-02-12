@@ -697,6 +697,8 @@ def main(args):
                     if value:
                         table_column_value_dict[table_type][column_name].add(value)
 
+        values_list = list()
+
         for table_type, column_dict in table_column_value_dict.items():
             for column_name, value_set in column_dict.items():
                 value_str = ""
@@ -706,8 +708,22 @@ def main(args):
                     value_str = value_str[:-2]
                 else:
                     value_str = "*** More than 50 distinct values"
-                print(f"{table_type}\t{column_name}\t{value_str}")
 
+                value_dict = {
+                    "table_type": table_type,
+                    "column_name": column_name,
+                    "distinct_non_null_values": value_str
+                }
+
+                values_list.append(value_dict)
+
+        write_list_to_jsonl_and_upload(PARAMS, 'column_distinct_values', values_list)
+        value_table_name = f"{PARAMS['RELEASE']}_{PARAMS['COLUMN_METADATA_TABLE_NAME']}"
+        value_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{value_table_name}_distinct_values"
+
+        create_and_load_table_from_jsonl(PARAMS,
+                                         jsonl_file=f"column_distinct_values_{PARAMS['RELEASE']}.jsonl",
+                                         table_id=value_table_id)
 
     if 'build_selected_column_tables' in steps:
         metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['COLUMN_METADATA_TABLE_NAME']}"
