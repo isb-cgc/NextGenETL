@@ -700,11 +700,14 @@ def main(args):
         for table_type, column_dict in table_column_value_dict.items():
             for column_name, value_set in column_dict.items():
                 value_str = ""
-                for value in sorted(value_set):
-                    value_str += f"{value}, "
-                value_str = value_str[:-2]
-
+                if len(value_set) <= 50:
+                    for value in sorted(value_set):
+                        value_str += f"{value}, "
+                    value_str = value_str[:-2]
+                else:
+                    value_str = "*** More than 50 distinct values"
                 print(f"{table_type}\t{column_name}\t{value_str}")
+
 
     if 'build_selected_column_tables' in steps:
         metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['COLUMN_METADATA_TABLE_NAME']}"
