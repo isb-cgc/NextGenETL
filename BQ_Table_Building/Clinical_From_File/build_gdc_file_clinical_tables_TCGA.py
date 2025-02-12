@@ -745,6 +745,7 @@ def main(args):
             JOIN `{value_table_id}` v
             ON m.table_type = v.table_type 
                 AND m.column_name = v.column_name
+            ORDER BY m.table_type, m.column_name
         """
 
         merged_table_id = selected_metadata_table_id + "_with_distinct_values"
