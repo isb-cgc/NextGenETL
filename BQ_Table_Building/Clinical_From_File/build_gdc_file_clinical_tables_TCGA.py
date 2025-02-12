@@ -694,7 +694,10 @@ def main(args):
                 for column_name, value in row_dict.items():
                     if column_name not in table_column_value_dict[table_type]:
                         table_column_value_dict[table_type][column_name] = set()
-                    table_column_value_dict[table_type][column_name].add(value)
+                    if value:
+                        table_column_value_dict[table_type][column_name].add(value)
+                    if not value:
+                        table_column_value_dict[table_type][column_name].add("null")
 
         for table_type, column_dict in table_column_value_dict.items():
             for column_name, value_set in column_dict.items():
