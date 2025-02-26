@@ -645,7 +645,7 @@ def main(args):
         selected_column_sql = f"""
             WITH combined_projects AS (
                 SELECT ANY_VALUE((SELECT AS STRUCT column_name, table_type FROM UNNEST([t]))).*,
-                    STRING_AGG(project_short_name, ', ') project_short_name
+                    STRING_AGG(SPLIT(project_short_name, '-')[1], ', ') project_names
                 FROM `{metadata_table_id}` t
                 GROUP BY TO_JSON_STRING((SELECT AS STRUCT column_name, table_type FROM UNNEST([t])))
             ), highest_non_null AS (
@@ -655,12 +655,12 @@ def main(args):
                 FROM `{metadata_table_id}`
                 GROUP BY column_name, table_type, non_null_percent
             ), all_null_percents AS (
-                SELECT c.column_name, c.table_type, h.highest_non_null_percent, c.project_short_name
+                SELECT c.column_name, c.table_type, h.highest_non_null_percent, c.project_names
                 FROM combined_projects c
                 JOIN highest_non_null h 
                     ON c.column_name = h.column_name 
                     AND c.table_type = h.table_type
-                GROUP BY c.column_name, c.table_type, h.highest_non_null_percent, c.project_short_name
+                GROUP BY c.column_name, c.table_type, h.highest_non_null_percent, c.project_names
                 ORDER BY c.column_name
             )
 
@@ -701,16 +701,17 @@ def main(args):
 
         for table_type, column_dict in table_column_value_dict.items():
             for column_name, value_set in column_dict.items():
+                distinct_value_count = len(value_set)
                 value_str = ""
                 if len(value_set) <= 50:
                     for value in sorted(value_set):
-                        value_str += f"{value}; "
+                        value_str += f"{value}, "
                     value_str = value_str[:-2]
                 else:
                     i = 0
                     value_str = "*** More than 50 distinct values. Example values: "
                     for value in sorted(value_set):
-                        value_str += f"{value}; "
+                        value_str += f"{value}, "
                         i += 1
                         if i == 3:
                             break
@@ -719,6 +720,7 @@ def main(args):
                 value_dict = {
                     "table_type": table_type,
                     "column_name": column_name,
+                    "distinct_non_null_value_count": distinct_value_count,
                     "distinct_non_null_values": value_str
                 }
 
@@ -726,7 +728,7 @@ def main(args):
 
         write_list_to_jsonl_and_upload(PARAMS, 'column_distinct_values', values_list)
         value_table_name = f"{PARAMS['RELEASE']}_{PARAMS['COLUMN_METADATA_TABLE_NAME']}"
-        value_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{value_table_name}_distinct_values"
+        value_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{value_table_name}_distinct_values_temp"
 
         create_and_load_table_from_jsonl(PARAMS,
                                          jsonl_file=f"column_distinct_values_{PARAMS['RELEASE']}.jsonl",
@@ -739,7 +741,8 @@ def main(args):
             SELECT  m.table_type, 
                     m.column_name, 
                     m.highest_non_null_percent, 
-                    m.project_short_name AS project_short_names, 
+                    m.project_names, 
+                    v.distinct_non_null_value_count,
                     v.distinct_non_null_values 
             FROM `{selected_metadata_table_id}` m
             JOIN `{value_table_id}` v
@@ -805,7 +808,6 @@ def main(args):
                                              table_id=destination_table_id,
                                              metadata_file=metadata_file_name,
                                              generate_definitions=True)
-
 
     if 'output_non_null_percentages_by_project' in steps:
         table_suffixes = ['patient']
