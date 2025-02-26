@@ -123,11 +123,10 @@ def make_file_pull_list():
                f.md5sum,
                f.file_size,
                f.file_state,
-               gs.gdc_file_url_gcs,
+               gs.gdc_file_url,
                f.project_short_name
-            # todo change to published table ids
-            FROM `isb-project-zero.cda_gdc_metadata.r{rel_number}_fileData_active` f
-            LEFT JOIN `isb-project-zero.GDC_manifests.rel{rel_number}_GDCfileID_to_GCSurl` gs
+            FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['GDC_METADATA_DATASET']}.r{rel_number}_fileData_active` f
+            LEFT JOIN `{PARAMS['DEV_PROJECT']}.{PARAMS['GDC_MANIFEST_DATASET']}.rel{rel_number}_GDCfileID_to_GCSurl` gs
                ON f.file_gdc_id = gs.file_gdc_id 
             {where_clause}
         """
@@ -152,29 +151,6 @@ def create_table_name_from_file_name(file_path: str) -> str:
     table_name = table_name.replace("-", "_").replace(".", "_")
 
     return table_name
-
-"""
-def create_program_tables_dict() -> dict[str, list[str]]:
-    prefix = f"{PARAMS['RELEASE']}_TCGA"
-
-    table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
-                                        filter_terms=prefix)
-
-    project_tables = dict()
-
-    for table in table_list:
-        if "_CDE_" in table:
-            continue
-
-        project = table.split("_")[2]
-
-        if project not in project_tables:
-            project_tables[project] = list()
-
-        project_tables[project].append(table)
-
-    return project_tables
-"""
 
 
 def build_a_header(all_files: list[str]) -> list[str]:
