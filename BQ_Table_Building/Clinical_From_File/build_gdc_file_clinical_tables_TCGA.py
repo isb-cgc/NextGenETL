@@ -752,6 +752,13 @@ def main(args):
 
         create_table_from_query(params=PARAMS, table_id=merged_table_id, query=merged_sql)
 
+        metadata_file_name = PARAMS['COLUMN_TABLE_METADATA_FILE']
+
+        update_table_schema_from_generic(params=PARAMS,
+                                         table_id=destination_table_id,
+                                         metadata_file=metadata_file_name,
+                                         generate_definitions=True)
+
     if 'build_selected_column_tables' in steps:
         metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['COLUMN_METADATA_TABLE_NAME']}"
         selected_metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}"
