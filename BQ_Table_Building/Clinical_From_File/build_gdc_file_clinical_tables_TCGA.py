@@ -16,14 +16,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-import csv
 import json
 import logging
 import os
 import shutil
 import sys
 import time
-import requests
 
 from google.cloud import storage
 from google.cloud.exceptions import Forbidden
