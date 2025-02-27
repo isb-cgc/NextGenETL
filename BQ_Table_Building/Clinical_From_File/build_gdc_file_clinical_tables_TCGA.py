@@ -729,7 +729,7 @@ def main(args):
         metadata_file_name = PARAMS['COLUMN_TABLE_METADATA_FILE']
 
         update_table_schema_from_generic(params=PARAMS,
-                                         table_id=destination_table_id,
+                                         table_id=merged_table_id,
                                          metadata_file=metadata_file_name,
                                          generate_definitions=True)
 
@@ -786,6 +786,17 @@ def main(args):
                                              table_id=destination_table_id,
                                              metadata_file=metadata_file_name,
                                              generate_definitions=True)
+
+    if "publish_tables" in steps:
+        # publish tables for each table type
+        # questions:
+        # - dataset for these?
+        # - do we want versioned/current datasets for these?
+        for table_type in PARAMS['TABLE_TYPES']:
+            src_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{table_type}"
+
+        # publish column metadata table
+        src_column_metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{table_type_name}"
 
     end_time = time.time()
 
