@@ -798,15 +798,16 @@ def update_table_labels(table_id: str, label_dict: dict[str, str]) -> None:
             assert table_obj.labels[label] == value
     except NotFound:
         logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
-        logger.warning(f"Couldn't apply table label {label}: {value}. Is this expected?")
+        if label:
+            logger.warning(f"Couldn't apply table label {label}: {value}. Is this expected?")
 
 
 def find_most_recent_published_table_id(params: Params, versioned_table_id: str, table_base_name: str = None):
     """
     Function for locating published table id for dataset's previous release, if it exists
-    :param table_type:
     :param params: params supplied in yaml config
     :param versioned_table_id: public versioned table id for current release
+    :param table_base_name: todo
     :return: last published table id, if any; otherwise None
     """
     if params['NODE'].lower() == 'gdc':

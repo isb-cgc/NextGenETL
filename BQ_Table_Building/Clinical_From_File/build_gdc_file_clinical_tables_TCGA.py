@@ -29,7 +29,8 @@ from google.resumable_media import InvalidResponse
 
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
                                    create_and_load_table_from_tsv, query_and_retrieve_result, create_table_from_query,
-                                   update_table_schema_from_generic, create_and_load_table_from_jsonl)
+                                   update_table_schema_from_generic, create_and_load_table_from_jsonl,
+                                   find_most_recent_published_table_id, publish_table)
 from cda_bq_etl.gcs_helpers import upload_to_bucket
 from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, create_normalized_tsv,
                                      write_list_to_jsonl_and_upload)
@@ -608,7 +609,7 @@ def main(args):
                     })
 
         write_list_to_jsonl_and_upload(PARAMS, 'column_metadata', column_metadata_list)
-        metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['COLUMN_METADATA_TABLE_NAME']}"
+        metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['DEV_COLUMN_METADATA_TABLE_NAME']}"
         metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}_all"
         selected_metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}"
 
@@ -698,14 +699,14 @@ def main(args):
                 values_list.append(value_dict)
 
         write_list_to_jsonl_and_upload(PARAMS, 'column_distinct_values', values_list)
-        value_table_name = f"{PARAMS['RELEASE']}_{PARAMS['COLUMN_METADATA_TABLE_NAME']}"
+        value_table_name = f"{PARAMS['RELEASE']}_{PARAMS['DEV_COLUMN_METADATA_TABLE_NAME']}"
         value_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{value_table_name}_distinct_values_temp"
 
         create_and_load_table_from_jsonl(PARAMS,
                                          jsonl_file=f"column_distinct_values_{PARAMS['RELEASE']}.jsonl",
                                          table_id=value_table_id)
 
-        metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['COLUMN_METADATA_TABLE_NAME']}"
+        metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['DEV_COLUMN_METADATA_TABLE_NAME']}"
         selected_metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}"
 
         merged_sql = f"""
@@ -734,7 +735,7 @@ def main(args):
                                          generate_definitions=True)
 
     if 'build_selected_column_tables' in steps:
-        metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['COLUMN_METADATA_TABLE_NAME']}"
+        metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['DEV_COLUMN_METADATA_TABLE_NAME']}"
         selected_metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}"
 
         for table_type in PARAMS['TABLE_TYPES']:
@@ -788,15 +789,42 @@ def main(args):
                                              generate_definitions=True)
 
     if "publish_tables" in steps:
+        prod_dataset_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}"
+
         # publish tables for each table type
-        # questions:
-        # - dataset for these?
-        # - do we want versioned/current datasets for these?
         for table_type in PARAMS['TABLE_TYPES']:
-            src_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{table_type}"
+            table_type_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_{table_type}"
+            source_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{table_type_name}"
+
+            prod_table_name = f"{PARAMS['PROD_TABLE_PREFIX']}_{table_type}_{PARAMS['NODE']}"
+            current_table_id = f"{prod_dataset_id}.{prod_table_name}_current"
+            versioned_table_id = f"{prod_dataset_id}_versioned.{prod_table_name}_{PARAMS['RELEASE']}"
+
+            table_ids = {
+                "source": source_table_id,
+                "current": current_table_id,
+                "versioned": versioned_table_id,
+                "previous_versioned": find_most_recent_published_table_id(PARAMS, versioned_table_id)
+            }
+
+            publish_table(PARAMS, table_ids)
 
         # publish column metadata table
-        src_column_metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{table_type_name}"
+        metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['DEV_COLUMN_METADATA_TABLE_NAME']}"
+        source_metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}"
+
+        prod_metadata_table_name = f"{PARAMS['PROD_TABLE_PREFIX']}_column_metadata_{PARAMS['NODE']}"
+        current_metadata_table_id = f"{prod_dataset_id}.{prod_metadata_table_name}_current"
+        versioned_metadata_table_id = f"{prod_dataset_id}_versioned.{prod_metadata_table_name}_{PARAMS['RELEASE']}"
+
+        metadata_table_ids = {
+            "source": source_metadata_table_id,
+            "current": current_metadata_table_id,
+            "versioned": versioned_metadata_table_id,
+            "previous_versioned": find_most_recent_published_table_id(PARAMS, versioned_metadata_table_id)
+        }
+
+        publish_table(PARAMS, metadata_table_ids)
 
     end_time = time.time()
 
