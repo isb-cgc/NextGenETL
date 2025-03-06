@@ -454,6 +454,8 @@ def main(args):
                 row_dict['project_short_name'] = project_short_name
                 row_dict['program_name'] = program_name
                 target_usi = row_dict['target_usi']
+                row_dict.pop('target_usi')
+                row_dict['case_barcode'] = target_usi
 
                 int_comparison_columns = ['event_free_survival_time_in_days',
                                           'year_of_last_follow_up',
