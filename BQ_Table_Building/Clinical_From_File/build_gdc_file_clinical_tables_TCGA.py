@@ -810,7 +810,7 @@ def main(args):
             publish_table(PARAMS, table_ids)
 
         # publish column metadata table
-        metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['DEV_COLUMN_METADATA_TABLE_NAME']}"
+        metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['DEV_COLUMN_METADATA_TABLE_NAME']}_with_distinct_values"
         source_metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}"
 
         prod_metadata_table_name = f"{PARAMS['PROD_TABLE_PREFIX']}_column_metadata_{PARAMS['NODE']}"
