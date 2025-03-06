@@ -32,8 +32,8 @@ from google.cloud.exceptions import NotFound
 from google.cloud.bigquery import SchemaField, Client, LoadJobConfig, QueryJob
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
-from cda_bq_etl.utils import get_filename, get_scratch_fp, get_filepath, create_dev_table_id, create_metadata_table_id, \
-    input_with_timeout
+from cda_bq_etl.utils import (get_filename, get_scratch_fp, get_filepath, create_dev_table_id, create_metadata_table_id,
+                              input_with_timeout)
 from cda_bq_etl.gcs_helpers import download_from_bucket, upload_to_bucket
 from cda_bq_etl.data_helpers import (recursively_detect_object_structures, get_column_list_tsv,
                                      aggregate_column_data_types_tsv, resolve_type_conflicts, resolve_type_conflict)
@@ -1407,7 +1407,7 @@ def find_missing_columns(params: Params, include_trivial_columns: bool = False):
             WHERE {column} IS NOT NULL
         """
 
-    logger = logging.getLogger('base_script')
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
     logger.info("Scanning for missing fields in config yaml!")
 
     has_missing_columns = False
@@ -1480,3 +1480,99 @@ def find_missing_columns(params: Params, include_trivial_columns: bool = False):
         sys.exit(-1)
     else:
         logger.info("No missing fields!")
+
+
+def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
+    """
+    Compare newly created table and existing published table. Only publish new table if there's a difference.
+    :param previous_table_id: table id for existing published table
+    :param current_table_id: table id for new table
+    :return:
+    """
+
+    def compare_two_tables_sql():
+        return f"""
+            (
+                SELECT * FROM `{previous_table_id}`
+                EXCEPT DISTINCT
+                SELECT * from `{current_table_id}`
+            )
+            UNION ALL
+            (
+                SELECT * FROM `{current_table_id}`
+                EXCEPT DISTINCT
+                SELECT * from `{previous_table_id}`
+            )
+        """
+    query_logger = logging.getLogger('query_logger')
+
+    if not previous_table_id:
+        return True
+
+    query_logger.info(f"Query to find any difference in table data")
+    compare_result = query_and_retrieve_result(sql=compare_two_tables_sql())
+
+    if isinstance(compare_result, _EmptyRowIterator):
+        # no distinct result rows, tables match
+        return False
+
+    if compare_result is None:
+        logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+        logger.info("No result returned for table comparison query. Often means that tables have differing schemas.")
+        return True
+
+    for row in compare_result:
+        return True if row else False
+
+
+def publish_table(params: Params, table_ids: dict[str, str]):
+    """
+    Publish production BigQuery tables using source_table_id:
+        - create current/versioned table ids
+        - publish tables
+        - update friendly name for versioned table
+        - change last version tables' status labels to archived
+    :param params: params supplied in yaml config
+    :param table_ids: dict of table ids: 'source' (dev table), 'versioned' and 'current' (future published ids),
+                      and 'previous_versioned' (most recent published table)
+    """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
+    if exists_bq_table(table_ids['source']):
+        if table_has_new_data(table_ids['previous_versioned'], table_ids['source']):
+            logger.info(f"Publishing {table_ids['source']}")
+            delay = 5
+
+            logger.info(f"Publishing the following tables:")
+            logger.info(f"\t- {table_ids['versioned']}")
+            logger.info(f"\t- {table_ids['current']}")
+            logger.info(f"Proceed? Y/n (continues automatically in {delay} seconds)")
+
+            response = str(input_with_timeout(seconds=delay)).lower()
+
+            if response == 'n' or response == 'N':
+                exit("Publish aborted; exiting.")
+
+            logger.info(f"Publishing {table_ids['versioned']}")
+            copy_bq_table(params=params,
+                          src_table=table_ids['source'],
+                          dest_table=table_ids['versioned'],
+                          replace_table=params['OVERWRITE_PROD_TABLE'])
+
+            logger.info(f"Publishing {table_ids['current']}")
+            copy_bq_table(params=params,
+                          src_table=table_ids['source'],
+                          dest_table=table_ids['current'],
+                          replace_table=params['OVERWRITE_PROD_TABLE'])
+
+            logger.info(f"Updating friendly name for {table_ids['versioned']}")
+            update_friendly_name(params, table_id=table_ids['versioned'])
+
+            if table_ids['previous_versioned']:
+                logger.info(f"Archiving {table_ids['previous_versioned']}")
+                change_status_to_archived(table_ids['previous_versioned'])
+
+        else:
+            logger.info(f"{table_ids['source']} not published, no changes detected")
+    else:
+        logger.error(f"Source table does not exist: {table_ids['source']}")

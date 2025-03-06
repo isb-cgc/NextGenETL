@@ -27,64 +27,17 @@ import time
 
 from typing import Union
 
-from google.cloud.bigquery.table import _EmptyRowIterator
-
-from cda_bq_etl.bq_helpers import (find_most_recent_published_table_id, exists_bq_table, copy_bq_table,
-                                   update_friendly_name, change_status_to_archived, query_and_retrieve_result,
-                                   find_most_recent_published_refseq_table_id, get_pdc_projects_metadata,
+from cda_bq_etl.bq_helpers import (find_most_recent_published_table_id, query_and_retrieve_result,
+                                   find_most_recent_published_refseq_table_id,
                                    get_pdc_per_project_dataset, get_most_recent_published_table_version_pdc,
-                                   get_pdc_per_study_dataset)
+                                   get_pdc_per_study_dataset, publish_table, table_has_new_data)
 from cda_bq_etl.data_helpers import initialize_logging
-from cda_bq_etl.utils import input_with_timeout, load_config, format_seconds, get_filepath, create_metadata_table_id
+from cda_bq_etl.utils import (load_config, format_seconds, get_filepath, create_metadata_table_id)
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 TableParams = dict[str, Union[str, list[str], dict[str, str]]]
 TableIDList = list[dict[str, str]]
-
-
-def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
-    """
-    Compare newly created table and existing published table. Only publish new table if there's a difference.
-    :param previous_table_id: table id for existing published table
-    :param current_table_id: table id for new table
-    :return:
-    """
-
-    def compare_two_tables_sql():
-        return f"""
-            (
-                SELECT * FROM `{previous_table_id}`
-                EXCEPT DISTINCT
-                SELECT * from `{current_table_id}`
-            )
-            UNION ALL
-            (
-                SELECT * FROM `{current_table_id}`
-                EXCEPT DISTINCT
-                SELECT * from `{previous_table_id}`
-            )
-        """
-    query_logger = logging.getLogger('query_logger')
-
-    if not previous_table_id:
-        return True
-
-    compare_two_tables_query = compare_two_tables_sql()
-    query_logger.info(f"Query to find any difference in table data")
-    compare_result = query_and_retrieve_result(sql=compare_two_tables_sql())
-
-    if isinstance(compare_result, _EmptyRowIterator):
-        # no distinct result rows, tables match
-        return False
-
-    if compare_result is None:
-        logger = logging.getLogger('base_script')
-        logger.info("No result returned for table comparison query. Often means that tables have differing schemas.")
-        return True
-
-    for row in compare_result:
-        return True if row else False
 
 
 def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_params: TableParams):
@@ -1280,58 +1233,6 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
             logger.info("")
 
 
-def publish_table(table_ids: dict[str, str]):
-    """
-    Publish production BigQuery tables using source_table_id:
-        - create current/versioned table ids
-        - publish tables
-        - update friendly name for versioned table
-        - change last version tables' status labels to archived
-    :param table_ids: dict of table ids: 'source' (dev table), 'versioned' and 'current' (future published ids),
-                      and 'previous_versioned' (most recent published table)
-    """
-    logger = logging.getLogger('base_script')
-
-    if exists_bq_table(table_ids['source']):
-        if table_has_new_data(table_ids['previous_versioned'], table_ids['source']):
-            logger.info(f"Publishing {table_ids['source']}")
-            delay = 5
-
-            logger.info(f"Publishing the following tables:")
-            logger.info(f"\t- {table_ids['versioned']}")
-            logger.info(f"\t- {table_ids['current']}")
-            logger.info(f"Proceed? Y/n (continues automatically in {delay} seconds)")
-
-            response = str(input_with_timeout(seconds=delay)).lower()
-
-            if response == 'n' or response == 'N':
-                exit("Publish aborted; exiting.")
-
-            logger.info(f"Publishing {table_ids['versioned']}")
-            copy_bq_table(params=PARAMS,
-                          src_table=table_ids['source'],
-                          dest_table=table_ids['versioned'],
-                          replace_table=PARAMS['OVERWRITE_PROD_TABLE'])
-
-            logger.info(f"Publishing {table_ids['current']}")
-            copy_bq_table(params=PARAMS,
-                          src_table=table_ids['source'],
-                          dest_table=table_ids['current'],
-                          replace_table=PARAMS['OVERWRITE_PROD_TABLE'])
-
-            logger.info(f"Updating friendly name for {table_ids['versioned']}")
-            update_friendly_name(PARAMS, table_id=table_ids['versioned'])
-
-            if table_ids['previous_versioned']:
-                logger.info(f"Archiving {table_ids['previous_versioned']}")
-                change_status_to_archived(table_ids['previous_versioned'])
-
-        else:
-            logger.info(f"{table_ids['source']} not published, no changes detected")
-    else:
-        logger.error(f"Source table does not exist: {table_ids['source']}")
-
-
 def main(args):
     try:
         start_time = time.time()
@@ -1355,6 +1256,7 @@ def main(args):
             # generates a list of one table id obj, but makes code cleaner to do it this way
             table_id_list = generate_metadata_table_id_list(table_params)
         else:
+            # non-metadata table types are published to program-level datasets
             # search for missing project tables for the given table type
             can_compare_type = find_missing_tables(dataset=table_params['dev_dataset'], table_type=table_type)
 
@@ -1372,7 +1274,7 @@ def main(args):
         if 'publish_tables' in steps:
             for table_ids in table_id_list:
                 # logger.debug(table_ids)
-                publish_table(table_ids)
+                publish_table(PARAMS, table_ids)
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
