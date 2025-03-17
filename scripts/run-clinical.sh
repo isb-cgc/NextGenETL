@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 source ~/setEnvVars.sh
 
-export MY_VENV=~/virtualEnvETL3_9
+export MY_VENV=~/virtualEnvETL3_11
 export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
 
 mkdir -p ~/config
@@ -16,5 +16,5 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3.9 ./BQ_Table_Building/build_gdc_api_clinical_bulk_table.py ~/config/test_ClinicalBQBuild.yaml
+python3.11 ./BQ_Table_Building/build_gdc_api_clinical_bulk_table.py ~/config/test_ClinicalBQBuild.yaml
 deactivate
