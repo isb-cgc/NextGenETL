@@ -43,19 +43,20 @@ cd ~
 # Now set up the python3.9 virtualenv for the BQ building scripts
 #
 
-python3.9 -m venv virtualEnvETL3_11
+python3.11 -m venv virtualEnvETL3_11
 source virtualEnvETL3_11/bin/activate
-python3.9 -m pip install wheel
-python3.9 -m pip install google-api-python-client
-python3.9 -m pip install google-cloud-storage
-python3.9 -m pip install google-cloud-bigquery
-python3.9 -m pip install PyYaml
-python3.9 -m pip install gitpython
-python3.9 -m pip install pandas
-python3.9 -m pip install xlrd
-python3.9 -m pip install openpyxl
-python3.9 -m pip install wget
-python3.9 -m pip install alive_progress
+python3.11 -m pip install --upgrade pip
+python3.11 -m pip install wheel
+python3.11 -m pip install google-api-python-client
+python3.11 -m pip install google-cloud-storage
+python3.11 -m pip install google-cloud-bigquery
+python3.11 -m pip install PyYaml
+python3.11 -m pip install gitpython
+python3.11 -m pip install pandas
+python3.11 -m pip install xlrd
+python3.11 -m pip install openpyxl
+python3.11 -m pip install wget
+python3.11 -m pip install alive_progress
 # used by build_schema:
-python3.9 -m pip install python-dateutil
+python3.11 -m pip install python-dateutil
 deactivate
