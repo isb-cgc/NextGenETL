@@ -62,7 +62,10 @@ def main(args):
         else:
             print("table results list:")
             for result in results:
-                print(result)
+                table_id = f"isb-cgc-bq.{result.table_schema}.{result.table_name}"
+                creation_time = result.creation_time
+                formatted_creation_time = creation_time.strftime('%Y-%m-%d %H:%M:%S')
+                print(f"{table_id}\t{formatted_creation_time}")
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
