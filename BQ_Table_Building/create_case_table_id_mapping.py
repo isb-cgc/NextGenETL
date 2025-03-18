@@ -27,7 +27,7 @@ from google.cloud import bigquery
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, format_seconds
-from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic
+from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic, query_and_retrieve_result
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -47,6 +47,25 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     if 'retrieve_datasets' in steps:
+
+        sql = f"""
+            SELECT
+              schema_name
+            FROM
+              isb-cgc-bq.`region-us`.INFORMATION_SCHEMA.SCHEMATA;        
+        """
+
+        results = query_and_retrieve_result(sql)
+
+        if not results:
+            print("No results found")
+        else:
+            print("Dataset results list:")
+            for result in results:
+                print(result)
+
+
+        """
         client = bigquery.Client()
 
         datasets = list(client.list_datasets())
@@ -58,6 +77,7 @@ def main(args):
                 print(f"\t{dataset.dataset_id}")
         else:
             print(f"No datasets in {project}.")
+        """
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
