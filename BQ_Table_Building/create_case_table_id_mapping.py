@@ -50,7 +50,7 @@ def main(args):
 
         sql = f"""
             SELECT
-              table_schema, table_name
+              table_schema, table_name, creation_time
             FROM
               isb-cgc-bq.`region-us`.INFORMATION_SCHEMA.TABLES;        
         """
