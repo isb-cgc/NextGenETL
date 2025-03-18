@@ -62,7 +62,8 @@ def main(args):
         else:
             print("table results list:")
             table_list = list()
-            dataset_dict = dict()
+            current_dataset_dict = dict()
+            versioned_dataset_dict = dict()
             for result in results:
                 dataset = result.table_schema
                 table_id = f"isb-cgc-bq.{dataset}.{result.table_name}"
@@ -71,17 +72,29 @@ def main(args):
                 # print(f"{table_id}\t{formatted_creation_time}")
 
                 if 'versioned' not in dataset:
-                    table_list.append(table_id)
+                    if dataset not in current_dataset_dict:
+                        current_dataset_dict[dataset] = list()
+                    current_dataset_dict[dataset].append(table_id)
                 else:
-                    if dataset not in dataset_dict:
-                        dataset_dict[dataset] = list()
-                    dataset_dict[dataset].append(table_id)
+                    if dataset not in versioned_dataset_dict:
+                        versioned_dataset_dict[dataset] = list()
+                    versioned_dataset_dict[dataset].append(table_id)
 
-            for dataset, table_list in dataset_dict.items():
-                table_list.sort(reverse=True)
+            for dataset, current_dataset_dict in current_dataset_dict.items():
+                current_dataset_dict.sort()
                 print(f"\n{dataset} tables:")
-                for table in table_list:
+                for table in current_dataset_dict:
                     print(f"\t{table}")
+
+            """
+            for dataset, versioned_table_list in versioned_dataset_dict.items():
+                versioned_table_list.sort(reverse=True)
+                print(f"\n{dataset} tables:")
+                for table in versioned_table_list:
+                    print(f"\t{table}")
+            """
+
+
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
