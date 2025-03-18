@@ -46,6 +46,20 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
+    excluded_datasets = {
+        "annotations",
+        "annotations_versioned",
+        "mitelman",
+        "mitelman_versioned",
+        "pancancer_atlas",
+        "reactome",
+        "reactome_versioned",
+        "supplementary_tables",
+        "synthetic_lethality",
+        "targetome",
+        "targetome_versioned"
+    }
+
     if 'retrieve_datasets' in steps:
 
         sql = f"""
@@ -70,6 +84,9 @@ def main(args):
                 creation_time = result.creation_time
                 formatted_creation_time = creation_time.strftime('%Y-%m-%d %H:%M:%S')
                 # print(f"{table_id}\t{formatted_creation_time}")
+
+                if dataset in excluded_datasets:
+                    continue
 
                 if 'versioned' not in dataset:
                     if dataset not in current_dataset_dict:
