@@ -68,7 +68,7 @@ def main(args):
                 table_id = f"isb-cgc-bq.{dataset}.{result.table_name}"
                 creation_time = result.creation_time
                 formatted_creation_time = creation_time.strftime('%Y-%m-%d %H:%M:%S')
-                print(f"{table_id}\t{formatted_creation_time}")
+                # print(f"{table_id}\t{formatted_creation_time}")
 
                 if 'versioned' not in dataset:
                     table_list.append(table_id)
