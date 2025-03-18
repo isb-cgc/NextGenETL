@@ -61,11 +61,27 @@ def main(args):
             print("No results found")
         else:
             print("table results list:")
+            table_list = list()
+            dataset_dict = dict()
             for result in results:
-                table_id = f"isb-cgc-bq.{result.table_schema}.{result.table_name}"
+                dataset = result.table_schema
+                table_id = f"isb-cgc-bq.{dataset}.{result.table_name}"
                 creation_time = result.creation_time
                 formatted_creation_time = creation_time.strftime('%Y-%m-%d %H:%M:%S')
                 print(f"{table_id}\t{formatted_creation_time}")
+
+                if 'versioned' not in dataset:
+                    table_list.append(table_id)
+                else:
+                    if dataset not in dataset_dict:
+                        dataset_dict[dataset] = list()
+                    dataset_dict[dataset].append(table_id)
+
+            for dataset, table_list in dataset_dict.items():
+                table_list.sort(reverse=True)
+                print(f"\n{dataset} tables:")
+                for table in table_list:
+                    print(f"\t{table}")
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
