@@ -50,9 +50,9 @@ def main(args):
 
         sql = f"""
             SELECT
-              schema_name
+              table_schema, table_name
             FROM
-              isb-cgc-bq.`region-us`.INFORMATION_SCHEMA.SCHEMATA;        
+              isb-cgc-bq.`region-us`.INFORMATION_SCHEMA.TABLES;        
         """
 
         results = query_and_retrieve_result(sql)
@@ -60,24 +60,9 @@ def main(args):
         if not results:
             print("No results found")
         else:
-            print("Dataset results list:")
+            print("table results list:")
             for result in results:
                 print(result)
-
-
-        """
-        client = bigquery.Client()
-
-        datasets = list(client.list_datasets())
-        project = client.project
-
-        if datasets:
-            print(f"Found {len(datasets)} datasets in project {project}:")
-            for dataset in datasets:
-                print(f"\t{dataset.dataset_id}")
-        else:
-            print(f"No datasets in {project}.")
-        """
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
