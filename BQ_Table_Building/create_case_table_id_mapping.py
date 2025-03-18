@@ -53,9 +53,9 @@ def main(args):
         project = client.project
 
         if datasets:
-            print(f"Found {len(datasets)} in project {project}:")
+            print(f"Found {len(datasets)} datasets in project {project}:")
             for dataset in datasets:
-                print(f"\t{dataset}")
+                print(f"\t{dataset.dataset_id}")
         else:
             print(f"No datasets in {project}.")
 
