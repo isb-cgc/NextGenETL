@@ -97,7 +97,7 @@ def main(args):
                         versioned_dataset_dict[dataset] = list()
                     versioned_dataset_dict[dataset].append(table_id)
 
-            for dataset, current_dataset_dict in current_dataset_dict.items():
+            for dataset, current_dataset_dict in sorted(current_dataset_dict.items()):
                 current_dataset_dict.sort()
                 print(f"\n{dataset} tables:")
                 for table in current_dataset_dict:
