@@ -61,7 +61,7 @@ else
     exit 1
 fi
 
-export MY_VENV=~/virtualEnvETL3_9
+export MY_VENV=~/virtualEnvETL3_11
 export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
 
 mkdir -p ~/config
@@ -77,5 +77,5 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3.9 ./BQ_Table_Building/CDA/PDC/${SCRIPT_FILE} ~/config/${SHARED_CONFIG_FILE} ~/config/${CONFIG_FILE}
+python3.11 ./BQ_Table_Building/CDA/PDC/${SCRIPT_FILE} ~/config/${SHARED_CONFIG_FILE} ~/config/${CONFIG_FILE}
 deactivate

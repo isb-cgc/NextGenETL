@@ -32,7 +32,7 @@ from google.resumable_media import InvalidResponse
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
                                    create_and_load_table_from_tsv, query_and_retrieve_result, list_tables_in_dataset,
                                    create_and_upload_schema_for_json, create_and_load_table_from_jsonl,
-                                   update_table_schema_from_generic)
+                                   update_table_schema_from_generic, find_most_recent_published_table_id, publish_table)
 from cda_bq_etl.gcs_helpers import upload_to_bucket
 from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, create_normalized_tsv,
                                      write_list_to_jsonl_and_upload, normalize_flat_json_values)
@@ -450,10 +450,11 @@ def main(args):
                     if column in row_dict:
                         del row_dict[column]
 
-                row_dict['disease_code'] = disease_code
                 row_dict['project_short_name'] = project_short_name
                 row_dict['program_name'] = program_name
-                target_usi = row_dict['target_usi']
+                target_usi = row_dict.pop('target_usi')
+                row_dict['case_barcode'] = target_usi
+                row_dict['disease_code'] = disease_code
 
                 int_comparison_columns = ['event_free_survival_time_in_days',
                                           'year_of_last_follow_up',
@@ -466,16 +467,18 @@ def main(args):
                 for column, value in row_dict.items():
                     if isinstance(value, str):
                         value = value.strip()
-                    # column doesn't exist yet, so add it and its value
 
+                    # column doesn't exist yet, so add it and its value
+                    """
                     if value == 'Induction failure':
                         value = 'Induction Failure'
                     elif value == 'Not done':
                         value = 'Not Done'
-                    elif value == 'Death without Remission':
-                        value = 'Death without remission'
+                    elif value == 'Death without remission':
+                        value = 'Death without Remission'
                     elif value == 'unevaluable':
                         value = 'Unevaluable'
+                    """
 
                     if value is None:
                         continue
@@ -514,7 +517,8 @@ def main(args):
     if 'create_merged_table' in steps:
         logger.info("Entering create_merged_table")
 
-        table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{PARAMS['RELEASE']}_{PARAMS['MERGED_TABLE_NAME']}"
+        final_dataset = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}"
+        final_table_id = f"{final_dataset}.{PARAMS['RELEASE']}_{PARAMS['MERGED_TABLE_NAME']}"
 
         # Download schema file from Google Cloud bucket
         table_schema = retrieve_bq_schema_object(PARAMS, table_name='target_merged', include_release=True)
@@ -522,12 +526,31 @@ def main(args):
         # Load jsonl data into BigQuery table
         create_and_load_table_from_jsonl(PARAMS,
                                          jsonl_file=f"target_merged_{PARAMS['RELEASE']}.jsonl",
-                                         table_id=table_id,
+                                         table_id=final_table_id,
                                          schema=table_schema)
 
         update_table_schema_from_generic(params=PARAMS,
-                                         table_id=table_id,
+                                         table_id=final_table_id,
                                          metadata_file=PARAMS['METADATA_FILE_SINGLE_PROGRAM'])
+
+    if 'publish_tables' in steps:
+        prod_dataset_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}"
+
+        dev_dataset = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}"
+        source_table_id = f"{dev_dataset}.{PARAMS['RELEASE']}_{PARAMS['MERGED_TABLE_NAME']}"
+
+        prod_table_name = f"{PARAMS['PROD_TABLE_PREFIX']}_{PARAMS['NODE']}"
+        current_table_id = f"{prod_dataset_id}.{prod_table_name}_current"
+        versioned_table_id = f"{prod_dataset_id}_versioned.{prod_table_name}_{PARAMS['RELEASE']}"
+
+        table_ids = {
+            "source": source_table_id,
+            "current": current_table_id,
+            "versioned": versioned_table_id,
+            "previous_versioned": find_most_recent_published_table_id(PARAMS, versioned_table_id)
+        }
+
+        publish_table(PARAMS, table_ids)
 
     end_time = time.time()
 

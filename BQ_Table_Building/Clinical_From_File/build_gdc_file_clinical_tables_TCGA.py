@@ -16,14 +16,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-import csv
 import json
 import logging
 import os
 import shutil
 import sys
 import time
-import requests
 
 from google.cloud import storage
 from google.cloud.exceptions import Forbidden
@@ -31,9 +29,11 @@ from google.resumable_media import InvalidResponse
 
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
                                    create_and_load_table_from_tsv, query_and_retrieve_result, create_table_from_query,
-                                   update_table_schema_from_generic)
+                                   update_table_schema_from_generic, create_and_load_table_from_jsonl,
+                                   find_most_recent_published_table_id, publish_table)
 from cda_bq_etl.gcs_helpers import upload_to_bucket
-from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, create_normalized_tsv)
+from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, create_normalized_tsv,
+                                     write_list_to_jsonl_and_upload)
 from cda_bq_etl.utils import (format_seconds, get_filepath, load_config, get_scratch_fp, calculate_md5sum,
                               create_dev_table_id)
 
@@ -124,11 +124,10 @@ def make_file_pull_list():
                f.md5sum,
                f.file_size,
                f.file_state,
-               gs.gdc_file_url_gcs,
+               gs.gdc_file_url,
                f.project_short_name
-            # todo change to published table ids
-            FROM `isb-project-zero.cda_gdc_metadata.r{rel_number}_fileData_active` f
-            LEFT JOIN `isb-project-zero.GDC_manifests.rel{rel_number}_GDCfileID_to_GCSurl` gs
+            FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['GDC_METADATA_DATASET']}.r{rel_number}_fileData_active` f
+            LEFT JOIN `{PARAMS['DEV_PROJECT']}.{PARAMS['GDC_MANIFEST_DATASET']}.rel{rel_number}_GDCfileID_to_GCSurl` gs
                ON f.file_gdc_id = gs.file_gdc_id 
             {where_clause}
         """
@@ -153,29 +152,6 @@ def create_table_name_from_file_name(file_path: str) -> str:
     table_name = table_name.replace("-", "_").replace(".", "_")
 
     return table_name
-
-"""
-def create_program_tables_dict() -> dict[str, list[str]]:
-    prefix = f"{PARAMS['RELEASE']}_TCGA"
-
-    table_list = list_tables_in_dataset(project_dataset_id="isb-project-zero.clinical_from_files_raw",
-                                        filter_terms=prefix)
-
-    project_tables = dict()
-
-    for table in table_list:
-        if "_CDE_" in table:
-            continue
-
-        project = table.split("_")[2]
-
-        if project not in project_tables:
-            project_tables[project] = list()
-
-        project_tables[project].append(table)
-
-    return project_tables
-"""
 
 
 def build_a_header(all_files: list[str]) -> list[str]:
@@ -212,6 +188,125 @@ def import_column_names() -> list[str]:
         descriptions = json.load(column_output)
 
         return list(descriptions.keys())
+
+
+def get_table_columns(table_id: str) -> set[str]:
+    table_name = table_id.split(".")[-1]
+    table_type = "_".join(table_name.split("_")[2:])
+
+    # get all columns from the table
+    # check dict for column name. if doesn't exist, add it
+    # add the table type
+
+    column_sql = f"""
+                    SELECT column_name
+                    FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}`.INFORMATION_SCHEMA.COLUMNS
+                    WHERE table_name = '{table_name}'
+                """
+
+    column_results = query_and_retrieve_result(column_sql)
+
+    column_set = set()
+
+    for row in column_results:
+        column_set.add(row[0])
+
+    return column_set
+
+
+def get_raw_table_ids() -> list[str]:
+    program = PARAMS['PROGRAM']
+
+    local_program_dir = get_scratch_fp(PARAMS, program)
+    file_traversal_list = f"{local_program_dir}/{PARAMS['BASE_FILE_NAME']}_traversal_list_{program}.txt"
+
+    with open(file_traversal_list, mode='r') as traversal_list_file:
+        all_files = traversal_list_file.read().splitlines()
+
+    table_list = []
+
+    for tsv_file_path in all_files:
+        normalized_tsv_file_path = tsv_file_path.replace("_raw.tsv", ".tsv")
+        table_name = create_table_name_from_file_name(normalized_tsv_file_path)
+        table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}"
+
+        table_list.append(table_id)
+
+    return table_list
+
+
+def get_renamed_table_ids() -> list[str]:
+    raw_table_ids = get_raw_table_ids()
+    renamed_table_ids = list()
+
+    for raw_table_id in raw_table_ids:
+        raw_table_name = raw_table_id.split(".")[-1]
+        renamed_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RENAMED_DATASET']}.{raw_table_name}"
+        renamed_table_ids.append(renamed_table_id)
+
+    return renamed_table_ids
+
+
+def get_non_null_column_percentages_by_project(table_id: str) -> dict[str, dict[str, float]]:
+    logger = logging.getLogger('base_script')
+
+    project_row_count_sql = f"""
+        SELECT project_short_name, count(*)
+        FROM `{table_id}`
+        GROUP BY project_short_name
+    """
+
+    project_row_count_result = query_and_retrieve_result(project_row_count_sql)
+
+    project_row_counts = dict()
+
+    for row in project_row_count_result:
+        project_row_counts[row[0]] = row[1]
+
+    non_null_percentage_dict = dict()
+
+    logger.info(f"Retrieving column counts for {table_id}")
+
+    table_name = table_id.split(".")[-1]
+    dataset_id = ".".join(table_id.split(".")[0:2])
+
+    for project_short_name, project_count in project_row_counts.items():
+        column_null_counts_sql = f"""
+            WITH null_count_table AS (
+                SELECT column_name, COUNT(1) AS nulls_count
+                FROM `{table_id}` AS t,
+                UNNEST(REGEXP_EXTRACT_ALL(TO_JSON_STRING(t), r'\"(\\w+)\":null')) column_name
+                WHERE project_short_name = '{project_short_name}'
+                GROUP BY column_name
+            ),
+            no_null_columns AS (
+                SELECT column_name, 0 AS nulls_count
+                FROM `{dataset_id}`.INFORMATION_SCHEMA.COLUMNS
+                WHERE table_name = '{table_name}'
+                AND column_name NOT IN (
+                    SELECT column_name 
+                    FROM null_count_table
+                )
+            )
+            SELECT * FROM null_count_table
+            UNION ALL
+            SELECT * FROM no_null_columns
+        """
+
+        null_count_result = query_and_retrieve_result(column_null_counts_sql)
+
+        for row in null_count_result:
+            column_name = row[0]
+            null_count = row[1]
+
+            null_percentage = (null_count / project_count) * 100
+            non_null_percentage = round(100 - null_percentage, 2)
+            if column_name not in non_null_percentage_dict:
+                non_null_percentage_dict[column_name] = dict()
+
+            non_null_percentage_dict[column_name][project_short_name] = non_null_percentage
+
+    return non_null_percentage_dict
 
 
 def main(args):
@@ -265,7 +360,7 @@ def main(args):
 
         for file_data in file_pull_list:
             file_name = file_data['file_name']
-            gs_uri = file_data['gdc_file_url_gcs']
+            gs_uri = file_data['gdc_file_url']
             md5sum = file_data['md5sum']
             project_short_name = file_data['project_short_name']
 
@@ -322,7 +417,7 @@ def main(args):
         for data_type, files in files_by_type.items():
             logger.info(data_type)
             concat_header_row_list = build_a_header(files)
-            concat_header_row_list.append('program')
+            concat_header_row_list.append('program_name')
             concat_header_row_list.append('project_short_name')
 
             new_file_path = f"{local_concat_dir}/{PARAMS['RELEASE']}_TCGA_{data_type}_raw.tsv"
@@ -355,7 +450,7 @@ def main(args):
                                 if column in header_row_list:
                                     value_idx = header_row_list.index(column)
                                     big_tsv_fh.write(f"{record[value_idx]}\t")
-                                elif column == 'program':
+                                elif column == 'program_name':
                                     big_tsv_fh.write(f"{PARAMS['PROGRAM']}\t")
                                 elif column == 'project_short_name':
                                     project_short_name = file_path.split('__')[0].split('/')[-1]
@@ -450,217 +545,286 @@ def main(args):
             logger.info(table)
         logger.info("")
 
-    if 'build_final_table' in steps:
-        columns = import_column_names()
+    if 'build_renamed_tables' in steps:
+        for raw_table_id in get_raw_table_ids():
+            column_list = list(get_table_columns(raw_table_id))
+            first_column_list = list()
 
-        select_columns_str = ""
+            # reorder columns
+            for column in PARAMS['COLUMN_ORDERING']:
+                if column in column_list:
+                    first_column_list.append(column)
+                    column_list.remove(column)
 
-        for column_name in columns:
-            if column_name == 'program_name':
-                continue
-            elif column_name in PARAMS['COLUMN_RENAMING']:
-                select_columns_str += f"{PARAMS['COLUMN_RENAMING'][column_name]} AS {column_name}, "
-            else:
-                select_columns_str += f"{column_name}, "
+            combined_column_list = first_column_list + column_list
 
-        select_columns_str = select_columns_str[:-2]
-        patient_table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_patient"
-        source_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{patient_table_name}"
+            table_name = raw_table_id.split(".")[-1]
+            table_type = "_".join(table_name.split("_")[2:])
 
-        sql = f"""
-            SELECT '{PARAMS['PROGRAM']}' AS program_name,
-                {select_columns_str}
-            FROM `{source_table_id}`
+            select_columns_str = ""
+
+            # alter the column name if necessary
+            for column_name in combined_column_list:
+                if column_name in PARAMS['COLUMN_RENAMING']:
+                    select_columns_str += f"{column_name} AS {PARAMS['COLUMN_RENAMING'][column_name]}, "
+                else:
+                    select_columns_str += f"{column_name}, "
+
+            # remove trailing comma
+            select_columns_str = select_columns_str[:-2]
+
+            sql = f"""
+                SELECT 
+                    {select_columns_str}
+                FROM `{raw_table_id}`
+            """
+
+            destination_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RENAMED_DATASET']}.{table_name}"
+            create_table_from_query(PARAMS, destination_table_id, sql)
+
+            metadata_file_name = PARAMS['TABLE_TYPES'][table_type]['METADATA_FILE_SINGLE_PROGRAM']
+
+            update_table_schema_from_generic(params=PARAMS,
+                                             table_id=destination_table_id,
+                                             metadata_file=metadata_file_name,
+                                             generate_definitions=True)
+
+    if 'build_column_metadata_table' in steps:
+        column_metadata_list = list()
+
+        for table_id in get_renamed_table_ids():
+            column_set = get_table_columns(table_id)
+            table_name = table_id.split(".")[-1]
+            table_type = "_".join(table_name.split("_")[2:])
+
+            non_null_by_project_dict = get_non_null_column_percentages_by_project(table_id)
+
+            for column, metadata in non_null_by_project_dict.items():
+                for project_short_name, non_null_percent in metadata.items():
+                    column_metadata_list.append({
+                        'column_name': column,
+                        'table_type': table_type,
+                        'project_short_name': project_short_name,
+                        'non_null_percent': non_null_percent
+                    })
+
+        write_list_to_jsonl_and_upload(PARAMS, 'column_metadata', column_metadata_list)
+        metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['DEV_COLUMN_METADATA_TABLE_NAME']}"
+        metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}_all"
+        selected_metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}"
+
+        create_and_load_table_from_jsonl(PARAMS,
+                                         jsonl_file=f"column_metadata_{PARAMS['RELEASE']}.jsonl",
+                                         table_id=metadata_table_id)
+
+        selected_column_sql = f"""
+            WITH combined_projects AS (
+                SELECT ANY_VALUE((SELECT AS STRUCT column_name, table_type FROM UNNEST([t]))).*,
+                    STRING_AGG(SPLIT(project_short_name, '-')[1], ', ') project_names
+                FROM `{metadata_table_id}` t
+                GROUP BY TO_JSON_STRING((SELECT AS STRUCT column_name, table_type FROM UNNEST([t])))
+            ), highest_non_null AS (
+                SELECT column_name, table_type, MAX(non_null_percent) OVER (
+                    PARTITION BY column_name, table_type
+                ) AS highest_non_null_percent
+                FROM `{metadata_table_id}`
+                GROUP BY column_name, table_type, non_null_percent
+            ), all_null_percents AS (
+                SELECT c.column_name, c.table_type, h.highest_non_null_percent, c.project_names
+                FROM combined_projects c
+                JOIN highest_non_null h 
+                    ON c.column_name = h.column_name 
+                    AND c.table_type = h.table_type
+                GROUP BY c.column_name, c.table_type, h.highest_non_null_percent, c.project_names
+                ORDER BY c.column_name
+            )
+
+            SELECT * from all_null_percents
+            WHERE highest_non_null_percent >= 50
+            ORDER BY table_type, column_name
         """
 
-        final_table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}"
-        destination_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{final_table_name}"
-        create_table_from_query(PARAMS, destination_table_id, sql)
+        create_table_from_query(PARAMS, table_id=selected_metadata_table_id, query=selected_column_sql)
+
+    if 'build_distinct_column_values_table' in steps:
+        table_column_value_dict = dict()
+        for table_type in PARAMS['TABLE_TYPES']:
+            table_column_value_dict[table_type] = dict()
+
+            table_type_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_{table_type}"
+            table_type_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{table_type_name}"
+
+            sql = f"""
+            SELECT * 
+            FROM `{table_type_id}`
+            """
+
+            result = query_and_retrieve_result(sql=sql)
+
+            for row in result:
+                row_dict = dict(row.items())
+                for column_name, value in row_dict.items():
+                    if column_name not in table_column_value_dict[table_type]:
+                        table_column_value_dict[table_type][column_name] = set()
+                    if value:
+                        table_column_value_dict[table_type][column_name].add(value)
+
+        values_list = list()
+
+        for table_type, column_dict in table_column_value_dict.items():
+            for column_name, value_set in column_dict.items():
+                distinct_value_count = len(value_set)
+                value_str = ""
+                if len(value_set) <= 50:
+                    for value in sorted(value_set):
+                        value_str += f"{value}, "
+                    value_str = value_str[:-2]
+                else:
+                    i = 0
+                    value_str = "*** More than 50 distinct values. Example values: "
+                    for value in sorted(value_set):
+                        value_str += f"{value}, "
+                        i += 1
+                        if i == 3:
+                            break
+                    value_str = value_str[:-2]
+
+                value_dict = {
+                    "table_type": table_type,
+                    "column_name": column_name,
+                    "distinct_non_null_value_count": distinct_value_count,
+                    "distinct_non_null_values": value_str
+                }
+
+                values_list.append(value_dict)
+
+        write_list_to_jsonl_and_upload(PARAMS, 'column_distinct_values', values_list)
+        value_table_name = f"{PARAMS['RELEASE']}_{PARAMS['DEV_COLUMN_METADATA_TABLE_NAME']}"
+        value_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{value_table_name}_distinct_values_temp"
+
+        create_and_load_table_from_jsonl(PARAMS,
+                                         jsonl_file=f"column_distinct_values_{PARAMS['RELEASE']}.jsonl",
+                                         table_id=value_table_id)
+
+        metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['DEV_COLUMN_METADATA_TABLE_NAME']}"
+        selected_metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}"
+
+        merged_sql = f"""
+            SELECT  m.table_type, 
+                    m.column_name, 
+                    m.highest_non_null_percent, 
+                    m.project_names, 
+                    v.distinct_non_null_value_count,
+                    v.distinct_non_null_values 
+            FROM `{selected_metadata_table_id}` m
+            JOIN `{value_table_id}` v
+            ON m.table_type = v.table_type 
+                AND m.column_name = v.column_name
+            ORDER BY m.table_type, m.column_name
+        """
+
+        merged_table_id = selected_metadata_table_id + "_with_distinct_values"
+
+        create_table_from_query(params=PARAMS, table_id=merged_table_id, query=merged_sql)
+
+        metadata_file_name = PARAMS['COLUMN_TABLE_METADATA_FILE']
 
         update_table_schema_from_generic(params=PARAMS,
-                                         table_id=destination_table_id,
-                                         metadata_file=PARAMS['METADATA_FILE_SINGLE_PROGRAM'])
+                                         table_id=merged_table_id,
+                                         metadata_file=metadata_file_name,
+                                         generate_definitions=True)
 
-    if 'output_non_null_percentages_by_project' in steps:
-        table_suffixes = ['patient']
+    if 'build_selected_column_tables' in steps:
+        metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['DEV_COLUMN_METADATA_TABLE_NAME']}"
+        selected_metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}"
 
-        non_null_percentage_list = list()
+        for table_type in PARAMS['TABLE_TYPES']:
 
-        for table_suffix in table_suffixes:
-            table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_{table_suffix}"
-            table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}"
+            table_type_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_{table_type}"
+            table_type_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RENAMED_DATASET']}.{table_type_name}"
+            destination_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{table_type_name}"
 
             column_sql = f"""
-                SELECT column_name
-                FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}`.INFORMATION_SCHEMA.COLUMNS
-                WHERE table_name = '{table_name}'
-                AND data_type = 'STRING'
+                SELECT column_name 
+                FROM `{selected_metadata_table_id}`
+                WHERE table_type = '{table_type}'
             """
 
-            column_result = query_and_retrieve_result(column_sql)
+            result = query_and_retrieve_result(sql=column_sql)
 
             column_list = list()
 
-            for row in column_result:
-                column_list.append(row[0])
+            for row in result:
+                column_name = row[0]
+                column_list.append(column_name)
 
-            project_sql = f"""
-                SELECT project_short_name, count(*)
-                FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}`
-                GROUP BY project_short_name
+            first_column_list = list()
+
+            for column_name in PARAMS['COLUMN_ORDERING']:
+                if column_name in column_list:
+                    column_list.remove(column_name)
+                    first_column_list.append(column_name)
+
+            column_list = first_column_list + column_list
+
+            select_str = "SELECT "
+
+            for column_name in column_list:
+                select_str += f"{column_name}, "
+
+            select_str = select_str[:-2]
+
+            destination_table_sql = f"""
+                {select_str}
+                FROM `{table_type_id}`
             """
 
-            project_result = query_and_retrieve_result(project_sql)
+            create_table_from_query(PARAMS, table_id=destination_table_id, query=destination_table_sql)
 
-            project_counts = dict()
+            metadata_file_name = PARAMS['TABLE_TYPES'][table_type]['METADATA_FILE_SINGLE_PROGRAM']
 
-            for row in project_result:
-                project_counts[row[0]] = row[1]
+            update_table_schema_from_generic(params=PARAMS,
+                                             table_id=destination_table_id,
+                                             metadata_file=metadata_file_name,
+                                             generate_definitions=True)
 
-            for project_short_name, project_count in project_counts.items():
-                logger.info(f"Retrieving column counts for {project_short_name}")
+    if "publish_tables" in steps:
+        prod_dataset_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}"
 
-                nulls_sql = f"""
-                    SELECT column_name, COUNT(1) AS nulls_count
-                    FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}` as clinical,
-                    UNNEST(REGEXP_EXTRACT_ALL(TO_JSON_STRING(clinical), r'\"(\\w+)\":null')) column_name
-                    WHERE project_short_name = '{project_short_name}'
-                    GROUP BY column_name
-                    ORDER BY nulls_count
-                """
+        # publish tables for each table type
+        for table_type in PARAMS['TABLE_TYPES']:
+            table_type_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_{table_type}"
+            source_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{table_type_name}"
 
-                non_null_count_result = query_and_retrieve_result(nulls_sql)
+            prod_table_name = f"{PARAMS['PROD_TABLE_PREFIX']}_{table_type}_{PARAMS['NODE']}"
+            current_table_id = f"{prod_dataset_id}.{prod_table_name}_current"
+            versioned_table_id = f"{prod_dataset_id}_versioned.{prod_table_name}_{PARAMS['RELEASE']}"
 
-                for row in non_null_count_result:
-                    column_name = row[0]
-                    null_count = row[1]
-                    null_percentage = (null_count / project_count) * 100
-                    non_null_percentage = round(100 - null_percentage, 2)
-                    non_null_percentage = f"{str(non_null_percentage)}%"
-                    non_null_percentage_list.append([column_name, project_short_name, non_null_percentage])
+            table_ids = {
+                "source": source_table_id,
+                "current": current_table_id,
+                "versioned": versioned_table_id,
+                "previous_versioned": find_most_recent_published_table_id(PARAMS, versioned_table_id)
+            }
 
-        non_null_percentage_tsv_path = f"{local_files_dir}/{PARAMS['RELEASE']}_TCGA_non_null_percentages.tsv"
+            publish_table(PARAMS, table_ids)
 
-        with open(non_null_percentage_tsv_path, 'w', newline='') as f:
-            writer = csv.writer(f, delimiter='\t')
-            writer.writerows(non_null_percentage_list)
+        # publish column metadata table
+        metadata_table_name = f"{PARAMS['RELEASE']}_{PARAMS['DEV_COLUMN_METADATA_TABLE_NAME']}_with_distinct_values"
+        source_metadata_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}.{metadata_table_name}"
 
-        upload_to_bucket(PARAMS, non_null_percentage_tsv_path, delete_local=True, verbose=False)
+        prod_metadata_table_name = f"{PARAMS['PROD_TABLE_PREFIX']}_column_metadata_{PARAMS['NODE']}"
+        current_metadata_table_id = f"{prod_dataset_id}.{prod_metadata_table_name}_current"
+        versioned_metadata_table_id = f"{prod_dataset_id}_versioned.{prod_metadata_table_name}_{PARAMS['RELEASE']}"
 
-    if 'import_data_definitions' in steps:
-        gdc_api_url = "https://api.gdc.cancer.gov/v0/submission/_dictionary/_all"
-        response = requests.get(gdc_api_url)
-        dict_json = response.json()
+        metadata_table_ids = {
+            "source": source_metadata_table_id,
+            "current": current_metadata_table_id,
+            "versioned": versioned_metadata_table_id,
+            "previous_versioned": find_most_recent_published_table_id(PARAMS, versioned_metadata_table_id)
+        }
 
-        column_definition_dict = dict()
-
-        categories = ['demographic', 'diagnosis', 'exposure', 'family_history', 'follow_up',
-                      'molecular_test', 'other_clinical_attribute', 'pathology_detail', 'treatment', 'clinical']
-
-        for category in categories:
-            logger.info(f"Parsing {category}!")
-            column_properties = dict_json[category]["properties"]
-
-            for column, values in column_properties.items():
-                if (('description' not in values and 'common' not in values) or
-                        ('common' in values and 'description' not in values['common'])):
-                    logger.info(f"No description found for column {column}.")
-                else:
-                    if 'description' in values:
-                        description = values['description']
-                    else:
-                        description = values['common']['description']
-
-                    if column in column_definition_dict and column_definition_dict[column] != description:
-                        logger.info(f"Column {column} is already in the dictionary.")
-                        logger.info(f"Existing description: {column_definition_dict[column]}")
-                        logger.info(f"New description: {description}")
-                    else:
-                        column_definition_dict[column] = description
-
-        logger.info("DESCRIPTIONS!!!")
-        for column, description in sorted(column_definition_dict.items()):
-            print(f"{column}\t{description}")
-
-    if 'null_column_comparison' in steps:
-        table_suffixes = ['patient']
-
-        included_columns_list = list()
-        included_columns_set = set()
-
-        for table_suffix in table_suffixes:
-            table_name = f"{PARAMS['RELEASE']}_{PARAMS['PROGRAM']}_{table_suffix}"
-            table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}"
-
-            column_sql = f"""
-                SELECT column_name
-                FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}`.INFORMATION_SCHEMA.COLUMNS
-                WHERE table_name = '{table_name}'
-                AND data_type = 'STRING'
-            """
-
-            column_result = query_and_retrieve_result(column_sql)
-
-            column_list = list()
-
-            for row in column_result:
-                column_list.append(row[0])
-
-            project_sql = f"""
-                SELECT project_short_name, count(*)
-                FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}`
-                GROUP BY project_short_name
-            """
-
-            project_result = query_and_retrieve_result(project_sql)
-
-            project_counts = dict()
-
-            column_renaming_dict = PARAMS['COLUMN_RENAMING']
-            reversed_column_renaming_dict = {value: key for key, value in column_renaming_dict.items()}
-
-            for row in project_result:
-                project_counts[row[0]] = row[1]
-
-            for project_short_name, project_count in project_counts.items():
-                logger.info(f"Retrieving column counts for {project_short_name}")
-
-                nulls_sql = f"""
-                    SELECT column_name, COUNT(1) AS nulls_count
-                    FROM `{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_RAW_DATASET']}.{table_name}` as clinical,
-                    UNNEST(REGEXP_EXTRACT_ALL(TO_JSON_STRING(clinical), r'\"(\\w+)\":null')) column_name
-                    WHERE project_short_name = '{project_short_name}'
-                    GROUP BY column_name
-                    ORDER BY nulls_count
-                """
-
-                non_null_count_result = query_and_retrieve_result(nulls_sql)
-
-                for row in non_null_count_result:
-                    column_name = row[0]
-                    null_count = row[1]
-                    null_percentage = (null_count / project_count) * 100
-                    non_null_percentage = round(100 - null_percentage, 2)
-
-                    if non_null_percentage >= 50.0:
-
-                        if column_name in reversed_column_renaming_dict:
-                            included_columns_set.add(reversed_column_renaming_dict[column_name])
-                        else:
-                            included_columns_set.add(column_name)
-
-            defined_column_set = set(import_column_names())
-
-            columns_missing_definitions = included_columns_set - defined_column_set
-            columns_below_threshold = defined_column_set - included_columns_set
-
-            print("Columns that are missing definitions:")
-            for column in columns_missing_definitions:
-                print(f"{column}")
-
-            print("\nDefined columns that fall below threshold:")
-            for column in columns_below_threshold:
-                print(f"{column}")
+        publish_table(PARAMS, metadata_table_ids)
 
     end_time = time.time()
 

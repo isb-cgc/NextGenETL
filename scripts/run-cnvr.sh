@@ -16,7 +16,7 @@
 
 source ~/setEnvVars.sh
 
-export MY_VENV=~/virtualEnvETL3_9
+export MY_VENV=~/virtualEnvETL3_11
 export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
 
 mkdir -p ~/config
@@ -28,5 +28,5 @@ pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 cd ..
-python3 ./BQ_Table_Building/build_cnvr_bq_table.py ~/config/CnvrBQBuild.yaml
+python3.11 ./BQ_Table_Building/build_cnvr_bq_table.py ~/config/CnvrBQBuild.yaml
 deactivate
