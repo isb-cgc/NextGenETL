@@ -25,12 +25,20 @@ import time
 from google.cloud import bigquery
 # from google.cloud.bigquery import SchemaField, Client, LoadJobConfig, QueryJob
 
-from cda_bq_etl.data_helpers import initialize_logging
+from cda_bq_etl.data_helpers import initialize_logging, is_uuid
 from cda_bq_etl.utils import load_config, format_seconds
 from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic, query_and_retrieve_result
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
+
+
+def query_table_for_values(table_id: str):
+    return """
+        SELECT * 
+        FROM `table_id`
+        LIMIT 5
+    """
 
 
 def main(args):
@@ -100,21 +108,41 @@ def main(args):
                         versioned_dataset_dict[dataset] = list()
                     versioned_dataset_dict[dataset].append(table_id)
 
-            for dataset, current_dataset_dict in sorted(current_dataset_dict.items()):
-                current_dataset_dict.sort()
-                print(f"\n{dataset} tables:")
-                for table in current_dataset_dict:
-                    print(f"\t{table}")
+            for dataset, current_datasets in sorted(current_dataset_dict.items()):
+                current_datasets.sort()
+                # print(f"\n{dataset} tables:")
+                for table in current_datasets:
+                    table_list.append(table)
+                    # print(f"\t{table}")
 
-            """
-            for dataset, versioned_table_list in versioned_dataset_dict.items():
-                versioned_table_list.sort(reverse=True)
-                print(f"\n{dataset} tables:")
-                for table in versioned_table_list:
-                    print(f"\t{table}")
-            """
+            for dataset, versioned_datasets in sorted(versioned_dataset_dict.items()):
+                versioned_datasets.sort()
+                # print(f"\n{dataset} tables:")
+                for table in versioned_datasets:
+                    table_list.append(table)
+                    # print(f"\t{table}")
 
+            table_id_uuid_columns = dict()
 
+            for table_id in table_list:
+                column_set = set()
+                sql = query_table_for_values(table_id)
+                results = query_and_retrieve_result(sql)
+
+                for row in results:
+                    row_dict = dict(row)
+                    for column_name, value in row_dict.items():
+                        # - check if value is uuid
+                        # - if so, store column name in a set
+                        if is_uuid(value):
+                            column_set.add(column_name)
+
+                table_id_uuid_columns[table_id] = column_set
+
+            for table_id, column_set in table_id_uuid_columns.items():
+                print(f"{table_id} potential columns:")
+                for column in sorted(column_set):
+                    print(f"\t- {column}")
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
