@@ -34,9 +34,9 @@ YAML_HEADERS = ('params', 'steps')
 
 
 def query_table_for_values(table_id: str):
-    return """
+    return f"""
         SELECT * 
-        FROM `table_id`
+        FROM `{table_id}`
         LIMIT 5
     """
 
