@@ -85,7 +85,6 @@ def main(args):
         if not results:
             print("No results found")
         else:
-            print("table results list:")
             table_list = list()
             current_dataset_dict = dict()
             versioned_dataset_dict = dict()
@@ -107,6 +106,8 @@ def main(args):
                     if dataset not in versioned_dataset_dict:
                         versioned_dataset_dict[dataset] = list()
                     versioned_dataset_dict[dataset].append(table_id)
+
+            print("Add tables to list")
 
             for dataset, current_datasets in sorted(current_dataset_dict.items()):
                 current_datasets.sort()
@@ -138,6 +139,8 @@ def main(args):
                             column_set.add(column_name)
 
                 table_id_uuid_columns[table_id] = column_set
+
+            print("Output potential columns: ")
 
             for table_id, column_set in table_id_uuid_columns.items():
                 print(f"{table_id} potential columns:")
