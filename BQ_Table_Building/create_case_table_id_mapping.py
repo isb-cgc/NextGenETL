@@ -47,11 +47,14 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     excluded_datasets = {
-        "annotations",
-        "annotations_versioned",
+        "CCLE",
+        "CCLE_versioned",
+        "COSMIC",
+        "COSMIC_versioned",
+        "DEPMAP",
+        "DEPMAP_versioned",
         "mitelman",
         "mitelman_versioned",
-        "pancancer_atlas",
         "reactome",
         "reactome_versioned",
         "supplementary_tables",
