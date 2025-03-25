@@ -757,6 +757,7 @@ def initialize_logging(log_filepath: str, name: str = 'base_script', emit_to_con
 
 
 def is_uuid(uuid_str: str) -> bool:
+    uuid_str = str(uuid_str)
     uuid_str_list = uuid_str.split('-')
 
     if len(uuid_str_list) < 2:
