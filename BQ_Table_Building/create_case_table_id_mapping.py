@@ -107,7 +107,7 @@ def main(args):
                         versioned_dataset_dict[dataset] = list()
                     versioned_dataset_dict[dataset].append(table_id)
 
-            print("Add tables to list")
+            print("Add tables to list:")
 
             for dataset, current_datasets in sorted(current_dataset_dict.items()):
                 current_datasets.sort()
@@ -116,12 +116,14 @@ def main(args):
                     table_list.append(table)
                     # print(f"\t{table}")
 
+            """
             for dataset, versioned_datasets in sorted(versioned_dataset_dict.items()):
                 versioned_datasets.sort()
                 # print(f"\n{dataset} tables:")
                 for table in versioned_datasets:
                     table_list.append(table)
                     # print(f"\t{table}")
+            """
 
             table_id_uuid_columns = dict()
 
