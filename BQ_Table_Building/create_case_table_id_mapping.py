@@ -33,11 +33,30 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
-def query_table_for_values(table_id: str):
+def query_table_for_values(table_id: str) -> str:
     return f"""
         SELECT * 
         FROM `{table_id}`
         LIMIT 5
+    """
+
+
+def query_column_names(dataset_id: str, column_list: list[str]) -> str:
+    split_dataset_id = dataset_id.split('.')
+    project_name = split_dataset_id[0]
+    dataset_name = split_dataset_id[1]
+
+    where_clause = "WHERE "
+
+    for column in column_list:
+        where_clause += f" column_name = '{column}' OR"
+
+    where_clause = where_clause[:-2]
+
+    return f"""
+        SELECT table_name, column_name
+        FROM `{project_name}`.{dataset_name}.INFORMATION_SCHEMA.COLUMNS
+        {where_clause}
     """
 
 
@@ -82,6 +101,8 @@ def main(args):
 
         results = query_and_retrieve_result(sql)
 
+        column_list = ['case_gdc_id', 'case_id', 'Id', 'PatientID', 'bcr_patient_uuid', 'ID']
+
         if not results:
             print("No results found")
         else:
@@ -89,12 +110,21 @@ def main(args):
             current_dataset_dict = dict()
             versioned_dataset_dict = dict()
             for result in results:
+                project = "isb-cgc-bq"
                 dataset = result.table_schema
-                table_id = f"isb-cgc-bq.{dataset}.{result.table_name}"
-                creation_time = result.creation_time
-                formatted_creation_time = creation_time.strftime('%Y-%m-%d %H:%M:%S')
-                # print(f"{table_id}\t{formatted_creation_time}")
+                dataset_id = f"{project}.{dataset}"
+                table_id = f"{project}.{dataset}.{result.table_name}"
 
+                column_name_sql = query_column_names(dataset_id, column_list)
+
+                results = query_and_retrieve_result(column_name_sql)
+
+                for row in results:
+                    row_dict = dict(row)
+                    table_id = f"{dataset_id}.{row_dict['table_name']}"
+                    print(f"{table_id}: {row_dict['column_name']}")
+
+                """
                 if dataset in excluded_datasets:
                     continue
 
@@ -115,6 +145,7 @@ def main(args):
                 for table in current_datasets:
                     table_list.append(table)
                     # print(f"\t{table}")
+            """
 
             """
             for dataset, versioned_datasets in sorted(versioned_dataset_dict.items()):
@@ -148,6 +179,17 @@ def main(args):
                 table_id_uuid_columns[table_id] = column_set
                 print(f"{table_id}: {sorted(column_set)}")
             print("Output potential columns: ")
+
+            """
+            case_gdc_id
+            case_id
+            Id (in HTAN, is this a case_id?)
+            PatientID (TCGA radiology images tcia)
+            bcr_patient_uuid (pancancer atlas)
+            ID 
+                - isb-cgc-bq.pancancer_atlas.Filtered_pancanMiRs_EBadjOnProtocolPlatformWithoutRepsWithUnCorrectMiRs_08_04_16
+                - isb-cgc-bq.pancancer_atlas.Original_pancanMiRs_EBadjOnProtocolPlatformWithoutRepsWithUnCorrectMiRs_08_04_16
+            """
 
             """
             for table_id, column_set in table_id_uuid_columns.items():
