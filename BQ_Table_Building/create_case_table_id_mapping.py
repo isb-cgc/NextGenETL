@@ -117,9 +117,9 @@ def main(args):
 
                 column_name_sql = query_column_names(dataset_id, column_list)
 
-                results = query_and_retrieve_result(column_name_sql)
+                column_results = query_and_retrieve_result(column_name_sql)
 
-                for row in results:
+                for row in column_results:
                     row_dict = dict(row)
                     table_id = f"{dataset_id}.{row_dict['table_name']}"
                     print(f"{table_id}: {row_dict['column_name']}")
