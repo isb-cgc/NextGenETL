@@ -127,6 +127,8 @@ def main(args):
 
             table_id_uuid_columns = dict()
 
+            print("Query for potential columns: ")
+
             for table_id in table_list:
                 column_set = set()
                 sql = query_table_for_values(table_id)
@@ -140,14 +142,19 @@ def main(args):
                         if is_uuid(value):
                             column_set.add(column_name)
 
-                table_id_uuid_columns[table_id] = column_set
+                    if column_set:
+                        break
 
+                table_id_uuid_columns[table_id] = column_set
+                print(f"{table_id}: {sorted(column_set)}")
             print("Output potential columns: ")
 
+            """
             for table_id, column_set in table_id_uuid_columns.items():
                 print(f"{table_id} potential columns:")
                 for column in sorted(column_set):
                     print(f"\t- {column}")
+            """
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
