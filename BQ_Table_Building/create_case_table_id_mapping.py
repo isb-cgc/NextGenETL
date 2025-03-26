@@ -115,7 +115,7 @@ def main(args):
                 if 'versioned' in dataset:
                     continue
                 dataset_id = f"{project}.{dataset}"
-                table_id = f"{project}.{dataset}.{result.table_name}"
+                # table_id = f"{project}.{dataset}.{result.table_name}"
 
                 column_name_sql = query_column_names(dataset_id, column_list)
 
