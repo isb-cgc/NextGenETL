@@ -94,7 +94,7 @@ def main(args):
 
         sql = f"""
             SELECT
-              table_schema, table_name, creation_time
+              DISTINCT table_schema
             FROM
               isb-cgc-bq.`region-us`.INFORMATION_SCHEMA.TABLES;        
         """
