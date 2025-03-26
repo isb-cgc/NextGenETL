@@ -112,6 +112,8 @@ def main(args):
             for result in results:
                 project = "isb-cgc-bq"
                 dataset = result.table_schema
+                if 'versioned' in dataset:
+                    continue
                 dataset_id = f"{project}.{dataset}"
                 table_id = f"{project}.{dataset}.{result.table_name}"
 
