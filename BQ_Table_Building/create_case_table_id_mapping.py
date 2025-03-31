@@ -74,10 +74,9 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     if 'retrieve_case_tables' in steps:
-
         sql = f"""
             SELECT
-              DISTINCT table_schema, creation_time
+              DISTINCT table_schema
             FROM
               isb-cgc-bq.`region-us`.INFORMATION_SCHEMA.TABLES;        
         """
