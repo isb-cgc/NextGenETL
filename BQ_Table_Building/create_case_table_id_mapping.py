@@ -107,7 +107,7 @@ def main(args):
                         filtered_table = True
 
                 if filtered_table:
-                    print(f"{row_dict['table_name']} was filtered")
+                    # print(f"{row_dict['table_name']} was filtered")
                     continue
 
                 table_id = f"{dataset_id}.{row_dict['table_name']}"
