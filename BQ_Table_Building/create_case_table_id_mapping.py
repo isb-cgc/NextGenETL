@@ -101,7 +101,7 @@ def main(args):
 
         results = query_and_retrieve_result(sql)
 
-        column_list = ['case_gdc_id', 'case_id', 'Id', 'PatientID', 'bcr_patient_uuid', 'ID']
+        column_list = ['case_gdc_id', 'case_id', 'HTAN_Participant_ID', 'PatientID', 'bcr_patient_uuid']
 
         if not results:
             print("No results found")
@@ -179,17 +179,6 @@ def main(args):
                 table_id_uuid_columns[table_id] = column_set
                 print(f"{table_id}: {sorted(column_set)}")
             print("Output potential columns: ")
-
-            """
-            case_gdc_id
-            case_id
-            Id (in HTAN, is this a case_id?)
-            PatientID (TCGA radiology images tcia)
-            bcr_patient_uuid (pancancer atlas)
-            ID 
-                - isb-cgc-bq.pancancer_atlas.Filtered_pancanMiRs_EBadjOnProtocolPlatformWithoutRepsWithUnCorrectMiRs_08_04_16
-                - isb-cgc-bq.pancancer_atlas.Original_pancanMiRs_EBadjOnProtocolPlatformWithoutRepsWithUnCorrectMiRs_08_04_16
-            """
 
             """
             for table_id, column_set in table_id_uuid_columns.items():
