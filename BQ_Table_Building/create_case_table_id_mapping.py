@@ -107,7 +107,7 @@ def main(args):
                         if keyword in row_dict['table_name']:
                             filtered_table = True
 
-                    if not filtered_table:
+                    if filtered_table:
                         filtered_table = False
                         print(f"{row_dict['table_name']} was filtered")
                         continue
