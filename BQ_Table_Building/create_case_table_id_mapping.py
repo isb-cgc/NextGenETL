@@ -112,13 +112,11 @@ def main(args):
                         continue
 
                     table_id = f"{dataset_id}.{row_dict['table_name']}"
-                    # print(f"{table_id}: {row_dict['column_name']}")
 
-                    if table_id in table_id_dict:
-                        print(f"this table is already in table_id_dict: {table_id}")
-                    else:
+                    if table_id not in table_id_dict:
                         table_id_dict[table_id] = table_id
-            # narrow this list by keeping only the most recent table
+                    else:
+                        print(f"this table is already in table_id_dict: {table_id}")
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
