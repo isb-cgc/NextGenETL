@@ -90,6 +90,8 @@ def main(args):
         "targetome_versioned"
     }
 
+    column_list = ['case_gdc_id', 'case_id', 'HTAN_Participant_ID', 'PatientID', 'bcr_patient_uuid']
+
     if 'retrieve_datasets' in steps:
 
         sql = f"""
@@ -101,19 +103,15 @@ def main(args):
 
         results = query_and_retrieve_result(sql)
 
-        column_list = ['case_gdc_id', 'case_id', 'HTAN_Participant_ID', 'PatientID', 'bcr_patient_uuid']
-
         if not results:
             print("No results found")
         else:
-            table_list = list()
-            current_dataset_dict = dict()
-            versioned_dataset_dict = dict()
+            table_id_dict = dict()
+
             for result in results:
                 project = "isb-cgc-bq"
                 dataset = result.table_schema
                 dataset_id = f"{project}.{dataset}"
-                # table_id = f"{project}.{dataset}.{result.table_name}"
 
                 column_name_sql = query_column_names(dataset_id, column_list)
 
@@ -124,68 +122,12 @@ def main(args):
                     table_id = f"{dataset_id}.{row_dict['table_name']}"
                     print(f"{table_id}: {row_dict['column_name']}")
 
-                """
-                if dataset in excluded_datasets:
-                    continue
+                    if table_id in table_id_dict:
+                        print(f"this table is already in table_id_dict: {table_id}")
+                    else:
+                        table_id_dict[table_id] = table_id
 
-                if 'versioned' not in dataset:
-                    if dataset not in current_dataset_dict:
-                        current_dataset_dict[dataset] = list()
-                    current_dataset_dict[dataset].append(table_id)
-                else:
-                    if dataset not in versioned_dataset_dict:
-                        versioned_dataset_dict[dataset] = list()
-                    versioned_dataset_dict[dataset].append(table_id)
 
-            print("Add tables to list:")
-
-            for dataset, current_datasets in sorted(current_dataset_dict.items()):
-                current_datasets.sort()
-                # print(f"\n{dataset} tables:")
-                for table in current_datasets:
-                    table_list.append(table)
-                    # print(f"\t{table}")
-            """
-
-            """
-            for dataset, versioned_datasets in sorted(versioned_dataset_dict.items()):
-                versioned_datasets.sort()
-                # print(f"\n{dataset} tables:")
-                for table in versioned_datasets:
-                    table_list.append(table)
-                    # print(f"\t{table}")
-            """
-
-            table_id_uuid_columns = dict()
-
-            print("Query for potential columns: ")
-
-            for table_id in table_list:
-                column_set = set()
-                sql = query_table_for_values(table_id)
-                results = query_and_retrieve_result(sql)
-
-                for row in results:
-                    row_dict = dict(row)
-                    for column_name, value in row_dict.items():
-                        # - check if value is uuid
-                        # - if so, store column name in a set
-                        if is_uuid(value):
-                            column_set.add(column_name)
-
-                    if column_set:
-                        break
-
-                table_id_uuid_columns[table_id] = column_set
-                print(f"{table_id}: {sorted(column_set)}")
-            print("Output potential columns: ")
-
-            """
-            for table_id, column_set in table_id_uuid_columns.items():
-                print(f"{table_id} potential columns:")
-                for column in sorted(column_set):
-                    print(f"\t- {column}")
-            """
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
