@@ -73,26 +73,9 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    excluded_datasets = {
-        "CCLE",
-        "CCLE_versioned",
-        "COSMIC",
-        "COSMIC_versioned",
-        "DEPMAP",
-        "DEPMAP_versioned",
-        "mitelman",
-        "mitelman_versioned",
-        "reactome",
-        "reactome_versioned",
-        "supplementary_tables",
-        "synthetic_lethality",
-        "targetome",
-        "targetome_versioned"
-    }
-
     column_list = ['case_gdc_id', 'case_id', 'HTAN_Participant_ID', 'PatientID', 'bcr_patient_uuid']
 
-    if 'retrieve_datasets' in steps:
+    if 'retrieve_case_tables' in steps:
 
         sql = f"""
             SELECT
@@ -113,7 +96,7 @@ def main(args):
                 dataset = result.table_schema
                 dataset_id = f"{project}.{dataset}"
 
-                column_name_sql = query_column_names(dataset_id, column_list)
+                column_name_sql = query_column_names(dataset_id, PARAMS['CASE_ID_FIELDS'])
 
                 column_results = query_and_retrieve_result(column_name_sql)
 
@@ -126,8 +109,6 @@ def main(args):
                         print(f"this table is already in table_id_dict: {table_id}")
                     else:
                         table_id_dict[table_id] = table_id
-
-
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
