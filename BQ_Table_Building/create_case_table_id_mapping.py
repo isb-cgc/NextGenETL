@@ -25,9 +25,10 @@ import time
 from google.cloud import bigquery
 # from google.cloud.bigquery import SchemaField, Client, LoadJobConfig, QueryJob
 
-from cda_bq_etl.data_helpers import initialize_logging, is_uuid
+from cda_bq_etl.data_helpers import initialize_logging, is_uuid, write_list_to_jsonl_and_upload
 from cda_bq_etl.utils import load_config, format_seconds
-from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic, query_and_retrieve_result
+from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic, query_and_retrieve_result, \
+    create_and_upload_schema_for_json, retrieve_bq_schema_object, create_and_load_table_from_jsonl
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -74,6 +75,7 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     if 'retrieve_case_tables' in steps:
+        logger.info("Entering retrieve_case_tables")
         sql = f"""
             SELECT
               DISTINCT table_schema
@@ -83,38 +85,66 @@ def main(args):
 
         results = query_and_retrieve_result(sql)
 
-        if not results:
-            print("No results found")
-        else:
-            table_id_dict = dict()
+        table_id_list = list()
 
-            for result in results:
-                project = "isb-cgc-bq"
-                dataset = result.table_schema
-                dataset_id = f"{project}.{dataset}"
+        for result in results:
+            project = "isb-cgc-bq"
+            dataset = result.table_schema
+            dataset_id = f"{project}.{dataset}"
 
-                column_name_sql = query_column_names(dataset_id, PARAMS['CASE_ID_FIELDS'])
+            column_name_sql = query_column_names(dataset_id, PARAMS['CASE_ID_FIELDS'])
 
-                column_results = query_and_retrieve_result(column_name_sql)
+            column_results = query_and_retrieve_result(column_name_sql)
 
-                for row in column_results:
-                    row_dict = dict(row)
-                    filtered_table = False
+            for row in column_results:
+                table_id_dict = dict()
 
-                    for keyword in PARAMS['FILTERED_TABLE_KEYWORDS']:
-                        if keyword in row_dict['table_name']:
-                            filtered_table = True
+                row_dict = dict(row)
+                filtered_table = False
 
-                    if filtered_table:
-                        print(f"{row_dict['table_name']} was filtered")
-                        continue
+                for keyword in PARAMS['FILTERED_TABLE_KEYWORDS']:
+                    if keyword in row_dict['table_name']:
+                        filtered_table = True
 
-                    table_id = f"{dataset_id}.{row_dict['table_name']}"
+                if filtered_table:
+                    print(f"{row_dict['table_name']} was filtered")
+                    continue
 
-                    if table_id not in table_id_dict:
-                        table_id_dict[table_id] = table_id
-                    else:
-                        print(f"this table is already in table_id_dict: {table_id}")
+                table_id = f"{dataset_id}.{row_dict['table_name']}"
+
+                if table_id not in table_id_dict:
+                    table_id_dict['table_id'] = table_id
+                    table_id_dict['column_name'] = row_dict['column_name']
+                    table_id_list.append(table_id_dict)
+                else:
+                    print(f"this table is already in table_id_dict: {table_id}")
+
+        write_list_to_jsonl_and_upload(PARAMS,
+                                       prefix=PARAMS['TABLE_ID_COLUMN_NAME_TABLE'],
+                                       record_list=table_id_list)
+
+        create_and_upload_schema_for_json(PARAMS,
+                                          record_list=table_id_list,
+                                          table_name=PARAMS['TABLE_ID_COLUMN_NAME_TABLE'],
+                                          include_release=True)
+
+    if 'build_table_case_column_table' in steps:
+        logger.info("Entering build_table_case_column_table")
+
+        table_name = f"{PARAMS['TABLE_ID_COLUMN_NAME_TABLE']}_{PARAMS['RELEASE']}"
+        table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{table_name}"
+
+        table_schema = retrieve_bq_schema_object(PARAMS,
+                                                 table_name=PARAMS['TABLE_ID_COLUMN_NAME_TABLE'],
+                                                 include_release=True)
+
+        # Load jsonl data into BigQuery table
+        create_and_load_table_from_jsonl(PARAMS,
+                                         jsonl_file=f"{PARAMS['TABLE_ID_COLUMN_NAME_TABLE']}_{PARAMS['RELEASE']}.jsonl",
+                                         table_id=table_id,
+                                         schema=table_schema)
+
+        # update_table_schema_from_generic(params=PARAMS, table_id=table_id)
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
