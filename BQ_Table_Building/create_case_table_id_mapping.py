@@ -54,7 +54,7 @@ def query_column_names(dataset_id: str, column_list: list[str]) -> str:
     where_clause = where_clause[:-2]
 
     return f"""
-        SELECT table_name, column_name
+        SELECT DISTINCT table_name, column_name
         FROM `{project_name}`.{dataset_name}.INFORMATION_SCHEMA.COLUMNS
         {where_clause}
     """
