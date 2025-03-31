@@ -73,13 +73,11 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    column_list = ['case_gdc_id', 'case_id', 'HTAN_Participant_ID', 'PatientID', 'bcr_patient_uuid']
-
     if 'retrieve_case_tables' in steps:
 
         sql = f"""
             SELECT
-              DISTINCT table_schema
+              DISTINCT table_schema, creation_time
             FROM
               isb-cgc-bq.`region-us`.INFORMATION_SCHEMA.TABLES;        
         """
@@ -94,6 +92,7 @@ def main(args):
             for result in results:
                 project = "isb-cgc-bq"
                 dataset = result.table_schema
+                time_created = result.creation_time.strftime('%Y.%m.%d-%H')
                 dataset_id = f"{project}.{dataset}"
 
                 column_name_sql = query_column_names(dataset_id, PARAMS['CASE_ID_FIELDS'])
@@ -102,13 +101,25 @@ def main(args):
 
                 for row in column_results:
                     row_dict = dict(row)
+                    filtered_table = False
+
+                    for keyword in PARAMS['FILTERED_TABLE_KEYWORDS']:
+                        if keyword in row_dict['table_name']:
+                            filtered_table = True
+
+                    if not filtered_table:
+                        filtered_table = False
+                        print(f"{row_dict['table_name']} was filtered")
+                        continue
+
                     table_id = f"{dataset_id}.{row_dict['table_name']}"
-                    print(f"{table_id}: {row_dict['column_name']}")
+                    # print(f"{table_id}: {row_dict['column_name']}")
 
                     if table_id in table_id_dict:
                         print(f"this table is already in table_id_dict: {table_id}")
                     else:
                         table_id_dict[table_id] = table_id
+            # narrow this list by keeping only the most recent table
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
