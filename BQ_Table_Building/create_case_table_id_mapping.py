@@ -91,7 +91,6 @@ def main(args):
             for result in results:
                 project = "isb-cgc-bq"
                 dataset = result.table_schema
-                time_created = result.creation_time.strftime('%Y.%m.%d-%H')
                 dataset_id = f"{project}.{dataset}"
 
                 column_name_sql = query_column_names(dataset_id, PARAMS['CASE_ID_FIELDS'])
