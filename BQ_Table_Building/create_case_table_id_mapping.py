@@ -25,21 +25,13 @@ import time
 from google.cloud import bigquery
 # from google.cloud.bigquery import SchemaField, Client, LoadJobConfig, QueryJob
 
-from cda_bq_etl.data_helpers import initialize_logging, is_uuid, write_list_to_jsonl_and_upload
+from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload
 from cda_bq_etl.utils import load_config, format_seconds
-from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic, query_and_retrieve_result, \
-    create_and_upload_schema_for_json, retrieve_bq_schema_object, create_and_load_table_from_jsonl
+from cda_bq_etl.bq_helpers import (query_and_retrieve_result, create_and_upload_schema_for_json,
+                                   retrieve_bq_schema_object, create_and_load_table_from_jsonl)
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
-
-
-def query_table_for_values(table_id: str) -> str:
-    return f"""
-        SELECT * 
-        FROM `{table_id}`
-        LIMIT 5
-    """
 
 
 def query_column_names(dataset_id: str, column_list: list[str]) -> str:
@@ -61,6 +53,15 @@ def query_column_names(dataset_id: str, column_list: list[str]) -> str:
     """
 
 
+def query_table_names() -> str:
+    return f"""
+        SELECT
+          DISTINCT table_schema
+        FROM
+          isb-cgc-bq.`region-us`.INFORMATION_SCHEMA.TABLES;
+    """
+
+
 def main(args):
     try:
         start_time = time.time()
@@ -75,20 +76,14 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     if 'retrieve_case_tables' in steps:
-        logger.info("Entering retrieve_case_tables")
-        sql = f"""
-            SELECT
-              DISTINCT table_schema
-            FROM
-              isb-cgc-bq.`region-us`.INFORMATION_SCHEMA.TABLES;        
-        """
+        logger.info("Entering retrieve_case_tables. This step takes a minute.")
 
-        results = query_and_retrieve_result(sql)
+        results = query_and_retrieve_result(query_table_names())
 
         table_id_list = list()
 
         for result in results:
-            project = "isb-cgc-bq"
+            project = PARAMS['PROD_PROJECT']
             dataset = result.table_schema
             dataset_id = f"{project}.{dataset}"
 
