@@ -34,6 +34,15 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
+def query_table_names() -> str:
+    return f"""
+        SELECT
+          DISTINCT table_schema
+        FROM
+          isb-cgc-bq.`region-us`.INFORMATION_SCHEMA.TABLES;
+    """
+
+
 def query_column_names(dataset_id: str, column_list: list[str]) -> str:
     split_dataset_id = dataset_id.split('.')
     project_name = split_dataset_id[0]
@@ -50,15 +59,6 @@ def query_column_names(dataset_id: str, column_list: list[str]) -> str:
         SELECT DISTINCT table_name, column_name
         FROM `{project_name}`.{dataset_name}.INFORMATION_SCHEMA.COLUMNS
         {where_clause}
-    """
-
-
-def query_table_names() -> str:
-    return f"""
-        SELECT
-          DISTINCT table_schema
-        FROM
-          isb-cgc-bq.`region-us`.INFORMATION_SCHEMA.TABLES;
     """
 
 
@@ -110,6 +110,7 @@ def main(args):
                 if table_id not in table_id_dict:
                     table_id_dict['table_id'] = table_id
                     table_id_dict['column_name'] = row_dict['column_name']
+                    print(f"{table_id}: {row_dict['column_name']}")
                     table_id_list.append(table_id_dict)
                 else:
                     print(f"this table is already in table_id_dict: {table_id}")
