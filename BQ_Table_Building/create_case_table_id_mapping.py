@@ -172,6 +172,8 @@ def main(args):
                 versioned_table_id_dict[result.table_id] = result.column_name
                 versioned_table_id_list.append(result.table_id)
 
+        print(versioned_table_id_list)
+
         for current_table_id in current_table_id_dict.keys():
             table_name = current_table_id.split('.')[2]
 
