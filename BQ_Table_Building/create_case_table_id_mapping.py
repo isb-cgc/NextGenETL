@@ -249,7 +249,7 @@ def main(args):
             print(f"Finding case ids for {case_table_id}...")
 
             case_ids_sql = f"""
-                SELECT {column_name}
+                SELECT DISTINCT {column_name}
                 FROM `{case_table_id}`
             """
 
