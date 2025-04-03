@@ -246,6 +246,8 @@ def main(args):
             column_name = result.column_name
             case_table_id = result.table_id
 
+            print(f"Finding case ids for {case_table_id}...")
+
             case_ids_sql = f"""
                 SELECT {column_name}
                 FROM `{case_table_id}`
