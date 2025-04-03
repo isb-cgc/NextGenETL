@@ -181,15 +181,23 @@ def main(args):
                 base_table_name = table_name[:-8]
                 temp_versioned_table_list = [s for s in versioned_table_id_list
                                              if base_table_name in versioned_table_id_list]
+
                 temp_versioned_table_list.sort(reverse=True)
-                most_recent_versioned_table_id = temp_versioned_table_list[0]
 
-                filtered_table_id_dict['table_id'] = most_recent_versioned_table_id
-                filtered_table_id_dict['column_name'] = versioned_table_id_dict[most_recent_versioned_table_id]
-                filtered_table_id_list.append(filtered_table_id_dict)
+                print(temp_versioned_table_list)
 
-                print(f"Most recent versioned table for {current_table_id}: {most_recent_versioned_table_id}")
+                if temp_versioned_table_list:
+                    most_recent_versioned_table_id = temp_versioned_table_list[0]
+
+                    filtered_table_id_dict['table_id'] = most_recent_versioned_table_id
+                    filtered_table_id_dict['column_name'] = versioned_table_id_dict[most_recent_versioned_table_id]
+                    filtered_table_id_list.append(filtered_table_id_dict)
+
+                    print(f"Most recent versioned table for {current_table_id}: {most_recent_versioned_table_id}")
+                else:
+                    print(f"No versioned table for {current_table_id} using base name {base_table_name}")
             else:
+                print(f"No versioned table for {current_table_id}, not suffixed with _current")
                 continue
 
         write_list_to_jsonl_and_upload(PARAMS,
