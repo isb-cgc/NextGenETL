@@ -22,9 +22,6 @@ SOFTWARE.
 import sys
 import time
 
-from google.cloud import bigquery
-# from google.cloud.bigquery import SchemaField, Client, LoadJobConfig, QueryJob
-
 from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload
 from cda_bq_etl.utils import load_config, format_seconds
 from cda_bq_etl.bq_helpers import (query_and_retrieve_result, create_and_upload_schema_for_json,
