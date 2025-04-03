@@ -181,8 +181,7 @@ def main(args):
                 filtered_table_id_dict = dict()
 
                 base_table_name = table_name[:-8]
-                temp_versioned_table_list = [s for s in versioned_table_id_list
-                                             if base_table_name in versioned_table_id_list]
+                temp_versioned_table_list = [s for s in versioned_table_id_list if base_table_name in s]
 
                 temp_versioned_table_list.sort(reverse=True)
 
