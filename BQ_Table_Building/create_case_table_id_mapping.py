@@ -175,17 +175,19 @@ def main(args):
         print(versioned_table_id_list)
 
         for current_table_id in current_table_id_dict.keys():
-            table_name = current_table_id.split('.')[2]
+            split_table_id = current_table_id.split('.')
+            dataset = split_table_id[1]
+            table_name = split_table_id[2]
 
             if table_name[-8:] == '_current':
                 filtered_table_id_dict = dict()
 
                 base_table_name = table_name[:-8]
-                temp_versioned_table_list = [s for s in versioned_table_id_list if base_table_name in s]
+                temp_versioned_table_list = [s for s in versioned_table_id_list if base_table_name in s and dataset in s]
 
                 temp_versioned_table_list.sort(reverse=True)
 
-                print(temp_versioned_table_list)
+                print(f"\n{temp_versioned_table_list}\n")
 
                 if temp_versioned_table_list:
                     most_recent_versioned_table_id = temp_versioned_table_list[0]
