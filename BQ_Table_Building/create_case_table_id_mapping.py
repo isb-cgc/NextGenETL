@@ -110,7 +110,7 @@ def main(args):
                 if table_id not in table_id_dict:
                     table_id_dict['table_id'] = table_id
                     table_id_dict['column_name'] = row_dict['column_name']
-                    print(f"{table_id}: {row_dict['column_name']}")
+                    print(f"{table_id}\t{row_dict['column_name']}")
                     table_id_list.append(table_id_dict)
                 else:
                     print(f"this table is already in table_id_dict: {table_id}")
@@ -140,7 +140,86 @@ def main(args):
                                          table_id=table_id,
                                          schema=table_schema)
 
-        # update_table_schema_from_generic(params=PARAMS, table_id=table_id)
+    if 'find_most_recent_versioned_tables' in steps:
+        # - get all the table ids from the table created above
+        # - if dataset contains _versioned, find the most recent version
+        # - find all base names within dataset
+        # - then reverse sort by name; the first table is the most recent
+
+        table_name = f"{PARAMS['TABLE_ID_COLUMN_NAME_TABLE']}_{PARAMS['RELEASE']}"
+        table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{table_name}"
+        sql = f"""
+            SELECT *
+            FROM `{table_id}`
+        """
+
+
+        results = query_and_retrieve_result(sql=sql)
+
+        current_table_id_dict = dict()
+        versioned_table_id_dict = dict()
+        versioned_table_id_list = list()
+        filtered_table_id_list = list()
+
+        for result in results:
+            if '_versioned' not in result.table_id:
+                filtered_table_id_dict = dict()
+                current_table_id_dict[result.table_id] = result.column_name
+                filtered_table_id_dict['table_id'] = result.table_id
+                filtered_table_id_dict['column_name'] = result.column_name
+                filtered_table_id_list.append(filtered_table_id_dict)
+            else:
+                versioned_table_id_dict[result.table_id] = result.column_name
+                versioned_table_id_list.append(result.table_id)
+
+        for current_table_id in current_table_id_dict.keys():
+            table_name = current_table_id.split('.')[2]
+
+            if table_name[-8:] == '_current':
+                filtered_table_id_dict = dict()
+
+                base_table_name = table_name[:-8]
+                temp_versioned_table_list = [s for s in versioned_table_id_list
+                                             if base_table_name in versioned_table_id_list]
+                temp_versioned_table_list.sort(reverse=True)
+                most_recent_versioned_table_id = temp_versioned_table_list[0]
+
+                filtered_table_id_dict['table_id'] = most_recent_versioned_table_id
+                filtered_table_id_dict['column_name'] = versioned_table_id_dict[most_recent_versioned_table_id]
+                filtered_table_id_list.append(filtered_table_id_dict)
+
+                print(f"Most recent versioned table for {current_table_id}: {most_recent_versioned_table_id}")
+            else:
+                continue
+
+        write_list_to_jsonl_and_upload(PARAMS,
+                                       prefix=PARAMS['FILTERED_TABLE_ID_COLUMN_NAME_TABLE'],
+                                       record_list=filtered_table_id_list)
+
+        create_and_upload_schema_for_json(PARAMS,
+                                          record_list=filtered_table_id_list,
+                                          table_name=PARAMS['FILTERED_TABLE_ID_COLUMN_NAME_TABLE'],
+                                          include_release=True)
+
+        if 'build_filtered_table_case_column_table' in steps:
+            logger.info("Entering build_table_case_column_table")
+
+            table_name = f"{PARAMS['FILTERED_TABLE_ID_COLUMN_NAME_TABLE']}_{PARAMS['RELEASE']}"
+            table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{table_name}"
+
+            table_schema = retrieve_bq_schema_object(PARAMS,
+                                                     table_name=PARAMS['FILTERED_TABLE_ID_COLUMN_NAME_TABLE'],
+                                                     include_release=True)
+
+            # Load jsonl data into BigQuery table
+            jsonl_file = f"{PARAMS['FILTERED_TABLE_ID_COLUMN_NAME_TABLE']}_{PARAMS['RELEASE']}.jsonl"
+            create_and_load_table_from_jsonl(PARAMS,
+                                             jsonl_file=jsonl_file,
+                                             table_id=table_id,
+                                             schema=table_schema)
+
+        if 'get_case_ids_for_each_table' in steps:
+            pass
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
