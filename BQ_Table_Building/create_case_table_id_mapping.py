@@ -255,6 +255,13 @@ def main(args):
 
             case_id_results = query_and_retrieve_result(sql=case_ids_sql)
 
+            if 'gdc' in case_table_id:
+                node = 'gdc'
+            elif 'pdc' in case_table_id:
+                node = 'pdc'
+            else:
+                node = None
+
             for case_id_result in case_id_results:
                 case_id_dict = dict()
                 case_id = case_id_result[0]
@@ -262,13 +269,7 @@ def main(args):
                 case_id_dict['case_id'] = case_id
                 case_id_dict['case_column'] = column_name
                 case_id_dict['table_id'] = case_table_id
-
-                if 'gdc' in case_table_id:
-                    case_id_dict['node'] = 'gdc'
-                elif 'pdc' in case_table_id:
-                    case_id_dict['node'] = 'pdc'
-                else:
-                    case_id_dict['node'] = None
+                case_id_dict['node'] = node
 
                 case_id_mapping_list.append(case_id_dict)
 
