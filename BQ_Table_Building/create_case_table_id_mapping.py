@@ -235,6 +235,7 @@ def main(args):
         sql = f"""
             SELECT * 
             FROM `{filtered_table_id}`
+            ORDER BY table_id
         """
 
         results = query_and_retrieve_result(sql=sql)
@@ -260,6 +261,12 @@ def main(args):
                 node = 'htan'
             elif 'CCLE' in case_table_id:
                 node = 'ccle'
+            elif 'TCGA' in case_table_id:
+                node = 'tcga'
+            elif 'mitelman' in case_table_id:
+                node = 'mitelman'
+            elif 'pancancer_atlas' in case_table_id:
+                node = 'pancancer_atlas'
             else:
                 node = None
 
