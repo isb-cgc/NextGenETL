@@ -256,6 +256,10 @@ def main(args):
                 node = 'gdc'
             elif 'pdc' in case_table_id or 'PDC' in case_table_id:
                 node = 'pdc'
+            elif 'HTAN' in case_table_id:
+                node = 'htan'
+            elif 'CCLE' in case_table_id:
+                node = 'ccle'
             else:
                 node = None
 
