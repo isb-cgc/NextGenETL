@@ -255,9 +255,9 @@ def main(args):
 
             case_id_results = query_and_retrieve_result(sql=case_ids_sql)
 
-            if 'gdc' in case_table_id:
+            if 'gdc' in case_table_id or 'GDC' in case_table_id:
                 node = 'gdc'
-            elif 'pdc' in case_table_id:
+            elif 'pdc' in case_table_id or 'PDC' in case_table_id:
                 node = 'pdc'
             else:
                 node = None
