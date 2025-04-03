@@ -212,25 +212,89 @@ def main(args):
                                           table_name=PARAMS['FILTERED_TABLE_ID_COLUMN_NAME_TABLE'],
                                           include_release=True)
 
-        if 'build_filtered_table_case_column_table' in steps:
-            logger.info("Entering build_table_case_column_table")
+    if 'build_filtered_table_case_column_table' in steps:
+        logger.info("Entering build_table_case_column_table")
 
-            table_name = f"{PARAMS['FILTERED_TABLE_ID_COLUMN_NAME_TABLE']}_{PARAMS['RELEASE']}"
-            table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{table_name}"
+        table_name = f"{PARAMS['FILTERED_TABLE_ID_COLUMN_NAME_TABLE']}_{PARAMS['RELEASE']}"
+        table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{table_name}"
 
-            table_schema = retrieve_bq_schema_object(PARAMS,
-                                                     table_name=PARAMS['FILTERED_TABLE_ID_COLUMN_NAME_TABLE'],
-                                                     include_release=True)
+        table_schema = retrieve_bq_schema_object(PARAMS,
+                                                 table_name=PARAMS['FILTERED_TABLE_ID_COLUMN_NAME_TABLE'],
+                                                 include_release=True)
 
-            # Load jsonl data into BigQuery table
-            jsonl_file = f"{PARAMS['FILTERED_TABLE_ID_COLUMN_NAME_TABLE']}_{PARAMS['RELEASE']}.jsonl"
-            create_and_load_table_from_jsonl(PARAMS,
-                                             jsonl_file=jsonl_file,
-                                             table_id=table_id,
-                                             schema=table_schema)
+        # Load jsonl data into BigQuery table
+        jsonl_file = f"{PARAMS['FILTERED_TABLE_ID_COLUMN_NAME_TABLE']}_{PARAMS['RELEASE']}.jsonl"
+        create_and_load_table_from_jsonl(PARAMS,
+                                         jsonl_file=jsonl_file,
+                                         table_id=table_id,
+                                         schema=table_schema)
 
-        if 'get_case_ids_for_each_table' in steps:
-            pass
+    if 'find_case_ids_for_each_table' in steps:
+        table_name = f"{PARAMS['FILTERED_TABLE_ID_COLUMN_NAME_TABLE']}_{PARAMS['RELEASE']}"
+        filtered_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{table_name}"
+
+        case_id_mapping_list = list()
+
+        sql = f"""
+            SELECT * 
+            FROM `{filtered_table_id}`
+        """
+
+        results = query_and_retrieve_result(sql=sql)
+
+        for result in results:
+            column_name = result.column_name
+            case_table_id = result.table_id
+
+            case_ids_sql = f"""
+                SELECT {column_name}
+                FROM `{case_table_id}`
+            """
+
+            case_id_results = query_and_retrieve_result(sql=case_ids_sql)
+
+            for case_id_result in case_id_results:
+                case_id_dict = dict()
+                case_id = case_id_result[0]
+
+                case_id_dict['case_id'] = case_id
+                case_id_dict['case_column'] = column_name
+                case_id_dict['table_id'] = case_table_id
+
+                if 'gdc' in case_table_id:
+                    case_id_dict['node'] = 'gdc'
+                elif 'pdc' in case_table_id:
+                    case_id_dict['node'] = 'pdc'
+                else:
+                    case_id_dict['node'] = None
+
+                case_id_mapping_list.append(case_id_dict)
+
+        write_list_to_jsonl_and_upload(PARAMS,
+                                       prefix=PARAMS['CASE_TABLE_MAPPING_TABLE'],
+                                       record_list=case_id_mapping_list)
+
+        create_and_upload_schema_for_json(PARAMS,
+                                          record_list=case_id_mapping_list,
+                                          table_name=PARAMS['CASE_TABLE_MAPPING_TABLE'],
+                                          include_release=True)
+
+    if 'build_case_table_mapping_table' in steps:
+        logger.info("Entering build_table_case_column_table")
+
+        table_schema = retrieve_bq_schema_object(PARAMS,
+                                                 table_name=PARAMS['CASE_TABLE_MAPPING_TABLE'],
+                                                 include_release=True)
+
+        table_name = f"{PARAMS['CASE_TABLE_MAPPING_TABLE']}_{PARAMS['RELEASE']}"
+        table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{table_name}"
+
+        # Load jsonl data into BigQuery table
+        jsonl_file = f"{PARAMS['CASE_TABLE_MAPPING_TABLE']}_{PARAMS['RELEASE']}.jsonl"
+        create_and_load_table_from_jsonl(PARAMS,
+                                         jsonl_file=jsonl_file,
+                                         table_id=table_id,
+                                         schema=table_schema)
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
