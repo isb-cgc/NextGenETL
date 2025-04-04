@@ -434,6 +434,9 @@ def main(args):
 
         normalized_file_names = get_normalized_file_names(unarchived_dir)
 
+        print("Normalized file names: ")
+        print(normalized_file_names)
+
         with open(index_txt_file_name, mode="w", newline="") as txt_file:
             txt_file.writelines(normalized_file_names)
 
