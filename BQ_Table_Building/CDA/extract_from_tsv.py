@@ -286,7 +286,7 @@ def get_schema_filename(tsv_file_name: str) -> str:
     """
     logger = logging.getLogger('base_script')
 
-    if PARAMS['NODE'] == 'pdc':
+    if PARAMS['NODE'] == 'pdc' or PARAMS['NODE'] == 'icdc':
         # formatted like V3_3_Aliquot.aliquot_run_metadata_id.tsv
         # remove "." from file name, as occurs in PDC
         extension = tsv_file_name.split(".")[-1]
