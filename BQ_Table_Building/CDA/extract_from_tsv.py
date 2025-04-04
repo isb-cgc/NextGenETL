@@ -199,7 +199,7 @@ def get_normalized_file_names(unarchived_dir: str) -> list[str]:
 
     normalized_file_names = list()
 
-    if PARAMS['NODE'] == "pdc":
+    if PARAMS['NODE'] == "pdc" or PARAMS['NODE'] == "icdc":
         dir_file_dict, dest_path = scan_directories_and_create_file_dict(dest_path)
 
         for directory, file_list in dir_file_dict.items():
@@ -225,6 +225,9 @@ def get_normalized_file_names(unarchived_dir: str) -> list[str]:
         file_list.sort()
 
         normalized_file_names = normalize_files(file_list=file_list, dest_path=dest_path)
+    else:
+        logger.critical("File handling not implemented for node " + PARAMS['NODE'])
+        exit(-1)
 
     return normalized_file_names
 
@@ -433,9 +436,6 @@ def main(args):
         logger.info("*** Normalizing and uploading tsvs!")
 
         normalized_file_names = get_normalized_file_names(unarchived_dir)
-
-        print("Normalized file names: ")
-        print(normalized_file_names)
 
         with open(index_txt_file_name, mode="w", newline="") as txt_file:
             txt_file.writelines(normalized_file_names)
