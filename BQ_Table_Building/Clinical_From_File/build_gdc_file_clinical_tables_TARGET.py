@@ -31,12 +31,12 @@ from google.resumable_media import InvalidResponse
 
 from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
                                    create_and_load_table_from_tsv, query_and_retrieve_result, list_tables_in_dataset,
-                                   get_columns_in_table)
+                                   create_and_upload_schema_for_json, create_and_load_table_from_jsonl,
+                                   update_table_schema_from_generic, find_most_recent_published_table_id, publish_table)
 from cda_bq_etl.gcs_helpers import upload_to_bucket
-from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, write_list_to_tsv,
-                                     create_normalized_tsv, write_list_to_jsonl, write_list_to_jsonl_and_upload)
-from cda_bq_etl.utils import (format_seconds, get_filepath, load_config, get_scratch_fp, calculate_md5sum,
-                              create_dev_table_id)
+from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, create_normalized_tsv,
+                                     write_list_to_jsonl_and_upload, normalize_flat_json_values)
+from cda_bq_etl.utils import (format_seconds, load_config, get_scratch_fp, calculate_md5sum, create_dev_table_id)
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -68,9 +68,10 @@ def make_file_pull_list(program: str, filters: dict[str, str]):
                f.file_state,
                f.project_short_name,
                gs.gdc_file_url_gcs
-            FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_active_r{rel_number}` f
-            LEFT JOIN `isb-project-zero.law_GDC_manifests.r{rel_number}_GDCfileID_to_GCSurl` gs # todo change to published table
-            # LEFT JOIN `isb-project-zero.GDC_manifests.rel{rel_number}_GDCfileID_to_GCSurl` gs
+            FROM `isb-project-zero.cda_gdc_metadata.r{rel_number}_fileData_active` f
+            # todo change both ids to published tables
+            # FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_active_r{rel_number}` f
+            LEFT JOIN `isb-project-zero.GDC_manifests.rel{rel_number}_GDCfileID_to_GCSurl` gs 
                ON f.file_gdc_id = gs.file_gdc_id 
             {where_clause}
         """
@@ -213,9 +214,13 @@ def create_table_name_from_file_name(file_path: str) -> str:
 
 
 def make_file_metadata_query(file_gdc_id: str) -> str:
+    rel_number = PARAMS['RELEASE'].strip('r')
+
     return f"""
         SELECT file_name, project_short_name, updated_datetime
-        FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_active_{PARAMS['RELEASE']}`
+        FROM `isb-project-zero.cda_gdc_metadata.r{rel_number}_fileData_active`
+        # todo change to published table
+        # FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.fileData_active_r{PARAMS['RELEASE']}`
         WHERE file_gdc_id = '{file_gdc_id}'
     """
 
@@ -228,9 +233,6 @@ def main(args):
         PARAMS, steps = load_config(args, YAML_HEADERS)
     except ValueError as err:
         sys.exit(err)
-
-    # todo list:
-    # get file pull list
 
     log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
@@ -248,7 +250,7 @@ def main(args):
 
     if 'build_file_list_and_download' in steps:
         # create needed directories if they don't already exist
-        logger.info('build_file_pull_list')
+        logger.info('Entering build_file_list_and_download')
 
         if os.path.exists(local_program_dir):
             shutil.rmtree(local_program_dir)
@@ -273,8 +275,6 @@ def main(args):
             file_id = file_data['file_gdc_id']
             gs_uri = file_data['gdc_file_url_gcs']
             md5sum = file_data['md5sum']
-            # todo use this to associate files by project
-            project = file_data['project_short_name']
 
             file_path = f"{local_files_dir}/{file_id}__{file_name}"
 
@@ -307,7 +307,7 @@ def main(args):
     if 'convert_excel_to_csv' in steps:
         # If file suffix is xlsx or xls, convert to tsv.
         # Then modify traversal list file to point to the newly created tsv files.
-        logger.info('convert_excel_to_tsv')
+        logger.info('Entering convert_excel_to_tsv')
 
         file_names = os.listdir(local_files_dir)
 
@@ -326,7 +326,7 @@ def main(args):
                 traversal_list_file.write(f"{tsv_file}\n")
 
     if 'normalize_tsv_and_create_schema' in steps:
-        logger.info(f"upload_tsv_file_and_schema_to_bucket")
+        logger.info(f"Entering upload_tsv_file_and_schema_to_bucket")
 
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
@@ -372,6 +372,7 @@ def main(args):
             upload_to_bucket(PARAMS, normalized_tsv_file_path, delete_local=True, verbose=False)
 
     if 'build_raw_tables' in steps:
+        logger.info("Entering build_raw_tables")
         with open(file_traversal_list, mode='r') as traversal_list_file:
             all_files = traversal_list_file.read().splitlines()
 
@@ -405,8 +406,8 @@ def main(args):
             logger.info(table)
         logger.info("")
 
-    if 'merge_raw_tables' in steps:
-
+    if 'create_and_upload_merged_jsonl' in steps:
+        logger.info(f"Entering create_and_upload_merged_jsonl")
         table_list = list()
 
         with open(tables_file, mode='r') as tables_fh:
@@ -439,17 +440,26 @@ def main(args):
 
             project_short_name = raw_tables_dict['project_short_name']
             disease_code = raw_tables_dict['project_short_name'].split('-')[1]
+            program_name = PARAMS['PROGRAM']
             query_result = query_and_retrieve_result(f"SELECT DISTINCT * FROM `{raw_tables_dict['table_id']}`")
 
             for row in query_result:
                 row_dict = dict(row)
-                row_dict['disease_code'] = disease_code
+
+                for column in PARAMS['EXCLUDED_COLUMNS']:
+                    if column in row_dict:
+                        del row_dict[column]
+
                 row_dict['project_short_name'] = project_short_name
-                target_usi = row_dict['target_usi']
+                row_dict['program_name'] = program_name
+                target_usi = row_dict.pop('target_usi')
+                row_dict['case_barcode'] = target_usi
+                row_dict['disease_code'] = disease_code
 
                 int_comparison_columns = ['event_free_survival_time_in_days',
                                           'year_of_last_follow_up',
-                                          'overall_survival_time_in_days']
+                                          'overall_survival_time_in_days',
+                                          'age_at_diagnosis_in_days']
 
                 if target_usi not in records_dict:
                     records_dict[target_usi] = dict()
@@ -457,28 +467,24 @@ def main(args):
                 for column, value in row_dict.items():
                     if isinstance(value, str):
                         value = value.strip()
-                    # column doesn't exist yet, so add it and its value
 
+                    # column doesn't exist yet, so add it and its value
+                    """
                     if value == 'Induction failure':
                         value = 'Induction Failure'
                     elif value == 'Not done':
                         value = 'Not Done'
-                    elif value == 'Death without Remission':
-                        value = 'Death without remission'
+                    elif value == 'Death without remission':
+                        value = 'Death without Remission'
                     elif value == 'unevaluable':
                         value = 'Unevaluable'
-
-                    """
-                    if column == 'mrd_percent_at_end_of_course_1':
-                        if value == '.' or value is None:
-                            value = None
-                        else:
-                            value = Decimal(value)
                     """
 
                     if value is None:
                         continue
                     elif column not in records_dict[target_usi]:
+                        if column in int_comparison_columns:
+                            value = int(value)
                         records_dict[target_usi][column] = value
                     elif column in int_comparison_columns:
                         existing_value = int(records_dict[target_usi][column])
@@ -486,21 +492,65 @@ def main(args):
 
                         if new_value > existing_value:
                             records_dict[target_usi][column] = value
-                            # logger.info(f"updating {column} value for {target_usi}: {existing_value} -> {new_value}")
                     elif column in ['disease_code', 'project_short_name']:
-                        if value not in records_dict[target_usi][column]:
-                            records_dict[target_usi][column] = f', {value}'
+                        if value and value not in records_dict[target_usi][column]:
+                            records_dict[target_usi][column] += f', {value}'
                     elif value != records_dict[target_usi][column]:
-                        # this already has a value for the column, and it differs from the new value
-                        # exempt_list = ['Not done', 'Not Done']
-
                         # if value not in exempt_list and records_dict[target_usi][column] not in exempt_list:
                         logger.warning(f"Record mismatch for {target_usi} in column {column}: "
                                        f"{value} != {records_dict[target_usi][column]}")
 
-        # jsonl_fp = f"{local_files_dir}/merged.jsonl"
-        # write_list_to_jsonl(jsonl_fp=jsonl_fp, json_obj_list=records, mode='a')
-        # upload_to_bucket(PARAMS, scratch_fp=jsonl_fp)
+        record_list = list()
+
+        for record in records_dict.values():
+            record_list.append(record)
+
+        normalized_record_list = normalize_flat_json_values(record_list)
+
+        write_list_to_jsonl_and_upload(PARAMS, "target_merged", normalized_record_list)
+
+        create_and_upload_schema_for_json(PARAMS,
+                                          record_list=normalized_record_list,
+                                          table_name='target_merged',
+                                          include_release=True)
+
+    if 'create_merged_table' in steps:
+        logger.info("Entering create_merged_table")
+
+        final_dataset = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}"
+        final_table_id = f"{final_dataset}.{PARAMS['RELEASE']}_{PARAMS['MERGED_TABLE_NAME']}"
+
+        # Download schema file from Google Cloud bucket
+        table_schema = retrieve_bq_schema_object(PARAMS, table_name='target_merged', include_release=True)
+
+        # Load jsonl data into BigQuery table
+        create_and_load_table_from_jsonl(PARAMS,
+                                         jsonl_file=f"target_merged_{PARAMS['RELEASE']}.jsonl",
+                                         table_id=final_table_id,
+                                         schema=table_schema)
+
+        update_table_schema_from_generic(params=PARAMS,
+                                         table_id=final_table_id,
+                                         metadata_file=PARAMS['METADATA_FILE_SINGLE_PROGRAM'])
+
+    if 'publish_tables' in steps:
+        prod_dataset_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}"
+
+        dev_dataset = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_FINAL_DATASET']}"
+        source_table_id = f"{dev_dataset}.{PARAMS['RELEASE']}_{PARAMS['MERGED_TABLE_NAME']}"
+
+        prod_table_name = f"{PARAMS['PROD_TABLE_PREFIX']}_{PARAMS['NODE']}"
+        current_table_id = f"{prod_dataset_id}.{prod_table_name}_current"
+        versioned_table_id = f"{prod_dataset_id}_versioned.{prod_table_name}_{PARAMS['RELEASE']}"
+
+        table_ids = {
+            "source": source_table_id,
+            "current": current_table_id,
+            "versioned": versioned_table_id,
+            "previous_versioned": find_most_recent_published_table_id(PARAMS, versioned_table_id)
+        }
+
+        publish_table(PARAMS, table_ids)
 
     end_time = time.time()
 

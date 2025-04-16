@@ -16,7 +16,7 @@
 
 source ~/setEnvVars.sh
 
-export MY_VENV=~/virtualEnvETL3_9
+export MY_VENV=~/virtualEnvETL3_11
 export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
 
 mkdir -p ~/config
@@ -31,5 +31,5 @@ popd > /dev/null
 mkdir -p ~/scratch
 
 cd ..
-python3.9 ./BQ_Table_Building/CDA/create_nested_clinical_example.py ~/config/CDANestedExample.yaml
+python3.11 ./BQ_Table_Building/CDA/create_nested_clinical_example.py ~/config/CDANestedExample.yaml
 deactivate

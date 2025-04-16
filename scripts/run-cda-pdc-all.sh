@@ -27,7 +27,7 @@ PER_SAMPLE_CONFIG_FILE="CDACreateTablesPerSampleFilePDC.yaml"
 CLINICAL_CONFIG_FILE="CDACreateTablesClinicalPDC.yaml"
 QUANT_CONFIG_FILE="CDACreateTablesQuantPDC.yaml"
 
-export MY_VENV=~/virtualEnvETL3_9
+export MY_VENV=~/virtualEnvETL3_11
 export PYTHONPATH=.:${MY_VENV}/lib:~/extlib
 
 mkdir -p ~/config
@@ -52,22 +52,22 @@ mkdir -p ~/scratch
 
 cd ..
 echo "*** Downloading CDA files and building raw BQ tables"
-python3.9 ./BQ_Table_Building/CDA/extract_from_tsv.py ~/config/${SHARED_CONFIG_FILE} ~/config/${EXTRACT_CONFIG_FILE}
+python3.11 ./BQ_Table_Building/CDA/extract_from_tsv.py ~/config/${SHARED_CONFIG_FILE} ~/config/${EXTRACT_CONFIG_FILE}
 echo "*** Building studies dev table"
-python3.9 ./BQ_Table_Building/CDA/PDC/create_tables_studies_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${STUDY_CONFIG_FILE}
+python3.11 ./BQ_Table_Building/CDA/PDC/create_tables_studies_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${STUDY_CONFIG_FILE}
 echo "*** Building case metadata dev table"
-python3.9 ./BQ_Table_Building/CDA/PDC/create_tables_case_metadata_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${CASE_CONFIG_FILE}
+python3.11 ./BQ_Table_Building/CDA/PDC/create_tables_case_metadata_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${CASE_CONFIG_FILE}
 echo "*** Building aliquot to case map dev table"
-python3.9 ./BQ_Table_Building/CDA/PDC/create_tables_aliquot_case_map_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${ALIQUOT_CONFIG_FILE}
+python3.11 ./BQ_Table_Building/CDA/PDC/create_tables_aliquot_case_map_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${ALIQUOT_CONFIG_FILE}
 echo "*** Building file metadata dev table"
-python3.9 ./BQ_Table_Building/CDA/PDC/create_tables_file_metadata_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${FILE_CONFIG_FILE}
+python3.11 ./BQ_Table_Building/CDA/PDC/create_tables_file_metadata_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${FILE_CONFIG_FILE}
 echo "*** Building file associated entity mapping dev table"
-python3.9 ./BQ_Table_Building/CDA/PDC/create_tables_file_associated_entity_mapping_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${FILE_ENTITY_CONFIG_FILE}
+python3.11 ./BQ_Table_Building/CDA/PDC/create_tables_file_associated_entity_mapping_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${FILE_ENTITY_CONFIG_FILE}
 echo "*** Building per_sample_file_metadata dev tables"
-python3.9 ./BQ_Table_Building/CDA/PDC/create_tables_per_sample_file_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${PER_SAMPLE_CONFIG_FILE}
+python3.11 ./BQ_Table_Building/CDA/PDC/create_tables_per_sample_file_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${PER_SAMPLE_CONFIG_FILE}
 echo "*** Building clinical dev tables"
-python3.9 ./BQ_Table_Building/CDA/PDC/create_tables_clinical_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${CLINICAL_CONFIG_FILE}
+python3.11 ./BQ_Table_Building/CDA/PDC/create_tables_clinical_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${CLINICAL_CONFIG_FILE}
 echo "*** Building quant dev tables"
-python3.9 ./BQ_Table_Building/CDA/PDC/create_tables_quant_data_matrix_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${QUANT_CONFIG_FILE}
+python3.11 ./BQ_Table_Building/CDA/PDC/create_tables_quant_data_matrix_pdc.py ~/config/${SHARED_CONFIG_FILE} ~/config/${QUANT_CONFIG_FILE}
 echo "*** Load complete. Please run run-cda-compare-publish-tables.sh to test and publish."
 deactivate

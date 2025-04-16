@@ -32,7 +32,8 @@ from google.cloud.exceptions import NotFound
 from google.cloud.bigquery import SchemaField, Client, LoadJobConfig, QueryJob
 from google.cloud.bigquery.table import RowIterator, _EmptyRowIterator
 
-from cda_bq_etl.utils import get_filename, get_scratch_fp, get_filepath, create_dev_table_id, create_metadata_table_id
+from cda_bq_etl.utils import (get_filename, get_scratch_fp, get_filepath, create_dev_table_id, create_metadata_table_id,
+                              input_with_timeout)
 from cda_bq_etl.gcs_helpers import download_from_bucket, upload_to_bucket
 from cda_bq_etl.data_helpers import (recursively_detect_object_structures, get_column_list_tsv,
                                      aggregate_column_data_types_tsv, resolve_type_conflicts, resolve_type_conflict)
@@ -744,6 +745,9 @@ def update_friendly_name(params: Params, table_id: str, custom_name: Optional[st
         if params['NODE'].lower() == 'gdc':
             release = params['RELEASE'].replace('r', '')
             friendly_name = f"{table.friendly_name} REL{release} VERSIONED"
+        elif params['NODE'].lower() == 'dcf':
+            release = params['RELEASE'].replace('dr', '')
+            friendly_name = f"{table.friendly_name} REL{release} VERSIONED"
         else:
             friendly_name = f"{table.friendly_name} {params['RELEASE']} VERSIONED"
 
@@ -769,12 +773,41 @@ def change_status_to_archived(archived_table_id: str):
         logger.warning("Couldn't find a table to archive. Likely this table's first release; otherwise an error.")
 
 
+def update_table_labels(table_id: str, label_dict: dict[str, str]) -> None:
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+    try:
+        client = bigquery.Client()
+        table_obj = client.get_table(table_id)
+
+        for label, value in label_dict.items():
+            table_obj.labels[label] = value
+
+        delay = 5
+
+        logger.info(f"Altering {table_id}. Labels after change: {table_obj.labels}")
+        logger.info(f"Proceed? Y/n (continues automatically in {delay} seconds)")
+
+        response = str(input_with_timeout(seconds=delay)).lower()
+
+        if response == 'n' or response == 'N':
+            exit("Publish aborted; exiting.")
+
+        client.update_table(table_obj, ["labels"])
+
+        for label, value in label_dict.items():
+            assert table_obj.labels[label] == value
+    except NotFound:
+        logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+        if label:
+            logger.warning(f"Couldn't apply table label {label}: {value}. Is this expected?")
+
+
 def find_most_recent_published_table_id(params: Params, versioned_table_id: str, table_base_name: str = None):
     """
     Function for locating published table id for dataset's previous release, if it exists
-    :param table_type:
     :param params: params supplied in yaml config
     :param versioned_table_id: public versioned table id for current release
+    :param table_base_name: todo
     :return: last published table id, if any; otherwise None
     """
     if params['NODE'].lower() == 'gdc':
@@ -809,6 +842,14 @@ def find_most_recent_published_table_id(params: Params, versioned_table_id: str,
                                                            dataset=dataset,
                                                            table_filter_str=table_base_name,
                                                            is_metadata=True)
+    elif params['NODE'].lower() == 'dcf':
+        versioned_dataset = versioned_table_id.split(".")[1]
+        dataset = versioned_dataset.replace("_versioned", "")
+
+        return get_most_recent_published_table_version_dcf(params=params,
+                                                           dataset=dataset,
+                                                           table_filter_str=table_base_name)
+
     else:
         logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
         logger.critical(f"Need to create find_most_recent_published_table_id function for {params['NODE']}.")
@@ -854,7 +895,11 @@ def find_most_recent_published_refseq_table_id(params, versioned_table_id):
             return prev_release_table_id
 
 
-def update_table_schema_from_generic(params, table_id, schema_tags=None, friendly_name_suffix=None, metadata_file=None):
+def update_table_schema_from_generic(params, table_id,
+                                     schema_tags=None,
+                                     friendly_name_suffix=None,
+                                     metadata_file=None,
+                                     generate_definitions=False):
     """
     Insert schema tags into generic schema (currently located in BQEcosystem repo).
     :param params: params from YAML config
@@ -863,6 +908,8 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, friendl
     :param friendly_name_suffix: todo
     :param metadata_file: name of generic table metadata file
     """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
     if schema_tags is None:
         schema_tags = dict()
 
@@ -872,6 +919,8 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, friendl
         release = release.replace('r', '')
     elif params['NODE'].lower() == 'dcf':
         release = release.replace('dr', '')
+    elif params['NODE'].lower() == 'pdc':
+        schema_tags['underscore-version'] = release.lower()
 
     # remove underscore, add decimal to version number
     schema_tags['version'] = ".".join(release.split('_'))
@@ -881,12 +930,17 @@ def update_table_schema_from_generic(params, table_id, schema_tags=None, friendl
     if 'RELEASE_NOTES_URL' in params:
         schema_tags['release-notes-url'] = params['RELEASE_NOTES_URL']
 
+    logger.info(f"Schema tags: {schema_tags}")
+
     add_generic_table_metadata(params=params,
                                table_id=table_id,
                                schema_tags=schema_tags,
                                friendly_name_suffix=friendly_name_suffix,
                                metadata_file=metadata_file)
-    add_column_descriptions(params=params, table_id=table_id)
+    if generate_definitions:
+        generate_and_add_column_descriptions(params=params, table_id=table_id)
+    else:
+        add_column_descriptions(params=params, table_id=table_id)
 
 
 def add_generic_table_metadata(params: Params,
@@ -902,6 +956,7 @@ def add_generic_table_metadata(params: Params,
     :param friendly_name_suffix: todo
     :param metadata_file: todo
     """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
     generic_schema_path = f"{params['BQ_REPO']}/{params['GENERIC_SCHEMA_DIR']}"
 
     if not metadata_file:
@@ -925,10 +980,10 @@ def add_generic_table_metadata(params: Params,
         if friendly_name_suffix:
             table_metadata['friendlyName'] += f" - {friendly_name_suffix}"
 
-        update_table_metadata_pdc(table_id, table_metadata)
+        update_table_metadata(table_id, table_metadata)
 
 
-def update_table_metadata_pdc(table_id: str, metadata: dict[str, str]):
+def update_table_metadata(table_id: str, metadata: dict[str, str]):
     """
     Modify an existing BigQuery table's metadata (labels, friendly name, description) using metadata dict argument
     :param table_id: table id in standard SQL format
@@ -968,6 +1023,49 @@ def add_column_descriptions(params: Params, table_id: str):
         descriptions = json.load(column_output)
 
     update_schema(table_id, descriptions)
+
+
+def generate_and_add_column_descriptions(params: Params, table_id: str):
+    """
+    Alter an existing table's schema (currently, only column descriptions are mutable without a table rebuild,
+    Google's restriction).
+    :param params: params supplied in yaml config
+    :param table_id: table id in standard SQL format
+    """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+    logger.info("\t - Adding/generating column descriptions!")
+
+    column_desc_fp = f"{params['BQ_REPO']}/{params['COLUMN_DESCRIPTION_FILEPATH']}"
+    column_desc_fp = get_filepath(column_desc_fp)
+
+    if not os.path.exists(column_desc_fp):
+        logger.critical("BQEcosystem column description path not found")
+        sys.exit(-1)
+    with open(column_desc_fp) as column_output:
+        descriptions = json.load(column_output)
+
+    client = bigquery.Client()
+    table = client.get_table(table_id)
+
+    new_schema = []
+
+    for schema_field in table.schema:
+        column = schema_field.to_api_repr()
+
+        if column['name'] in descriptions.keys():
+            name = column['name']
+            column['description'] = descriptions[name]
+        else:
+            generated_definition = " ".join(column['name'].split("_"))
+            generated_definition = generated_definition.capitalize()
+            column['description'] = generated_definition
+
+        mod_column = bigquery.SchemaField.from_api_repr(column)
+        new_schema.append(mod_column)
+
+    table.schema = new_schema
+
+    client.update_table(table, ['schema'])
 
 
 def update_schema(table_id: str, new_descriptions: dict[str, str]):
@@ -1090,6 +1188,28 @@ def get_most_recent_published_table_version_pdc(params: Params,
             FROM `{params['PROD_PROJECT']}.{dataset}_versioned`.INFORMATION_SCHEMA.TABLES
             WHERE table_name LIKE '%{table_filter_str}%'
                 {node_table_name_clause}
+            ORDER BY creation_time DESC
+            LIMIT 1
+        """
+
+    previous_versioned_table_name_result = query_and_retrieve_result(make_program_tables_query())
+
+    if previous_versioned_table_name_result is None:
+        return None
+    for previous_versioned_table_name in previous_versioned_table_name_result:
+        table_name = previous_versioned_table_name[0]
+        return f"{params['PROD_PROJECT']}.{dataset}_versioned.{table_name}"
+
+
+def get_most_recent_published_table_version_dcf(params: Params,
+                                                dataset: str,
+                                                table_filter_str: str):
+
+    def make_program_tables_query() -> str:
+        return f"""
+            SELECT table_name 
+            FROM `{params['PROD_PROJECT']}.{dataset}_versioned`.INFORMATION_SCHEMA.TABLES
+            WHERE table_name LIKE '%{table_filter_str}%'
             ORDER BY creation_time DESC
             LIMIT 1
         """
@@ -1288,7 +1408,7 @@ def find_missing_columns(params: Params, include_trivial_columns: bool = False):
             WHERE {column} IS NOT NULL
         """
 
-    logger = logging.getLogger('base_script')
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
     logger.info("Scanning for missing fields in config yaml!")
 
     has_missing_columns = False
@@ -1361,3 +1481,99 @@ def find_missing_columns(params: Params, include_trivial_columns: bool = False):
         sys.exit(-1)
     else:
         logger.info("No missing fields!")
+
+
+def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
+    """
+    Compare newly created table and existing published table. Only publish new table if there's a difference.
+    :param previous_table_id: table id for existing published table
+    :param current_table_id: table id for new table
+    :return:
+    """
+
+    def compare_two_tables_sql():
+        return f"""
+            (
+                SELECT * FROM `{previous_table_id}`
+                EXCEPT DISTINCT
+                SELECT * from `{current_table_id}`
+            )
+            UNION ALL
+            (
+                SELECT * FROM `{current_table_id}`
+                EXCEPT DISTINCT
+                SELECT * from `{previous_table_id}`
+            )
+        """
+    query_logger = logging.getLogger('query_logger')
+
+    if not previous_table_id:
+        return True
+
+    query_logger.info(f"Query to find any difference in table data")
+    compare_result = query_and_retrieve_result(sql=compare_two_tables_sql())
+
+    if isinstance(compare_result, _EmptyRowIterator):
+        # no distinct result rows, tables match
+        return False
+
+    if compare_result is None:
+        logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+        logger.info("No result returned for table comparison query. Often means that tables have differing schemas.")
+        return True
+
+    for row in compare_result:
+        return True if row else False
+
+
+def publish_table(params: Params, table_ids: dict[str, str]):
+    """
+    Publish production BigQuery tables using source_table_id:
+        - create current/versioned table ids
+        - publish tables
+        - update friendly name for versioned table
+        - change last version tables' status labels to archived
+    :param params: params supplied in yaml config
+    :param table_ids: dict of table ids: 'source' (dev table), 'versioned' and 'current' (future published ids),
+                      and 'previous_versioned' (most recent published table)
+    """
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
+    if exists_bq_table(table_ids['source']):
+        if table_has_new_data(table_ids['previous_versioned'], table_ids['source']):
+            logger.info(f"Publishing {table_ids['source']}")
+            delay = 5
+
+            logger.info(f"Publishing the following tables:")
+            logger.info(f"\t- {table_ids['versioned']}")
+            logger.info(f"\t- {table_ids['current']}")
+            logger.info(f"Proceed? Y/n (continues automatically in {delay} seconds)")
+
+            response = str(input_with_timeout(seconds=delay)).lower()
+
+            if response == 'n' or response == 'N':
+                exit("Publish aborted; exiting.")
+
+            logger.info(f"Publishing {table_ids['versioned']}")
+            copy_bq_table(params=params,
+                          src_table=table_ids['source'],
+                          dest_table=table_ids['versioned'],
+                          replace_table=params['OVERWRITE_PROD_TABLE'])
+
+            logger.info(f"Publishing {table_ids['current']}")
+            copy_bq_table(params=params,
+                          src_table=table_ids['source'],
+                          dest_table=table_ids['current'],
+                          replace_table=params['OVERWRITE_PROD_TABLE'])
+
+            logger.info(f"Updating friendly name for {table_ids['versioned']}")
+            update_friendly_name(params, table_id=table_ids['versioned'])
+
+            if table_ids['previous_versioned']:
+                logger.info(f"Archiving {table_ids['previous_versioned']}")
+                change_status_to_archived(table_ids['previous_versioned'])
+
+        else:
+            logger.info(f"{table_ids['source']} not published, no changes detected")
+    else:
+        logger.error(f"Source table does not exist: {table_ids['source']}")

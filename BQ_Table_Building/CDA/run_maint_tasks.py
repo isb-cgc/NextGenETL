@@ -25,7 +25,8 @@ import time
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, input_with_timeout
-from cda_bq_etl.bq_helpers import query_and_retrieve_result, delete_bq_table, copy_bq_table, update_friendly_name
+from cda_bq_etl.bq_helpers import (query_and_retrieve_result, delete_bq_table, copy_bq_table, update_friendly_name,
+                                   update_table_labels)
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -78,6 +79,13 @@ def update_friendly_names(friendly_name_dict):
         logger.info(f"Updated friendly name for {table_id} to {friendly_name}")
 
 
+def update_labels(column_label_dict: dict[str, str], table_ids: list[str]):
+    for table_id in table_ids:
+        logger = logging.getLogger("base_script")
+
+        update_table_labels(table_id=table_id, label_dict=column_label_dict)
+
+
 def main(args):
     try:
         global PARAMS
@@ -89,6 +97,21 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
+    logger.info(f"Welcome to the BQ maintenance task script. THIS TOOL IS DANGEROUS. "
+                f"It can alter/delete published tables. BE CAREFUL.")
+
+    logger.info(f"It's currently configured to run the following steps:")
+
+    for step in steps:
+        logger.info(f"- {step}")
+
+    delay = 5
+    logger.info(f"Proceed? Y/n (continues automatically in {delay} seconds)")
+    response = str(input_with_timeout(seconds=delay)).lower()
+
+    if response == 'n' or response == 'N':
+        exit("Publish aborted; exiting.")
+
     if 'delete_filtered_tables' in steps:
         project_dataset_id_list = PARAMS['DELETE_TABLES']['project_dataset_id_list']
         filter_string = PARAMS['DELETE_TABLES']['filter_string']
@@ -97,13 +120,19 @@ def main(args):
 
     if 'restore_deleted_table' in steps:
         deleted_table_id = PARAMS['RESTORE_TABLE_ID']
-        new_table_id = 'isb-project-zero.cda_gdc_imported.r37_case_metadata_legacy'
+        new_table_id = ''
         snapshot_epoch = 1697655753782
         restore_deleted_table(deleted_table_id, new_table_id, snapshot_epoch)
 
     if 'update_friendly_names' in steps:
         friendly_name_dict = PARAMS['FRIENDLY_NAME_DICT']
         update_friendly_names(friendly_name_dict)
+
+    if 'update_column_labels' in steps:
+        column_label_dict = PARAMS['UPDATE_LABELS']['labels']
+        table_ids = PARAMS['UPDATE_LABELS']['table_ids']
+
+        update_labels(table_ids=table_ids, column_label_dict=column_label_dict)
 
 
 if __name__ == "__main__":
