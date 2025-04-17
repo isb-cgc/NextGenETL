@@ -13,7 +13,7 @@ limitations under the License.
 
 import sys
 import logging
-from gdc_file_utils import query_bq, cluster_table
+from gdc_file_utils import query_bq, cluster_table, bq_table_exists, delete_bq_table 
 
 rna_seq_logger = logging.getLogger(name='base_script.rna_seq')
 
@@ -285,6 +285,8 @@ def create_rna_seq_table(raw_rna_seq, draft_rna_seq, file_table, aliquot_table, 
         sys.exit()
 
     cluster_fields = ["project_short_name", "case_barcode", "sample_barcode", "aliquot_barcode"]
+    if bq_table_exists(f"{project_id}.{dataset}.{draft_rna_seq}"): 
+        delete_bq_table(f"{dataset}.{draft_rna_seq}", project=project_id)
     cluster_table_result = cluster_table(f"{project_id}.{dataset}.{step_5_table}",
                                          f"{project_id}.{dataset}.{draft_rna_seq}", cluster_fields)
     if cluster_table_result.total_rows < 1:

@@ -18,7 +18,7 @@ limitations under the License.
 
 import sys
 import logging
-from gdc_file_utils import query_bq, cluster_table
+from gdc_file_utils import query_bq, cluster_table, bq_table_exists, delete_bq_table
 
 mirna_expr_logger = logging.getLogger(name='base_script.mirna_expr')
 
@@ -235,6 +235,7 @@ def create_mirna_expr_table(raw_mirna_expr, draft_mirna_expr, file_table, aliquo
         mirna_expr_logger.error("Creating miRNA Seq table failed")
         sys.exit()
 
+    if bq_table_exists(f"{project_id}.{dataset}.{draft_mirna_expr}"): delete_bq_table(f"{dataset}.{draft_mirna_expr}", project=project_id)
     cluster_fields = ["project_short_name", "case_barcode", "sample_barcode", "aliquot_barcode"]
     cluster_table_result = cluster_table(f"{project_id}.{dataset}.{step_4_table}",
                                          f"{project_id}.{dataset}.{draft_mirna_expr}", cluster_fields)
