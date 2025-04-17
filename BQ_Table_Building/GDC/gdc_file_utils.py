@@ -459,6 +459,8 @@ def query_bq(sql, dest_table_id=None, project=None):
         job_config = bigquery.QueryJobConfig(destination=dest_table_id)
         job_config.write_disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
 
+    print(job_config)
+
     # Start the query, passing in the extra configuration.
     query_job = client.query(sql, location='US', job_config=job_config)
     job_state = query_job.state
