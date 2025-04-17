@@ -76,17 +76,17 @@ def create_file_list(params, program, datatype, local_location, prefix, file_lis
     """
     max_files = params.MAX_FILES if 'MAX_FILES' in vars(params) else None
     bucket_location = f"{params.DEV_BUCKET_DIR}/gdc_{params.RELEASE}"
-
+    
     file_list_sql = create_file_list_sql(program, datatype_mappings[datatype]['filters'],
                                          f"{params.FILE_TABLE}_{params.RELEASE}",
                                          f"{params.GSC_URL_TABLE}_{params.RELEASE}", max_files)
 
-    if query_bq(file_list_sql, f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{prefix}_file_list") != 'DONE':
+    if query_bq(file_list_sql, f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{prefix}_file_list", project='isb-project-zero') != 'DONE':
         sys.exit("Create file list bq table failed")
 
     bq_to_bucket_tsv(f"{prefix}_file_list", params.DEV_PROJECT, params.DEV_DATASET,
                      params.DEV_BUCKET, f"{bucket_location}/{file_list}", params.BQ_AS_BATCH, False)
-
+    if not os.path.exists(f"{local_location}"): os.mkdir(f"{local_location}")
     bucket_to_local(params.DEV_BUCKET, f"{bucket_location}/{file_list}",
                     f"{local_location}/{file_list}")
 
@@ -228,19 +228,19 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
 
     if datatype == "RNAseq":
         logger.info("Creating RNA seq draft tables")
-
+ 
         rna_seq_table = create_rna_seq_table(raw_data_table, draft_data_table, file_table, aliquot_table, case_table,
                                              dev_project, dev_dataset, release)
         intermediate_tables.extend(rna_seq_table)
 
-    if datatype == "miRNA_expr":  # todo
+    if datatype == "miRNAseq":  # todo
         logger.info("Creating miRNA expr draft tables")
 
         mirna_expr_table = create_mirna_expr_table(raw_data_table, draft_data_table, file_table, aliquot_table, case_table,
                                              dev_project, dev_dataset, release)
         intermediate_tables.extend(mirna_expr_table)
 
-    if datatype == "miRNA_isoform_expr":  # todo
+    if datatype == "miRNAseq_isoform":  # todo
         logger.info("Creating miRNA isoform expr draft tables")
 
         mirna_isoform_expr_table = create_mirna_isoform_expr_table(raw_data_table, draft_data_table, file_table, aliquot_table, case_table,
@@ -262,7 +262,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
     :param program: program to run the steps on
     """
     logger = logging.getLogger('base_script')
-
+    
     with open(f"{home}/{params.SCHEMA_REPO_LOCAL}/{params.PROGRAM_MAPPINGS}", mode='r') as program_mappings_file:
         program_mappings = json_loads(program_mappings_file.read().rstrip())
 
@@ -299,6 +299,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
     if 'create_concat_file' in steps:
         logging.info("Creating concat file")
         local_file_dir = f"{local_location}/concat_file"
+        if not os.path.exists(f"{local_file_dir}"): os.mkdir(f"{local_file_dir}")
         local_concat_file = f"{local_file_dir}/{raw_data}.tsv"
         concat_all_files(f"{local_location}/{file_traversal_list}", local_concat_file,
                          raw_files_local_location, datatype_mappings[data_type]['headers_to_switch'],
