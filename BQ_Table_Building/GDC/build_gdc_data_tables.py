@@ -81,7 +81,7 @@ def create_file_list(params, program, datatype, local_location, prefix, file_lis
                                          f"{params.FILE_TABLE}_{params.RELEASE}",
                                          f"{params.GSC_URL_TABLE}_{params.RELEASE}", max_files)
 
-    if query_bq(file_list_sql, f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{prefix}_file_list", project='isb-project-zero') != 'DONE':
+    if query_bq(file_list_sql, f"{params.DEV_PROJECT}.{params.DEV_DATASET}.{prefix}_file_list", project=params.DEV_PROJECT) != 'DONE':
         sys.exit("Create file list bq table failed")
 
     bq_to_bucket_tsv(f"{prefix}_file_list", params.DEV_PROJECT, params.DEV_DATASET,
