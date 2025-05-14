@@ -819,7 +819,7 @@ def update_table_description(table_id: str, description: str) -> None:
         if response == 'n':
             exit("Publish aborted; exiting.")
 
-        client.update_table(table_obj, ["labels"])
+        client.update_table(table_obj, ["description"])
 
         assert table_obj.description == description
     except NotFound:

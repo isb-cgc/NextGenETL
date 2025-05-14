@@ -139,7 +139,7 @@ def main(args):
 
         update_labels(table_ids=table_ids, column_label_dict=column_label_dict)
 
-    if 'update_description' in steps:
+    if 'update_table_description' in steps:
         table_ids = PARAMS['UPDATE_TABLE_DESCRIPTION']['table_ids']
         description = PARAMS['UPDATE_TABLE_DESCRIPTION']['description']
 
