@@ -802,6 +802,31 @@ def update_table_labels(table_id: str, label_dict: dict[str, str]) -> None:
             logger.warning(f"Couldn't apply table label {label}: {value}. Is this expected?")
 
 
+def update_table_description(table_id: str, description: str) -> None:
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+    try:
+        client = bigquery.Client()
+        table_obj = client.get_table(table_id)
+        table_obj.description = description
+
+        delay = 5
+
+        logger.info(f"Altering {table_id}. Description after change: {table_obj.description}")
+        logger.info(f"Proceed? Y/n (continues automatically in {delay} seconds)")
+
+        response = str(input_with_timeout(seconds=delay)).lower()
+
+        if response == 'n':
+            exit("Publish aborted; exiting.")
+
+        client.update_table(table_obj, ["labels"])
+
+        assert table_obj.description == description
+    except NotFound:
+        logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+        logger.critical("Description change failed")
+
+
 def find_most_recent_published_table_id(params: Params, versioned_table_id: str, table_base_name: str = None):
     """
     Function for locating published table id for dataset's previous release, if it exists
