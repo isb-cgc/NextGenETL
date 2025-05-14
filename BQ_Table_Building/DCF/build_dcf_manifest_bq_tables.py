@@ -302,7 +302,7 @@ def main(args):
 
         current_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}.{PARAMS['COMBINED_TABLE']}_current"
 
-        versioned_table_name = f"{PARAMS['COMBINED_TABLE']}_{PARAMS['RELEASE'][1:]}_v2"
+        versioned_table_name = f"{PARAMS['COMBINED_TABLE']}_{PARAMS['RELEASE'][1:]}"
         versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}_versioned.{versioned_table_name}"
 
         """
@@ -311,7 +311,7 @@ def main(args):
                                                                           table_base_name=PARAMS['COMBINED_TABLE'])
         """
 
-        previous_versioned_table_name = f"{PARAMS['COMBINED_TABLE']}_{PARAMS['RELEASE'][1:]}"
+        previous_versioned_table_name = f"{PARAMS['COMBINED_TABLE']}_r42"
         previous_versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}_versioned.{previous_versioned_table_name}"
 
         table_ids = {
