@@ -61,9 +61,9 @@ def parse_manifest_url_records(manifest_table_name) -> list[dict[str, str]]:
 
         file_record_dict = {
             'file_gdc_id': file_uuid,
-            'gdc_file_url_web': None,
-            'gdc_file_url': None,
-            'gdc_file_url_aws': None
+            'file_gdc_url_web': None,
+            'file_gdc_url': None,
+            'file_gdc_url_aws': None
         }
 
         if gs_url and '[' in gs_url:
@@ -75,13 +75,13 @@ def parse_manifest_url_records(manifest_table_name) -> list[dict[str, str]]:
             if not url:
                 continue
             if 'https://' in url:
-                file_record_dict['gdc_file_url_web'] = url
+                file_record_dict['file_gdc_url_web'] = url
             else:
                 if 'open' in acl and 'phs' not in acl:
                     if 'gs://' in url:
-                        file_record_dict['gdc_file_url'] = url
+                        file_record_dict['file_gdc_url'] = url
                     elif 's3://' in url:
-                        file_record_dict['gdc_file_url_aws'] = url
+                        file_record_dict['file_gdc_url_aws'] = url
                     else:
                         logger.critical(f"Invalid URL scheme: {url}")
                         sys.exit(-1)
@@ -104,9 +104,9 @@ def make_combined_table_query(table_ids: list[str]) -> str:
 def make_reordered_table_query(combined_table_id) -> str:
     return f"""
     SELECT file_gdc_id,
-            gdc_file_url,
-            gdc_file_url_aws,
-            gdc_file_url_web
+            file_gdc_url,
+            file_gdc_url_aws,
+            file_gdc_url_web
     FROM `{combined_table_id}`  
     """
 
@@ -222,7 +222,7 @@ def main(args):
         # query to retrieve id, acl, gs_url
         # iterate over results and build json object dict
         # - parse gs_url into list--either by converting string list representation or putting single value into a list
-        # create list of dicts containing id, gdc_file_url_web, gdc_file_url_aws, gdc_file_url
+        # create list of dicts containing id, file_gdc_url_web, file_gdc_url_aws, file_gdc_url
         # - if acl isn't open, don't include gs or aws uris
         for manifest_table_name in manifest_dict.keys():
             parsed_table_name = f"{manifest_table_name}_{PARAMS['SPLIT_URL_TABLE_SUFFIX']}"
@@ -278,7 +278,7 @@ def main(args):
             parsed_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{parsed_table_name}"
 
             sql = f"""SELECT file_gdc_id AS file_uuid, 
-                   gdc_file_url AS gcs_path
+                   file_gdc_url AS gcs_path
                    FROM `{parsed_table_id}`
                    """
 
@@ -302,12 +302,17 @@ def main(args):
 
         current_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}.{PARAMS['COMBINED_TABLE']}_current"
 
-        versioned_table_name = f"{PARAMS['COMBINED_TABLE']}_{PARAMS['RELEASE'][1:]}"
+        versioned_table_name = f"{PARAMS['COMBINED_TABLE']}_{PARAMS['RELEASE'][1:]}_v2"
         versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}_versioned.{versioned_table_name}"
 
+        """
         previous_versioned_table_id = find_most_recent_published_table_id(PARAMS,
                                                                           versioned_table_id=versioned_table_id,
                                                                           table_base_name=PARAMS['COMBINED_TABLE'])
+        """
+
+        previous_versioned_table_name = f"{PARAMS['COMBINED_TABLE']}_{PARAMS['RELEASE'][1:]}"
+        previous_versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{PARAMS['PROD_DATASET']}_versioned.{previous_versioned_table_name}"
 
         table_ids = {
             "source": combined_table_id,
