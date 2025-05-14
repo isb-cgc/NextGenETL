@@ -802,7 +802,7 @@ def update_table_labels(table_id: str, label_dict: dict[str, str]) -> None:
             logger.warning(f"Couldn't apply table label {label}: {value}. Is this expected?")
 
 
-def update_table_description(table_ids: str, description: str) -> None:
+def update_table_description(table_ids: list[str], description: str) -> None:
     logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
     try:
         for table_id in table_ids:
