@@ -923,7 +923,9 @@ def update_table_schema_from_generic(params, table_id,
         schema_tags['underscore-version'] = release.lower()
 
     # remove underscore, add decimal to version number
-    schema_tags['version'] = ".".join(release.split('_'))
+    if params['NODE'].lower() == 'pdc':
+        schema_tags['version'] = ".".join(release.split('_'))
+
     schema_tags['extracted-month-year'] = params['EXTRACTED_MONTH_YEAR']
 
     # gdc uses this
