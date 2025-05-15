@@ -39,6 +39,7 @@ from open_somatic_mut import create_somatic_mut_table
 from RNA_seq import create_rna_seq_table
 from mirna_expr import create_mirna_expr_table
 from mirna_isoform_expr import create_mirna_isoform_expr_table
+from gene_level_copy_number import create_gene_level_cnvr_table
 
 
 def load_config(yaml_config):
@@ -214,8 +215,13 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
     logger = logging.getLogger('base_script')
     intermediate_tables = []
 
-    if datatype == "gene_level_copy_number":  # todo
+    if datatype == "gene_level_copy_number":
         print("Creating Gene Level Copy Number draft tables")
+
+        logger.info("Creating Copy Number Gene Level draft tables")
+        gene_level_cnvr_tables = create_gene_level_cnvr_table(raw_data_table, draft_data_table, aliquot_table,
+                                                  case_table, dev_project, dev_dataset, release)
+        intermediate_tables.extend(gene_level_cnvr_tables)
 
     if datatype == "copy_number":  # todo
         print("copy number")
