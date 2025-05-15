@@ -780,7 +780,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
         if not table_ids['previous_versioned']:
             logger.warning(
                 f"No previous version found for {table_ids['source']}. Will publish. Investigate if unexpected.")
-            logger.warning(f"{table_ids['current']}")
+            logger.warning(f"Table will be published as: {table_ids['current']}")
             logger.warning("")
             return False
 
