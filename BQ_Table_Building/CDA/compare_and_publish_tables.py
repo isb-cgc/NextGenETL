@@ -406,50 +406,53 @@ def find_record_difference_counts(table_type: str,
     if table_type not in ("clinical", "per_sample_file", "quant"):
         logger.info(f"***** {table_type.upper()} *****")
 
-    logger.info(f"Current {table_type} count: {new_version_count}")
     logger.info(f"Previous {table_type} count: {previous_version_count}")
+    logger.info(f"Current {table_type} count: {new_version_count}")
     logger.info(f"Row count change since previous version: {count_difference}")
     logger.info("")
 
-    # find added records by project
-    query_logger.info("Added record query")
-    added_count, added_str = compare_records(query=make_added_record_count_query())
-    # find removed records by project
-    query_logger.info("Removed record query")
-    removed_count, removed_str = compare_records(query=make_removed_record_count_query())
+    added_count, removed_count = 0, 0
 
-    logger.info(f"Added {table_type} count: {added_count}")
+    if table_type != "quant":
+        # find added records by project
+        query_logger.info("Added record query")
+        added_count, added_str = compare_records(query=make_added_record_count_query())
+        # find removed records by project
+        query_logger.info("Removed record query")
+        removed_count, removed_str = compare_records(query=make_removed_record_count_query())
 
-    if table_metadata['data_type'] == 'per_project_or_program':
-        logger.info(f"Removed {table_type} count: {removed_count}")
-    else:
-        # output counts by project or other type, where applicable
-        # print added row examples
-        if added_str and added_str.strip() != added_count and table_metadata['output_keys']:
-            logger.info(added_str)
+        logger.info(f"Added {table_type} count: {added_count}")
+
+        if table_metadata['data_type'] == 'per_project_or_program':
+            logger.info(f"Removed {table_type} count: {removed_count}")
         else:
-            logger.info("")
+            # output counts by project or other type, where applicable
+            # print added row examples
+            if added_str and added_str.strip() != added_count and table_metadata['output_keys']:
+                logger.info(added_str)
+            else:
+                logger.info("")
 
-        logger.info(f"Removed {table_type} count: {removed_count}")
-        # output counts by project or other type, where applicable
-        # print removed row examples
-        if removed_str and removed_str.strip() != removed_count and table_metadata['output_keys']:
-            logger.info(removed_str)
-        else:
-            logger.info("")
+            logger.info(f"Removed {table_type} count: {removed_count}")
+            # output counts by project or other type, where applicable
+            # print removed row examples
+            if removed_str and removed_str.strip() != removed_count and table_metadata['output_keys']:
+                logger.info(removed_str)
+            else:
+                logger.info("")
 
-        # find changed records by project
-        query_logger.info("Changed record query")
-        changed_count, changed_str = compare_records(query=make_changed_record_count_query())
+            # find changed records by project
+            query_logger.info("Changed record query")
+            changed_count, changed_str = compare_records(query=make_changed_record_count_query())
 
-        logger.info(f"Changed {table_type} count: {changed_count}")
-        # outputs counts by project or other type, where applicable
-        if changed_str and changed_str.strip() != changed_count and table_metadata['output_keys']:
-            logger.info(changed_str)
-        else:
-            logger.info("")
+            logger.info(f"Changed {table_type} count: {changed_count}")
+            # outputs counts by project or other type, where applicable
+            if changed_str and changed_str.strip() != changed_count and table_metadata['output_keys']:
+                logger.info(changed_str)
+            else:
+                logger.info("")
 
-    logger.info("")
+        logger.info("")
 
     return added_count, removed_count
 
@@ -825,10 +828,10 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                                 table_ids=table_ids,
                                 table_params=modified_table_params)
 
-            if table_type != 'quant':
-                # display compare_to_last.sh style output
-                added_count, removed_count = find_record_difference_counts(table_type, table_ids, modified_table_params)
+            # display compare_to_last.sh style output
+            added_count, removed_count = find_record_difference_counts(table_type, table_ids, modified_table_params)
 
+            if table_type != 'quant':
                 if added_count > 0:
                     # list added rows
                     logger.info("Added record examples:")
