@@ -825,19 +825,19 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                                 table_ids=table_ids,
                                 table_params=modified_table_params)
 
-            # display compare_to_last.sh style output
-            added_count, removed_count = find_record_difference_counts(table_type, table_ids, modified_table_params)
-
-            if added_count > 0:
-                # list added rows
-                logger.info("Added record examples:")
-                list_added_or_removed_rows(table_ids['source'], table_ids['previous_versioned'], modified_table_params)
-            if removed_count > 0:
-                # list removed rows
-                logger.info("Removed record examples:")
-                list_added_or_removed_rows(table_ids['previous_versioned'], table_ids['source'], modified_table_params)
-
             if table_type != 'quant':
+                # display compare_to_last.sh style output
+                added_count, removed_count = find_record_difference_counts(table_type, table_ids, modified_table_params)
+
+                if added_count > 0:
+                    # list added rows
+                    logger.info("Added record examples:")
+                    list_added_or_removed_rows(table_ids['source'], table_ids['previous_versioned'], modified_table_params)
+                if removed_count > 0:
+                    # list removed rows
+                    logger.info("Removed record examples:")
+                    list_added_or_removed_rows(table_ids['previous_versioned'], table_ids['source'], modified_table_params)
+
                 logger.info("Comparing records by column!")
                 logger.info("")
                 compare_table_columns(table_ids=table_ids,
