@@ -219,8 +219,9 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
         print("Creating Gene Level Copy Number draft tables")
 
         logger.info("Creating Copy Number Gene Level draft tables")
-        gene_level_cnvr_tables = create_gene_level_cnvr_table(raw_data_table, draft_data_table, aliquot_table,
-                                                  case_table, dev_project, dev_dataset, release)
+        gene_level_cnvr_tables = create_gene_level_cnvr_table(raw_data_table, draft_data_table, file_table,
+                                                              aliquot_table, case_table, gene_table, dev_project,
+                                                              dev_dataset, release)
         intermediate_tables.extend(gene_level_cnvr_tables)
 
     if datatype == "copy_number":  # todo
