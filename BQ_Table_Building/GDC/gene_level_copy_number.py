@@ -76,7 +76,7 @@ def sql_for_draft_table(raw_table, file_table, aliquot_table, case_table, gene_t
             JOIN
               `{raw_table}` AS d
             ON
-              a.file_gdc_id = d.source_file_id
+              a.file_gdc_id = LEFT(d.file_name, 36)
             JOIN `{gene_table}` as e
             ON d.gene_id = e.gene_id_v
             WHERE
@@ -136,7 +136,7 @@ def create_gene_level_cnvr_table(raw_gene_level_cnvr, draft_gene_level_cnvr, fil
     if sql_for_draft_table_results == 'DONE':
         created_tables.append(step_1_table)
     else:
-        gene_level_cnvr_logger.error("Creating Copy Number Gene Level aliquot id table failed")
+        gene_level_cnvr_logger.error("Creating Copy Number Gene Level intermediate table failed")
         sys.exit()
 
     cluster_fields = ["project_short_name", "case_barcode", "sample_barcode", "aliquot_barcode"]
