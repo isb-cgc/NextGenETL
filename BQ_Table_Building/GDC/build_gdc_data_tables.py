@@ -215,7 +215,7 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
     logger = logging.getLogger('base_script')
     intermediate_tables = []
 
-    if datatype == "gene_level_copy_number":
+    if datatype == "copy_number_gene_level":
         print("Creating Gene Level Copy Number draft tables")
 
         logger.info("Creating Copy Number Gene Level draft tables")
