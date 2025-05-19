@@ -130,7 +130,9 @@ def create_gene_level_cnvr_table(raw_gene_level_cnvr, draft_gene_level_cnvr, fil
 
     sql_for_draft_table_results = sql_for_draft_table(f"{project_id}.{dataset}.{raw_gene_level_cnvr}",
                                                     f"{file_table}_{release}",
-                                                    aliquot_table, case_table, gene_table, step_1_table)
+                                                    f"{aliquot_table}_{release}",
+                                                      f"{case_table}_{release}", gene_table,
+                                                      f"{project_id}.{dataset}.{step_1_table}")
     if sql_for_draft_table_results == 'DONE':
         created_tables.append(step_1_table)
     else:
