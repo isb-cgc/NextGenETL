@@ -126,7 +126,6 @@ def create_gene_level_cnvr_table(raw_gene_level_cnvr, draft_gene_level_cnvr, fil
 
     created_tables = []
     step_1_table = f"{raw_gene_level_cnvr}_step_1"
-    step_2_table = f"{raw_gene_level_cnvr}_step_2"
 
     sql_for_draft_table_results = sql_for_draft_table(f"{project_id}.{dataset}.{raw_gene_level_cnvr}",
                                                     f"{file_table}_{release}",
@@ -142,7 +141,7 @@ def create_gene_level_cnvr_table(raw_gene_level_cnvr, draft_gene_level_cnvr, fil
     cluster_fields = ["project_short_name", "case_barcode", "sample_barcode", "aliquot_barcode"]
     if bq_table_exists(f"{project_id}.{dataset}.{draft_gene_level_cnvr}"):
         delete_bq_table(f"{dataset}.{draft_gene_level_cnvr}", project=project_id)
-    cluster_table_result = cluster_table(f"{project_id}.{dataset}.{step_2_table}",
+    cluster_table_result = cluster_table(f"{project_id}.{dataset}.{step_1_table}",
                                          f"{project_id}.{dataset}.{draft_gene_level_cnvr}", cluster_fields)
     if cluster_table_result.total_rows < 1:
         created_tables.append(draft_gene_level_cnvr)
