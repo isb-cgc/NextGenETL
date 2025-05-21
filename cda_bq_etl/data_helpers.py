@@ -754,3 +754,17 @@ def initialize_logging(log_filepath: str, name: str = 'base_script', emit_to_con
     logger.info(f"Logging started: {start_time}")
 
     return logger
+
+
+def is_uuid(uuid_str: str) -> bool:
+    uuid_str = str(uuid_str)
+    uuid_str_list = uuid_str.split('-')
+
+    if len(uuid_str_list) < 2:
+        return False
+
+    for segment in uuid_str_list:
+        if not segment.isalnum():
+            return False
+
+    return True

@@ -199,7 +199,7 @@ def get_normalized_file_names(unarchived_dir: str) -> list[str]:
 
     normalized_file_names = list()
 
-    if PARAMS['NODE'] == "pdc":
+    if PARAMS['NODE'] == "pdc" or PARAMS['NODE'] == "icdc":
         dir_file_dict, dest_path = scan_directories_and_create_file_dict(dest_path)
 
         for directory, file_list in dir_file_dict.items():
@@ -225,6 +225,9 @@ def get_normalized_file_names(unarchived_dir: str) -> list[str]:
         file_list.sort()
 
         normalized_file_names = normalize_files(file_list=file_list, dest_path=dest_path)
+    else:
+        logger.critical("File handling not implemented for node " + PARAMS['NODE'])
+        exit(-1)
 
     return normalized_file_names
 
@@ -283,7 +286,7 @@ def get_schema_filename(tsv_file_name: str) -> str:
     """
     logger = logging.getLogger('base_script')
 
-    if PARAMS['NODE'] == 'pdc':
+    if PARAMS['NODE'] == 'pdc' or PARAMS['NODE'] == 'icdc':
         # formatted like V3_3_Aliquot.aliquot_run_metadata_id.tsv
         # remove "." from file name, as occurs in PDC
         extension = tsv_file_name.split(".")[-1]

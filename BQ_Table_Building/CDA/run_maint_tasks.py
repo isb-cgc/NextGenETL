@@ -26,7 +26,7 @@ import time
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, input_with_timeout
 from cda_bq_etl.bq_helpers import (query_and_retrieve_result, delete_bq_table, copy_bq_table, update_friendly_name,
-                                   update_table_labels)
+                                   update_table_labels, update_table_description)
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -86,6 +86,11 @@ def update_labels(column_label_dict: dict[str, str], table_ids: list[str]):
         update_table_labels(table_id=table_id, label_dict=column_label_dict)
 
 
+def update_description(table_ids: list[str], description: str):
+    for table_id in table_ids:
+        update_table_description(table_id, description)
+
+
 def main(args):
     try:
         global PARAMS
@@ -133,6 +138,12 @@ def main(args):
         table_ids = PARAMS['UPDATE_LABELS']['table_ids']
 
         update_labels(table_ids=table_ids, column_label_dict=column_label_dict)
+
+    if 'update_table_description' in steps:
+        table_ids = PARAMS['UPDATE_TABLE_DESCRIPTION']['table_ids']
+        description = PARAMS['UPDATE_TABLE_DESCRIPTION']['description']
+
+        update_description(table_ids=table_ids, description=description)
 
 
 if __name__ == "__main__":
