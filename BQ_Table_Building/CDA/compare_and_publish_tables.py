@@ -484,12 +484,21 @@ def find_missing_tables(dataset: str, table_type: str):
 
     def get_published_table_names() -> list[str]:
         def make_program_tables_query() -> str:
-            return f"""
-                SELECT table_name 
-                FROM `{PARAMS['PROD_PROJECT']}.{program_name}`.INFORMATION_SCHEMA.TABLES
-                WHERE table_name LIKE '%{table_type}%'
-                    AND table_name LIKE '%{PARAMS['NODE']}%'
-            """
+            if table_type != 'quant':
+                return f"""
+                    SELECT table_name 
+                    FROM `{PARAMS['PROD_PROJECT']}.{program_name}`.INFORMATION_SCHEMA.TABLES
+                    WHERE table_name LIKE '%{table_type}%'
+                        AND table_type NOT LIKE '%quant%'
+                        AND table_name LIKE '%{PARAMS['NODE']}%'
+                """
+            else:
+                return f"""
+                    SELECT table_name 
+                    FROM `{PARAMS['PROD_PROJECT']}.{program_name}`.INFORMATION_SCHEMA.TABLES
+                    WHERE table_name LIKE '%{table_type}%'
+                        AND table_name LIKE '%{PARAMS['NODE']}%'
+                """
 
         # get program list from BQEcosystem/MetadataMappings/
         # for each program, look for tables in current list with 'clinical' or 'per_sample_file' prefix
