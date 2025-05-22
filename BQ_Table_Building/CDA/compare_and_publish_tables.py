@@ -489,7 +489,7 @@ def find_missing_tables(dataset: str, table_type: str):
                     SELECT table_name 
                     FROM `{PARAMS['PROD_PROJECT']}.{program_name}`.INFORMATION_SCHEMA.TABLES
                     WHERE table_name LIKE '%{table_type}%'
-                        AND table_type NOT LIKE '%quant%'
+                        AND table_name NOT LIKE '%quant%'
                         AND table_name LIKE '%{PARAMS['NODE']}%'
                 """
             else:
