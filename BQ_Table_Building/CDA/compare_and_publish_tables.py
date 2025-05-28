@@ -490,6 +490,7 @@ def find_missing_tables(dataset: str, table_type: str):
                     FROM `{PARAMS['PROD_PROJECT']}.{program_name}`.INFORMATION_SCHEMA.TABLES
                     WHERE table_name LIKE '%{table_type}%'
                         AND table_name NOT LIKE '%quant%'
+                        AND table_name NOT LIKE '%clinical_from_supplement_files%'
                         AND table_name LIKE '%{PARAMS['NODE']}%'
                 """
             else:
@@ -811,10 +812,11 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
 
     for table_ids in table_id_list:
         # table_base_name only defined for metadata tables, so otherwise we'll output the source table
+        asterisks = '*' * 25
         if table_params['data_type'] == 'metadata':
-            logger.info(f"*** Comparing tables for {table_params['table_base_name']}!")
+            logger.info(f"{asterisks}\nComparing tables for {table_params['table_base_name']}!")
         else:
-            logger.info(f"*** Comparing tables for {table_ids['source']}!")
+            logger.info(f"{asterisks}\nComparing tables for {table_ids['source']}!")
 
         modified_table_params = dict()
 
