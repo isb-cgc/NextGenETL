@@ -41,7 +41,7 @@ def make_project_per_sample_file_query(project_submitter_id):
             GROUP BY file_id
         )
 
-        SELECT f.file_id,
+        SELECT DISTINCT f.file_id,
             c.case_id,
             c.case_submitter_id,
             s.sample_id,
