@@ -59,15 +59,6 @@ def main(args):
 
         print(visit_result_dict)
 
-    if 'create_table_from_query' in steps:
-        logger.info("Entering create_table_from_query")
-
-        create_table_from_query(params=PARAMS,
-                                table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']),
-                                query=make_table_sql())
-
-        update_table_schema_from_generic(params=PARAMS, table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']))
-
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
 
