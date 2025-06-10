@@ -1111,9 +1111,12 @@ def update_schema(table_id: str, new_descriptions: dict[str, str]):
         :param schema: BQ Schema object
         :param new_schema: modified BQ Schema object
         """
-        for schema_field in table.schema:
-            # convert SchemaField object to dict
-            field = schema_field.to_api_repr()
+        for schema_field in schema:
+            if isinstance(schema_field, SchemaField):
+                # convert SchemaField object to dict
+                field = schema_field.to_api_repr()
+            else:
+                field = schema_field
             if field['name'] in new_descriptions:
                 field['description'] = new_descriptions[field['name']]
             if not field['description']:
@@ -1133,7 +1136,7 @@ def update_schema(table_id: str, new_descriptions: dict[str, str]):
     table = client.get_table(table_id)
     logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
 
-    table.schema = update_nested_schema(table, list())
+    table.schema = update_nested_schema(table.schema, list())
 
     client.update_table(table, ['schema'])
 
