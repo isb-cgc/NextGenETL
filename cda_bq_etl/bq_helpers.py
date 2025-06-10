@@ -1326,6 +1326,18 @@ def get_program_schema_tags_gdc(params: Params, program_name: str) -> dict[str, 
         return schema_tags
 
 
+def get_program_schema_tags_icdc(program_name: str) -> dict[str, str]:
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
+    schema_tags = dict()
+
+    schema_tags['program-name'] = program_name
+    schema_tags['friendly-name'] = program_name
+    schema_tags['program-label'] = program_name
+
+    return schema_tags
+
+
 def get_uniprot_schema_tags(params: Params) -> dict[str, str]:
     return {
         "uniprot-version": params['UNIPROT_RELEASE'],
