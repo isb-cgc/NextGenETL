@@ -1113,6 +1113,8 @@ def update_schema(table_id: str, new_descriptions: dict[str, str]):
     for schema_field in table.schema:
         column = schema_field.to_api_repr()
 
+        print(column['name'])
+
         if column['name'] in new_descriptions.keys():
             name = column['name']
             column['description'] = new_descriptions[name]
