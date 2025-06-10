@@ -1117,6 +1117,7 @@ def update_schema_field_descriptions(table_id: str, new_descriptions: dict[str, 
                 field = schema_field.to_api_repr()
             else:
                 field = schema_field
+                print(field)
             if field['name'] in new_descriptions:
                 field['description'] = new_descriptions[field['name']]
             if not field['description']:
