@@ -1,6 +1,6 @@
 """
 
-Copyright 2019-2024, Institute for Systems Biology
+Copyright 2019-2025, Institute for Systems Biology
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,15 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 """
-
-'''
-Make sure the VM has BigQuery and Storage Read/Write permissions!
-
-Extract GDC Metadata into Per-Project/Build File BQ Tables
-This is still a work in progress (01/18/2020)
-
-'''
-
 import yaml
 import sys
 import io
