@@ -25,7 +25,7 @@ import logging
 import sys
 import time
 import os
-from typing import Union, Optional, Any
+from typing import Union, Optional, Any, Sequence, Mapping
 
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
@@ -1100,35 +1100,32 @@ def generate_and_add_column_descriptions(params: Params, table_id: str):
 
 def update_schema(table_id: str, new_descriptions: dict[str, str]):
     """
-    Modify an existing table's field descriptions.
+    Modify an existing table's field descriptions. Recursively adds definitions to nested columns.
     :param table_id: table id in standard SQL format
     :param new_descriptions: dict of field names and new description strings
     """
+    def update_nested_schema(schema: Optional[Sequence[Union[SchemaField, Mapping[str, Any]]]]):
+        """
+        Recursively iterate over schema, adding field definitions using BQEcosystem-derived json field definitions file.
+        :param schema: BQ Schema object
+        """
+        for field in schema:
+            if field.name in new_descriptions:
+                field.description = new_descriptions[field.name]
+            if not field.description:
+                logger.error(f"No definition found. Need to define {field.name} in BQEcosystem.")
+            if field.field_type == "RECORD" and field.fields:
+                # recursively add nested field descriptions
+                update_nested_schema(field.fields)
+
     client = bigquery.Client()
     table = client.get_table(table_id)
     logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
 
-    new_schema = []
-
-    for schema_field in table.schema:
-        column = schema_field.to_api_repr()
-
-        print(column)
-
-        if column['name'] in new_descriptions.keys():
-            name = column['name']
-            column['description'] = new_descriptions[name]
-        else:
-            logger.error(f"Need to define {column['name']} in BQEcosystem field description dictionary.")
-        if 'description' in column and column['description'] == '':
-            logger.error(f"Still no description for field: {column['name']}")
-
-        mod_column = bigquery.SchemaField.from_api_repr(column)
-        new_schema.append(mod_column)
-
-    table.schema = new_schema
+    update_nested_schema(table.schema)
 
     client.update_table(table, ['schema'])
+    logger.info(f"Added column definitions for {table_id}!")
 
 
 def get_pdc_per_project_dataset(params: Params, project_short_name: str) -> str:
