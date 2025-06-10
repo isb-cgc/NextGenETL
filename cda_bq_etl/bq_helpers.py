@@ -1122,6 +1122,9 @@ def update_schema_field_descriptions(table_id: str, new_descriptions: dict[str, 
 
             if field['name'] in new_descriptions:
                 field['description'] = new_descriptions[field['name']]
+                print("field description: " + new_descriptions[field['name']])
+                print(field)
+                print()
             if not field['description']:
                 logger.error(f"Need to define {field['name']} in BQEcosystem!")
             if field['type'] == "RECORD" and field['fields']:
