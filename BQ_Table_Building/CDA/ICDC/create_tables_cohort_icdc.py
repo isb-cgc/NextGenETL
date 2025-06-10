@@ -12,7 +12,7 @@ YAML_HEADERS = ('params', 'steps')
 def make_table_sql() -> str:
     return f"""    
     SELECT * 
-    FROM `{create_dev_table_id(PARAMS, 'cohort')}isb-project-zero.cda_icdc_raw.2025_03_cohort`
+    FROM `{create_dev_table_id(PARAMS, 'cohort')}`
     LEFT JOIN `{create_dev_table_id(PARAMS, 'study_arm_cohort_id')}`
       USING (cohort_id)
     LEFT JOIN `{create_dev_table_id(PARAMS, 'study_arm')}` 
