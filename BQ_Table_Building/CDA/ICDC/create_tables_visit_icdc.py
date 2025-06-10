@@ -1,9 +1,11 @@
 import sys
 import time
 
-from cda_bq_etl.data_helpers import initialize_logging
+from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload
 from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds, create_metadata_table_id
-from cda_bq_etl.bq_helpers import (create_table_from_query, update_table_schema_from_generic, query_and_retrieve_result)
+from cda_bq_etl.bq_helpers import (create_table_from_query, update_table_schema_from_generic, query_and_retrieve_result,
+                                   create_and_upload_schema_for_json, retrieve_bq_schema_object,
+                                   create_and_load_table_from_jsonl)
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -62,10 +64,13 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     if 'retrieve_visit_data_and_build_jsonl' in steps:
+        logger.info("Entering retrieve_visit_data_and_build_jsonl")
+
         visit_dict = dict()
 
         visit_result = query_and_retrieve_result(make_visit_sql())
 
+        logger.info("Creating visit dict")
         for row in visit_result:
             visit_id = row['visit_id']
             visit_date = row['visit_date']
@@ -98,6 +103,7 @@ def main(args):
 
         disease_extent_result = query_and_retrieve_result(make_disease_extent_sql())
 
+        logger.info("Appending disease_extent")
         for row in disease_extent_result:
             visit_id = row['visit_id']
 
@@ -123,6 +129,7 @@ def main(args):
 
         physical_exam_result = query_and_retrieve_result(make_physical_exam_sql())
 
+        logger.info("Appending physical exam")
         for row in physical_exam_result:
             visit_id = row['visit_id']
 
@@ -142,6 +149,7 @@ def main(args):
 
         vital_signs_result = query_and_retrieve_result(make_vital_signs_sql())
 
+        logger.info("Appending vital signs")
         for row in vital_signs_result:
             visit_id = row['visit_id']
 
@@ -186,9 +194,29 @@ def main(args):
                 'modified_ecog': row['modified_ecog']
             })
 
-    for visit in visit_dict.values():
-        print(visit)
-        print()
+        visit_record_list = list()
+
+        for visit in visit_dict.values():
+            visit_record_list.append(visit)
+
+        write_list_to_jsonl_and_upload(PARAMS, 'visit', visit_record_list)
+
+        create_and_upload_schema_for_json(PARAMS,
+                                          record_list=visit_record_list,
+                                          table_name='visit',
+                                          include_release=True)
+
+    if 'create_table' in steps:
+        # Download schema file from Google Cloud bucket
+        table_schema = retrieve_bq_schema_object(PARAMS, table_name='visit', include_release=True)
+
+        # Load jsonl data into BigQuery table
+        create_and_load_table_from_jsonl(PARAMS,
+                                         jsonl_file=f"visit_{PARAMS['RELEASE']}.jsonl",
+                                         table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']),
+                                         schema=table_schema)
+
+        update_table_schema_from_generic(params=PARAMS, table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']))
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
