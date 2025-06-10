@@ -1111,7 +1111,7 @@ def update_schema(table_id: str, new_descriptions: dict[str, str]):
         :param schema: BQ Schema object
         :param new_schema: modified BQ Schema object
         """
-        for schema_field in schema:
+        for schema_field in table.schema:
             # convert SchemaField object to dict
             field = schema_field.to_api_repr()
             if field['name'] in new_descriptions:
@@ -1120,6 +1120,7 @@ def update_schema(table_id: str, new_descriptions: dict[str, str]):
                 logger.error(f"No definition found. Need to define {field['name']} in BQEcosystem.")
             if field['type'] == "RECORD" and field['fields']:
                 # recursively add nested field descriptions
+                print("processing nested fields")
                 update_nested_schema(field['fields'], list())
 
             # convert modified dict back into SchemaField object
@@ -1132,7 +1133,7 @@ def update_schema(table_id: str, new_descriptions: dict[str, str]):
     table = client.get_table(table_id)
     logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
 
-    table.schema = update_nested_schema(table.schema, list())
+    table.schema = update_nested_schema(table, list())
 
     client.update_table(table, ['schema'])
 
