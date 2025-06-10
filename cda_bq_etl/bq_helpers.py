@@ -1112,19 +1112,12 @@ def update_schema_field_descriptions(table_id: str, new_descriptions: dict[str, 
         :param new_schema: modified BQ Schema object
         """
         for schema_field in schema:
-            if isinstance(schema_field, SchemaField):
-                # convert SchemaField object to dict
-                field = schema_field.to_api_repr()
-            else:
-                field = schema_field
-
-            print(field)
+            # convert schema field to dict if necessary
+            # (nested columns are automatically converted to dict after first method call)
+            field = schema_field.to_api_repr() if isinstance(schema_field, SchemaField) else schema_field
 
             if field['name'] in new_descriptions:
                 field['description'] = new_descriptions[field['name']]
-                print("field description: " + new_descriptions[field['name']])
-                print(field)
-                print()
             if 'description' not in field or not field['description']:
                 logger.error(f"Need to define {field['name']} in BQEcosystem!")
             if field['type'] == "RECORD" and field['fields']:
