@@ -1052,7 +1052,7 @@ def add_column_descriptions(params: Params, table_id: str):
     with open(column_desc_fp) as column_output:
         descriptions = json.load(column_output)
 
-    update_schema(table_id, descriptions)
+    update_schema_field_descriptions(table_id, descriptions)
 
 
 def generate_and_add_column_descriptions(params: Params, table_id: str):
@@ -1098,7 +1098,7 @@ def generate_and_add_column_descriptions(params: Params, table_id: str):
     client.update_table(table, ['schema'])
 
 
-def update_schema(table_id: str, new_descriptions: dict[str, str]):
+def update_schema_field_descriptions(table_id: str, new_descriptions: dict[str, str]):
     """
     Modify an existing table's field descriptions. Recursively adds definitions to nested columns.
     :param table_id: table id in standard SQL format
@@ -1120,10 +1120,9 @@ def update_schema(table_id: str, new_descriptions: dict[str, str]):
             if field['name'] in new_descriptions:
                 field['description'] = new_descriptions[field['name']]
             if not field['description']:
-                logger.error(f"No definition found. Need to define {field['name']} in BQEcosystem.")
+                logger.error(f"Need to define {field['name']} in BQEcosystem!")
             if field['type'] == "RECORD" and field['fields']:
                 # recursively add nested field descriptions
-                print("processing nested fields")
                 update_nested_schema(field['fields'], list())
 
             # convert modified dict back into SchemaField object
@@ -1139,39 +1138,6 @@ def update_schema(table_id: str, new_descriptions: dict[str, str]):
     table.schema = update_nested_schema(table.schema, list())
 
     client.update_table(table, ['schema'])
-
-
-'''
-def old_update_schema(table_id: str, new_descriptions: dict[str, str]):
-    """
-    Modify an existing table's field descriptions.
-    :param table_id: table id in standard SQL format
-    :param new_descriptions: dict of field names and new description strings
-    """
-    client = bigquery.Client()
-    table = client.get_table(table_id)
-    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
-
-    new_schema = []
-
-    for schema_field in table.schema:
-        column = schema_field.to_api_repr()
-
-        if column['name'] in new_descriptions.keys():
-            name = column['name']
-            column['description'] = new_descriptions[name]
-        else:
-            logger.error(f"Need to define {column['name']} in BQEcosystem field description dictionary.")
-        if 'description' in column and column['description'] == '':
-            logger.error(f"Still no description for field: {column['name']}")
-
-        mod_column = bigquery.SchemaField.from_api_repr(column)
-        new_schema.append(mod_column)
-
-    table.schema = new_schema
-
-    client.update_table(table, ['schema'])
-'''
 
 
 def get_pdc_per_project_dataset(params: Params, project_short_name: str) -> str:
