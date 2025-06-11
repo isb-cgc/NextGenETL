@@ -75,6 +75,8 @@ def main(args):
 
             clinical_table_id = create_clinical_table_id(PARAMS, f"{program}_{PARAMS['TABLE_NAME']}")
 
+            print(make_table_sql(program))
+
             create_table_from_query(params=PARAMS,
                                     table_id=clinical_table_id,
                                     query=make_table_sql(program))
