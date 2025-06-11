@@ -55,6 +55,7 @@ def main(args):
 
         for row in program_result:
             program = row['program_acronym']
+            print(f"Creating table for {program}!")
 
             create_table_from_query(params=PARAMS,
                                     table_id=create_per_sample_table_id(PARAMS, PARAMS['TABLE_NAME']),
