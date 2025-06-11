@@ -25,12 +25,12 @@ def make_row_count_sql(program) -> str:
           USING (sample_id)
         LEFT JOIN `{create_dev_table_id(PARAMS, 'file')}` f
           ON sf.file_uuid = f.uuid
-        LEFT JOIN `{create_dev_table_id(PARAMS, 'file_clinical_study_designation')}` fcsd
-            ON fcsd.file_uuid = f.uuid
-        LEFT JOIN `{create_dev_table_id(PARAMS, 'program_clinical_study_designation')}` pcsd
-            USING (clinical_study_designation)
         LEFT JOIN `{create_dev_table_id(PARAMS, 'sample_case_id')}` sc 
           USING (sample_id)
+        LEFT JOIN `{create_dev_table_id(PARAMS, 'case_clinical_study_designation')}` ccsd
+            USING (case_id)
+        LEFT JOIN `{create_dev_table_id(PARAMS, 'program_clinical_study_designation')}` pcsd
+            USING (clinical_study_designation)
         WHERE pcsd.program_acronym = '{program}'
     """
 
@@ -43,12 +43,12 @@ def make_table_sql(program) -> str:
           USING (sample_id)
         LEFT JOIN `{create_dev_table_id(PARAMS, 'file')}` f
           ON sf.file_uuid = f.uuid
-        LEFT JOIN `{create_dev_table_id(PARAMS, 'file_clinical_study_designation')}` fcsd
-            ON fcsd.file_uuid = f.uuid
-        LEFT JOIN `{create_dev_table_id(PARAMS, 'program_clinical_study_designation')}` pcsd
-            USING (clinical_study_designation)
         LEFT JOIN `{create_dev_table_id(PARAMS, 'sample_case_id')}` sc 
           USING (sample_id)
+        LEFT JOIN `{create_dev_table_id(PARAMS, 'case_clinical_study_designation')}` ccsd
+            USING (case_id)
+        LEFT JOIN `{create_dev_table_id(PARAMS, 'program_clinical_study_designation')}` pcsd
+            USING (clinical_study_designation)
         WHERE pcsd.program_acronym = '{program}'
     """
 
