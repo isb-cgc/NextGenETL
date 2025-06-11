@@ -6,7 +6,7 @@ from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds, c
     create_clinical_table_id
 from cda_bq_etl.bq_helpers import (update_table_schema_from_generic, query_and_retrieve_result,
                                    create_and_upload_schema_for_json, retrieve_bq_schema_object,
-                                   create_and_load_table_from_jsonl)
+                                   create_and_load_table_from_jsonl, get_program_schema_tags_icdc)
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -239,7 +239,9 @@ def main(args):
                                              table_id=visit_table_id,
                                              schema=table_schema)
 
-            update_table_schema_from_generic(params=PARAMS, table_id=visit_table_id)
+            schema_tags = get_program_schema_tags_icdc(program)
+
+            update_table_schema_from_generic(params=PARAMS, table_id=visit_table_id, schema_tags=schema_tags)
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
