@@ -86,14 +86,16 @@ def main(args):
 
             logger.info(f"Creating table for {program}!")
 
+            per_sample_file_table_id = create_dev_table_id(PARAMS, f"{program}_{PARAMS['TABLE_NAME']}")
+
             create_table_from_query(params=PARAMS,
-                                    table_id=create_per_sample_table_id(PARAMS, PARAMS['TABLE_NAME']),
+                                    table_id=per_sample_file_table_id,
                                     query=make_table_sql(program))
 
             schema_tags = get_program_schema_tags_icdc(program)
 
             update_table_schema_from_generic(params=PARAMS,
-                                             table_id=create_per_sample_table_id(PARAMS, PARAMS['TABLE_NAME']),
+                                             table_id=per_sample_file_table_id,
                                              schema_tags=schema_tags)
 
     end_time = time.time()
