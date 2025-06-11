@@ -17,6 +17,24 @@ def make_program_acronym_sql() -> str:
     """
 
 
+def make_row_count_sql(program) -> str:
+    return f"""    
+        SELECT COUNT(*)
+        FROM `{create_dev_table_id(PARAMS, 'sample')}` s
+        LEFT JOIN `{create_dev_table_id(PARAMS, 'sample_file_uuid')}` sf
+          USING (sample_id)
+        LEFT JOIN `{create_dev_table_id(PARAMS, 'file')}` f
+          ON sf.file_uuid = f.uuid
+        LEFT JOIN `{create_dev_table_id(PARAMS, 'file_clinical_study_designation')}` fcsd
+            ON fcsd.file_uuid = f.uuid
+        LEFT JOIN `{create_dev_table_id(PARAMS, 'program_clinical_study_designation')}` pcsd
+            USING (clinical_study_designation)
+        LEFT JOIN `{create_dev_table_id(PARAMS, 'sample_case_id')}` sc 
+          USING (sample_id)
+        WHERE pcsd.program_acronym = '{program}'
+    """
+
+
 def make_table_sql(program) -> str:
     return f"""    
         SELECT sf.file_uuid, sc.case_id, pcsd.program_acronym, s.*, f.*
@@ -55,6 +73,13 @@ def main(args):
 
         for row in program_result:
             program = row['program_acronym']
+
+            count_result = query_and_retrieve_result(make_row_count_sql(program))
+
+            for row in count_result:
+                print(row)
+                count = row['count']
+
             print(f"Creating table for {program}!")
 
             create_table_from_query(params=PARAMS,
