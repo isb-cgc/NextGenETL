@@ -79,21 +79,26 @@ def main(args):
 
             logger.info(f"Creating table for {program}!")
 
-            visit_dict = dict()
-
             visit_result = query_and_retrieve_result(make_visit_sql())
 
             logger.info("Creating visit dict")
-            for row in visit_result:
-                visit_id = row['visit_id']
-                visit_date = row['visit_date']
-                case_id = row['case_id']
-                cycle_case_id = row['cycle_case_id']
 
-                # The case_visit_id raw mapping file only contains 30 associations--cycle_case_and_visit_id contains most
-                # of the needed case-visit associations. However, they seem to be mutually exclusive--currently, the
-                # entries only exist in one of the two files. Therefore, we're running a comparison here to flag any future
-                # issues and to put the case_id in a single field.
+            cases_visits_dict = dict()
+            visits_dict = dict()
+
+            # map visit ids to case ids, allowing for identification of the correct location to insert child data
+            visit_case_mapping = dict()
+
+            for visit_row in visit_result:
+                visit_id = visit_row['visit_id']
+                visit_date = visit_row['visit_date']
+                case_id = visit_row['case_id']
+                cycle_case_id = visit_row['cycle_case_id']
+
+                # LAW 25-06-11: The case_visit_id mapping file only contains 30 rows.
+                # cycle_case_and_visit_id contains most of the needed case-visit associations.
+                # However, they seem to be mutually exclusive--currently, the entries only exist in one of the two
+                # files. Running a comparison here flags any future issues and selects the non-null case_id.
                 if case_id and cycle_case_id and case_id != cycle_case_id:
                     logger.critical(f"Mismatched case_id, visit_case_id ({case_id}, {cycle_case_id} "
                                     f"for visit_id: {visit_id}. Exiting.")
@@ -102,122 +107,159 @@ def main(args):
                 elif not case_id:
                     case_id = cycle_case_id
 
-                if visit_id in visit_dict:
-                    logger.critical(f"visit id {visit_id} already found in raw data. This shouldn't happen--exiting.")
+                # Create the initial parent entry if this case doesn't already exist in the dict.
+                if case_id not in cases_visits_dict:
+                    cases_visits_dict[case_id] = {
+                        'case_id': case_id,
+                        'visits': list()
+                    }
 
-                visit_dict[visit_id] = {
+                # Add the visit data and initialize the nested lists for child field groups.
+                visits_dict[visit_id].append({
                     'visit_id': visit_id,
                     'visit_date': visit_date,
-                    'case_id': case_id,
                     'vital_signs': list(),
                     'disease_extent': list(),
                     'physical_exam': list()
-                }
+                })
+
+                visit_case_mapping[visit_id] = case_id
 
             vital_signs_result = query_and_retrieve_result(make_vital_signs_sql())
 
             logger.info("Appending vital signs")
-            for row in vital_signs_result:
-                visit_id = row['visit_id']
+            for vital_sign_row in vital_signs_result:
+                # confirm visit_id field exists in the query results
+                if 'visit_id' not in vital_sign_row:
+                    logger.warning("No visit_id found in vital_signs result. Should be investigated. Skipping row.")
+                    continue
 
+                visit_id = vital_sign_row['visit_id']
+
+                # confirm visit_id is non-null and that it can be mapped to a case_id
                 if not visit_id:
                     logger.warning(f"No visit id {visit_id} found in vital_signs. Should be investigated. "
-                                   f"Skipping this row.")
-                elif visit_id not in visit_dict:
-                    logger.warning(f"visit id {visit_id} found in vital_signs raw data but not in visit. "
+                                   f"Skipping row.")
+                    continue
+                elif visit_id not in visit_case_mapping:
+                    logger.warning(f"visit id {visit_id} found in vital_signs but not in visit_case_mapping. "
                                    "Should be investigated. Skipping this row.")
+                    continue
 
-                visit_dict[visit_id]['vital_signs'].append({
-                    'date_of_vital_signs': row['date_of_vital_signs'],
-                    'body_temperature': row['body_temperature'],
-                    'body_temperature_unit': row['body_temperature_unit'],
-                    'body_temperature_original': row['body_temperature_original'],
-                    'body_temperature_original_unit': row['body_temperature_original_unit'],
-                    'pulse': row['pulse'],
-                    'pulse_unit': row['pulse_unit'],
-                    'pulse_original': row['pulse_original'],
-                    'pulse_original_unit': row['pulse_original_unit'],
-                    'respiration_rate': row['respiration_rate'],
-                    'respiration_rate_unit': row['respiration_rate_unit'],
-                    'respiration_rate_original': row['respiration_rate_original'],
-                    'respiration_rate_original_unit': row['respiration_rate_original_unit'],
-                    'respiration_pattern': row['respiration_pattern'],
-                    'systolic_bp': row['systolic_bp'],
-                    'systolic_bp_unit': row['systolic_bp_unit'],
-                    'systolic_bp_original': row['systolic_bp_original'],
-                    'systolic_bp_original_unit': row['systolic_bp_original_unit'],
-                    'pulse_ox': row['pulse_ox'],
-                    'pulse_ox_unit': row['pulse_ox_unit'],
-                    'pulse_ox_original': row['pulse_ox_original'],
-                    'pulse_ox_original_unit': row['pulse_ox_original_unit'],
-                    'patient_weight': row['patient_weight'],
-                    'patient_weight_unit': row['patient_weight_unit'],
-                    'patient_weight_original': row['patient_weight_original'],
-                    'patient_weight_original_unit': row['patient_weight_original_unit'],
-                    'body_surface_area': row['body_surface_area'],
-                    'body_surface_area_unit': row['body_surface_area_unit'],
-                    'body_surface_area_original': row['body_surface_area_original'],
-                    'body_surface_area_original_unit': row['body_surface_area_original_unit'],
-                    'modified_ecog': row['modified_ecog']
+                visits_dict[visit_id]['vital_signs'].append({
+                    'date_of_vital_signs': vital_sign_row['date_of_vital_signs'],
+                    'body_temperature': vital_sign_row['body_temperature'],
+                    'body_temperature_unit': vital_sign_row['body_temperature_unit'],
+                    'body_temperature_original': vital_sign_row['body_temperature_original'],
+                    'body_temperature_original_unit': vital_sign_row['body_temperature_original_unit'],
+                    'pulse': vital_sign_row['pulse'],
+                    'pulse_unit': vital_sign_row['pulse_unit'],
+                    'pulse_original': vital_sign_row['pulse_original'],
+                    'pulse_original_unit': vital_sign_row['pulse_original_unit'],
+                    'respiration_rate': vital_sign_row['respiration_rate'],
+                    'respiration_rate_unit': vital_sign_row['respiration_rate_unit'],
+                    'respiration_rate_original': vital_sign_row['respiration_rate_original'],
+                    'respiration_rate_original_unit': vital_sign_row['respiration_rate_original_unit'],
+                    'respiration_pattern': vital_sign_row['respiration_pattern'],
+                    'systolic_bp': vital_sign_row['systolic_bp'],
+                    'systolic_bp_unit': vital_sign_row['systolic_bp_unit'],
+                    'systolic_bp_original': vital_sign_row['systolic_bp_original'],
+                    'systolic_bp_original_unit': vital_sign_row['systolic_bp_original_unit'],
+                    'pulse_ox': vital_sign_row['pulse_ox'],
+                    'pulse_ox_unit': vital_sign_row['pulse_ox_unit'],
+                    'pulse_ox_original': vital_sign_row['pulse_ox_original'],
+                    'pulse_ox_original_unit': vital_sign_row['pulse_ox_original_unit'],
+                    'patient_weight': vital_sign_row['patient_weight'],
+                    'patient_weight_unit': vital_sign_row['patient_weight_unit'],
+                    'patient_weight_original': vital_sign_row['patient_weight_original'],
+                    'patient_weight_original_unit': vital_sign_row['patient_weight_original_unit'],
+                    'body_surface_area': vital_sign_row['body_surface_area'],
+                    'body_surface_area_unit': vital_sign_row['body_surface_area_unit'],
+                    'body_surface_area_original': vital_sign_row['body_surface_area_original'],
+                    'body_surface_area_original_unit': vital_sign_row['body_surface_area_original_unit'],
+                    'modified_ecog': vital_sign_row['modified_ecog']
                 })
 
             disease_extent_result = query_and_retrieve_result(make_disease_extent_sql())
 
             logger.info("Appending disease_extent")
-            for row in disease_extent_result:
-                visit_id = row['visit_id']
 
+            for disease_extent_row in disease_extent_result:
+                # confirm visit_id field exists in the query results
+                if 'visit_id' not in disease_extent_row:
+                    logger.warning("No visit_id found in disease_extent result. Should be investigated. Skipping row.")
+                    continue
+
+                visit_id = disease_extent_row['visit_id']
+
+                # confirm visit_id is non-null and that it can be mapped to a case_id
                 if not visit_id:
                     logger.warning(f"No visit id {visit_id} found in disease_extent. Should be investigated. "
                                    f"Skipping this row.")
-                elif visit_id not in visit_dict:
-                    logger.warning(f"visit id {visit_id} found in disease_extent raw data but not in visit. "
+                    continue
+                elif visit_id not in visit_case_mapping:
+                    logger.warning(f"visit id {visit_id} found in disease_extent but not in visit_case_mapping. "
                                    "Should be investigated. Skipping this row.")
+                    continue
 
-                visit_dict[visit_id]['disease_extent'].append({
-                    'lesion_number': row['lesion_number'],
-                    'lesion_site': row['lesion_site'],
-                    'lesion_description': row['lesion_description'],
-                    'measurable_lesion': row['measurable_lesion'],
-                    'target_lesion': row['target_lesion'],
-                    'date_of_evaluation': row['date_of_evaluation'],
-                    'measured_how': row['measured_how'],
-                    'longest_measurement': row['longest_measurement'],
-                    'evaluation_number': row['evaluation_number'],
-                    'evaluation_code': row['evaluation_code']
+                visits_dict[visit_id]['disease_extent'].append({
+                    'lesion_number': disease_extent_row['lesion_number'],
+                    'lesion_site': disease_extent_row['lesion_site'],
+                    'lesion_description': disease_extent_row['lesion_description'],
+                    'measurable_lesion': disease_extent_row['measurable_lesion'],
+                    'target_lesion': disease_extent_row['target_lesion'],
+                    'date_of_evaluation': disease_extent_row['date_of_evaluation'],
+                    'measured_how': disease_extent_row['measured_how'],
+                    'longest_measurement': disease_extent_row['longest_measurement'],
+                    'evaluation_number': disease_extent_row['evaluation_number'],
+                    'evaluation_code': disease_extent_row['evaluation_code']
                 })
 
             physical_exam_result = query_and_retrieve_result(make_physical_exam_sql())
 
             logger.info("Appending physical exam")
-            for row in physical_exam_result:
-                visit_id = row['visit_id']
+            for physical_exam_row in physical_exam_result:
+                # confirm visit_id field exists in the query results
+                if 'visit_id' not in physical_exam_row:
+                    logger.warning("No visit_id found in physical_exam result. Should be investigated. Skipping row.")
+                    continue
 
+                visit_id = physical_exam_row['visit_id']
+
+                # confirm visit_id is non-null and that it can be mapped to a case_id
                 if not visit_id:
                     logger.warning(f"No visit id {visit_id} found in physical_exam. Should be investigated. "
-                                   f"Skipping this row.")
-                elif visit_id not in visit_dict:
-                    logger.warning(f"visit id {visit_id} found in physical_exam raw data but not in visit. "
+                                   f"Skipping row.")
+                    continue
+                elif visit_id not in visit_case_mapping:
+                    logger.warning(f"visit id {visit_id} found in physical_exam but not in visit_case_mapping. "
                                    "Should be investigated. Skipping this row.")
+                    continue
 
-                visit_dict[visit_id]['physical_exam'].append({
-                    'date_of_examination': row['date_of_examination'],
-                    'body_system': row['body_system'],
-                    'pe_finding': row['pe_finding'],
-                    'pe_comment': row['pe_comment']
+                visits_dict[visit_id]['physical_exam'].append({
+                    'date_of_examination': physical_exam_row['date_of_examination'],
+                    'body_system': physical_exam_row['body_system'],
+                    'pe_finding': physical_exam_row['pe_finding'],
+                    'pe_comment': physical_exam_row['pe_comment']
                 })
 
-            visit_record_list = list()
+            for visit_id, visit_dict in visits_dict.items():
+                # find the case_id associated with the case,
+                # append the visit dict to the list of visits in the cases_visits_dict
+                case_id = visit_case_mapping[visit_id]
+                cases_visits_dict[case_id]['visits'].append(visit_dict)
 
-            for visit in visit_dict.values():
-                visit_record_list.append(visit)
+            case_visit_record_list = list()
+
+            for case_visit_record in cases_visits_dict.values():
+                case_visit_record_list.append(case_visit_record)
 
             file_prefix = f"{program}_{PARAMS['TABLE_NAME']}"
 
-            write_list_to_jsonl_and_upload(PARAMS, prefix=file_prefix, record_list=visit_record_list)
+            write_list_to_jsonl_and_upload(PARAMS, prefix=file_prefix, record_list=case_visit_record_list)
 
             create_and_upload_schema_for_json(PARAMS,
-                                              record_list=visit_record_list,
+                                              record_list=case_visit_record_list,
                                               table_name=file_prefix,
                                               include_release=True)
 
