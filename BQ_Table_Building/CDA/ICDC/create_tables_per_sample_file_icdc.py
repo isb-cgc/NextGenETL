@@ -17,24 +17,6 @@ def make_program_acronym_sql() -> str:
     """
 
 
-def make_row_count_sql(program) -> str:
-    return f"""    
-        SELECT COUNT(*) AS count
-        FROM `{create_dev_table_id(PARAMS, 'sample')}` s
-        LEFT JOIN `{create_dev_table_id(PARAMS, 'sample_file_uuid')}` sf
-          USING (sample_id)
-        LEFT JOIN `{create_dev_table_id(PARAMS, 'file')}` f
-          ON sf.file_uuid = f.uuid
-        LEFT JOIN `{create_dev_table_id(PARAMS, 'sample_case_id')}` sc 
-          USING (sample_id)
-        LEFT JOIN `{create_dev_table_id(PARAMS, 'case_clinical_study_designation')}` ccsd
-            USING (case_id)
-        LEFT JOIN `{create_dev_table_id(PARAMS, 'program_clinical_study_designation')}` pcsd
-            USING (clinical_study_designation)
-        WHERE pcsd.program_acronym = '{program}'
-    """
-
-
 def make_table_sql(program) -> str:
     return f"""    
         SELECT sf.file_uuid, sc.case_id, pcsd.program_acronym, s.*, f.*
@@ -74,19 +56,9 @@ def main(args):
         for row in program_result:
             program = row['program_acronym']
 
-            count_result = query_and_retrieve_result(make_row_count_sql(program))
-
-            for row in count_result:
-                count = row['count']
-                break
-
-            if count == 0:
-                logger.info(f"No records found for program {program}. Table will not be created.")
-                continue
-
             logger.info(f"Creating table for {program}!")
 
-            per_sample_file_table_id = create_dev_table_id(PARAMS, f"{program}_{PARAMS['TABLE_NAME']}")
+            per_sample_file_table_id = create_per_sample_table_id(PARAMS, f"{program}_{PARAMS['TABLE_NAME']}")
 
             create_table_from_query(params=PARAMS,
                                     table_id=per_sample_file_table_id,
