@@ -1333,7 +1333,7 @@ def get_program_schema_tags_icdc(program_name: str) -> dict[str, str]:
 
     schema_tags['program-name'] = program_name
     schema_tags['friendly-name'] = program_name
-    schema_tags['program-label'] = program_name
+    schema_tags['program-label'] = program_name.lower()
 
     return schema_tags
 
