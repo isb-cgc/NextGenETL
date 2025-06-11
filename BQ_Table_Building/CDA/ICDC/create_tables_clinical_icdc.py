@@ -21,8 +21,10 @@ def make_program_acronym_sql() -> str:
 # todo these tables all merge because there's only one record, but actual script should account for
 #  the possibility of multiple diagnoses
 def make_table_sql(program) -> str:
+    # todo handle null column exclusion differently
     return f"""
-        SELECT * 
+        SELECT * EXCEPT (enrollment_id_sub_field_sanity_check, prior_prior_surgery_date_of_surgery, 
+            next_prior_surgery_date_of_surgery, residual_disease, therapeutic_indicator)
         FROM `{create_dev_table_id(PARAMS, 'case')}`
         LEFT JOIN `{create_dev_table_id(PARAMS, 'case_clinical_study_designation')}`
             USING(case_id)
@@ -74,8 +76,6 @@ def main(args):
             logger.info(f"Creating table for {program}!")
 
             clinical_table_id = create_clinical_table_id(PARAMS, f"{program}_{PARAMS['TABLE_NAME']}")
-
-            print(make_table_sql(program))
 
             create_table_from_query(params=PARAMS,
                                     table_id=clinical_table_id,
