@@ -54,7 +54,7 @@ def main(args):
         program_result = query_and_retrieve_result(make_program_acronym_sql())
 
         for row in program_result:
-            program = row['program']
+            program = row['program_acronym']
 
             create_table_from_query(params=PARAMS,
                                     table_id=create_per_sample_table_id(PARAMS, PARAMS['TABLE_NAME']),
