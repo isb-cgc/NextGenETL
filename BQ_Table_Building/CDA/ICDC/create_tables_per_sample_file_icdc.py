@@ -76,9 +76,6 @@ def main(args):
 
             count_result = query_and_retrieve_result(make_row_count_sql(program))
 
-            print(make_table_sql(program))
-
-
             for row in count_result:
                 count = row['count']
                 break

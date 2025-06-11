@@ -2,17 +2,25 @@ import sys
 import time
 
 from cda_bq_etl.data_helpers import initialize_logging
-from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds, create_metadata_table_id
-from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic
+from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds, create_metadata_table_id, \
+    create_clinical_table_id
+from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic, \
+    get_program_schema_tags_icdc, query_and_retrieve_result
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
+def make_program_acronym_sql() -> str:
+    return f"""
+        SELECT DISTINCT program_acronym
+        FROM `{create_dev_table_id(PARAMS, 'program')}`
+    """
+
+
 # todo these tables all merge because there's only one record, but actual script should account for
 #  the possibility of multiple diagnoses
-#   also needs to be broken out into programs
-def make_table_sql() -> str:
+def make_table_sql(program) -> str:
     return f"""
         SELECT * 
         FROM `{create_dev_table_id(PARAMS, 'case')}`
@@ -36,6 +44,11 @@ def make_table_sql() -> str:
             USING(case_id)
         LEFT JOIN `{create_dev_table_id(PARAMS, 'prior_surgery')}`
             USING(enrollment_id)
+        LEFT JOIN `{create_dev_table_id(PARAMS, 'case_clinical_study_designation')}` ccsd
+            USING (case_id)
+        LEFT JOIN `{create_dev_table_id(PARAMS, 'program_clinical_study_designation')}` pcsd
+            USING (clinical_study_designation)
+        WHERE pcsd.program_acronym = '{program}'
     """
 
 
@@ -55,13 +68,22 @@ def main(args):
     if 'create_table_from_query' in steps:
         logger.info("Entering create_table_from_query")
 
-        # todo change to clinical table id
-        create_table_from_query(params=PARAMS,
-                                table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']),
-                                query=make_table_sql())
+        program_result = query_and_retrieve_result(make_program_acronym_sql())
 
-        # todo change to clinical table id
-        update_table_schema_from_generic(params=PARAMS, table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']))
+        for row in program_result:
+            program = row['program_acronym']
+
+            logger.info(f"Creating table for {program}!")
+
+            create_table_from_query(params=PARAMS,
+                                    table_id=create_clinical_table_id(PARAMS, PARAMS['TABLE_NAME']),
+                                    query=make_table_sql(program))
+
+            schema_tags = get_program_schema_tags_icdc(program)
+
+            update_table_schema_from_generic(params=PARAMS,
+                                             table_id=create_clinical_table_id(PARAMS, PARAMS['TABLE_NAME']),
+                                             schema_tags=schema_tags)
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
