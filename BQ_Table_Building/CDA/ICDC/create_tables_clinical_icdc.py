@@ -44,8 +44,6 @@ def make_table_sql(program) -> str:
             USING(case_id)
         LEFT JOIN `{create_dev_table_id(PARAMS, 'prior_surgery')}`
             USING(enrollment_id)
-        LEFT JOIN `{create_dev_table_id(PARAMS, 'case_clinical_study_designation')}` ccsd
-            USING (case_id)
         LEFT JOIN `{create_dev_table_id(PARAMS, 'program_clinical_study_designation')}` pcsd
             USING (clinical_study_designation)
         WHERE pcsd.program_acronym = '{program}'
