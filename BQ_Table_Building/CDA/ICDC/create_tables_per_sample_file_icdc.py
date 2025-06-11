@@ -19,7 +19,7 @@ def make_program_acronym_sql() -> str:
 
 def make_row_count_sql(program) -> str:
     return f"""    
-        SELECT COUNT(*)
+        SELECT COUNT(*) AS count
         FROM `{create_dev_table_id(PARAMS, 'sample')}` s
         LEFT JOIN `{create_dev_table_id(PARAMS, 'sample_file_uuid')}` sf
           USING (sample_id)
@@ -77,10 +77,14 @@ def main(args):
             count_result = query_and_retrieve_result(make_row_count_sql(program))
 
             for row in count_result:
-                print(row)
                 count = row['count']
+                break
 
-            print(f"Creating table for {program}!")
+            if count == 0:
+                logger.info(f"No records found for program {program}. Table will not be created.")
+                continue
+
+            logger.info(f"Creating table for {program}!")
 
             create_table_from_query(params=PARAMS,
                                     table_id=create_per_sample_table_id(PARAMS, PARAMS['TABLE_NAME']),
