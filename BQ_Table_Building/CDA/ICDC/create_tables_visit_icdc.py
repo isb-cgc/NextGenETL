@@ -21,13 +21,17 @@ def make_program_acronym_sql() -> str:
 
 def make_visit_sql(program) -> str:
     return f"""
-        SELECT v.visit_id, 
-            COALESCE(cv.case_id, ccv.case_id) AS case_id
-        FROM `{create_dev_table_id(PARAMS, 'visit')}` v 
-        LEFT JOIN `{create_dev_table_id(PARAMS, 'case_visit_id')}` cv
-            USING(visit_id)
-        LEFT JOIN `{create_dev_table_id(PARAMS, 'cycle_case_id_and_visit_id')}` ccv
-            USING(visit_id)
+        WITH merged_case_ids AS (
+            SELECT v.visit_id, 
+                COALESCE(cv.case_id, ccv.case_id) AS case_id
+            FROM `{create_dev_table_id(PARAMS, 'visit')}` v 
+            LEFT JOIN `{create_dev_table_id(PARAMS, 'case_visit_id')}` cv
+                USING(visit_id)
+            LEFT JOIN `{create_dev_table_id(PARAMS, 'cycle_case_id_and_visit_id')}` ccv
+                USING(visit_id)
+        )
+        SELECT visit_id, case_id
+        FROM merged_case_ids
         LEFT JOIN `{create_dev_table_id(PARAMS, 'case_clinical_study_designation')}` ccsd
             USING(case_id)
         LEFT JOIN `{create_dev_table_id(PARAMS, 'program_clinical_study_designation')}` pcsd
