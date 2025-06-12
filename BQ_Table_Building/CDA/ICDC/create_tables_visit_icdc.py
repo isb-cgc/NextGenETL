@@ -216,7 +216,8 @@ def main(args):
             create_and_upload_schema_for_json(PARAMS,
                                               record_list=case_visit_record_list,
                                               table_name=file_prefix,
-                                              include_release=True)
+                                              include_release=True,
+                                              reorder_nesting=True)
 
         if 'create_table' in steps:
             file_prefix = f"{program}_{PARAMS['TABLE_NAME']}"

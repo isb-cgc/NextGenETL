@@ -221,11 +221,11 @@ def create_and_upload_schema_for_json(params: Params,
                                       release: str = None,
                                       schema_fp: Optional[str] = None,
                                       delete_local: bool = True,
-                                      order_nesting: bool = False):
+                                      reorder_nesting: bool = False):
     """
     Create a schema object by recursively detecting the object structure and data types, storing result,
     and converting that to a Schema dict for BQ ingestion.
-    :param order_nesting:
+    :param reorder_nesting: todo
     :param params: params supplied in yaml config
     :param record_list: list of records to analyze (used to determine schema)
     :param table_name: table for which the schema is being generated
@@ -240,7 +240,7 @@ def create_and_upload_schema_for_json(params: Params,
 
     schema_list = convert_object_structure_dict_to_schema_dict(data_types_dict, list())
 
-    if order_nesting:
+    if reorder_nesting:
         reorder_schema_dict(params, schema_list)
 
     schema_obj = {"fields": schema_list}
