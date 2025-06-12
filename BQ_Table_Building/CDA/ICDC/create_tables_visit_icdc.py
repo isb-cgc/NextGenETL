@@ -147,14 +147,6 @@ def main(args):
 
             logger.info("Appending vital signs")
             for vital_sign_row in vital_signs_result:
-                # confirm visit_id field exists in the query results
-                if 'visit_id' not in vital_sign_row:
-                    print(vital_sign_row)
-                    logger.warning("No visit_id found in vital_signs result. Should be investigated. Skipping row.")
-                    # todo remove
-                    exit(-1)
-                    continue
-
                 visit_id = vital_sign_row['visit_id']
 
                 # confirm visit_id is non-null and that it can be mapped to a case_id
