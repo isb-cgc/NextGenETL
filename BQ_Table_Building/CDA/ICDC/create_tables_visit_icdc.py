@@ -44,7 +44,7 @@ def make_visit_sql(program) -> str:
 def make_vital_signs_sql(program) -> str:
     return f"""
         WITH visit_program_mapping AS ({make_visit_sql(program)})
-        SELECT vs.* , vp.program_acronym, vp.case_id
+        SELECT vs.* , vp.program_acronym, vp.case_id, vp.visit_id
         FROM `{create_dev_table_id(PARAMS, 'vital_signs')}` vs
         LEFT JOIN visit_program_mapping vp
             USING (visit_id)
