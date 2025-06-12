@@ -211,7 +211,21 @@ def create_and_load_table_from_tsv(params: Params,
 
 
 def reorder_data_types_dict(params: Params, data_types_dict: dict[str, str | dict]) -> dict[str, str]:
+    """
+    If the initial field is null, nested values in data_types_dict get reordered. This manually repairs that.
+    There's probably a better way to go about it, like reordering the data_types_dict before it's returned,
+    but currently only one table in ICDC actually uses nesting and making changes to recursively_detect_object_structure
+    would impact every pipeline. An OOP approach would be superior.
+    :param params: params supplied in yaml config
+    :param data_types_dict: a dictionary representing the data structure and field types.
+    :return: reordered data_types_dict
+    """
     logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
+
+    if 'NESTED_DATA_STRUCTURE' not in params:
+        logger.critical(r"NESTED_DATA_STRUCTURE is not configured in the yaml file, which is required for this "
+                        r"reorder_data_types_dict. Exiting.")
+        exit(-1)
 
     for parent, children in params['NESTED_DATA_STRUCTURE'].items():
         reordered_dict = dict()
@@ -240,7 +254,6 @@ def create_and_upload_schema_for_json(params: Params,
     """
     Create a schema object by recursively detecting the object structure and data types, storing result,
     and converting that to a Schema dict for BQ ingestion.
-    :param reorder_nesting: todo
     :param params: params supplied in yaml config
     :param record_list: list of records to analyze (used to determine schema)
     :param table_name: table for which the schema is being generated
@@ -248,7 +261,7 @@ def create_and_upload_schema_for_json(params: Params,
     :param release: provide custom release value
     :param schema_fp: path to schema location on local vm
     :param delete_local: delete local file after uploading to cloud bucket
-    :return:
+    :param reorder_nesting: whether the data_types_dict should be reordered, defaults to False
     """
 
     data_types_dict = recursively_detect_object_structures(record_list)
