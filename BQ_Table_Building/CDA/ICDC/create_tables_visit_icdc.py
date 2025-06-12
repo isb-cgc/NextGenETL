@@ -108,48 +108,6 @@ def create_child_field_list(visit_case_mapping: dict[str, str], program: str, ta
     return child_row_list
 
 
-'''
-def make_vital_signs_sql(program) -> str:
-    return f"""
-        WITH visit_program_mapping AS ({make_visit_sql(program)})
-        SELECT vs.* , vp.program_acronym, vp.case_id, vp.visit_id
-        FROM `{create_dev_table_id(PARAMS, 'vital_signs')}` vs
-        LEFT JOIN visit_program_mapping vp
-            USING (visit_id)
-        WHERE program_acronym = '{program}'
-    """
-
-
-def make_disease_extent_sql(program) -> str:
-    # todo handle the null field exclusions differently
-    except_clause = ''
-    
-    for excluded_column in PARAMS['']
-    
-    return f"""
-        WITH visit_program_mapping AS ({make_visit_sql(program)})
-        SELECT de.* EXCEPT(longest_measurement_unit, longest_measurement_original, longest_measurement_original_unit, 
-        previously_treated, previously_irradiated)
-        FROM `{create_dev_table_id(PARAMS, 'disease_extent')}` de
-        LEFT JOIN visit_program_mapping
-            USING (visit_id)
-        WHERE program_acronym = '{program}'
-    """
-
-
-def make_physical_exam_sql(program) -> str:
-    # todo handle the null field exclusions differently
-    return f"""
-        WITH visit_program_mapping AS ({make_visit_sql(program)})
-        SELECT pe.* EXCEPT(enrollment_id, day_in_cycle, phase_pe, assessment_timepoint)
-        FROM `{create_dev_table_id(PARAMS, 'physical_exam')}` pe
-        LEFT JOIN visit_program_mapping
-            USING (visit_id)
-        WHERE program_acronym = '{program}'
-    """
-'''
-
-
 def main(args):
     try:
         start_time = time.time()
