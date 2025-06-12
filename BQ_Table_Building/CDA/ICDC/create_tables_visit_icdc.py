@@ -41,6 +41,17 @@ def make_visit_sql(program) -> str:
     """
 
 
+def make_vital_signs_sql(program) -> str:
+    return f"""
+        WITH visit_program_mapping AS ({make_visit_sql(program)})
+        SELECT vs.* , vp.program_acronym, vp.case_id
+        FROM `{create_dev_table_id(PARAMS, 'vital_signs')}` vs
+        LEFT JOIN visit_program_mapping vp
+            USING (visit_id)
+        WHERE program_acronym = '{program}'
+    """
+
+
 def make_disease_extent_sql(program) -> str:
     # todo handle the null field exclusions differently
     return f"""
@@ -60,17 +71,6 @@ def make_physical_exam_sql(program) -> str:
         WITH visit_program_mapping AS ({make_visit_sql(program)})
         SELECT pe.* EXCEPT(enrollment_id, day_in_cycle, phase_pe, assessment_timepoint)
         FROM `{create_dev_table_id(PARAMS, 'physical_exam')}` pe
-        LEFT JOIN visit_program_mapping
-            USING (visit_id)
-        WHERE program_acronym = '{program}'
-    """
-
-
-def make_vital_signs_sql(program) -> str:
-    return f"""
-        WITH visit_program_mapping AS ({make_visit_sql(program)})
-        SELECT vs.* 
-        FROM `{create_dev_table_id(PARAMS, 'vital_signs')}` vs
         LEFT JOIN visit_program_mapping
             USING (visit_id)
         WHERE program_acronym = '{program}'
