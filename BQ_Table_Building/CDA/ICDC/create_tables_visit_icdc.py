@@ -75,7 +75,8 @@ def make_child_table_sql(program, table_type) -> str:
 
 def create_child_field_dict(visit_case_mapping: dict[str, str],
                             program: str,
-                            table_type: str) -> dict[str, list] | None:
+                            table_type: str,
+                            exclude_columns: list[str] = None) -> dict[str, list] | None:
     logger = logging.getLogger('base_script')
 
     child_table_result = query_and_retrieve_result(make_child_table_sql(program, table_type))
@@ -103,7 +104,8 @@ def create_child_field_dict(visit_case_mapping: dict[str, str],
         child_row_dict = dict()
 
         for column in PARAMS['TABLE_COLUMNS'][table_type]:
-            child_row_dict[column] = row[column]
+            if column not in exclude_columns:
+                child_row_dict[column] = row[column]
 
         if visit_id not in visit_child_row_dict:
             visit_child_row_dict[visit_id] = list()
@@ -188,7 +190,8 @@ def main(args):
                 logger.info(f"Appending {table_type}")
                 child_data_dict[table_type] = create_child_field_dict(visit_case_mapping=visit_case_mapping,
                                                                       program=program,
-                                                                      table_type=table_type)
+                                                                      table_type=table_type,
+                                                                      exclude_columns=['visit_id'])
 
             # retrieve child data for each visit id and append to visits_dict
             for visit_id in visits_dict.keys():
