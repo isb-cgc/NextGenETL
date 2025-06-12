@@ -99,8 +99,6 @@ def main(args):
 
             logger.info(f"Creating table for {program}!")
 
-            print(make_visit_sql(program))
-
             visit_result = query_and_retrieve_result(make_visit_sql(program))
 
             if visit_result.total_rows == 0:
@@ -144,6 +142,8 @@ def main(args):
                 }
 
                 visit_case_mapping[visit_id] = case_id
+
+            print(make_vital_signs_sql(program))
 
             vital_signs_result = query_and_retrieve_result(make_vital_signs_sql(program))
 
