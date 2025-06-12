@@ -94,7 +94,7 @@ def main(args):
 
             logger.info(f"Creating table for {program}!")
 
-            visit_result = query_and_retrieve_result(make_visit_sql())
+            visit_result = query_and_retrieve_result(make_visit_sql(program))
 
             logger.info("Creating visit dict")
 
