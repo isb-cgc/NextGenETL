@@ -276,6 +276,11 @@ def main(args):
             # Download schema file from Google Cloud bucket
             table_schema = retrieve_bq_schema_object(PARAMS, table_name=file_prefix, include_release=True)
 
+            # if there's no schema, this
+            if not table_schema:
+                logger.info(f"No table schema found for {program}, skipping table creation.")
+                continue
+
             visit_table_id = create_clinical_table_id(PARAMS, table_name=file_prefix)
 
             # Load jsonl data into BigQuery table
