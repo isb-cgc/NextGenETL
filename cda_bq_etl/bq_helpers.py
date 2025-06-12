@@ -211,22 +211,20 @@ def create_and_load_table_from_tsv(params: Params,
 
 
 def reorder_data_types_dict(params: Params, data_types_dict: dict[str, str | dict]) -> dict[str, str]:
-    visit_order_list = [
-        'visit_id',
-        'visit_date',
-        'vital_signs',
-        'disease_extent',
-        'physical_exam'
-    ]
+    logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers')
 
-    new_visits_dict = dict()
+    for parent, children in params['NESTED_DATA_STRUCTURE'].items():
+        reordered_dict = dict()
+        existing_dict = data_types_dict[parent]
 
-    visits_dict = data_types_dict['visits']
+        for field in children:
+            if not isinstance(field, str):
+                logger.critical("reorder_data_types_dict does not support this level of nesting yet. Exiting.")
+                exit(-1)
 
-    for field in visit_order_list:
-        new_visits_dict[field] = visits_dict[field]
+            reordered_dict[field] = existing_dict[field]
 
-    data_types_dict['visits'] = new_visits_dict
+        data_types_dict[parent] = reordered_dict
 
     return data_types_dict
 
