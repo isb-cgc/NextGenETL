@@ -210,6 +210,10 @@ def create_and_load_table_from_tsv(params: Params,
     load_create_table_job(params, tsv_file, client, table_id, job_config)
 
 
+def reorder_schema_dict(params: Params, schema_list: list[dict]) -> list[dict]:
+    print(schema_list)
+
+
 def create_and_upload_schema_for_json(params: Params,
                                       record_list: JSONList,
                                       table_name: str,
@@ -232,11 +236,12 @@ def create_and_upload_schema_for_json(params: Params,
     :return:
     """
 
-    print(record_list[0])
-
     data_types_dict = recursively_detect_object_structures(record_list)
 
     schema_list = convert_object_structure_dict_to_schema_dict(data_types_dict, list())
+
+    if order_nesting:
+        reorder_schema_dict(params, schema_list)
 
     schema_obj = {"fields": schema_list}
 
