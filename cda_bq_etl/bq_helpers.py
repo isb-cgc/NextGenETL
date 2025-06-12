@@ -216,10 +216,12 @@ def create_and_upload_schema_for_json(params: Params,
                                       include_release: bool = False,
                                       release: str = None,
                                       schema_fp: Optional[str] = None,
-                                      delete_local: bool = True):
+                                      delete_local: bool = True,
+                                      order_nesting: bool = False):
     """
     Create a schema object by recursively detecting the object structure and data types, storing result,
     and converting that to a Schema dict for BQ ingestion.
+    :param order_nesting:
     :param params: params supplied in yaml config
     :param record_list: list of records to analyze (used to determine schema)
     :param table_name: table for which the schema is being generated
@@ -233,6 +235,8 @@ def create_and_upload_schema_for_json(params: Params,
     data_types_dict = recursively_detect_object_structures(record_list)
 
     schema_list = convert_object_structure_dict_to_schema_dict(data_types_dict, list())
+
+    print(schema_list)
 
     schema_obj = {"fields": schema_list}
 
@@ -664,9 +668,9 @@ def generate_bq_schema_fields(schema_obj_list: JSONList) -> list[SchemaField]:
 
 
 # todo should this be in data helpers?
-def convert_object_structure_dict_to_schema_dict(data_schema_dict: Union[RowDict, JSONList, ColumnTypes],
-                                                 dataset_format_obj,
-                                                 descriptions: Optional[dict[str, str]] = None):
+def convert_object_structure_dict_to_schema_dict(data_schema_dict: RowDict | JSONList | ColumnTypes,
+                                                 dataset_format_obj: list,
+                                                 descriptions: Optional[dict[str, str]] = None) -> list[dict]:
     """
     Parse dict of {<field>: {<data_types>}} representing data object's structure;
     convert into dict representing a TableSchema object.
@@ -715,7 +719,6 @@ def convert_object_structure_dict_to_schema_dict(data_schema_dict: Union[RowDict
 
             dataset_format_obj.append(schema_field)
 
-    # todo what's the data type for this?
     return dataset_format_obj
 
 
