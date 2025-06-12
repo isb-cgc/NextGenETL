@@ -19,41 +19,56 @@ def make_program_acronym_sql() -> str:
     """
 
 
-def make_visit_sql() -> str:
+def make_visit_sql(program) -> str:
     return f"""
-        SELECT v.visit_id, v.visit_date, 
-            cv.case_id, 
-            ccv.case_id AS cycle_case_id
+        SELECT v.visit_id, 
+            COALESCE(cv.case_id, ccv.case_id) AS case_id
         FROM `{create_dev_table_id(PARAMS, 'visit')}` v 
         LEFT JOIN `{create_dev_table_id(PARAMS, 'case_visit_id')}` cv
-          USING(visit_id)
+            USING(visit_id)
         LEFT JOIN `{create_dev_table_id(PARAMS, 'cycle_case_id_and_visit_id')}` ccv
-          USING(visit_id)
+            USING(visit_id)
+        LEFT JOIN `{create_dev_table_id(PARAMS, 'case_clinical_study_designation')}` ccsd
+            USING(case_id)
+        LEFT JOIN `{create_dev_table_id(PARAMS, 'program_clinical_study_designation')}` pcsd
+            USING (clinical_study_designation)
+        WHERE pcsd.program_acronym = '{program}'
     """
 
 
-def make_disease_extent_sql() -> str:
+def make_disease_extent_sql(program) -> str:
     # todo handle the null field exclusions differently
     return f"""
-        SELECT * EXCEPT(longest_measurement_unit, longest_measurement_original, longest_measurement_original_unit, 
+        WITH visit_program_mapping AS ({make_visit_sql(program)})
+        SELECT de.* EXCEPT(longest_measurement_unit, longest_measurement_original, longest_measurement_original_unit, 
         previously_treated, previously_irradiated)
-        FROM `{create_dev_table_id(PARAMS, 'disease_extent')}`
+        FROM `{create_dev_table_id(PARAMS, 'disease_extent')}` de
+        LEFT JOIN visit_program_mapping
+            USING (visit_id)
+        WHERE program_acronym = '{program}'
     """
 
 
-def make_physical_exam_sql() -> str:
+def make_physical_exam_sql(program) -> str:
     # todo handle the null field exclusions differently
     return f"""
-        SELECT * EXCEPT(enrollment_id, day_in_cycle, phase_pe, assessment_timepoint)
-        FROM `{create_dev_table_id(PARAMS, 'physical_exam')}`
+        WITH visit_program_mapping AS ({make_visit_sql(program)})
+        SELECT pe.* EXCEPT(enrollment_id, day_in_cycle, phase_pe, assessment_timepoint)
+        FROM `{create_dev_table_id(PARAMS, 'physical_exam')}` pe
+        LEFT JOIN visit_program_mapping
+            USING (visit_id)
+        WHERE program_acronym = '{program}'
     """
 
 
-def make_vital_signs_sql() -> str:
-    # todo handle the null field exclusions differently
+def make_vital_signs_sql(program) -> str:
     return f"""
-        SELECT * 
-        FROM `{create_dev_table_id(PARAMS, 'vital_signs')}`
+        WITH visit_program_mapping AS ({make_visit_sql(program)})
+        SELECT vs.* 
+        FROM `{create_dev_table_id(PARAMS, 'vital_signs')}` vs
+        LEFT JOIN visit_program_mapping
+            USING (visit_id)
+        WHERE program_acronym = '{program}'
     """
 
 
@@ -130,7 +145,7 @@ def main(args):
 
                 visit_case_mapping[visit_id] = case_id
 
-            vital_signs_result = query_and_retrieve_result(make_vital_signs_sql())
+            vital_signs_result = query_and_retrieve_result(make_vital_signs_sql(program))
 
             logger.info("Appending vital signs")
             for vital_sign_row in vital_signs_result:
@@ -185,7 +200,7 @@ def main(args):
                     'modified_ecog': vital_sign_row['modified_ecog']
                 })
 
-            disease_extent_result = query_and_retrieve_result(make_disease_extent_sql())
+            disease_extent_result = query_and_retrieve_result(make_disease_extent_sql(program))
 
             logger.info("Appending disease_extent")
 
@@ -220,7 +235,7 @@ def main(args):
                     'evaluation_code': disease_extent_row['evaluation_code']
                 })
 
-            physical_exam_result = query_and_retrieve_result(make_physical_exam_sql())
+            physical_exam_result = query_and_retrieve_result(make_physical_exam_sql(program))
 
             logger.info("Appending physical exam")
             for physical_exam_row in physical_exam_result:
