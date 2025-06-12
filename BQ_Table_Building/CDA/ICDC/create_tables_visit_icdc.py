@@ -65,15 +65,17 @@ def make_child_table_sql(program, table_type) -> str:
 
     return f"""
         WITH visit_program_mapping AS ({make_visit_sql(program)})
-            {select_statement}
-            FROM `{create_dev_table_id(PARAMS, table_type)}` child_table
-            LEFT JOIN visit_program_mapping
-                USING (visit_id)
-            WHERE program_acronym = '{program}'
+        {select_statement}
+        FROM `{create_dev_table_id(PARAMS, table_type)}` child_table
+        LEFT JOIN visit_program_mapping
+            USING (visit_id)
+        WHERE program_acronym = '{program}'
     """
 
 
-def create_child_field_list(visit_case_mapping: dict[str, str], program: str, table_type: str) -> list[dict] | None:
+def create_child_field_dict(visit_case_mapping: dict[str, str],
+                            program: str,
+                            table_type: str) -> dict[str, list] | None:
     logger = logging.getLogger('base_script')
 
     child_table_result = query_and_retrieve_result(make_child_table_sql(program, table_type))
@@ -84,7 +86,7 @@ def create_child_field_list(visit_case_mapping: dict[str, str], program: str, ta
     else:
         logger.info(f"Appending {table_type} to {program} visit table.")
 
-    child_row_list = list()
+    visit_child_row_dict = dict()
 
     for row in child_table_result:
         visit_id = row['visit_id']
@@ -103,9 +105,12 @@ def create_child_field_list(visit_case_mapping: dict[str, str], program: str, ta
         for column in PARAMS['TABLE_COLUMNS'][table_type]:
             child_row_dict[column] = row[column]
 
-        child_row_list.append(child_row_dict)
+        if visit_id not in visit_child_row_dict:
+            visit_child_row_dict[visit_id] = list()
 
-    return child_row_list
+        visit_child_row_dict[visit_id].append(child_row_dict)
+
+    return visit_child_row_dict
 
 
 def main(args):
@@ -167,23 +172,31 @@ def main(args):
                 # Add the visit data and initialize the nested lists for child field groups.
                 visits_dict[visit_id] = {
                     'visit_id': visit_id,
-                    'visit_date': visit_date,
-                    'vital_signs': list(),
-                    'disease_extent': list(),
-                    'physical_exam': list()
+                    'visit_date': visit_date
                 }
 
+                for table_type in PARAMS['CHILD_TABLE_TYPES']:
+                    visits_dict[visit_id][table_type] = list()
+
+                # associate cases and visits so we can aggregate later
                 visit_case_mapping[visit_id] = case_id
+
+            # dict looks like this: { table_type: { visit_id: [record dicts] }}
+            child_data_dict = dict()
+
+            for table_type in PARAMS['CHILD_TABLE_TYPES']:
+                logger.info(f"Appending {table_type}")
+                child_data_dict[table_type] = create_child_field_dict(visit_case_mapping=visit_case_mapping,
+                                                                      program=program,
+                                                                      table_type=table_type)
 
             # retrieve child data for each visit id and append to visits_dict
             for visit_id in visits_dict.keys():
-                for table_type in ['vital_signs', 'disease_extent', 'physical_exam']:
-                    logger.info(f"Appending {table_type}")
-                    visits_dict[visit_id][table_type] = create_child_field_list(visit_case_mapping=visit_case_mapping,
-                                                                                program=program,
-                                                                                table_type='vital_signs')
-
                 # append nested visit records to cases_visits_dict
+                for table_type in PARAMS['CHILD_TABLE_TYPES']:
+                    if visit_id in child_data_dict[table_type]:
+                        visits_dict[visit_id][table_type] = child_data_dict[table_type][visit_id]
+
                 case_id = visit_case_mapping[visit_id]
                 cases_visits_dict[case_id]['visits'].append(visits_dict[visit_id])
 
