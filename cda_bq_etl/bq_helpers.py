@@ -210,24 +210,25 @@ def create_and_load_table_from_tsv(params: Params,
     load_create_table_job(params, tsv_file, client, table_id, job_config)
 
 
-def reorder_schema_list(params: Params, schema_list: list[dict]) -> list[dict]:
-    ordering_dict = {
-        'visits': [
-            'vital_signs',
-            'disease_extent',
-            'physical_exam'
-        ]
-    }
+def reorder_data_types_dict(params: Params, data_types_dict: dict[str, str | dict]) -> dict[str, str]:
+    visit_order_list = [
+        'visit_id',
+        'visit_date',
+        'vital_signs',
+        'disease_extent',
+        'physical_exam'
+    ]
 
-    new_schema_list = list()
+    new_visits_dict = dict()
 
-    for row in schema_list:
-        if row['name'] == 'visits' and row['type'] == 'RECORD':
-            for child_row in row['fields']:
-                if child_row['name'] == 'vital_signs':
-                    pass
+    visits_dict = data_types_dict['visits']
 
-    return schema_list
+    for field in visit_order_list:
+        new_visits_dict[field] = visits_dict[field]
+
+    data_types_dict['visits'] = new_visits_dict
+
+    return data_types_dict
 
 
 def create_and_upload_schema_for_json(params: Params,
@@ -254,12 +255,10 @@ def create_and_upload_schema_for_json(params: Params,
 
     data_types_dict = recursively_detect_object_structures(record_list)
 
-    print(data_types_dict)
+    if reorder_nesting:
+       data_types_dict = reorder_data_types_dict(params, data_types_dict)
 
     schema_list = convert_object_structure_dict_to_schema_dict(data_types_dict, list())
-
-    # if reorder_nesting:
-    #    schema_list = reorder_schema_list(params, schema_list)
 
     schema_obj = {"fields": schema_list}
 
