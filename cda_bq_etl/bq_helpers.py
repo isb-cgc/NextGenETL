@@ -210,8 +210,26 @@ def create_and_load_table_from_tsv(params: Params,
     load_create_table_job(params, tsv_file, client, table_id, job_config)
 
 
-def reorder_schema_dict(params: Params, schema_list: list[dict]) -> list[dict]:
-    print(schema_list)
+def reorder_schema_list(params: Params, schema_list: list[dict]) -> list[dict]:
+    ordering_dict = {
+        'visits': [
+            'vital_signs',
+            'disease_extent',
+            'physical_exam'
+        ]
+    }
+
+    new_schema_list = list()
+
+    for row in schema_list:
+        if row['name'] == 'visits' and row['type'] == 'RECORD':
+            for child_row in row['fields']:
+                if child_row['name'] == 'vital_signs':
+
+
+
+
+    return schema_list
 
 
 def create_and_upload_schema_for_json(params: Params,
@@ -238,10 +256,12 @@ def create_and_upload_schema_for_json(params: Params,
 
     data_types_dict = recursively_detect_object_structures(record_list)
 
+    print(data_types_dict)
+
     schema_list = convert_object_structure_dict_to_schema_dict(data_types_dict, list())
 
-    if reorder_nesting:
-        reorder_schema_dict(params, schema_list)
+    # if reorder_nesting:
+    #    schema_list = reorder_schema_list(params, schema_list)
 
     schema_obj = {"fields": schema_list}
 
