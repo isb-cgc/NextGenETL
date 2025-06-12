@@ -153,8 +153,8 @@ def recursively_detect_object_structures(nested_obj: Union[JSONList, RowDict]) -
         :param _obj: object in current location of recursion
         :param _data_types_dict: dict of fields and type sets
         """
-        print(f"current object: {_obj[k]}")
         for k, v in _obj.items():
+            print(f"current key: {k}")
             if isinstance(_obj[k], dict):
                 if k not in _data_types_dict:
                     # this is a dict, so use dict to nest values
