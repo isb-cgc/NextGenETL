@@ -100,10 +100,12 @@ def main(args):
                 # However, they seem to be mutually exclusive--currently, the entries only exist in one of the two
                 # files. Running a comparison here flags any future issues and selects the non-null case_id.
                 if case_id and cycle_case_id and case_id != cycle_case_id:
-                    logger.critical(f"Mismatched case_id, visit_case_id ({case_id}, {cycle_case_id} "
+                    logger.critical(f"Mismatched case_id, visit_case_id ({case_id}, {cycle_case_id}) "
                                     f"for visit_id: {visit_id}. Exiting.")
+                    exit(-1)
                 elif not case_id and not cycle_case_id:
-                    logger.warning(f"No case_id match for visit_id: {visit_id}. This warrants further investigation.")
+                    logger.error(f"No case_id match for visit_id: {visit_id}. Investigate. Skipping record.")
+                    continue
                 elif not case_id:
                     case_id = cycle_case_id
 
@@ -114,14 +116,17 @@ def main(args):
                         'visits': list()
                     }
 
+                if visit_id in visits_dict:
+                    logger.warning(f"visit_id {visit_id} already exists in visits dict. Investigate. Skipping record.")
+
                 # Add the visit data and initialize the nested lists for child field groups.
-                visits_dict[visit_id].append({
+                visits_dict[visit_id] = {
                     'visit_id': visit_id,
                     'visit_date': visit_date,
                     'vital_signs': list(),
                     'disease_extent': list(),
                     'physical_exam': list()
-                })
+                }
 
                 visit_case_mapping[visit_id] = case_id
 
