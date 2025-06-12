@@ -94,6 +94,8 @@ def main(args):
 
             logger.info(f"Creating table for {program}!")
 
+            print(make_visit_sql(program))
+
             visit_result = query_and_retrieve_result(make_visit_sql(program))
 
             if visit_result.total_rows == 0:
