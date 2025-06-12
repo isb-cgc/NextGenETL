@@ -96,6 +96,10 @@ def main(args):
 
             visit_result = query_and_retrieve_result(make_visit_sql(program))
 
+            if visit_result.total_rows == 0:
+                logger.info(f"No visit data found for {program}. No table will be created.")
+                continue
+
             logger.info("Creating visit dict")
 
             cases_visits_dict = dict()
