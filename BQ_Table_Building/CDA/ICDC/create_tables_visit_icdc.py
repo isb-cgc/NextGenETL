@@ -97,13 +97,13 @@ def main(args):
         for row in program_result:
             program = row['program_acronym']
 
-            logger.info(f"Creating table for {program}!")
-
             visit_result = query_and_retrieve_result(make_visit_sql(program))
 
             if visit_result.total_rows == 0:
                 logger.info(f"No visit data found for {program}. No table will be created.")
                 continue
+            else:
+                logger.info(f"Creating table for {program}!")
 
             logger.info("Creating visit dict")
 
