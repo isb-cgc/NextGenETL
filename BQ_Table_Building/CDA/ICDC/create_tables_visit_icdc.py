@@ -152,6 +152,8 @@ def main(args):
                 # confirm visit_id field exists in the query results
                 if 'visit_id' not in vital_sign_row:
                     logger.warning("No visit_id found in vital_signs result. Should be investigated. Skipping row.")
+                    # todo remove
+                    exit(-1)
                     continue
 
                 visit_id = vital_sign_row['visit_id']
