@@ -198,11 +198,6 @@ def main(args):
             logger.info("Appending disease_extent")
 
             for disease_extent_row in disease_extent_result:
-                # confirm visit_id field exists in the query results
-                if 'visit_id' not in disease_extent_row:
-                    logger.warning("No visit_id found in disease_extent result. Should be investigated. Skipping row.")
-                    continue
-
                 visit_id = disease_extent_row['visit_id']
 
                 # confirm visit_id is non-null and that it can be mapped to a case_id
@@ -232,11 +227,6 @@ def main(args):
 
             logger.info("Appending physical exam")
             for physical_exam_row in physical_exam_result:
-                # confirm visit_id field exists in the query results
-                if 'visit_id' not in physical_exam_row:
-                    logger.warning("No visit_id found in physical_exam result. Should be investigated. Skipping row.")
-                    continue
-
                 visit_id = physical_exam_row['visit_id']
 
                 # confirm visit_id is non-null and that it can be mapped to a case_id
