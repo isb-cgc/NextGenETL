@@ -225,9 +225,7 @@ def reorder_schema_list(params: Params, schema_list: list[dict]) -> list[dict]:
         if row['name'] == 'visits' and row['type'] == 'RECORD':
             for child_row in row['fields']:
                 if child_row['name'] == 'vital_signs':
-
-
-
+                    pass
 
     return schema_list
 
