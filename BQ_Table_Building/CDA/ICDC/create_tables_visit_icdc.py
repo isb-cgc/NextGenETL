@@ -143,12 +143,11 @@ def main(args):
 
                 visit_case_mapping[visit_id] = case_id
 
-            print(make_vital_signs_sql(program))
-
             vital_signs_result = query_and_retrieve_result(make_vital_signs_sql(program))
 
             logger.info("Appending vital signs")
             for vital_sign_row in vital_signs_result:
+                print(vital_sign_row)
                 # confirm visit_id field exists in the query results
                 if 'visit_id' not in vital_sign_row:
                     logger.warning("No visit_id found in vital_signs result. Should be investigated. Skipping row.")
