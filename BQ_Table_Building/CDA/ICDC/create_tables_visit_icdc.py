@@ -31,7 +31,7 @@ def make_visit_sql(program) -> str:
             LEFT JOIN `{create_dev_table_id(PARAMS, 'cycle_case_id_and_visit_id')}` ccv
                 USING(visit_id)
         )
-        SELECT visit_id, case_id, visit_date
+        SELECT visit_id, case_id, visit_date, program_acronym
         FROM merged_case_ids
         LEFT JOIN `{create_dev_table_id(PARAMS, 'case_clinical_study_designation')}` ccsd
             USING(case_id)
