@@ -23,6 +23,7 @@ def make_visit_sql(program) -> str:
     return f"""
         WITH merged_case_ids AS (
             SELECT v.visit_id, 
+                v.visit_date,
                 COALESCE(cv.case_id, ccv.case_id) AS case_id
             FROM `{create_dev_table_id(PARAMS, 'visit')}` v 
             LEFT JOIN `{create_dev_table_id(PARAMS, 'case_visit_id')}` cv
@@ -30,7 +31,7 @@ def make_visit_sql(program) -> str:
             LEFT JOIN `{create_dev_table_id(PARAMS, 'cycle_case_id_and_visit_id')}` ccv
                 USING(visit_id)
         )
-        SELECT visit_id, case_id
+        SELECT visit_id, case_id, visit_date
         FROM merged_case_ids
         LEFT JOIN `{create_dev_table_id(PARAMS, 'case_clinical_study_designation')}` ccsd
             USING(case_id)
@@ -118,21 +119,10 @@ def main(args):
                 visit_id = visit_row['visit_id']
                 visit_date = visit_row['visit_date']
                 case_id = visit_row['case_id']
-                cycle_case_id = visit_row['cycle_case_id']
 
-                # LAW 25-06-11: The case_visit_id mapping file only contains 30 rows.
-                # cycle_case_and_visit_id contains most of the needed case-visit associations.
-                # However, they seem to be mutually exclusive--currently, the entries only exist in one of the two
-                # files. Running a comparison here flags any future issues and selects the non-null case_id.
-                if case_id and cycle_case_id and case_id != cycle_case_id:
-                    logger.critical(f"Mismatched case_id, visit_case_id ({case_id}, {cycle_case_id}) "
-                                    f"for visit_id: {visit_id}. Exiting.")
-                    exit(-1)
-                elif not case_id and not cycle_case_id:
+                if not case_id:
                     logger.error(f"No case_id match for visit_id: {visit_id}. Investigate. Skipping record.")
                     continue
-                elif not case_id:
-                    case_id = cycle_case_id
 
                 # Create the initial parent entry if this case doesn't already exist in the dict.
                 if case_id not in cases_visits_dict:
