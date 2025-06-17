@@ -1269,6 +1269,7 @@ def main(args):
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
             table_id_list = generate_metadata_table_id_list(table_params)
+            print(table_id_list)
         else:
             # non-metadata table types are published to program-level datasets
             # search for missing project tables for the given table type
@@ -1279,8 +1280,6 @@ def main(args):
 
             # generates a list of all the tables of that type--used for clinical and per-project tables
             table_id_list = generate_table_id_list(table_type, table_params)
-
-            print(table_id_list)
 
         if 'compare_tables' in steps:
             if table_type in ("clinical", "per_sample_file", "quant"):
