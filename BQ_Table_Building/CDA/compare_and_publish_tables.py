@@ -1280,6 +1280,8 @@ def main(args):
             # generates a list of all the tables of that type--used for clinical and per-project tables
             table_id_list = generate_table_id_list(table_type, table_params)
 
+            print(table_id_list)
+
         if 'compare_tables' in steps:
             if table_type in ("clinical", "per_sample_file", "quant"):
                 logger.info(f"***** {table_type.upper()} *****")
