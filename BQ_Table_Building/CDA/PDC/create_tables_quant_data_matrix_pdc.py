@@ -692,7 +692,9 @@ def main(args):
     if 'create_refseq_uniprot_table' in steps:
         logger.info("Building RefSeq -> UniProt mapping table")
 
-        unfiltered_refseq_table_id = create_metadata_table_id(PARAMS, PARAMS['UNFILTERED_REFSEQ_TABLE_NAME'])
+        unfiltered_refseq_table_id = create_metadata_table_id(PARAMS,
+                                                              PARAMS['UNFILTERED_REFSEQ_TABLE_NAME'],
+                                                              PARAMS['UNIPROT_RELEASE'])
         refseq_jsonl_filename = f"{PARAMS['UNFILTERED_REFSEQ_TABLE_NAME']}_{PARAMS['UNIPROT_RELEASE']}.jsonl"
 
         refseq_table_schema = retrieve_bq_schema_object(params=PARAMS,
@@ -706,7 +708,9 @@ def main(args):
         # where both reviewed and unreviewed records exist for a RefSeq id, drop the unreviewed record
         logger.info("Creating filtered RefSeq -> UniProt mapping table")
 
-        filtered_refseq_table_id = create_metadata_table_id(PARAMS, table_name=PARAMS['FILTERED_REFSEQ_TABLE_NAME'])
+        filtered_refseq_table_id = create_metadata_table_id(PARAMS,
+                                                            table_name=PARAMS['FILTERED_REFSEQ_TABLE_NAME'],
+                                                            release=PARAMS['UNIPROT_RELEASE'])
 
         create_table_from_query(params=PARAMS,
                                 table_id=filtered_refseq_table_id,
