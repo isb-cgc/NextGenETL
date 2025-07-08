@@ -24,7 +24,7 @@ import time
 
 from cda_bq_etl.utils import (load_config, create_dev_table_id, format_seconds, create_metadata_table_id,
                               create_excluded_records_table_id)
-from cda_bq_etl.bq_helpers import create_table_from_query, update_table_schema_from_generic
+from cda_bq_etl.bq_helpers.create_modify import create_table_from_query, update_table_schema_from_generic
 from cda_bq_etl.data_helpers import initialize_logging
 
 PARAMS = dict()

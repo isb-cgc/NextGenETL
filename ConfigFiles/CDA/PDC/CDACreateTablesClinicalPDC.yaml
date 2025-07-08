@@ -1,0 +1,172 @@
+version: 1
+
+######################################################################################
+#
+#   steps: toggle script functions on and off (off = commented out).
+#          note: the order of steps here doesn't alter the order of execution,
+#          which is fixed.
+#
+######################################################################################
+
+steps:
+  # confirms that all clinical fields are defined in this yaml file and in the column definition file in BQEcosystem
+  - find_missing_fields
+  # create tables using query provided in the python script
+  - create_project_tables
+
+######################################################################################
+#
+#   params: configuration settings
+#
+######################################################################################
+
+params:
+  # path where you'd like log files to be created on your VM
+  # customize this!
+  LOGFILE_PATH: 'path/to/your/file.log'
+
+  # base table name for clinical table
+  # generally doesn't change
+  TABLE_NAME: clinical
+
+  # name of generic table metadata files in BQEcosystem repo
+  # generally doesn't change
+  GENERIC_TABLE_METADATA_FILE: cda_pdc_clinical.json
+  GENERIC_TABLE_METADATA_FILE_2_PROGRAM: cda_pdc_clinical_multi_program.json
+
+  # order of table types in merged clinical tables
+  # generally doesn't change
+  TABLE_INSERT_ORDER:
+    - case
+    - demographic
+    - diagnosis
+
+  # TABLE_PARAMS has the following structure:
+  # <clinical_type>: the clinical data type, e.g. 'diagnosis'
+  #   child_of: which type is this type a child of, e.g. 'case'
+  #   parent_of: which type(s) is this type a parent of, e.g. 'treatment'
+  #   mapping_table: CDA file name that maps this type to records in its parent type, e.g. 'diagnosis_of_case'
+  #   prefix: prefix to prepend to column names, e.g. 'diag'
+  #   table_name: name for table containing this data type (if not combined with parent type), e.g. 'diagnosis'
+  #   column_order: order in which the columns display in the table
+  #     first: columns that appear at the start of the table
+  #     middle: columns in the middle of the table
+  #     last: columns at the end of the table
+  #   excluded_columns: columns to exclude from the table
+  # may need to be altered as new columns are added or columns are deprecated by the DC
+  TABLE_PARAMS:
+    case:
+      child_of:
+      parent_of:
+        - demographic
+        - diagnosis
+      mapping_table: case
+      table_name: clinical
+      column_order:
+        - case_id
+        - case_submitter_id
+        - primary_site
+        - disease_type
+      excluded_columns:
+        - days_to_lost_to_followup
+        - case_status
+        - consent_type
+        - tissue_source_site_code
+        - lost_to_followup
+        - index_date
+        - days_to_consent
+        - case_is_ref
+    demographic:
+      child_of: case
+      parent_of: []
+      mapping_table: case_demographic_id
+      table_name: clinical_demographic
+      column_order:
+        - demographic_id
+        - demographic_submitter_id
+        - race
+        - ethnicity
+        - country_of_residence_at_enrollment
+        - gender
+        - age_at_index
+        - age_is_obfuscated
+        - days_to_birth
+        - days_to_death
+        - year_of_birth
+        - year_of_death
+        - cause_of_death
+        - cause_of_death_source
+        - vital_status
+      excluded_columns: []
+    diagnosis:
+      child_of: case
+      parent_of: []
+      mapping_table: case_diagnosis_id
+      table_name: clinical_diagnosis
+      column_order:
+        - diagnosis_id
+        - diagnosis_submitter_id
+        - primary_diagnosis
+        - diagnosis_is_primary_disease
+        - age_at_diagnosis
+        - year_of_diagnosis
+        - days_to_diagnosis
+        - days_to_hiv_diagnosis
+        - days_to_last_follow_up
+        - days_to_last_known_disease_status
+        - days_to_new_event
+        - days_to_recurrence
+        - days_to_best_overall_response
+        - ajcc_clinical_m
+        - ajcc_clinical_n
+        - ajcc_clinical_stage
+        - ajcc_clinical_t
+        - ajcc_pathologic_m
+        - ajcc_pathologic_n
+        - ajcc_pathologic_stage
+        - ajcc_pathologic_t
+        - ajcc_staging_system_edition
+        - ann_arbor_b_symptoms
+        - ann_arbor_clinical_stage
+        - ann_arbor_extranodal_involvement
+        - ann_arbor_pathologic_stage
+        - best_overall_response
+        - burkitt_lymphoma_clinical_variant
+        - circumferential_resection_margin
+        - classification_of_tumor
+        - colon_polyps_history
+        - figo_stage
+        - hiv_positive
+        - hpv_positive_type
+        - hpv_status
+        - iss_stage
+        - last_known_disease_status
+        - laterality
+        - ldh_level_at_diagnosis
+        - ldh_normal_range_upper
+        - lymph_nodes_positive
+        - lymphatic_invasion_present
+        - metastasis_at_diagnosis
+        - metastasis_at_diagnosis_site
+        - method_of_diagnosis
+        - morphology
+        - new_event_anatomic_site
+        - new_event_type
+        - overall_survival
+        - perineural_invasion_present
+        - prior_malignancy
+        - prior_treatment
+        - progression_free_survival
+        - progression_free_survival_event
+        - progression_or_recurrence
+        - residual_disease
+        - site_of_resection_or_biopsy
+        - sites_of_involvement
+        - tissue_or_organ_of_origin
+        - tumor_cell_content
+        - tumor_focality
+        - tumor_grade
+        - tumor_stage
+        - vascular_invasion_present
+      excluded_columns:
+        - auxiliary_data

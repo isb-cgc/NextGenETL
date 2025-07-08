@@ -29,8 +29,7 @@ from typing import Union
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.gcs_helpers import upload_to_bucket
 from cda_bq_etl.utils import load_config, format_seconds, get_scratch_fp
-from cda_bq_etl.bq_helpers import query_and_retrieve_result
-
+from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')

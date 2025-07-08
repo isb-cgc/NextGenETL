@@ -25,8 +25,9 @@ import time
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import (load_config, create_dev_table_id, format_seconds, create_clinical_table_id,
                               create_metadata_table_id)
-from cda_bq_etl.bq_helpers import (create_table_from_query, get_pdc_projects_metadata, get_project_level_schema_tags,
-                                   update_table_schema_from_generic, query_and_retrieve_result, find_missing_columns)
+from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result, get_pdc_project_metadata, find_missing_columns
+from cda_bq_etl.bq_helpers.schema import get_project_level_schema_tags
+from cda_bq_etl.bq_helpers.create_modify import create_table_from_query, update_table_schema_from_generic
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -239,7 +240,7 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    projects_list = get_pdc_projects_metadata(PARAMS)
+    projects_list = get_pdc_project_metadata(PARAMS)
 
     if 'find_missing_fields' in steps:
         logger.info("Finding missing columns")

@@ -1,0 +1,123 @@
+version: 1
+
+######################################################################################
+#
+#   steps
+#
+######################################################################################
+
+steps: null
+
+######################################################################################
+#
+#   params: configuration settings
+#
+######################################################################################
+
+params:
+  # release number
+  # customize this!
+  RELEASE: V4_10
+
+  # when data was extracted by CDA
+  # customize this!
+  EXTRACTED_MONTH_YEAR: MAY 2025
+
+  # CDA archive file name
+  # check bucket for name--current url: https://console.cloud.google.com/storage/browser/cda_etl_data/PDC)
+  # customize this!
+  TAR_FILE: 'v4.9__extracted_2025-04-22__02__PDC_selection_of_extracted_data_QCd_and_merged_as_TSVs.tgz'
+
+  # current UniProt release
+  # found here: https://www.uniprot.org/release-notes
+  # customize this!
+  UNIPROT_RELEASE: '2025_02'
+
+  # month ang year the UniProt release is extracted
+  # customize this!
+  UNIPROT_EXTRACTED_MONTH_YEAR: MAY 2025
+
+  # API from which CDA derived the data
+  # generally doesn't change
+  NODE: pdc
+
+  # GCS blob uri
+  # generally doesn't change
+  BLOB_URI_PATH: gs://cda_etl_data/PDC
+
+  # GCS bucket where CDA hosts the archive files for download
+  # generally doesn't change
+  CDA_BUCKET_PROJECT: GDC-BQ-Sample
+
+  # BQEcosystem repo, where column definitions and generic table metadata is stored
+  # generally doesn't change
+  BQ_REPO: BQEcosystem
+
+  # generic metadata mapping directory in BQEcosystem repo
+  # generally doesn't change
+  PROJECT_STUDY_METADATA_DIR: MetadataMappings
+
+  # generic metadata mapping file in BQEcosystem repo
+  # generally doesn't change
+  PROJECT_METADATA_FILE: cda_pdc_project_metadata.json
+
+  # generic schema directory in BQEcosystem repo
+  # generally doesn't change
+  GENERIC_SCHEMA_DIR: GenericSchemas
+
+  # generic schema directory in BQEcosystem repo
+  # generally doesn't change
+  COLUMN_DESCRIPTION_FILEPATH: TableFieldUpdates/cda_pdc_column_descriptions.json
+
+  # development project name
+  # customize this!
+  DEV_PROJECT: <bq-development-project-here>
+
+  # development raw dataset name, used to house base tables created from CDA tsv files
+  # customize this!
+  DEV_RAW_DATASET: <bq-raw-dataset-here>
+
+  # development metadata dataset name, used to store tables which live in the metadata production datasets
+  # customize this!
+  DEV_METADATA_DATASET: <bq-dev-metadata-dataset-here>
+
+  # development per sample file dataset name, used to store tables which live in program datasets in production
+  # customize this!
+  DEV_SAMPLE_DATASET: <bq-dev-sample-dataset-here>
+
+  # development clinical dataset name, used to store tables which live in program datasets in production
+  # customize this!
+  DEV_CLINICAL_DATASET: <bq-dev-clinical-dataset-here>
+
+  # development quant dataset name, used to store tables which live in program datasets in production
+  # customize this!
+  DEV_QUANT_FINAL_DATASET: <bq-dev-quant-dataset-here>
+
+  # development quant dataset name, used to store raw quant tables
+  # customize this!
+  DEV_QUANT_RAW_DATASET: <bq-dev-quant-raw-dataset-here>
+
+  # BigQuery production dataset
+  # generally doesn't change
+  PROD_METADATA_DATASET: PDC_metadata
+
+  # BigQuery production project
+  # generally doesn't change
+  PROD_PROJECT: isb-cgc-bq
+
+  # GCS working bucket -- base directory where pipeline files, such as schema files
+  # and .jsonl files used to populate tables, are stored in GCS
+  # customize this!
+  WORKING_BUCKET: next-gen-etl-scratch
+
+  # GCS working bucket directory -- path to where pipeline files are stored in GCS
+  # customize this!
+  WORKING_BUCKET_DIR: law/etl/cda_pdc
+
+  # scratch directory on local VM, used to store files while written or after downloaded from GCS
+  # customize this!
+  SCRATCH_DIR: scratch
+
+  # BQ project/dataset location, defined when created
+  # generally doesn't change
+  LOCATION: us

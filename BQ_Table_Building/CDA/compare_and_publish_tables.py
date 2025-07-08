@@ -27,10 +27,10 @@ import time
 
 from typing import Union
 
-from cda_bq_etl.bq_helpers import (find_most_recent_published_table_id, query_and_retrieve_result,
-                                   find_most_recent_published_refseq_table_id,
-                                   get_pdc_per_project_dataset, get_most_recent_published_table_version_pdc,
-                                   get_pdc_per_study_dataset, publish_table, table_has_new_data)
+from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result, find_most_recent_published_table_id, \
+    find_most_recent_published_refseq_table_id, get_most_recent_published_table_id_pdc, get_pdc_per_project_dataset, \
+    get_pdc_per_study_dataset, table_has_new_data
+from cda_bq_etl.bq_helpers.create_modify import publish_table
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import (load_config, format_seconds, get_filepath, create_metadata_table_id)
 
@@ -762,7 +762,7 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
             current_table_id = f"{PARAMS['PROD_PROJECT']}.{dataset}.{prod_table}_current"
             versioned_table_id = f"{PARAMS['PROD_PROJECT']}.{dataset}_versioned.{prod_table}_{PARAMS['RELEASE']}"
             source_table_id = f"{PARAMS['DEV_PROJECT']}.{table_params['dev_dataset']}.{table_name}"
-            previous_versioned_table_id = get_most_recent_published_table_version_pdc(PARAMS, dataset, table_filter_str)
+            previous_versioned_table_id = get_most_recent_published_table_id_pdc(PARAMS, dataset, table_filter_str)
         else:
             logger.critical("Not configured for this node")
             sys.exit(-1)

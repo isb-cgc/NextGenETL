@@ -1,0 +1,110 @@
+version: 1
+
+#
+# Supplemental YAML Configuration file used for script:
+#     NextGenETL/BQ_Table_Building/CDA/PDC/create_tables_quant_data_matrix_pdc.py
+# Builds BQ tables for PDC quant data matrix protein abundance log2_ratio data.
+#
+
+######################################################################################
+#
+#   steps: toggle script functions on and off (off = commented out).
+#          note: the order of steps here doesn't alter the order of execution,
+#          which is fixed.
+#
+######################################################################################
+
+steps:
+  # UniProt steps--executed only if there's a new UniProt release
+  # build and upload refseq uniprot jsonl file
+  - build_and_upload_refseq_uniprot_jsonl
+  # create refseq uniprot table
+  - create_refseq_uniprot_table
+
+  # PDC API steps
+  # build gene jsonl file
+  - build_gene_jsonl
+  # build gene table using jsonl file
+  - build_gene_table
+  # build quant tsvs
+  - build_and_upload_quant_tsvs
+  # build raw quant tables
+  - build_raw_quant_tables
+  # build final quant tables
+  - build_final_quant_tables
+
+######################################################################################
+#
+#   params: configuration settings
+#
+######################################################################################
+
+params:
+  # path where you'd like log files to be created on your VM
+  # customize this!
+  LOGFILE_PATH: 'path/to/your/file.log'
+
+  # path for quant scratch file storage
+  # customize this!
+  QUANT_SCRATCH_DIR: 'scratch/file/path'
+
+  # UniProt REST API URL
+  # generally doesn't change
+  UNIPROT_REST_API_URL: 'https://rest.uniprot.org/uniprotkb/'
+
+  # unfiltered refseq table name
+  # generally doesn't change
+  UNFILTERED_REFSEQ_TABLE_NAME: unfiltered_refseq_mapping
+
+  # filtered refseq table name
+  # generally doesn't change
+  FILTERED_REFSEQ_TABLE_NAME: refseq_mapping
+
+  # generic schema paths
+  # generally don't change
+  GENERIC_REFSEQ_TABLE_METADATA_FILE: cda_pdc_refseq_mapping.json
+  GENERIC_GENE_TABLE_METADATA_FILE: cda_pdc_gene_info.json
+  GENERIC_TABLE_METADATA_FILE: cda_pdc_quant.json
+  GENERIC_TABLE_METADATA_FILE_2_PROGRAM: cda_pdc_quant_multi_program.json
+
+  # quant file list base name
+  # generally doesn't change
+  QUANT_FILE_LIST_BASE_NAME: quant_file_list
+
+  # Base PDC API endpoint
+  # generally doesn't change
+  ENDPOINT_URL: https://pdc.cancer.gov/graphql
+
+  # GraphQL query endpoints
+  # generally don't change
+  GENE_ENDPOINT: getPaginatedGenes
+  QUANT_ENDPOINT: quantDataMatrix
+
+  # GraphQL API query config settings
+  # generally don't change
+  ENDPOINT_SETTINGS:
+    quantDataMatrix:
+      payload_key: quantDataMatrix
+      is_paginated: false
+      output_name: quant
+    getPaginatedGenes:
+      payload_key: genesProper
+      is_paginated: true
+      batch_size: 1000
+      output_name: gene_info
+
+  # used to rename columns to refseq_id where appropriate
+  # generally doesn't change
+  QUANT_REPLACEMENT_MAP:
+    Phosphoproteome:
+      site_column_name: "phosphorylation_sites"
+      id_column_name: "refseq_id"
+    Acetylome:
+      site_column_name: "acetylation_sites"
+      id_column_name: "refseq_id"
+    Glycoproteome:
+      site_column_name: "glycosylation_sites"
+      id_column_name: "refseq_id"
+    Ubiquitylome:
+      site_column_name: "ubiquitylation_sites"
+      id_column_name: "refseq_id"

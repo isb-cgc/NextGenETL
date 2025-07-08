@@ -5,9 +5,10 @@ from typing import Any
 
 from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload
 from cda_bq_etl.utils import (load_config, create_dev_table_id, format_seconds, create_clinical_table_id)
-from cda_bq_etl.bq_helpers import (update_table_schema_from_generic, query_and_retrieve_result,
-                                   create_and_upload_schema_for_json, retrieve_bq_schema_object,
-                                   create_and_load_table_from_jsonl, get_program_schema_tags_icdc)
+from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result
+from cda_bq_etl.bq_helpers.schema import create_and_upload_schema_for_json, retrieve_bq_schema_object, \
+    get_program_schema_tags_icdc
+from cda_bq_etl.bq_helpers.create_modify import create_and_load_table_from_jsonl, update_table_schema_from_generic
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')

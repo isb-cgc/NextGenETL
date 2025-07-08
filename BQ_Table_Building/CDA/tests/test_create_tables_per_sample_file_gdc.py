@@ -25,7 +25,7 @@ from google.cloud import bigquery
 
 from BQ_Table_Building.CDA.tests.shared_test_functions import compare_row_counts, compare_id_keys, compare_table_columns
 from cda_bq_etl.utils import load_config, has_fatal_error
-from cda_bq_etl.bq_helpers import get_program_list
+from cda_bq_etl.bq_helpers.lookup import get_gdc_program_list
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -42,7 +42,7 @@ def main(args):
 
     table_id_tuple_set = set()
 
-    program_set = get_program_list()
+    program_set = get_gdc_program_list()
 
     for program_name in sorted(program_set):
         gdc_table_name = f"{program_name}_per_sample_file_metadata_hg38_gdc_{PARAMS['RELEASE']}"

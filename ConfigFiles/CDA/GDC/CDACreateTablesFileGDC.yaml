@@ -1,0 +1,38 @@
+version: 1
+
+######################################################################################
+#
+#   steps: toggle script functions on and off (off = commented out).
+#          note: the order of steps here doesn't alter the order of execution,
+#          which is fixed.
+#
+######################################################################################
+
+steps:
+  # create and upload file metadata jsonl file and schema file to GCS
+  - create_and_upload_file_metadata_jsonl
+  # create table in development project using previously created jsonl and schema files
+  - create_table
+
+######################################################################################
+#
+#   params: configuration settings
+#
+######################################################################################
+
+params:
+  # path where you'd like log files to be created on your VM
+  # customize this!
+  LOGFILE_PATH: 'path/to/your/file.log'
+
+  # base name of file metadata table
+  # generally doesn't change
+  TABLE_NAME: fileData_active
+
+  # name of generic table metadata file in BQEcosystem repo
+  # generally doesn't change
+  GENERIC_TABLE_METADATA_FILE: cda_gdc_file_metadata.json
+
+  # maximum number of ids to concatenate--used for associated entities
+  # generally doesn't change
+  MAX_CONCAT_COUNT: 8

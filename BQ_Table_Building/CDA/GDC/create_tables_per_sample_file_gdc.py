@@ -25,8 +25,9 @@ import time
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, format_seconds, create_metadata_table_id, create_per_sample_table_id, \
     create_dev_table_id
-from cda_bq_etl.bq_helpers import delete_bq_table, create_table_from_query, get_program_list, \
-    update_table_schema_from_generic, get_program_schema_tags_gdc
+from cda_bq_etl.bq_helpers.lookup import get_gdc_program_list
+from cda_bq_etl.bq_helpers.schema import get_program_schema_tags_gdc
+from cda_bq_etl.bq_helpers.create_modify import create_table_from_query, delete_bq_table, update_table_schema_from_generic
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
@@ -314,7 +315,7 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    program_list = get_program_list(PARAMS)
+    program_list = get_gdc_program_list(PARAMS)
 
     for program_name in program_list:
         if program_name == "BEATAML1_0":

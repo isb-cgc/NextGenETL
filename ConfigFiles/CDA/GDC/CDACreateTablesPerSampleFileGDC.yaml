@@ -1,0 +1,51 @@
+version: 1
+
+######################################################################################
+#
+#   steps: toggle script functions on and off (off = commented out).
+#          note: the order of steps here doesn't alter the order of execution,
+#          which is fixed.
+#
+######################################################################################
+
+steps:
+  # creates the program tables without appending the url from DCF
+  - create_program_tables_no_url
+  # adds the urls from DCF to the program tables
+  - add_url_to_program_tables
+
+######################################################################################
+#
+#   params: configuration settings
+#
+######################################################################################
+
+params:
+  # path where you'd like log files to be created on your VM
+  # customize this!
+  LOGFILE_PATH: 'path/to/your/file.log'
+
+  # Base name of per sample file tables
+  # generally doesn't change
+  TABLE_NAME: per_sample_file_metadata_hg38_gdc
+
+  # Base name of case metadata table
+  # generally doesn't change
+  CASE_TABLE_NAME: caseData
+
+  # Base name of file metadata table
+  # generally doesn't change
+  FILE_TABLE_NAME: fileData_active
+
+  # Base name of slide to case id map table
+  # generally doesn't change
+  SLIDE_TABLE_NAME: slide2caseIDmap
+
+  # Base name of aliquot to case id map table
+  # generally doesn't change
+  ALIQUOT_TABLE_NAME: aliquot2caseIDmap
+
+  # name of generic table metadata files in BQEcosystem repo
+  # generally doesn't change
+  METADATA_FILE_SINGLE_PROGRAM: cda_gdc_per_sample_file.json
+  METADATA_FILE_MULTI_PROGRAM: cda_gdc_per_sample_file_multi_program.json
