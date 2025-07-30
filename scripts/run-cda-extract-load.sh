@@ -21,6 +21,7 @@ DATA_SOURCE=$1
 GDC_ARG="gdc"
 PDC_ARG="pdc"
 IDC_ARG="idc"
+ICDC_ARG="icdc"
 
 if [[ ${DATA_SOURCE} = ${GDC_ARG} ]] ; then
     SHARED_CONFIG_FILE="CDASharedConfigGDC.yaml"
@@ -31,8 +32,11 @@ elif [[ ${DATA_SOURCE} = ${PDC_ARG} ]] ; then
 elif [[ ${DATA_SOURCE} = ${IDC_ARG} ]] ; then
     SHARED_CONFIG_FILE="CDASharedConfigIDC.yaml"
     CONFIG_FILE="CDAExtractFromTSVIDC.yaml"
+elif [[ ${DATA_SOURCE} = ${ICDC_ARG} ]] ; then
+    SHARED_CONFIG_FILE="CDASharedConfigICDC.yaml"
+    CONFIG_FILE="CDAExtractFromTSVICDC.yaml"
 else
-    echo "Error: incorrect or missing script data type argument. Accepted values: gdc, idc, pdc"
+    echo "Error: incorrect or missing script data type argument. Accepted values: gdc, icdc, idc, pdc"
     exit 1
 fi
 
