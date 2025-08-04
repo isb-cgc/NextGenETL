@@ -229,7 +229,9 @@ def get_gene_record_list() -> list[dict[str, Union[None, str, float, int, bool]]
     def make_uniprot_query():
         return f"""
              SELECT uniprot_id
-             FROM `{create_metadata_table_id(PARAMS, 'refseq_mapping')}`
+             FROM `{create_metadata_table_id(PARAMS, 
+                                             table_name=PARAMS['FILTERED_REFSEQ_TABLE_NAME'], 
+                                             release=PARAMS['UNIPROT_RELEASE'])}`
          """
 
     def is_uniprot_accession_number(id_str):
