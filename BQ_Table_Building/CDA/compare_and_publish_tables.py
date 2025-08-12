@@ -42,17 +42,12 @@ TableIDList = list[dict[str, str]]
 
 def list_added_or_removed_rows_aliquot_gdc(select_table_id: str, join_table_id: str, table_params: TableParams):
     def make_added_or_removed_record_query():
-        return f"""
-            WITH records AS (
-                SELECT * 
-                FROM `{select_table_id}`
-                EXCEPT DISTINCT
-                SELECT * 
-                FROM `{join_table_id}`)
-            SELECT COUNT(1) AS changed_count, project_id, sample_type_name
-            FROM records
-            GROUP BY project_id, sample_type_name
-            ORDER BY project_id, sample_type_name
+        return f"""            
+            SELECT * 
+            FROM `{select_table_id}`
+            EXCEPT DISTINCT
+            SELECT * 
+            FROM `{join_table_id}`
         """
     query_logger = logging.getLogger("query_logger")
     logger = logging.getLogger("base_script")
