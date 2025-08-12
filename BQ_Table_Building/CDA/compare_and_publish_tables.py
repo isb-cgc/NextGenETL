@@ -292,8 +292,11 @@ def find_record_difference_counts_aliquot_gdc(table_type: str, table_ids: dict[s
                 EXCEPT DISTINCT 
                 SELECT * FROM `{join_table_id}`
             )
-            SELECT project_id, sample_type_name
-        """
+            SELECT COUNT(1) AS changed_count, project_id, sample_type_name
+            FROM records
+            GROUP BY project_id, sample_type_name
+            ORDER BY project_id, sample_type_name        
+    """
 
     def make_changed_record_count_query(old_table_id, new_table_id):
         return f"""
