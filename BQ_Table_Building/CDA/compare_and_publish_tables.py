@@ -43,11 +43,16 @@ TableIDList = list[dict[str, str]]
 def list_added_or_removed_rows_aliquot_gdc(select_table_id: str, join_table_id: str, table_params: TableParams):
     def make_added_or_removed_record_query():
         return f"""
-            SELECT * 
-            FROM `{select_table_id}`
-            EXCEPT DISTINCT
-            SELECT * 
-            FROM `{join_table_id}`
+            WITH records AS (
+                SELECT * 
+                FROM `{select_table_id}`
+                EXCEPT DISTINCT
+                SELECT * 
+                FROM `{join_table_id}`)
+            SELECT COUNT(1) AS changed_count, project_id, sample_type_name
+            FROM records
+            GROUP BY project_id, sample_type_name
+            ORDER BY project_id, sample_type_name
         """
     query_logger = logging.getLogger("query_logger")
     logger = logging.getLogger("base_script")
@@ -282,9 +287,12 @@ def find_record_difference_counts_aliquot_gdc(table_type: str, table_ids: dict[s
 
     def make_compared_count_query(select_table_id, join_table_id):
         return f"""
-            SELECT * FROM `{select_table_id}`
-            EXCEPT DISTINCT 
-            SELECT * FROM `{join_table_id}`
+            WITH records AS (
+                SELECT * FROM `{select_table_id}`
+                EXCEPT DISTINCT 
+                SELECT * FROM `{join_table_id}`
+            )
+            SELECT project_id, sample_type_name
         """
 
     def make_changed_record_count_query(old_table_id, new_table_id):
@@ -350,12 +358,7 @@ def find_record_difference_counts_aliquot_gdc(table_type: str, table_ids: dict[s
         query_logger.info(query)
         result = query_and_retrieve_result(query)
 
-        if PARAMS['NODE'] == 'gdc':
-            width = 30
-        elif PARAMS['NODE'] == 'pdc':
-            width = 95
-        else:
-            width = 30
+        width = 30
 
         if result is None or result.total_rows == 0:
             return 0, ""
