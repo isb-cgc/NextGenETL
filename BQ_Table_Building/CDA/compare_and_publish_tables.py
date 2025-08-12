@@ -40,6 +40,66 @@ TableParams = dict[str, Union[str, list[str], dict[str, str]]]
 TableIDList = list[dict[str, str]]
 
 
+def list_added_or_removed_rows_aliquot_gdc(select_table_id: str, join_table_id: str, table_params: TableParams):
+    def make_added_or_removed_record_query():
+        return f"""
+            SELECT * 
+            FROM `{select_table_id}`
+            EXCEPT DISTINCT
+            SELECT * 
+            FROM `{join_table_id}`
+        """
+    query_logger = logging.getLogger("query_logger")
+    logger = logging.getLogger("base_script")
+
+    added_removed_record_query = make_added_or_removed_record_query()
+    query_logger.info(added_removed_record_query)
+    row_result = query_and_retrieve_result(added_removed_record_query)
+
+    if row_result.total_rows == 0:
+        logger.info("None found")
+        logger.info("")
+        return
+
+    output_str = f"\n{table_params['primary_key']:45}"
+
+    if 'secondary_key' in table_params and table_params['secondary_key'] is not None:
+        output_str += f"{table_params['secondary_key']:45}"
+
+    if table_params['output_keys']:
+        for output_key in table_params['output_keys']:
+            output_str += f"{output_key:45}"
+
+    output_str += "\n\n"
+
+    i = 0
+
+    for row in row_result:
+        row_str = f"{row[table_params['primary_key']]:45}"
+
+        if 'secondary_key' in table_params and table_params['secondary_key']:
+            if row[table_params['secondary_key']]:
+                row_str += f"{row[table_params['secondary_key']]:45}"
+            else:
+                row_str += f"{'':45}"
+
+        if table_params['output_keys']:
+            for output_key in table_params['output_keys']:
+                if row[output_key]:
+                    row_str += f"{row[output_key]:45}"
+                else:
+                    row_str += f"{'':45}"
+
+        output_str += f"{row_str}\n"
+
+        i += 1
+
+        if i == PARAMS['MAX_DISPLAY_ROWS']:
+            break
+
+    logger.info(f"{output_str}\n")
+
+
 def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_params: TableParams):
     def make_added_or_removed_record_query():
         primary_key = table_params['primary_key']
@@ -846,11 +906,25 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                 if added_count > 0:
                     # list added rows
                     logger.info("Added record examples:")
-                    list_added_or_removed_rows(table_ids['source'], table_ids['previous_versioned'], modified_table_params)
+                    if table_type == 'aliquot' and PARAMS['NODE'] == 'gdc':
+                        list_added_or_removed_rows_aliquot_gdc(table_ids['source'],
+                                                               table_ids['previous_versioned'],
+                                                               modified_table_params)
+                    else:
+                        list_added_or_removed_rows(table_ids['source'],
+                                                   table_ids['previous_versioned'],
+                                                   modified_table_params)
                 if removed_count > 0:
                     # list removed rows
                     logger.info("Removed record examples:")
-                    list_added_or_removed_rows(table_ids['previous_versioned'], table_ids['source'], modified_table_params)
+                    if table_type == 'aliquot' and PARAMS['NODE'] == 'gdc':
+                        list_added_or_removed_rows_aliquot_gdc(table_ids['previous_versioned'],
+                                                               table_ids['source'],
+                                                               modified_table_params)
+                    else:
+                        list_added_or_removed_rows(table_ids['previous_versioned'],
+                                                   table_ids['source'],
+                                                   modified_table_params)
 
                 logger.info("Comparing records by column!")
                 logger.info("")
