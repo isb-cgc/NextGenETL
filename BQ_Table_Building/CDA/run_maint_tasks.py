@@ -134,7 +134,7 @@ def main(args):
         friendly_name_dict = PARAMS['FRIENDLY_NAME_DICT']
         update_friendly_names(friendly_name_dict)
 
-    if 'update_column_labels' in steps:
+    if 'update_labels' in steps:
         column_label_dict = PARAMS['UPDATE_LABELS']['labels']
         table_ids = PARAMS['UPDATE_LABELS']['table_ids']
 
