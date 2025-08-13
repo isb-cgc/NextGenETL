@@ -1,0 +1,145 @@
+
+version: 1
+
+steps:
+  - build_file_list_and_download
+  - combine_project_tsvs
+  - normalize_tsv_and_create_schema
+  - build_raw_tables
+  - build_renamed_tables
+  - build_column_metadata_table
+  - build_distinct_column_values_table
+  - build_selected_column_tables
+  # - publish_tables
+
+params:
+  RELEASE: r41
+  EXTRACTED_MONTH_YEAR: 'December 2024'
+  RELEASE_NOTES_URL: https://docs.gdc.cancer.gov/Data/Release_Notes/Data_Release_Notes/#data-release-410
+
+  NODE: gdc
+  PROGRAM: TCGA
+
+  LOGFILE_PATH: 'logs/gdc/clinical_from_file_TCGA.log'
+  LOCATION: US
+
+  # What bucket is going to get the text file heading to BQ?
+  WORKING_BUCKET: next-gen-etl-scratch
+
+  # What is the file path to the text file in the bucket:
+  WORKING_BUCKET_DIR: law/gdc_clin # DO NOT HAVE A LEADING /
+
+  # Where are the files going on the VM:
+  SCRATCH_DIR: scratch/gdc_clinical_from_file
+
+  # What project are we in:
+  DEV_PROJECT: isb-project-zero
+
+  # Where is the BQ table dataset:
+  GDC_METADATA_DATASET: cda_gdc_metadata
+  GDC_MANIFEST_DATASET: GDC_manifests
+  DEV_DATASET: clinical_from_files
+  DEV_RAW_DATASET: clinical_from_files_raw
+  DEV_RENAMED_DATASET: clinical_from_files_renamed
+  DEV_FINAL_DATASET: clinical_from_files_final
+  DEV_SELECTED_FINAL_DATASET: clinical_from_files_final_selected
+
+  PROD_PROJECT: isb-cgc-bq
+  # PROD_PROJECT: isb-cgc-sandbox-000
+  PROD_DATASET: TCGA
+
+  DEV_COLUMN_METADATA_TABLE_NAME: TCGA_column_metadata
+  PROD_TABLE_PREFIX: clinical_from_supplement_files
+
+  OVERWRITE_PROD_TABLE: TRUE
+
+  # location of column definition/table metadata template files
+  BQ_REPO: BQEcosystem
+  GENERIC_SCHEMA_DIR: GenericSchemas
+  COLUMN_DESCRIPTION_FILEPATH: TableFieldUpdates/tcga_clin_file_column_descriptions.json
+  COLUMN_TABLE_METADATA_FILE: clin_file_tcga_column_metadata.json
+
+  # Where do we stash the manifest in the bucket after we get it:
+  BUCKET_MANIFEST_TSV: manifest.tsv # DO NOT HAVE A LEADING /
+
+  # Where do we stash the pull_list in the bucket after we get it:
+  BUCKET_PULL_LIST: file_pull_list.txt # DO NOT HAVE A LEADING /
+
+  BASE_FILE_NAME: clin_files
+
+  # Source (dev) file metadata table name prefix (concatenated with [params['RELEASE'], '_', bq_params['FILE_TABLE_SUFFIX']])
+  SRC_TABLE_PREFIX: rel
+
+  # Source (dev) file metadata table name suffix (concatenated with [bq_params['FILE_TABLE_PREFIX'], params['RELEASE'], '_'])
+  FILE_TABLE: fileData_current
+
+  # Where is the table that maps gdc file IDs to gcs paths:
+  INDEXD_TABLE: GDCfileID_to_GCSurl
+
+  FILTERS:
+    program_name: "TCGA"
+    data_format: "BCR Biotab"
+    data_category: "Clinical"
+
+  HEADER_ROW_IDX: 1
+  DATA_START_IDX: 3
+  FILE_SUFFIX: txt
+  ID_KEY: bcr_patient_uuid
+
+  TABLE_TYPES:
+    ablation:
+      id_key: bcr_ablation_uuid
+      METADATA_FILE_SINGLE_PROGRAM: clin_file_tcga_ablation.json
+    drug:
+      id_key: bcr_drug_uuid
+      METADATA_FILE_SINGLE_PROGRAM: clin_file_tcga_drug.json
+    follow_up:
+      id_key: bcr_followup_uuid
+      METADATA_FILE_SINGLE_PROGRAM: clin_file_tcga_follow_up.json
+    nte:
+      id_key: bcr_patient_uuid
+      METADATA_FILE_SINGLE_PROGRAM: clin_file_tcga_nte.json
+    omf:
+      id_key: bcr_omf_uuid
+      METADATA_FILE_SINGLE_PROGRAM: clin_file_tcga_omf.json
+    patient:
+      id_key: bcr_patient_uuid
+      METADATA_FILE_SINGLE_PROGRAM: clin_file_tcga_patient.json
+    radiation:
+      id_key: bcr_radiation_uuid
+      METADATA_FILE_SINGLE_PROGRAM: clin_file_tcga_radiation.json
+
+  COLUMN_RENAMING:
+    # name in raw files: ISB-CGC name
+    bcr_patient_barcode: case_barcode
+    bcr_patient_uuid: case_gdc_id
+    # age_at_initial_pathologic_diagnosis: age_at_diagnosis
+    # clinical_m: clinical_M
+    # clinical_n: clinical_N
+    # clinical_t: clinical_T
+    # country_of_birth: country
+    # gleason_score: gleason_score_combined
+    # human_papillomavirus_type: hpv_calls
+    # pathologic_m: pathologic_M
+    # pathologic_n: pathologic_N
+    # pathologic_t: pathologic_T
+    # tissue_source_site: tss_code
+    # year_of_initial_pathologic_diagnosis: year_of_diagnosis
+
+  COLUMN_ORDERING:
+    - program_name
+    - project_short_name
+    - bcr_patient_uuid
+    - case_gdc_id
+    - bcr_patient_barcode
+    - case_barcode
+    - bcr_ablation_uuid
+    - bcr_ablation_barcode
+    - bcr_drug_uuid
+    - bcr_drug_barcode
+    - bcr_followup_uuid
+    - bcr_followup_barcode
+    - bcr_omf_uuid
+    - bcr_omf_barcode
+    - bcr_radiation_uuid
+    - bcr_radiation_barcode
