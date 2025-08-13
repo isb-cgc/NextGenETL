@@ -1,24 +1,20 @@
-"""
-Copyright 2023, Institute for Systems Biology
+# Copyright 2023-2025, Institute for Systems Biology
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+# Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-"""
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+"""Utility functions."""
+
 import io
 import logging
 import os
@@ -30,23 +26,23 @@ from typing import Optional, Union, Any
 import yaml
 import hashlib
 
-Params = dict[str, Union[str, dict, int]]
+from cda_bq_etl.custom_typing import Params
 
 
 def load_config(args: str, yaml_dict_keys: tuple[str, ...]) -> tuple[Any, ...]:
     """
     Open yaml file and retrieves configuration parameters.
+
     :param args: args param from python bash cli
+    :type args: str
     :param yaml_dict_keys: tuple of strings representing a subset of the yaml file's
-    top-level dict keys
+        top-level dict keys
+    :type yaml_dict_keys: tuple[str, ...]
     :return: tuple of dicts from yaml file (as requested in yaml_dict_keys)
+    :rtype: tuple[Any, ...]
     """
     def open_yaml_and_return_dict(yaml_name: str) -> dict:
-        """
-        Open yaml file and return contents as dict.
-        :param yaml_name: name of yaml config file
-        :return: dictionary of parameters
-        """
+        """Open yaml file and return contents as dict."""
         with open(yaml_name, mode='r') as yaml_file:
             config_stream = io.StringIO(yaml_file.read())
 
@@ -98,11 +94,14 @@ def load_config(args: str, yaml_dict_keys: tuple[str, ...]) -> tuple[Any, ...]:
     return tuple([merged_yaml_dict[key] for key in yaml_dict_keys])
 
 
-def has_fatal_error(err: Union[str, BaseException], exception: Optional[Any] = None):
+def has_fatal_error(err: str | BaseException, exception: Optional[Any] = None):
     """
     Output error str or list<str>, then exits; optionally throws Exception.
+
     :param err: error message str or list<str>
+    :type err: str | BaseException
     :param exception: Exception type for error (defaults to None)
+    :type exception: Optional[Any]
     """
     err_str_prefix = '[ERROR] '
     err_str = ''
@@ -118,14 +117,17 @@ def has_fatal_error(err: Union[str, BaseException], exception: Optional[Any] = N
     if exception:
         raise exception
 
-    sys.exit(1)
+    sys.exit(-1)
 
 
 def format_seconds(seconds: Union[int, float]) -> str:
     """
     Round seconds to formatted hour, minute, and/or second output.
+
     :param seconds: int representing time in seconds
+    :type seconds: int
     :return: formatted time string
+    :rtype: str
     """
     if seconds > 3600:
         return time.strftime("%-H hours, %-M minutes, %-S seconds", time.gmtime(seconds))
@@ -139,8 +141,11 @@ def make_string_bq_friendly(string: str) -> str:
     """
     Replace any illegal characters with an underscore. Convert duplicate spaces in a row to single underscore.
     (Only alphanumeric, underscore, or space characters allowed.)
+
     :param string: string to sanitize
+    :type string: str
     :return: sanitized string
+    :rtype: str
     """
     string = string.replace('%', 'percent')
     string = re.sub(r'[^A-Za-z0-9_ ]+', ' ', string)
@@ -154,8 +159,11 @@ def sanitize_file_prefix(file_prefix: str) -> str:
     """
     Replace any illegal characters in file prefix with underscore.
     (Only alphanumeric and underscore allowed.)
+
     :param file_prefix: file name (without file extension)
+    :type file_prefix: str
     :return: sanitized file prefix
+    :rtype: str
     """
     return re.sub('[^0-9a-zA-Z_]+', '_', file_prefix)
 
@@ -167,12 +175,19 @@ def construct_table_name(params: Params,
                          release: Optional[str] = None) -> str:
     """
     Generate BigQuery-safe table name using supplied parameters.
+
     :param params: params supplied in yaml config
+    :type params: Params
     :param prefix: table prefix or the base table's root name
+    :type prefix: str
     :param suffix: table suffix, optionally supplying another word to append to the prefix
+    :type suffix: Optional[str]
     :param include_release: If False, excludes RELEASE value set in yaml config; defaults to True
+    :type include_release: bool
     :param release: Optionally supply a custom release (useful for external mapping tables, etc.)
+    :type release: Optional[str]
     :return: Table name, formatted to be compatible with BigQuery's naming limitations (only: A-Z, a-z, 0-9, _)
+    :rtype: str
     """
     table_name = prefix
 
@@ -195,13 +210,21 @@ def get_filename(params: Params,
                  release: Optional[str] = None) -> str:
     """
     Get filename based on common table-naming (see construct_table_name).
+
     :param params: params from YAML config
+    :type params: Params
     :param file_extension: File extension, e.g. jsonl or tsv
+    :type file_extension: str
     :param prefix: file name prefix
+    :type prefix: str
     :param suffix: file name suffix
+    :type suffix: Optional[str]
     :param include_release: if True, includes release in file name; defaults to True
+    :type include_release: bool
     :param release: data release version
+    :type release: Optional[str]
     :return: file name
+    :rtype: str
     """
     filename = construct_table_name(params, prefix, suffix, include_release, release=release)
     return f"{filename}.{file_extension}"
@@ -209,10 +232,14 @@ def get_filename(params: Params,
 
 def get_filepath(dir_path: str, filename: Optional[str] = None) -> str:
     """
-    Get file path for location on VM; expands compatibly for local or VM scripts.
+    Get file path for location on VM; expands path for local or VM scripts.
+
     :param dir_path: directory portion of the filepath (starting at user home dir)
+    :type dir_path: str
     :param filename: name of the file
+    :type filename: Optional[str]
     :return: full path to file
+    :rtype: str
     """
     join_list = [os.path.expanduser('~'), dir_path]
 
@@ -222,13 +249,18 @@ def get_filepath(dir_path: str, filename: Optional[str] = None) -> str:
     return '/'.join(join_list)
 
 
-def get_scratch_fp(params: Params, filename: str, scratch_dir: str = None) -> str:
+def get_scratch_fp(params: Params, filename: str, scratch_dir: Optional[str] = None) -> str:
     """
     Construct filepath for VM output file.
+
     :param params: params supplied in yaml config
+    :type params: Params
     :param filename: name of the file
+    :type filename: str
     :param scratch_dir: optional substitute scratch dir
+    :type scratch_dir: Optional[str]
     :return: output filepath for VM
+    :rtype: str
     """
     if not scratch_dir:
         scratch_dir = params['SCRATCH_DIR']
@@ -239,12 +271,16 @@ def get_scratch_fp(params: Params, filename: str, scratch_dir: str = None) -> st
 def create_dev_table_id(params: Params, table_name: str, release_as_suffix: bool = False) -> str:
     """
     Create table id reference to one of the CDA dev tables used to construct the joined data tables.
-    :param params: params supplied in yaml config
-    :param table_name: name of the table
-    :param release_as_suffix: if True, adds release to end of table name, rather than the beginning; defaults to False
-    :return: table id string
-    """
 
+    :param params: params supplied in yaml config
+    :type params: Params
+    :param table_name: name of the table
+    :type table_name: str
+    :param release_as_suffix: if True, adds release to end of table name, rather than the beginning; defaults to False
+    :type release_as_suffix: bool
+    :return: table id string
+    :rtype: str
+    """
     dev_dataset_id = f"{params['DEV_PROJECT']}.{params['DEV_RAW_DATASET']}"
 
     if release_as_suffix:
@@ -256,20 +292,29 @@ def create_dev_table_id(params: Params, table_name: str, release_as_suffix: bool
 def create_excluded_records_table_id(params: Params, table_name: str) -> str:
     """
     Create table id reference to one of the CDA excluded records tables.
+
     :param params: params supplied in yaml config
+    :type params: Params
     :param table_name: name of the table
+    :type table_name: str
     :return: table id string
+    :rtype: str
     """
     return f"{params['DEV_PROJECT']}.{params['EXCLUDED_RECORDS_DATASET']}.{params['RELEASE']}_{table_name}"
 
 
-def create_metadata_table_id(params: Params, table_name: str, release: str = None) -> str:
+def create_metadata_table_id(params: Params, table_name: str, release: Optional[str] = None) -> str:
     """
     Create table id reference to one of the CDA metadata tables.
+
     :param params: params supplied in yaml config
+    :type params: Params
     :param table_name: name of the table
+    :type table_name: str
     :param release: optional, supply custom release string
+    :type release: Optional[str]
     :return: table id string
+    :rtype: str
     """
     if release is None:
         return f"{params['DEV_PROJECT']}.{params['DEV_METADATA_DATASET']}.{params['RELEASE']}_{table_name}"
@@ -280,9 +325,13 @@ def create_metadata_table_id(params: Params, table_name: str, release: str = Non
 def create_per_sample_table_id(params: Params, table_name: str) -> str:
     """
     Create table id reference to one of the CDA per sample file tables.
+
     :param params: params supplied in yaml config
+    :type params: Params
     :param table_name: name of the table
+    :type table_name: str
     :return: table id string
+    :rtype: str
     """
     return f"{params['DEV_PROJECT']}.{params['DEV_SAMPLE_DATASET']}.{params['RELEASE']}_{table_name}"
 
@@ -290,9 +339,13 @@ def create_per_sample_table_id(params: Params, table_name: str) -> str:
 def create_clinical_table_id(params: Params, table_name: str) -> str:
     """
     Create table id reference to one of the CDA clinical tables.
+
     :param params: params supplied in yaml config
+    :type params: Params
     :param table_name: name of the table
+    :type table_name: str
     :return: table id string
+    :rtype: str
     """
     return f"{params['DEV_PROJECT']}.{params['DEV_CLINICAL_DATASET']}.{params['RELEASE']}_{table_name}"
 
@@ -300,10 +353,15 @@ def create_clinical_table_id(params: Params, table_name: str) -> str:
 def create_quant_table_id(params: Params, table_name: str, is_final: bool) -> str:
     """
     Create table id reference to one of the PDC quant data matrix tables.
+
     :param params: params supplied in yaml config
+    :type params: Params
     :param table_name: name of the table
+    :type table_name: str
     :param is_final: if True, use final dataset, else use raw dataset; defaults to raw
+    :type is_final: bool
     :return: table id string
+    :rtype: str
     """
 
     if is_final:
@@ -312,11 +370,14 @@ def create_quant_table_id(params: Params, table_name: str, is_final: bool) -> st
         return f"{params['DEV_PROJECT']}.{params['DEV_QUANT_RAW_DATASET']}.{table_name}"
 
 
-def input_with_timeout(seconds: int) -> Union[str, None]:
+def input_with_timeout(seconds: int) -> str | None:
     """
     Wait for user response. Continue automatically after n seconds.
-    :param seconds: Number of seconds to wait before continuing automatically.
+
+    :param seconds: Number of seconds to wait before continuing automatically
+    :type seconds: int
     :return: keyboard input
+    :rtype: str | None
     """
     input_poll = select.poll()
     input_poll.register(sys.stdin.fileno(), select.POLLIN)
@@ -333,6 +394,14 @@ def input_with_timeout(seconds: int) -> Union[str, None]:
 
 
 def calculate_md5sum(file_path: str) -> str:
+    """
+    Calculate md5 checksum in order to validate file download.
+
+    :param file_path: path to file
+    :type file_path: str
+    :return: md5 checksum
+    :rtype: str
+    """
     md5_hash = hashlib.md5()
     with open(file_path, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):

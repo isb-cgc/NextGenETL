@@ -22,8 +22,9 @@ SOFTWARE.
 import sys
 import time
 
-from cda_bq_etl.bq_helpers import (create_table_from_query, update_table_schema_from_generic, get_pdc_projects_metadata,
-                                   get_project_level_schema_tags)
+from cda_bq_etl.bq_helpers.lookup import get_pdc_project_metadata
+from cda_bq_etl.bq_helpers.schema import get_project_level_schema_tags
+from cda_bq_etl.bq_helpers.create_modify import create_table_from_query, update_table_schema_from_generic
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import (load_config, create_dev_table_id, format_seconds, create_per_sample_table_id,
                               create_metadata_table_id)
@@ -91,7 +92,7 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    projects_list = get_pdc_projects_metadata(PARAMS)
+    projects_list = get_pdc_project_metadata(PARAMS)
 
     if 'create_project_tables' in steps:
         logger.info("Entering create_project_tables")

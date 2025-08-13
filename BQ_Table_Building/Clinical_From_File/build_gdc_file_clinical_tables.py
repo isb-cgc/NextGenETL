@@ -29,8 +29,9 @@ from google.api_core.exceptions import Forbidden
 from google.cloud import storage
 from google.resumable_media import InvalidResponse
 
-from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
-                                   create_and_load_table_from_tsv, query_and_retrieve_result)
+from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result
+from cda_bq_etl.bq_helpers.schema import create_and_upload_schema_for_tsv, retrieve_bq_schema_object
+from cda_bq_etl.bq_helpers.create_modify import create_and_load_table_from_tsv
 from cda_bq_etl.gcs_helpers import upload_to_bucket
 from cda_bq_etl.data_helpers import initialize_logging, make_string_bq_friendly, create_normalized_tsv
 from cda_bq_etl.utils import format_seconds, load_config, get_scratch_fp, calculate_md5sum, create_dev_table_id

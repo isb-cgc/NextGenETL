@@ -27,10 +27,10 @@ from google.cloud import storage
 from google.cloud.exceptions import Forbidden
 from google.resumable_media import InvalidResponse
 
-from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
-                                   create_and_load_table_from_tsv, query_and_retrieve_result, create_table_from_query,
-                                   update_table_schema_from_generic, create_and_load_table_from_jsonl,
-                                   find_most_recent_published_table_id, publish_table)
+from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result, find_most_recent_published_table_id
+from cda_bq_etl.bq_helpers.schema import create_and_upload_schema_for_tsv, retrieve_bq_schema_object
+from cda_bq_etl.bq_helpers.create_modify import create_and_load_table_from_tsv, create_and_load_table_from_jsonl, \
+    create_table_from_query, update_table_schema_from_generic, publish_table
 from cda_bq_etl.gcs_helpers import upload_to_bucket
 from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, create_normalized_tsv,
                                      write_list_to_jsonl_and_upload)

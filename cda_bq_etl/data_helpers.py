@@ -1,27 +1,23 @@
-"""
-Copyright 2023, Institute for Systems Biology
+# Copyright 2023-2025, Institute for Systems Biology
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+# Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-"""
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+"""Normalize and transform raw data."""
+
 import sys
 import math
-from typing import Union, Any, Optional
+from typing import Any, Optional
 
 import json
 import re
@@ -33,19 +29,19 @@ from distutils import util
 
 from cda_bq_etl.gcs_helpers import upload_to_bucket
 from cda_bq_etl.utils import sanitize_file_prefix, get_scratch_fp, make_string_bq_friendly
-
-ColumnTypes = Union[None, str, float, int, bool]
-RowDict = dict[str, Union[None, str, float, int, bool]]
-JSONList = list[RowDict]
-Params = dict[str, Union[str, dict, int]]
+from cda_bq_etl.custom_typing import ColumnTypes, RowDict, JSONList, Params
 
 
 def create_tsv_row(row_list: list[Any], null_marker: str = "None") -> str:
     """
     Convert list of row values into a tab-delimited string.
+
     :param row_list: list of row values for conversion
+    :type row_list: list[Any]
     :param null_marker: Value to write to string for nulls
+    :type null_marker: str
     :return: tab-delimited string representation of row_list
+    :rtype: str
     """
     print_str = ''
     last_idx = len(row_list) - 1
@@ -60,47 +56,18 @@ def create_tsv_row(row_list: list[Any], null_marker: str = "None") -> str:
     return print_str
 
 
-def write_list_to_tsv(fp: str, tsv_list: list[str]):
-    """
-    todo
-    :param fp:
-    :param tsv_list:
-    :return:
-    """
-    def _create_tsv_row(row_list, null_marker="None"):
-        """
-        Convert list of row values into a tab-delimited string.
-        :param row_list: list of row values for conversion
-        :param null_marker: Value to write to string for nulls
-        :return: tab-delimited string representation of row_list
-        """
-        print_str = ''
-        last_idx = len(row_list) - 1
-
-        for i, column in enumerate(row_list):
-            if not column:
-                column = null_marker
-
-            delimiter = "\t" if i < last_idx else "\n"
-            print_str += column + delimiter
-
-        return print_str
-
-    with open(fp, "w") as tsv_file:
-        for row in tsv_list:
-            tsv_file.write(_create_tsv_row(row))
-
-    print(f"{len(tsv_list)} rows written to {fp}!")
-
-
 def write_list_to_jsonl(jsonl_fp: str, json_obj_list: JSONList, mode: str = 'w'):
     """
     Create a jsonl file for uploading data into BigQuery from a list<dict> obj.
+
     :param jsonl_fp: local VM jsonl filepath
+    :type jsonl_fp: str
     :param json_obj_list: list of dicts representing json objects
+    :type json_obj_list: JSONList
     :param mode: 'a' if appending to a file that's being built iteratively;
                  'w' if file data is written in a single call to the function
                  (in which case any existing data is overwritten)
+    :type mode: str
     """
     with open(jsonl_fp, mode) as file_obj:
         for line in json_obj_list:
@@ -111,15 +78,21 @@ def write_list_to_jsonl(jsonl_fp: str, json_obj_list: JSONList, mode: str = 'w')
 def write_list_to_jsonl_and_upload(params: Params,
                                    prefix: str,
                                    record_list: JSONList,
-                                   release: str = None,
+                                   release: Optional[str] = None,
                                    local_filepath: Optional[str] = None):
     """
     Write joined_record_list to file name specified by prefix and uploads to scratch Google Cloud bucket.
+
     :param params: params supplied in yaml config
+    :type params: Params
     :param prefix: string representing base file name (release string is appended to generate filename)
+    :type prefix: str
     :param record_list: list of record objects to insert into jsonl file
+    :type record_list: JSONList
     :param release: Optional custom release, if different from what is provided in shared config yaml
+    :type release: Optional[str]
     :param local_filepath: VM path where jsonl file is stored prior to upload
+    :type local_filepath: Optional[str]
     """
     if not local_filepath:
         if not release:
@@ -133,15 +106,18 @@ def write_list_to_jsonl_and_upload(params: Params,
     upload_to_bucket(params, local_filepath, delete_local=True)
 
 
-def recursively_detect_object_structures(nested_obj: Union[JSONList, RowDict]) -> Union[JSONList, RowDict]:
+def recursively_detect_object_structures(nested_obj: JSONList | RowDict) -> JSONList | RowDict:
     """
     Traverse a dict or list of objects, analyzing the structure. Order not guaranteed (if anything, it'll be
     backwards)--Not for use with TSV data. Works for arbitrary nesting, even if object structure varies from record to
     record; use for lists, dicts, or any combination therein.
     If nested_obj is a list, function will traverse every record in order to find all possible fields.
+
     :param nested_obj: object to traverse
-    :return data types dict--key is the field name, value is the set of BigQuery column data types returned
+    :type nested_obj: JSONList | RowDict
+    :return: data types dict--key is the field name, value is the set of BigQuery column data types returned
     when analyzing data using check_value_type ({<field_name>: {<data_type_set>}})
+    :rtype: JSONList | RowDict
     """
     # stores the dict of {fields: value types}
     data_types_dict = dict()
@@ -150,8 +126,6 @@ def recursively_detect_object_structures(nested_obj: Union[JSONList, RowDict]) -
         """
         Recursively explore a part of the supplied object. Traverses parent nodes, adding to data_types_dict
         as repeated (RECORD) field objects. Adds child nodes parent's "fields" list.
-        :param _obj: object in current location of recursion
-        :param _data_types_dict: dict of fields and type sets
         """
         for k, v in _obj.items():
             if isinstance(_obj[k], dict):
@@ -194,11 +168,15 @@ def get_column_list_tsv(header_list: Optional[list[str]] = None,
     """
     Return a list of column headers using header_list OR using a header_row index to retrieve column names from tsv_fp.
         NOTE: Specifying both header_list and header_row in parent function triggers a fatal error.
+
     :param header_list: Optional ordered list of column headers corresponding to columns in dataset tsv file
+    :type header_list: Optional[list[str]]
     :param tsv_fp: Optional string filepath; provided if column names are being obtained directly from tsv header
+    :type tsv_fp: Optional[str]
     :param header_row_index: Optional header row index, if deriving column names from tsv file
-    :return list of columns with BQ-compatible names
-    :rtype list
+    :type header_row_index: Optional[int]
+    :return: list of columns with BQ-compatible names
+    :rtype: list[str]
     """
     logger = logging.getLogger('base_script.cda_bq_etl.data_helpers')
 
@@ -245,12 +223,18 @@ def aggregate_column_data_types_tsv(tsv_fp: str,
                                     sample_interval: int = 1) -> dict[str, set[str]]:
     """
     Open tsv file and aggregate data types for each column.
+
     :param tsv_fp: tsv dataset filepath used to analyze the data types
+    :type tsv_fp: str
     :param column_headers: list of ordered column headers
+    :type column_headers: list[str]
     :param skip_rows: number of (header) rows to skip before starting analysis
+    :type skip_rows: int
     :param sample_interval: sampling interval, used to skip rows in large datasets; defaults to checking every row
         ex.: sample_interval == 10 will sample every 10th row
-    :return dict of column keys, with value sets representing all data types found for that column
+    :type sample_interval: int
+    :return: dict of column keys, with value sets representing all data types found for that column
+    :rtype: dict[str, set[str]]
     """
     logger = logging.getLogger("data_helpers")
     data_types_dict = dict()
@@ -296,11 +280,12 @@ def aggregate_column_data_types_tsv(tsv_fp: str,
 def resolve_type_conflicts(types_dict: dict[str, set[Any]]) -> dict[str, str]:
     """
     Iteratively resolve data type conflicts for non-nested type dicts (e.g. if there is more than one data type found,
-    select the superseding type.)
+    select the superseding type).
+
     :param types_dict: dict containing columns and all detected data types
     :type types_dict: dict {str: set}
-    :return dict containing the column name and its BigQuery data type.
-    :rtype dict[str, str]
+    :return: dict containing the column name and its BigQuery data type.
+    :rtype: dict[str, str]
     """
     type_dict = dict()
 
@@ -310,16 +295,19 @@ def resolve_type_conflicts(types_dict: dict[str, set[Any]]) -> dict[str, str]:
     return type_dict
 
 
-def resolve_type_conflict(field: str, types_set: Union[set[str], ColumnTypes]):
+def resolve_type_conflict(field: str, types_set: set[str] | ColumnTypes) -> str:
     """
     Resolve BigQuery column data type precedence, where multiple types are detected. Rules for type conversion based on
     BigQuery's implicit conversion behavior.
     See https://cloud.google.com/bigquery/docs/reference/standard-sql/conversion_rules#coercion
-    :param field: field name
-    :param types_set: Set of BigQuery data types in string format
-    :return: BigQuery data type with the highest precedence
-    """
 
+    :param field: field name
+    :type field: str
+    :param types_set: Set of BigQuery data types in string format
+    :type types_set: set[str] | ColumnTypes
+    :return: BigQuery data type with the highest precedence
+    :rtype: str
+    """
     datetime_types = {"TIMESTAMP", "DATE", "TIME"}
     number_types = {"INT64", "FLOAT64", "NUMERIC"}
 
@@ -403,8 +391,11 @@ def resolve_type_conflict(field: str, types_set: Union[set[str], ColumnTypes]):
 def is_int_value(value: Any) -> bool:
     """
     Verify whether this value is of int type.
+
     :param value: the value to evaluate
+    :type value: int
     :return: True if value is int type, False otherwise
+    :rtype: bool
     """
     def is_valid_decimal(val):
         try:
@@ -418,7 +409,6 @@ def is_int_value(value: Any) -> bool:
 
     def should_be_string(val):
         val = str(val)
-        # todo should I make this regex?
         if val.startswith("0") and len(val) > 1 and ':' not in val and '-' not in val and '.' not in val:
             return True
 
@@ -456,13 +446,17 @@ def is_int_value(value: Any) -> bool:
 
 def normalize_value(value: Any, is_tsv: bool = False) -> Any:
     """
-    - If value is string, but is NoneType-like or boolean-like, then converts to correct form (None, True, False).
-    - If value is a trivial float (e.g. 100.0), converts to int. This is safe to do, because if any of the values in a
+    If value is string, but is NoneType-like or boolean-like, then converts to correct form (None, True, False).
+    If value is a trivial float (e.g. 100.0), converts to int. This is safe to do, because if any of the values in a
     given column end up being floats, BigQuery will re-convert the ints back into float format.
     otherwise returns original value.
+
     :param value: value to convert
-    :param is_tsv:
+    :type value: Any
+    :param is_tsv: If True, null value is converted to a TSV-safe form (empty string); otherwise converted to None
+    :type is_tsv: bool
     :return: normalized (or original) value
+    :rtype: Any
     """
 
     if value is None:
@@ -492,34 +486,36 @@ def normalize_value(value: Any, is_tsv: bool = False) -> Any:
         return value
 
 
-def normalize_header_row(header_row: list[str]) -> list[str]:
-    new_header_row = list()
-
-    for value in header_row:
-        value = value.lower()
-        test_value = value
-        suffix_value = 1
-
-        # if column header is a duplicate, append numeric suffix
-        while test_value in new_header_row:
-            test_value = f"{value}_{str(suffix_value)}"
-            suffix_value += 1
-
-        if value != test_value:
-            logger = logging.getLogger('base_script.cda_bq_etl.data_helpers')
-            logger.warning(f"Changing header value {value} to {test_value} (header value is a duplicate).")
-
-        new_header_row.append(test_value)
-
-    return new_header_row
-
-
 def create_normalized_tsv(raw_tsv_fp: str, normalized_tsv_fp: str):
     """
     Opens a raw tsv file, normalizes its data, then writes to new tsv file.
+
     :param raw_tsv_fp: path to non-normalized data file
+    :type raw_tsv_fp: str
     :param normalized_tsv_fp: destination file for normalized data
+    :type normalized_tsv_fp: str
     """
+    def normalize_header_row(_header_row) -> list[str]:
+        """Normalize header row (adds a suffix if header row value is a duplicate)."""
+        new_header_row = list()
+
+        for _value in _header_row:
+            _value = _value.lower()
+            test_value = _value
+            suffix_value = 1
+
+            # if column header is a duplicate, append numeric suffix
+            # (while loop checks to see if that suffix has already been used)
+            while test_value in new_header_row:
+                test_value = f"{_value}_{str(suffix_value)}"
+                suffix_value += 1
+
+            if _value != test_value:
+                logger.warning(f"Changing header value {_value} to {test_value} (header value is a duplicate).")
+
+            new_header_row.append(test_value)
+
+        return new_header_row
 
     logger = logging.getLogger('base_script.cda_bq_etl.data_helpers')
 
@@ -557,11 +553,19 @@ def create_normalized_tsv(raw_tsv_fp: str, normalized_tsv_fp: str):
         normalized_row_count = sum(1 for _ in tsv_reader)
 
     if normalized_row_count != raw_row_count:
-        logger.critical(f"ERROR: Row count changed. Original: {raw_row_count}; Normalized: {normalized_row_count}")
-        sys.exit()
+        logger.critical(f"Row count changed. Original: {raw_row_count}; Normalized: {normalized_row_count}")
+        sys.exit(-1)
 
 
 def normalize_flat_json_values(records: JSONList) -> JSONList:
+    """
+    Normalize flat (non-nested) JSON values.
+
+    :param records: JSONList of records
+    :type records: JSONList
+    :return: JSONList of normalized records
+    :rtype: JSONList
+    """
     normalized_json_list = list()
 
     for record in records:
@@ -574,14 +578,17 @@ def normalize_flat_json_values(records: JSONList) -> JSONList:
     return normalized_json_list
 
 
-def check_value_type(value: Any):
+def check_value_type(value: Any) -> str | None:
     """
     Check value for corresponding BigQuery type. Evaluates the following BigQuery column data types:
         - datetime formats: DATE, TIME, TIMESTAMP
         - number formats: INT64, FLOAT64, NUMERIC
         - misc formats: STRING, BOOL, ARRAY, RECORD
+
     :param value: value on which to perform data type analysis
+    :type value: Any
     :return: data type in BigQuery Standard SQL format
+    :rtype: str | None
     """
     def is_valid_decimal(val):
         try:
@@ -711,8 +718,11 @@ def check_value_type(value: Any):
 def json_datetime_to_str_converter(datetime_obj: datetime) -> str:
     """
     Convert python datetime object to string (necessary for json serialization).
+
     :param datetime_obj: python datetime object
+    :type datetime_obj: datetime
     :return: datetime cast as string
+    :rtype: str
     """
     if isinstance(datetime_obj, datetime.datetime):
         return str(datetime_obj)
@@ -723,6 +733,18 @@ def json_datetime_to_str_converter(datetime_obj: datetime) -> str:
 
 
 def initialize_logging(log_filepath: str, name: str = 'base_script', emit_to_console: bool = True) -> logging.Logger:
+    """
+    Initialize logging.
+
+    :param log_filepath: Path to log file
+    :type log_filepath: str
+    :param name: logger name, which specifies which file the script is executing (default: 'base_script')
+    :type name: str
+    :param emit_to_console: If True, output to logger to console, otherwise only outputs to log file (default: True)
+    :type emit_to_console: bool
+    :return: Logger object
+    :rtype: logging.Logger
+    """
     # initialize Logger object
     logger = logging.getLogger(name=name)
     logger.setLevel(logging.DEBUG)
@@ -754,17 +776,3 @@ def initialize_logging(log_filepath: str, name: str = 'base_script', emit_to_con
     logger.info(f"Logging started: {start_time}")
 
     return logger
-
-
-def is_uuid(uuid_str: str) -> bool:
-    uuid_str = str(uuid_str)
-    uuid_str_list = uuid_str.split('-')
-
-    if len(uuid_str_list) < 2:
-        return False
-
-    for segment in uuid_str_list:
-        if not segment.isalnum():
-            return False
-
-    return True

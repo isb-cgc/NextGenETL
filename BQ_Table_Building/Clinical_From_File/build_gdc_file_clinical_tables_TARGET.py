@@ -29,10 +29,11 @@ from google.cloud import storage
 from google.cloud.exceptions import Forbidden
 from google.resumable_media import InvalidResponse
 
-from cda_bq_etl.bq_helpers import (create_and_upload_schema_for_tsv, retrieve_bq_schema_object,
-                                   create_and_load_table_from_tsv, query_and_retrieve_result, list_tables_in_dataset,
-                                   create_and_upload_schema_for_json, create_and_load_table_from_jsonl,
-                                   update_table_schema_from_generic, find_most_recent_published_table_id, publish_table)
+from cda_bq_etl.bq_helpers.lookup import list_tables_in_dataset, query_and_retrieve_result, find_most_recent_published_table_id
+from cda_bq_etl.bq_helpers.schema import create_and_upload_schema_for_tsv, create_and_upload_schema_for_json, \
+    retrieve_bq_schema_object
+from cda_bq_etl.bq_helpers.create_modify import create_and_load_table_from_tsv, create_and_load_table_from_jsonl, \
+    update_table_schema_from_generic, publish_table
 from cda_bq_etl.gcs_helpers import upload_to_bucket
 from cda_bq_etl.data_helpers import (initialize_logging, make_string_bq_friendly, create_normalized_tsv,
                                      write_list_to_jsonl_and_upload, normalize_flat_json_values)

@@ -24,7 +24,8 @@ import time
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, format_seconds
-from cda_bq_etl.bq_helpers import create_bq_dataset, list_tables_in_dataset, copy_bq_table, exists_bq_table
+from cda_bq_etl.bq_helpers.lookup import exists_bq_table, list_tables_in_dataset
+from cda_bq_etl.bq_helpers.create_modify import copy_bq_table, create_bq_dataset
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')

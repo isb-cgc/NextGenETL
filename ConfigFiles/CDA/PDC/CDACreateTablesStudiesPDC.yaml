@@ -1,0 +1,38 @@
+version: 1
+
+######################################################################################
+#
+#   steps: toggle script functions on and off (off = commented out).
+#          note: the order of steps here doesn't alter the order of execution,
+#          which is fixed.
+#
+######################################################################################
+
+steps:
+  # create jsonl file containing study data
+  - create_and_upload_study_jsonl
+  # create table using created jsonl file
+  - create_table
+
+######################################################################################
+#
+#   params: configuration settings
+#
+######################################################################################
+
+params:
+  # path where you'd like log files to be created on your VM
+  # customize this!
+  LOGFILE_PATH: 'path/to/your/file.log'
+
+  # base name of study table
+  # generally doesn't change
+  TABLE_NAME: studies
+
+  # name of study metadata file in BQEcosystem repo
+  # generally doesn't change
+  STUDY_METADATA_FILE: cda_pdc_study_metadata.json
+
+  # name of generic table metadata file in BQEcosystem repo
+  # generally doesn't change
+  GENERIC_TABLE_METADATA_FILE: cda_pdc_study.json

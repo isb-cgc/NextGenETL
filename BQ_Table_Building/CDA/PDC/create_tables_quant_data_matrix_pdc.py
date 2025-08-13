@@ -35,11 +35,11 @@ from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket
 from cda_bq_etl.pdc_helpers import build_obj_from_pdc_api, get_graphql_api_response
 from cda_bq_etl.utils import (load_config, format_seconds, create_dev_table_id, create_metadata_table_id,
                               create_quant_table_id, make_string_bq_friendly, get_scratch_fp, construct_table_name)
-from cda_bq_etl.bq_helpers import (create_table_from_query, update_table_schema_from_generic,
-                                   create_and_upload_schema_for_json, retrieve_bq_schema_object,
-                                   create_and_load_table_from_jsonl, exists_bq_table, delete_bq_table,
-                                   get_uniprot_schema_tags, query_and_retrieve_result, get_gene_info_schema_tags,
-                                   create_and_upload_schema_for_tsv, create_and_load_table_from_tsv)
+from cda_bq_etl.bq_helpers.lookup import exists_bq_table, query_and_retrieve_result
+from cda_bq_etl.bq_helpers.schema import create_and_upload_schema_for_tsv, create_and_upload_schema_for_json, \
+    retrieve_bq_schema_object, get_uniprot_schema_tags, get_gene_info_schema_tags
+from cda_bq_etl.bq_helpers.create_modify import create_and_load_table_from_tsv, create_and_load_table_from_jsonl, \
+    create_table_from_query, delete_bq_table, update_table_schema_from_generic
 from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload, create_tsv_row
 
 PARAMS = dict()
@@ -229,7 +229,9 @@ def get_gene_record_list() -> list[dict[str, Union[None, str, float, int, bool]]
     def make_uniprot_query():
         return f"""
              SELECT uniprot_id
-             FROM `{create_metadata_table_id(PARAMS, 'refseq_mapping')}`
+             FROM `{create_metadata_table_id(PARAMS, 
+                                             table_name=PARAMS['FILTERED_REFSEQ_TABLE_NAME'], 
+                                             release=PARAMS['UNIPROT_RELEASE'])}`
          """
 
     def is_uniprot_accession_number(id_str):
@@ -692,7 +694,9 @@ def main(args):
     if 'create_refseq_uniprot_table' in steps:
         logger.info("Building RefSeq -> UniProt mapping table")
 
-        unfiltered_refseq_table_id = create_metadata_table_id(PARAMS, PARAMS['UNFILTERED_REFSEQ_TABLE_NAME'])
+        unfiltered_refseq_table_id = create_metadata_table_id(PARAMS,
+                                                              PARAMS['UNFILTERED_REFSEQ_TABLE_NAME'],
+                                                              PARAMS['UNIPROT_RELEASE'])
         refseq_jsonl_filename = f"{PARAMS['UNFILTERED_REFSEQ_TABLE_NAME']}_{PARAMS['UNIPROT_RELEASE']}.jsonl"
 
         refseq_table_schema = retrieve_bq_schema_object(params=PARAMS,
@@ -706,7 +710,9 @@ def main(args):
         # where both reviewed and unreviewed records exist for a RefSeq id, drop the unreviewed record
         logger.info("Creating filtered RefSeq -> UniProt mapping table")
 
-        filtered_refseq_table_id = create_metadata_table_id(PARAMS, table_name=PARAMS['FILTERED_REFSEQ_TABLE_NAME'])
+        filtered_refseq_table_id = create_metadata_table_id(PARAMS,
+                                                            table_name=PARAMS['FILTERED_REFSEQ_TABLE_NAME'],
+                                                            release=PARAMS['UNIPROT_RELEASE'])
 
         create_table_from_query(params=PARAMS,
                                 table_id=filtered_refseq_table_id,

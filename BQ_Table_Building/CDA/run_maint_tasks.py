@@ -25,8 +25,9 @@ import time
 
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import load_config, input_with_timeout
-from cda_bq_etl.bq_helpers import (query_and_retrieve_result, delete_bq_table, copy_bq_table, update_friendly_name,
-                                   update_table_labels, update_table_description)
+from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result
+from cda_bq_etl.bq_helpers.create_modify import delete_bq_table, copy_bq_table, update_friendly_name, update_table_labels, \
+    update_table_description
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')

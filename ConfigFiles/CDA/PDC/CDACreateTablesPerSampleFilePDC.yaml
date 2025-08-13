@@ -1,0 +1,33 @@
+version: 1
+
+######################################################################################
+#
+#   steps: toggle script functions on and off (off = commented out).
+#          note: the order of steps here doesn't alter the order of execution,
+#          which is fixed.
+#
+######################################################################################
+
+steps:
+  # creates the project tables
+  - create_project_tables
+
+######################################################################################
+#
+#   params: configuration settings
+#
+######################################################################################
+
+params:
+  # path where you'd like log files to be created on your VM
+  # customize this!
+  LOGFILE_PATH: 'path/to/your/file.log'
+
+  # Base name of per sample file tables
+  # generally doesn't change
+  TABLE_NAME: per_sample_file_metadata
+
+  # name of generic table metadata files in BQEcosystem repo
+  # generally doesn't change
+  GENERIC_TABLE_METADATA_FILE: cda_pdc_per_sample_file.json
+  GENERIC_TABLE_METADATA_FILE_2_PROGRAM: cda_pdc_per_sample_file_multi_program.json

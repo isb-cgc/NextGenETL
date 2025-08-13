@@ -1,0 +1,129 @@
+#
+# YAML Configuration file used for CDA-GDC pipeline scripts.
+#
+
+version: 1
+
+######################################################################################
+#
+#   steps: should remain null--steps are defined in individual yaml config files
+#
+######################################################################################
+
+steps: null
+
+######################################################################################
+#
+#   params: configuration settings
+#
+######################################################################################
+
+params:
+
+  # release number
+  # customize this!
+  RELEASE: r42
+
+  # when data was extracted by CDA
+  # customize this!
+  EXTRACTED_MONTH_YEAR: March 2025
+
+  # link to GDC release notes
+  # customize this!
+  RELEASE_NOTES_URL: https://docs.gdc.cancer.gov/Data/Release_Notes/Data_Release_Notes/#data-release-420
+
+  # CDA archive file name
+  # check bucket for name--current url: https://console.cloud.google.com/storage/browser/cda_etl_data/GDC)
+  # customize this!
+  TAR_FILE: v42.0__extracted_2025-02-14__01a__GDC_all_extracted_data_as_TSVs__upgraded_for_ISB-CGC.tgz
+
+  # DCF table id
+  # customize this!
+  DRS_URI_TABLE_ID: isb-project-zero.GDC_manifests.dr42_paths_active
+
+  # GCS working bucket -- base directory where pipeline files, such as schema files
+  # and .jsonl files used to populate tables, are stored in GCS
+  # customize this!
+  WORKING_BUCKET: <working-bucket-here>
+
+  # GCS working bucket directory -- path to where pipeline files are stored in GCS
+  # customize this!
+  WORKING_BUCKET_DIR: <your>/<bucket>/<dir>
+
+  # scratch directory on local VM, used to store files while written or after downloaded from GCS
+  # customize this!
+  SCRATCH_DIR: <vm-scratch-dir-here>
+
+  # development project name
+  # customize this!
+  DEV_PROJECT: <bq-development-project-here>
+
+  # development raw dataset name, used to house base tables created from CDA tsv files
+  # customize this!
+  DEV_RAW_DATASET: <bq-raw-dataset-here>
+
+  # development metadata dataset name, used to store tables which live in the metadata production datasets
+  # customize this!
+  DEV_METADATA_DATASET: <bq-dev-metadata-dataset-here>
+
+  # development per sample file dataset name, used to store tables which live in program datasets in production
+  # customize this!
+  DEV_SAMPLE_DATASET: <bq-dev-sample-dataset-here>
+
+  # development clinical dataset name, used to store tables which live in program datasets in production
+  # customize this!
+  DEV_CLINICAL_DATASET: <bq-dev-clinical-dataset-here>
+
+  # dictionary of any program names that need to be altered
+  # may sometimes need to be updated
+  ALTER_PROGRAM_NAMES:
+    EXCEPTIONAL_RESPONDERS: EXC_RESPONDERS
+    BEATAML1.0: BEATAML1_0
+
+  # API from which CDA derived the data
+  # generally doesn't change
+  NODE: gdc
+
+  # GCS bucket where CDA hosts the archive files for download
+  # generally doesn't change
+  CDA_BUCKET_PROJECT: GDC-BQ-Sample
+
+  # GCS blob uri
+  # generally doesn't change
+  BLOB_URI_PATH: gs://cda_etl_data/GDC
+
+  # BQEcosystem repo, where column definitions and generic table metadata is stored
+  # generally doesn't change
+  BQ_REPO: BQEcosystem
+
+  # generic schema directory in BQEcosystem repo
+  # generally doesn't change
+  GENERIC_SCHEMA_DIR: GenericSchemas
+
+  # generic schema directory in BQEcosystem repo
+  # generally doesn't change
+  COLUMN_DESCRIPTION_FILEPATH: TableFieldUpdates/cda_gdc_column_descriptions.json
+
+  # generic metadata mapping directory in BQEcosystem repo
+  # generally doesn't change
+  PROGRAM_METADATA_DIR: MetadataMappings
+
+  # generic metadata mapping file in BQEcosystem repo
+  # generally doesn't change
+  PROGRAM_METADATA_FILE: cda_gdc_program_metadata.json
+
+  # excluded legacy records dataset
+  # generally doesn't change
+  EXCLUDED_RECORDS_DATASET: cda_gdc_excluded_legacy_records
+
+  # BigQuery production project
+  # generally doesn't change
+  PROD_PROJECT: isb-cgc-bq
+
+  # BigQuery production dataset
+  # generally doesn't change
+  PROD_METADATA_DATASET: GDC_case_file_metadata
+
+  # BQ project/dataset location, defined when created
+  # generally doesn't change
+  LOCATION: us

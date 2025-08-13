@@ -1,44 +1,48 @@
-"""
-Copyright 2023, Institute for Systems Biology
+# Copyright 2023-2025, Institute for Systems Biology
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+# Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-"""
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+"""Google Cloud Storage helper functions."""
+
 import logging
 import os
 import sys
-from typing import Union, Optional
+from typing import Optional
 
 from google.cloud import storage, exceptions
 from cda_bq_etl.utils import get_scratch_fp, get_filepath
+from cda_bq_etl.custom_typing import Params
 
-Params = dict[str, Union[str, dict, int]]
 
-
-def download_from_external_bucket(uri_path: str, dir_path: str, filename: str, project: str = None,
+def download_from_external_bucket(uri_path: str,
+                                  dir_path: str,
+                                  filename: str,
+                                  project: Optional[str] = None,
                                   expand_fp: bool = True):
-
     """
     Download file from Google storage bucket onto VM.
-    :param project: GCS project from which to download blob
+
     :param uri_path: GCS uri path
-    :param filename: Name of file to download
+    :type uri_path: str
     :param dir_path: VM location for downloaded file
+    :type dir_path: str
+    :param filename: Name of file to download
+    :type filename: str
+    :param project: GCS project from which to download blob
+    :type project: Optional[str]
+    :param expand_fp: If True, expand filepath; else use relative path {dir_path}/{filename}
+    :type expand_fp: bool
     """
     if expand_fp:
         file_path = get_filepath(dir_path, filename)
@@ -69,15 +73,21 @@ def download_from_bucket(params: Params,
                          filename: str,
                          bucket_path: Optional[str] = None,
                          dir_path: Optional[str] = None,
-                         project: Optional[str] = ""):
+                         project: str = ""):
     """
     Download file from Google storage bucket onto VM.
+
     :param params: params from yaml config, used to retrieve default bucket directory path
+    :type params: Params
     :param filename: Name of file to download
+    :type filename: str
     :param bucket_path: Optional, override default bucket directory path
+    :type bucket_path: Optional[str]
     :param dir_path: Optional, location in which to download file;
                      if not specified, defaults to scratch folder defined in params
-    :param project: Optional, defined if project outside the default scope
+    :type dir_path: Optional[str]
+    :param project: Optional, defined if project outside the default scope; defaults to empty string
+    :type project: str
     """
     if not dir_path:
         file_path = get_scratch_fp(params, filename)
@@ -107,10 +117,15 @@ def download_from_bucket(params: Params,
 def upload_to_bucket(params: Params, scratch_fp: str, delete_local: bool = False, verbose: bool = True):
     """
     Upload file to a Google storage bucket (bucket/directory location specified in YAML config).
+
     :param params: bq param object from yaml config
+    :type params: Params
     :param scratch_fp: name of file to upload to bucket
+    :type scratch_fp: str
     :param delete_local: delete scratch file created on VM
+    :type delete_local: bool
     :param verbose: if True, log a confirmation for each file uploaded
+    :type verbose: bool
     """
     logger = logging.getLogger('base_script.cda_bq_etl.gcs_helpers')
 
@@ -145,18 +160,27 @@ def upload_to_bucket(params: Params, scratch_fp: str, delete_local: bool = False
         sys.exit(err)
     except FileNotFoundError as err:
         logger.critical(f"File not found, failed to access local file.\n{err}")
-        sys.exit(err)
+        sys.exit(-1)
 
 
-def transfer_between_buckets(params, source_bucket_name, bucket_file, target_bucket_name, target_bucket_file=None):
+def transfer_between_buckets(params: Params,
+                             source_bucket_name: str,
+                             bucket_file: str,
+                             target_bucket_name: str,
+                             target_bucket_file: Optional[str] = None):
     """
-    todo
-    :param params:
-    :param source_bucket_name:
-    :param bucket_file:
-    :param target_bucket_name:
-    :param target_bucket_file:
-    :return:
+    Transfer file from source bucket to target bucket.
+
+    :param params: params from YAML config
+    :type params: Params
+    :param source_bucket_name: Name of source bucket
+    :type source_bucket_name: str
+    :param bucket_file: Name of src file
+    :type bucket_file: str
+    :param target_bucket_name: Name of target bucket
+    :type target_bucket_name: str
+    :param target_bucket_file: Name of target file, defaults to source_bucket_name (if set to None)
+    :type target_bucket_file: Optional[str]
     """
     logger = logging.getLogger('base_script.cda_bq_etl.gcs_helpers')
 
