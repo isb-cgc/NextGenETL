@@ -9,6 +9,12 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
+"""
+LAW: I'm dropping this from the pipeline. Not all of the cohorts even have cohort_ids, so it's going to be difficult
+to make a meaningful comparison between versions.
+"""
+
+
 def make_table_sql() -> str:
     return f"""    
     SELECT * 

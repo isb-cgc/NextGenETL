@@ -20,11 +20,11 @@ SCRIPT_NAME=$1
 
 CASE_ARG="case"
 CLINICAL_ARG="clinical"
-COHORT_ARG="cohort"
+# COHORT_ARG="cohort"
 FILE_ARG="file"
 PER_SAMPLE_FILE_ARG="per_sample_file"
 STUDY_ARG="study"
-VISIT_ARG="visit"
+# VISIT_ARG="visit"
 
 SHARED_CONFIG_FILE="CDASharedConfigICDC.yaml"
 
@@ -34,9 +34,9 @@ if [[ ${SCRIPT_NAME} = ${CASE_ARG} ]] ; then
 elif [[ ${SCRIPT_NAME} = ${CLINICAL_ARG} ]] ; then
     CONFIG_FILE="CDACreateTablesClinicalICDC.yaml"
     SCRIPT_FILE="create_tables_clinical_icdc.py"
-elif [[ ${SCRIPT_NAME} = ${COHORT_ARG} ]] ; then
-    CONFIG_FILE="CDACreateTablesCohortICDC.yaml"
-    SCRIPT_FILE="create_tables_cohort_icdc.py"
+# elif [[ ${SCRIPT_NAME} = ${COHORT_ARG} ]] ; then
+#    CONFIG_FILE="CDACreateTablesCohortICDC.yaml"
+#    SCRIPT_FILE="create_tables_cohort_icdc.py"
 elif [[ ${SCRIPT_NAME} = ${FILE_ARG} ]] ; then
     CONFIG_FILE="CDACreateTablesFileICDC.yaml"
     SCRIPT_FILE="create_tables_file_metadata_icdc.py"
@@ -46,11 +46,11 @@ elif [[ ${SCRIPT_NAME} = ${PER_SAMPLE_FILE_ARG} ]] ; then
 elif [[ ${SCRIPT_NAME} = ${STUDY_ARG} ]] ; then
     CONFIG_FILE="CDACreateTablesStudyICDC.yaml"
     SCRIPT_FILE="create_tables_study_icdc.py"
-elif [[ ${SCRIPT_NAME} = ${VISIT_ARG} ]] ; then
-    CONFIG_FILE="CDACreateTablesVisitICDC.yaml"
-    SCRIPT_FILE="create_tables_visit_icdc.py"
+# elif [[ ${SCRIPT_NAME} = ${VISIT_ARG} ]] ; then
+#    CONFIG_FILE="CDACreateTablesVisitICDC.yaml"
+#    SCRIPT_FILE="create_tables_visit_icdc.py"
 else
-    echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, cohort, file, per_sample_file, study, visit"
+    echo "Error: incorrect or missing script data type argument. Accepted values: case, clinical, file, per_sample_file, study"
     exit 1
 fi
 
