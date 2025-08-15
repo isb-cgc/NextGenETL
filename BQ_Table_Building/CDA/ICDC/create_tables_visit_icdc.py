@@ -13,6 +13,13 @@ from cda_bq_etl.bq_helpers.create_modify import create_and_load_table_from_jsonl
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
+"""
+LAW: I'm excluding this from the pipeline at the moment. We didn't really figure out a good solution to handling this 
+information. Currently, this code builds the nested table we presented to ICDC. They said it shouldn't be nested. 
+We were disinclined to create a bunch of additional mapping tables that differ from what's available from the other 
+nodes. As of mid-2025, there wasn't a lot of data here anyway. Only one program included visit data.
+"""
+
 
 def make_program_acronym_sql() -> str:
     return f"""
