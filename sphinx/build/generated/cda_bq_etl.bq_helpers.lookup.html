@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>cda_bq_etl.bq_helpers.lookup &#8212; ISB-CGC ETL 1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
+    <script src="../_static/documentation_options.js?v=29a6c3e3"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-cda_bq_etl.bq_helpers.lookup">
+<span id="cda-bq-etl-bq-helpers-lookup"></span><h1>cda_bq_etl.bq_helpers.lookup<a class="headerlink" href="#module-cda_bq_etl.bq_helpers.lookup" title="Link to this heading">¶</a></h1>
+<p>Look up and/or retrieve data stored in BigQuery.</p>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.exists_bq_dataset" title="cda_bq_etl.bq_helpers.lookup.exists_bq_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">exists_bq_dataset</span></code></a>(dataset_id)</p></td>
+<td><p>Determine whether the dataset exists in BigQuery project.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.exists_bq_table" title="cda_bq_etl.bq_helpers.lookup.exists_bq_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">exists_bq_table</span></code></a>(table_id)</p></td>
+<td><p>Determine whether a BigQuery table exists for a given table_id.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.find_missing_columns" title="cda_bq_etl.bq_helpers.lookup.find_missing_columns"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_missing_columns</span></code></a>(params[, ...])</p></td>
+<td><p>Get list of columns from CDA table, compare to column order and excluded column lists in yaml config (TABLE_PARAMS), output any missing columns in either location.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.find_most_recent_published_refseq_table_id" title="cda_bq_etl.bq_helpers.lookup.find_most_recent_published_refseq_table_id"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_most_recent_published_refseq_table_id</span></code></a>(...)</p></td>
+<td><p>Find table id for most recent published version of UniProt dataset.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.find_most_recent_published_table_id" title="cda_bq_etl.bq_helpers.lookup.find_most_recent_published_table_id"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_most_recent_published_table_id</span></code></a>(params, ...)</p></td>
+<td><p>Locate most recent published table id for dataset's previous release, if it exists.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.get_columns_in_table" title="cda_bq_etl.bq_helpers.lookup.get_columns_in_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_columns_in_table</span></code></a>(table_id)</p></td>
+<td><p>Retrieve a list of columns found in table.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.get_gdc_program_list" title="cda_bq_etl.bq_helpers.lookup.get_gdc_program_list"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_gdc_program_list</span></code></a>(params[, rename_programs])</p></td>
+<td><p>Get GDC program list (used to divide the data into grouped tables).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.get_most_recent_published_table_id_dcf" title="cda_bq_etl.bq_helpers.lookup.get_most_recent_published_table_id_dcf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_most_recent_published_table_id_dcf</span></code></a>(...)</p></td>
+<td><p>Locate most recent published DCF table.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.get_most_recent_published_table_id_pdc" title="cda_bq_etl.bq_helpers.lookup.get_most_recent_published_table_id_pdc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_most_recent_published_table_id_pdc</span></code></a>(...)</p></td>
+<td><p>Locate most recent published PDC table id for dataset's previous release, if it exists.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.get_pdc_per_project_dataset" title="cda_bq_etl.bq_helpers.lookup.get_pdc_per_project_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_pdc_per_project_dataset</span></code></a>(params, ...)</p></td>
+<td><p>Retrieve the program dataset for PDC project.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.get_pdc_per_study_dataset" title="cda_bq_etl.bq_helpers.lookup.get_pdc_per_study_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_pdc_per_study_dataset</span></code></a>(params, pdc_study_id)</p></td>
+<td><p>Retrieve the program dataset for PDC study.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.get_pdc_project_metadata" title="cda_bq_etl.bq_helpers.lookup.get_pdc_project_metadata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_pdc_project_metadata</span></code></a>(params[, ...])</p></td>
+<td><p>Get project short name, program short name and project name for given project submitter id.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.get_pdc_projects_metadata_list" title="cda_bq_etl.bq_helpers.lookup.get_pdc_projects_metadata_list"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_pdc_projects_metadata_list</span></code></a>(params)</p></td>
+<td><p>Return current list of PDC projects and associated metadata (pulled from study metadata table in BQEcosystem repo).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.list_tables_in_dataset" title="cda_bq_etl.bq_helpers.lookup.list_tables_in_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">list_tables_in_dataset</span></code></a>(project_dataset_id[, ...])</p></td>
+<td><p>Create a list of table names contained within dataset.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.query_and_retrieve_result" title="cda_bq_etl.bq_helpers.lookup.query_and_retrieve_result"><code class="xref py py-obj docutils literal notranslate"><span class="pre">query_and_retrieve_result</span></code></a>(sql)</p></td>
+<td><p>Create and execute a BQ QueryJob; await and return query result.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.query_and_return_row_count" title="cda_bq_etl.bq_helpers.lookup.query_and_return_row_count"><code class="xref py py-obj docutils literal notranslate"><span class="pre">query_and_return_row_count</span></code></a>(sql)</p></td>
+<td><p>Create and execute a BQ QueryJob, wait for and return affected row count.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.table_has_new_data" title="cda_bq_etl.bq_helpers.lookup.table_has_new_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">table_has_new_data</span></code></a>(previous_table_id, ...)</p></td>
+<td><p>Compare newly created table and existing published table.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.lookup.exists_bq_dataset">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.lookup.</span></span><span class="sig-name descname"><span class="pre">exists_bq_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.lookup.exists_bq_dataset" title="Link to this definition">¶</a></dt>
+<dd><p>Determine whether the dataset exists in BigQuery project.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dataset_id</strong> (<em>str</em>) – dataset id to validate</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if dataset exists, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.lookup.exists_bq_table">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.lookup.</span></span><span class="sig-name descname"><span class="pre">exists_bq_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.lookup.exists_bq_table" title="Link to this definition">¶</a></dt>
+<dd><p>Determine whether a BigQuery table exists for a given table_id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>table_id</strong> (<em>str</em>) – table id in standard SQL format</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if exists, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.lookup.find_missing_columns">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.lookup.</span></span><span class="sig-name descname"><span class="pre">find_missing_columns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_trivial_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.lookup.find_missing_columns" title="Link to this definition">¶</a></dt>
+<dd><p>Get list of columns from CDA table, compare to column order and excluded column lists in yaml config (TABLE_PARAMS),
+output any missing columns in either location.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params defined in yaml config</p></li>
+<li><p><strong>include_trivial_columns</strong> (<em>bool</em>) – Optional; if True, will list columns that are not found in yaml config even if they
+have only null values in the dataset</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.lookup.find_most_recent_published_refseq_table_id">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.lookup.</span></span><span class="sig-name descname"><span class="pre">find_most_recent_published_refseq_table_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">versioned_table_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.lookup.find_most_recent_published_refseq_table_id" title="Link to this definition">¶</a></dt>
+<dd><p>Find table id for most recent published version of UniProt dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – api_params supplied in YAML config</p></li>
+<li><p><strong>versioned_table_id</strong> (<em>str</em>) – (future) published versioned table id for current release</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>previous published versioned table id, if exists; else None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.lookup.find_most_recent_published_table_id">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.lookup.</span></span><span class="sig-name descname"><span class="pre">find_most_recent_published_table_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">versioned_table_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_base_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.lookup.find_most_recent_published_table_id" title="Link to this definition">¶</a></dt>
+<dd><p>Locate most recent published table id for dataset’s previous release, if it exists.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params supplied in yaml config</p></li>
+<li><p><strong>versioned_table_id</strong> (<em>str</em>) – public versioned table id for current release</p></li>
+<li><p><strong>table_base_name</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – table name stripped of version</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>last published table id, if any; otherwise None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.lookup.get_columns_in_table">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.lookup.</span></span><span class="sig-name descname"><span class="pre">get_columns_in_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.lookup.get_columns_in_table" title="Link to this definition">¶</a></dt>
+<dd><p>Retrieve a list of columns found in table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>table_id</strong> (<em>str</em>) – table id in standard SQL format</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of column names</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.lookup.get_gdc_program_list">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.lookup.</span></span><span class="sig-name descname"><span class="pre">get_gdc_program_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rename_programs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.lookup.get_gdc_program_list" title="Link to this definition">¶</a></dt>
+<dd><p>Get GDC program list (used to divide the data into grouped tables).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params defined in yaml config</p></li>
+<li><p><strong>rename_programs</strong> (<em>bool</em>) – Whether to alter the program name; if True, uses the ALTER_PROGRAM_NAMES parameter in
+the yaml config</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of programs or projects</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.lookup.get_most_recent_published_table_id_dcf">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.lookup.</span></span><span class="sig-name descname"><span class="pre">get_most_recent_published_table_id_dcf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_filter_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.lookup.get_most_recent_published_table_id_dcf" title="Link to this definition">¶</a></dt>
+<dd><p>Locate most recent published DCF table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params supplied in yaml config</p></li>
+<li><p><strong>dataset</strong> (<em>str</em>) – dataset containing versioned tables</p></li>
+<li><p><strong>table_filter_str</strong> (<em>str</em>) – String used to filter table id results</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.lookup.get_most_recent_published_table_id_pdc">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.lookup.</span></span><span class="sig-name descname"><span class="pre">get_most_recent_published_table_id_pdc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_filter_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.lookup.get_most_recent_published_table_id_pdc" title="Link to this definition">¶</a></dt>
+<dd><p>Locate most recent published PDC table id for dataset’s previous release, if it exists.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params supplied in yaml config</p></li>
+<li><p><strong>dataset</strong> (<em>str</em>) – dataset containing versioned tables</p></li>
+<li><p><strong>table_filter_str</strong> (<em>str</em>) – String used to filter table id results</p></li>
+<li><p><strong>is_metadata</strong> (<em>bool</em>) – If True, table is metadata type; False for per-project and per-study table types</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>last published table id, if any; otherwise None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.lookup.get_pdc_per_project_dataset">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.lookup.</span></span><span class="sig-name descname"><span class="pre">get_pdc_per_project_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project_short_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.lookup.get_pdc_per_project_dataset" title="Link to this definition">¶</a></dt>
+<dd><p>Retrieve the program dataset for PDC project.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params from YAML config</p></li>
+<li><p><strong>project_short_name</strong> (<em>str</em>) – PDC project short name</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>PDC program dataset to which the project belongs</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.lookup.get_pdc_per_study_dataset">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.lookup.</span></span><span class="sig-name descname"><span class="pre">get_pdc_per_study_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pdc_study_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.lookup.get_pdc_per_study_dataset" title="Link to this definition">¶</a></dt>
+<dd><p>Retrieve the program dataset for PDC study.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params from YAML config</p></li>
+<li><p><strong>pdc_study_id</strong> (<em>str</em>) – PDC study id</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>PDC program dataset to which the study belongs</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.lookup.get_pdc_project_metadata">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.lookup.</span></span><span class="sig-name descname"><span class="pre">get_pdc_project_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project_submitter_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.lookup.get_pdc_project_metadata" title="Link to this definition">¶</a></dt>
+<dd><p>Get project short name, program short name and project name for given project submitter id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params from YAML config</p></li>
+<li><p><strong>project_submitter_id</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – Project submitter id for which to retrieve names</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple containing (project_short_name, program_short_name, project_name) strings</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[dict[str, str]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.lookup.get_pdc_projects_metadata_list">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.lookup.</span></span><span class="sig-name descname"><span class="pre">get_pdc_projects_metadata_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.lookup.get_pdc_projects_metadata_list" title="Link to this definition">¶</a></dt>
+<dd><p>Return current list of PDC projects and associated metadata (pulled from study metadata table in BQEcosystem repo).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>params</strong> (<em>Params</em>) – params defined in yaml config</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of PDC project metadata</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[dict[str, str]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.lookup.list_tables_in_dataset">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.lookup.</span></span><span class="sig-name descname"><span class="pre">list_tables_in_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_dataset_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_terms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.lookup.list_tables_in_dataset" title="Link to this definition">¶</a></dt>
+<dd><p>Create a list of table names contained within dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>project_dataset_id</strong> (<em>str</em>) – search location dataset id</p></li>
+<li><p><strong>filter_terms</strong> (<em>Optional</em><em>[</em><em>str</em><em> | </em><em>list</em><em>[</em><em>str</em><em>]</em><em>]</em>) – Optional, pass a string or a list of strings that should match a table name substring
+(e.g. “gdc” would return only tables associated with that node.)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of filtered table names</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.lookup.query_and_retrieve_result">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.lookup.</span></span><span class="sig-name descname"><span class="pre">query_and_retrieve_result</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sql</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">RowIterator</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">_EmptyRowIterator</span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.lookup.query_and_retrieve_result" title="Link to this definition">¶</a></dt>
+<dd><p>Create and execute a BQ QueryJob; await and return query result.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sql</strong> (<em>str</em>) – the query for which to execute and return results</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>query result, or None if query fails</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>BQQueryResult | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.lookup.query_and_return_row_count">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.lookup.</span></span><span class="sig-name descname"><span class="pre">query_and_return_row_count</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sql</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.lookup.query_and_return_row_count" title="Link to this definition">¶</a></dt>
+<dd><p>Create and execute a BQ QueryJob, wait for and return affected row count. Useful for updating table values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sql</strong> (<em>str</em>) – the query for which to execute and return results</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>number of rows affected, or None if query fails</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.lookup.table_has_new_data">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.lookup.</span></span><span class="sig-name descname"><span class="pre">table_has_new_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">previous_table_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_table_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.lookup.table_has_new_data" title="Link to this definition">¶</a></dt>
+<dd><p>Compare newly created table and existing published table. Only publish new table if there’s a difference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>previous_table_id</strong> (<em>str</em>) – table id for existing published table</p></li>
+<li><p><strong>current_table_id</strong> (<em>str</em>) – table id for new table</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if table has new data, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="../index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">cda_bq_etl.bq_helpers.lookup</a><ul>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.exists_bq_dataset"><code class="docutils literal notranslate"><span class="pre">exists_bq_dataset()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.exists_bq_table"><code class="docutils literal notranslate"><span class="pre">exists_bq_table()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.find_missing_columns"><code class="docutils literal notranslate"><span class="pre">find_missing_columns()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.find_most_recent_published_refseq_table_id"><code class="docutils literal notranslate"><span class="pre">find_most_recent_published_refseq_table_id()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.find_most_recent_published_table_id"><code class="docutils literal notranslate"><span class="pre">find_most_recent_published_table_id()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.get_columns_in_table"><code class="docutils literal notranslate"><span class="pre">get_columns_in_table()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.get_gdc_program_list"><code class="docutils literal notranslate"><span class="pre">get_gdc_program_list()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.get_most_recent_published_table_id_dcf"><code class="docutils literal notranslate"><span class="pre">get_most_recent_published_table_id_dcf()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.get_most_recent_published_table_id_pdc"><code class="docutils literal notranslate"><span class="pre">get_most_recent_published_table_id_pdc()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.get_pdc_per_project_dataset"><code class="docutils literal notranslate"><span class="pre">get_pdc_per_project_dataset()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.get_pdc_per_study_dataset"><code class="docutils literal notranslate"><span class="pre">get_pdc_per_study_dataset()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.get_pdc_project_metadata"><code class="docutils literal notranslate"><span class="pre">get_pdc_project_metadata()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.get_pdc_projects_metadata_list"><code class="docutils literal notranslate"><span class="pre">get_pdc_projects_metadata_list()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.list_tables_in_dataset"><code class="docutils literal notranslate"><span class="pre">list_tables_in_dataset()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.query_and_retrieve_result"><code class="docutils literal notranslate"><span class="pre">query_and_retrieve_result()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.query_and_return_row_count"><code class="docutils literal notranslate"><span class="pre">query_and_return_row_count()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.lookup.table_has_new_data"><code class="docutils literal notranslate"><span class="pre">table_has_new_data()</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, ISB-CGC.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="../_sources/generated/cda_bq_etl.bq_helpers.lookup.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

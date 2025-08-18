@@ -1,0 +1,32 @@
+version: 1
+
+######################################################################################
+#
+#   steps: toggle script functions on and off (off = commented out).
+#          note: the order of steps here doesn't alter the order of execution,
+#          which is fixed.
+#
+######################################################################################
+
+steps:
+  # create table using query provided in the python script
+  - create_table_from_query
+
+######################################################################################
+#
+#   params: configuration settings
+#
+######################################################################################
+
+params:
+  # path where you'd like log files to be created on your VM
+  # customize this!
+  LOGFILE_PATH: 'path/to/your/file.log'
+
+  # base name of file associated entity mapping table
+  # generally doesn't change
+  TABLE_NAME: file_associated_entity_mapping
+
+  # name of generic table metadata file in BQEcosystem repo
+  # generally doesn't change
+  GENERIC_TABLE_METADATA_FILE: cda_pdc_assoc_entity.json

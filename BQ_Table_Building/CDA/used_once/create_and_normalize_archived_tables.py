@@ -24,7 +24,6 @@ import sys
 from common_etl.support import bq_harness_with_result
 from common_etl.utils import load_config, has_fatal_error, normalize_flat_json_values, write_list_to_jsonl_and_upload, \
     create_and_upload_schema_for_json, retrieve_bq_schema_object, create_and_load_table_from_jsonl
-from cda_bq_etl.bq_helpers import query_and_retrieve_result
 
 API_PARAMS = dict()
 BQ_PARAMS = dict()
@@ -237,7 +236,6 @@ def main(args):
 
     if 'create_case_metadata_legacy_table' in steps:
         create_table(table_name=BQ_PARAMS['CASE_TABLE_NAME'])
-
 
 
 if __name__ == "__main__":

@@ -32,8 +32,8 @@ from typing import Union
 from cda_bq_etl.gcs_helpers import upload_to_bucket, download_from_bucket, download_from_external_bucket
 from cda_bq_etl.utils import get_scratch_fp, load_config, get_filepath, format_seconds, create_dev_table_id
 from cda_bq_etl.data_helpers import create_normalized_tsv, initialize_logging
-from cda_bq_etl.bq_helpers import retrieve_bq_schema_object, create_and_upload_schema_for_tsv, \
-    create_and_load_table_from_tsv, create_table_from_query
+from cda_bq_etl.bq_helpers.schema import create_and_upload_schema_for_tsv, retrieve_bq_schema_object
+from cda_bq_etl.bq_helpers.create_modify import create_and_load_table_from_tsv, create_table_from_query
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')

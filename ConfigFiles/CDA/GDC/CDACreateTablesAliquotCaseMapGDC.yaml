@@ -1,0 +1,36 @@
+version: 1
+
+######################################################################################
+#
+#   steps: toggle script functions on and off (off = commented out).
+#          note: the order of steps here doesn't alter the order of execution,
+#          which is fixed.
+#
+######################################################################################
+
+steps:
+  # create table using query provided in the python script
+  - create_table_from_query
+
+######################################################################################
+#
+#   params: configuration settings
+#
+######################################################################################
+
+params:
+  # path where you'd like log files to be created on your VM
+  # customize this!
+  LOGFILE_PATH: 'path/to/your/file.log'
+
+  # base name of aliquot to case id map table
+  # generally doesn't change
+  TABLE_NAME: aliquot2caseIDmap
+
+  # name of generic table metadata file in BQEcosystem repo
+  # generally doesn't change
+  GENERIC_TABLE_METADATA_FILE: cda_gdc_aliquot_case_map.json
+
+  # table_id of legacy aliquot to case metadata table
+  # generally doesn't change
+  LEGACY_TABLE_ID: isb-project-zero.cda_gdc_legacy.aliquot_legacy

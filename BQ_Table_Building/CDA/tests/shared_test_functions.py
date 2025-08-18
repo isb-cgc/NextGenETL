@@ -24,7 +24,7 @@ from typing import Union
 
 from google.cloud.bigquery.table import RowIterator
 
-from cda_bq_etl.bq_helpers import query_and_retrieve_result
+from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result
 from common_etl.utils import has_fatal_error
 
 BQQueryResult = Union[None, RowIterator]

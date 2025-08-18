@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>cda_bq_etl.bq_helpers.create_modify &#8212; ISB-CGC ETL 1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
+    <script src="../_static/documentation_options.js?v=29a6c3e3"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-cda_bq_etl.bq_helpers.create_modify">
+<span id="cda-bq-etl-bq-helpers-create-modify"></span><h1>cda_bq_etl.bq_helpers.create_modify<a class="headerlink" href="#module-cda_bq_etl.bq_helpers.create_modify" title="Link to this heading">¶</a></h1>
+<p>Create or modify BigQuery tables.</p>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.await_insert_job" title="cda_bq_etl.bq_helpers.create_modify.await_insert_job"><code class="xref py py-obj docutils literal notranslate"><span class="pre">await_insert_job</span></code></a>(params, client, table_id, ...)</p></td>
+<td><p>Monitor for completion of BigQuery LoadJob or QueryJob that produces some result (generally data insertion).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.await_job" title="cda_bq_etl.bq_helpers.create_modify.await_job"><code class="xref py py-obj docutils literal notranslate"><span class="pre">await_job</span></code></a>(params, client, bq_job)</p></td>
+<td><p>Monitor the completion of BigQuery Job which doesn't return a result.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.change_status_to_archived" title="cda_bq_etl.bq_helpers.create_modify.change_status_to_archived"><code class="xref py py-obj docutils literal notranslate"><span class="pre">change_status_to_archived</span></code></a>(archived_table_id)</p></td>
+<td><p>Change the status label of archived_table_id to 'archived.'</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.copy_bq_table" title="cda_bq_etl.bq_helpers.create_modify.copy_bq_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy_bq_table</span></code></a>(params, src_table, dest_table)</p></td>
+<td><p>Copy an existing BigQuery src_table into the location specified by dest_table.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.create_and_load_table_from_jsonl" title="cda_bq_etl.bq_helpers.create_modify.create_and_load_table_from_jsonl"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_and_load_table_from_jsonl</span></code></a>(params, ...)</p></td>
+<td><p>Create new BigQuery table and populate with jsonl file contents.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.create_and_load_table_from_tsv" title="cda_bq_etl.bq_helpers.create_modify.create_and_load_table_from_tsv"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_and_load_table_from_tsv</span></code></a>(params, ...)</p></td>
+<td><p>Create new BigQuery table and populate rows using rows of tsv file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.create_bq_dataset" title="cda_bq_etl.bq_helpers.create_modify.create_bq_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_bq_dataset</span></code></a>(params, project_id, ...)</p></td>
+<td><p>Create new BigQuery dataset.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.create_table_from_query" title="cda_bq_etl.bq_helpers.create_modify.create_table_from_query"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_table_from_query</span></code></a>(params, table_id, query)</p></td>
+<td><p>Create new BigQuery table using result output of BigQuery SQL query.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.create_view_from_query" title="cda_bq_etl.bq_helpers.create_modify.create_view_from_query"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_view_from_query</span></code></a>(view_id, view_query)</p></td>
+<td><p>Create BigQuery view using a SQL query.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.delete_bq_table" title="cda_bq_etl.bq_helpers.create_modify.delete_bq_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">delete_bq_table</span></code></a>(table_id)</p></td>
+<td><p>Permanently delete BigQuery table located by table_id.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.load_create_table_job" title="cda_bq_etl.bq_helpers.create_modify.load_create_table_job"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_create_table_job</span></code></a>(params, data_file, ...)</p></td>
+<td><p>Generate BigQuery LoadJob, which creates a Table and loads it with data.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.publish_table" title="cda_bq_etl.bq_helpers.create_modify.publish_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">publish_table</span></code></a>(params, table_ids)</p></td>
+<td><p>Publish production BigQuery tables using source_table_id.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.update_friendly_name" title="cda_bq_etl.bq_helpers.create_modify.update_friendly_name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_friendly_name</span></code></a>(params, table_id[, ...])</p></td>
+<td><p>Modify BigQuery table's friendly name.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.update_table_description" title="cda_bq_etl.bq_helpers.create_modify.update_table_description"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_table_description</span></code></a>(table_ids, description)</p></td>
+<td><p>Update table description for each table in <cite>table_ids</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.update_table_labels" title="cda_bq_etl.bq_helpers.create_modify.update_table_labels"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_table_labels</span></code></a>(table_id, label_dict)</p></td>
+<td><p>Update metadata labels for table_id.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.update_table_schema_from_generic" title="cda_bq_etl.bq_helpers.create_modify.update_table_schema_from_generic"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_table_schema_from_generic</span></code></a>(params, ...)</p></td>
+<td><p>Insert schema tags into generic schema (currently located in BQEcosystem repo).</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.create_modify.await_insert_job">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.create_modify.</span></span><span class="sig-name descname"><span class="pre">await_insert_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Client</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bq_job</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QueryJob</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.create_modify.await_insert_job" title="Link to this definition">¶</a></dt>
+<dd><p>Monitor for completion of BigQuery LoadJob or QueryJob that produces some result (generally data insertion).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params supplied in yaml config</p></li>
+<li><p><strong>client</strong> (<em>Client</em>) – BigQuery Client object</p></li>
+<li><p><strong>table_id</strong> (<em>str</em>) – BigQuery table identifier</p></li>
+<li><p><strong>bq_job</strong> (<em>QueryJob</em>) – QueryJob object</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.create_modify.await_job">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.create_modify.</span></span><span class="sig-name descname"><span class="pre">await_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Client</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bq_job</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">QueryJob</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.create_modify.await_job" title="Link to this definition">¶</a></dt>
+<dd><p>Monitor the completion of BigQuery Job which doesn’t return a result.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params from yaml config file</p></li>
+<li><p><strong>client</strong> (<em>Client</em>) – BigQuery Client object</p></li>
+<li><p><strong>bq_job</strong> (<em>QueryJob</em>) – A QueryJob object, responsible for executing BigQuery function calls</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if job successfully executes; otherwise throws a critical error and exits</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.create_modify.change_status_to_archived">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.create_modify.</span></span><span class="sig-name descname"><span class="pre">change_status_to_archived</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">archived_table_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.create_modify.change_status_to_archived" title="Link to this definition">¶</a></dt>
+<dd><p>Change the status label of archived_table_id to ‘archived.’</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>archived_table_id</strong> (<em>str</em>) – id for table that is being archived</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.create_modify.copy_bq_table">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.create_modify.</span></span><span class="sig-name descname"><span class="pre">copy_bq_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replace_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.create_modify.copy_bq_table" title="Link to this definition">¶</a></dt>
+<dd><p>Copy an existing BigQuery src_table into the location specified by dest_table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – param object from yaml config</p></li>
+<li><p><strong>src_table</strong> (<em>str</em>) – ID of table to copy</p></li>
+<li><p><strong>dest_table</strong> (<em>str</em>) – ID of table create</p></li>
+<li><p><strong>replace_table</strong> (<em>bool</em>) – Replace existing table, if one exists; defaults to False</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.create_modify.create_and_load_table_from_jsonl">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.create_modify.</span></span><span class="sig-name descname"><span class="pre">create_and_load_table_from_jsonl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jsonl_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">SchemaField</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.create_modify.create_and_load_table_from_jsonl" title="Link to this definition">¶</a></dt>
+<dd><p>Create new BigQuery table and populate with jsonl file contents.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params supplied in yaml config</p></li>
+<li><p><strong>jsonl_file</strong> (<em>str</em>) – file containing single-line json objects, which represent rows to be loaded into table</p></li>
+<li><p><strong>table_id</strong> (<em>str</em>) – target table id</p></li>
+<li><p><strong>schema</strong> (<em>Optional</em><em>[</em><em>list</em><em>[</em><em>SchemaField</em><em>]</em><em>]</em>) – list of SchemaField objects; if None, attempt to autodetect schema using BigQuery’s native autodetect</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.create_modify.create_and_load_table_from_tsv">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.create_modify.</span></span><span class="sig-name descname"><span class="pre">create_and_load_table_from_tsv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tsv_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_header_rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">SchemaField</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">null_marker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.create_modify.create_and_load_table_from_tsv" title="Link to this definition">¶</a></dt>
+<dd><p>Create new BigQuery table and populate rows using rows of tsv file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params supplied in yaml config</p></li>
+<li><p><strong>tsv_file</strong> (<em>str</em>) – file containing records in tsv format</p></li>
+<li><p><strong>schema</strong> (<em>Optional</em><em>[</em><em>list</em><em>[</em><em>SchemaField</em><em>]</em><em>]</em>) – list of SchemaField objects; if None, attempt to autodetect schema using BigQuery’s native autodetect</p></li>
+<li><p><strong>table_id</strong> (<em>str</em>) – target table id</p></li>
+<li><p><strong>num_header_rows</strong> (<em>int</em>) – number of header rows in file (these are skipped during processing)</p></li>
+<li><p><strong>null_marker</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – null_marker character, optional (defaults to empty string for tsv/csv in bigquery)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.create_modify.create_bq_dataset">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.create_modify.</span></span><span class="sig-name descname"><span class="pre">create_bq_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.create_modify.create_bq_dataset" title="Link to this definition">¶</a></dt>
+<dd><p>Create new BigQuery dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – param object from yaml config</p></li>
+<li><p><strong>project_id</strong> (<em>str</em>) – Parent project of new dataset</p></li>
+<li><p><strong>dataset_name</strong> (<em>str</em>) – Name for new dataset</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.create_modify.create_table_from_query">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.create_modify.</span></span><span class="sig-name descname"><span class="pre">create_table_from_query</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.create_modify.create_table_from_query" title="Link to this definition">¶</a></dt>
+<dd><p>Create new BigQuery table using result output of BigQuery SQL query.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params supplied in yaml config</p></li>
+<li><p><strong>table_id</strong> (<em>str</em>) – target table id</p></li>
+<li><p><strong>query</strong> (<em>str</em>) – data selection query, used to populate a new BigQuery table</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.create_modify.create_view_from_query">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.create_modify.</span></span><span class="sig-name descname"><span class="pre">create_view_from_query</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">view_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">view_query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.create_modify.create_view_from_query" title="Link to this definition">¶</a></dt>
+<dd><p>Create BigQuery view using a SQL query.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>view_id</strong> (<em>str</em><em> | </em><em>Any</em>) – view_id (same structure as a BigQuery table id)</p></li>
+<li><p><strong>view_query</strong> (<em>str</em>) – query from which to construct the view</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.create_modify.delete_bq_table">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.create_modify.</span></span><span class="sig-name descname"><span class="pre">delete_bq_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.create_modify.delete_bq_table" title="Link to this definition">¶</a></dt>
+<dd><p>Permanently delete BigQuery table located by table_id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>table_id</strong> (<em>str</em>) – target table id</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.create_modify.load_create_table_job">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.create_modify.</span></span><span class="sig-name descname"><span class="pre">load_create_table_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Client</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">LoadJobConfig</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.create_modify.load_create_table_job" title="Link to this definition">¶</a></dt>
+<dd><p>Generate BigQuery LoadJob, which creates a Table and loads it with data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params supplied in yaml config</p></li>
+<li><p><strong>data_file</strong> (<em>str</em>) – file containing case records</p></li>
+<li><p><strong>client</strong> (<em>Client</em>) – BigQuery Client object</p></li>
+<li><p><strong>table_id</strong> (<em>str</em>) – BigQuery table identifier</p></li>
+<li><p><strong>job_config</strong> (<em>LoadJobConfig</em>) – LoadJobConfig object</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.create_modify.publish_table">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.create_modify.</span></span><span class="sig-name descname"><span class="pre">publish_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.create_modify.publish_table" title="Link to this definition">¶</a></dt>
+<dd><p>Publish production BigQuery tables using source_table_id. Update versioned table friendly name.
+Change the last versioned table’s ‘status’ label to ‘archived.’</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params supplied in yaml config</p></li>
+<li><p><strong>table_ids</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em>) – dict of table ids: ‘source’ (dev table), ‘versioned’, ‘current’ (future published ids),
+and ‘previous_versioned’ (most recent published table)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.create_modify.update_friendly_name">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.create_modify.</span></span><span class="sig-name descname"><span class="pre">update_friendly_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.create_modify.update_friendly_name" title="Link to this definition">¶</a></dt>
+<dd><p>Modify BigQuery table’s friendly name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – API params, supplied via yaml config</p></li>
+<li><p><strong>table_id</strong> (<em>str</em>) – table id in standard SQL format
+if is_gdc and no custom_name is specified, we add REL before the version onto the existing friendly name;
+if custom_name is specified, this behavior is overridden, and the table’s friendly name is replaced entirely</p></li>
+<li><p><strong>custom_name</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – specifies a custom friendly name; by default, if is_gdc,
+append the following to the versioned table friendly name: ‘REL ‘ + api_params[‘RELEASE’] + ‘ VERSIONED’
+else append the following to the versioned table friendly name: api_params[‘RELEASE’] + ‘ VERSIONED’”</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.create_modify.update_table_description">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.create_modify.</span></span><span class="sig-name descname"><span class="pre">update_table_description</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.create_modify.update_table_description" title="Link to this definition">¶</a></dt>
+<dd><p>Update table description for each table in <cite>table_ids</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>table_ids</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – list of table ids to update</p></li>
+<li><p><strong>description</strong> (<em>str</em>) – description to add to each table’s metadata–note, the same description is applied for each
+table in list.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.create_modify.update_table_labels">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.create_modify.</span></span><span class="sig-name descname"><span class="pre">update_table_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.create_modify.update_table_labels" title="Link to this definition">¶</a></dt>
+<dd><p>Update metadata labels for table_id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>table_id</strong> (<em>str</em>) – table_id for which to update labels</p></li>
+<li><p><strong>label_dict</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em>) – dict of labels and their values</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.create_modify.update_table_schema_from_generic">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.create_modify.</span></span><span class="sig-name descname"><span class="pre">update_table_schema_from_generic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema_tags</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">friendly_name_suffix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generate_definitions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.create_modify.update_table_schema_from_generic" title="Link to this definition">¶</a></dt>
+<dd><p>Insert schema tags into generic schema (currently located in BQEcosystem repo).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params from YAML config</p></li>
+<li><p><strong>table_id</strong> (<em>str</em>) – table_id where schema metadata should be inserted</p></li>
+<li><p><strong>schema_tags</strong> (<em>Optional</em><em>[</em><em>dict</em><em>]</em>) – schema tags used to populate generic schema metadata</p></li>
+<li><p><strong>friendly_name_suffix</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – string to append to friendly name (e.g. REL XX VERSIONED)</p></li>
+<li><p><strong>metadata_file</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – name of generic table metadata file</p></li>
+<li><p><strong>generate_definitions</strong> – if true, generate column definitions by parsing the column name (e.g. this_column_name
+definition would be ‘this column name’)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="../index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">cda_bq_etl.bq_helpers.create_modify</a><ul>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.await_insert_job"><code class="docutils literal notranslate"><span class="pre">await_insert_job()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.await_job"><code class="docutils literal notranslate"><span class="pre">await_job()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.change_status_to_archived"><code class="docutils literal notranslate"><span class="pre">change_status_to_archived()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.copy_bq_table"><code class="docutils literal notranslate"><span class="pre">copy_bq_table()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.create_and_load_table_from_jsonl"><code class="docutils literal notranslate"><span class="pre">create_and_load_table_from_jsonl()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.create_and_load_table_from_tsv"><code class="docutils literal notranslate"><span class="pre">create_and_load_table_from_tsv()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.create_bq_dataset"><code class="docutils literal notranslate"><span class="pre">create_bq_dataset()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.create_table_from_query"><code class="docutils literal notranslate"><span class="pre">create_table_from_query()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.create_view_from_query"><code class="docutils literal notranslate"><span class="pre">create_view_from_query()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.delete_bq_table"><code class="docutils literal notranslate"><span class="pre">delete_bq_table()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.load_create_table_job"><code class="docutils literal notranslate"><span class="pre">load_create_table_job()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.publish_table"><code class="docutils literal notranslate"><span class="pre">publish_table()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.update_friendly_name"><code class="docutils literal notranslate"><span class="pre">update_friendly_name()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.update_table_description"><code class="docutils literal notranslate"><span class="pre">update_table_description()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.update_table_labels"><code class="docutils literal notranslate"><span class="pre">update_table_labels()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.create_modify.update_table_schema_from_generic"><code class="docutils literal notranslate"><span class="pre">update_table_schema_from_generic()</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, ISB-CGC.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="../_sources/generated/cda_bq_etl.bq_helpers.create_modify.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

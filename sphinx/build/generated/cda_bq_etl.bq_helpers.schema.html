@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>cda_bq_etl.bq_helpers.schema &#8212; ISB-CGC ETL 1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
+    <script src="../_static/documentation_options.js?v=29a6c3e3"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-cda_bq_etl.bq_helpers.schema">
+<span id="cda-bq-etl-bq-helpers-schema"></span><h1>cda_bq_etl.bq_helpers.schema<a class="headerlink" href="#module-cda_bq_etl.bq_helpers.schema" title="Link to this heading">¶</a></h1>
+<p>Generate schema objects for BigQuery.</p>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.convert_object_structure_dict_to_schema_dict" title="cda_bq_etl.bq_helpers.schema.convert_object_structure_dict_to_schema_dict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">convert_object_structure_dict_to_schema_dict</span></code></a>(...)</p></td>
+<td><p>Recursively parse dict of {&lt;field&gt;: {&lt;data_types&gt;}} representing data object's structure; convert into dict representing a TableSchema object.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.create_and_upload_schema_for_json" title="cda_bq_etl.bq_helpers.schema.create_and_upload_schema_for_json"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_and_upload_schema_for_json</span></code></a>(params, ...)</p></td>
+<td><p>Create a schema object by recursively detecting the object structure and data types, storing result, and converting that to a Schema dict for BQ ingestion.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.create_and_upload_schema_for_tsv" title="cda_bq_etl.bq_helpers.schema.create_and_upload_schema_for_tsv"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_and_upload_schema_for_tsv</span></code></a>(params, tsv_fp)</p></td>
+<td><p>Create and upload schema for a file in tsv format.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.create_schema_object" title="cda_bq_etl.bq_helpers.schema.create_schema_object"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_schema_object</span></code></a>(column_headers, ...)</p></td>
+<td><p>Create BigQuery SchemaField object.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.generate_bq_schema_fields" title="cda_bq_etl.bq_helpers.schema.generate_bq_schema_fields"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_bq_schema_fields</span></code></a>(schema_obj_list)</p></td>
+<td><p>Convert list of schema fields into TableSchema object.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.get_gene_info_schema_tags" title="cda_bq_etl.bq_helpers.schema.get_gene_info_schema_tags"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_gene_info_schema_tags</span></code></a>(params)</p></td>
+<td><p>Get PDC gene info table schema tags.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.get_program_schema_tags_gdc" title="cda_bq_etl.bq_helpers.schema.get_program_schema_tags_gdc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_program_schema_tags_gdc</span></code></a>(params, program_name)</p></td>
+<td><p>Get GDC program schema tags from BQEcosystem.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.get_program_schema_tags_icdc" title="cda_bq_etl.bq_helpers.schema.get_program_schema_tags_icdc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_program_schema_tags_icdc</span></code></a>(program_name)</p></td>
+<td><p>Get ICDC program schema tags.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.get_project_level_schema_tags" title="cda_bq_etl.bq_helpers.schema.get_project_level_schema_tags"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_project_level_schema_tags</span></code></a>(params, ...)</p></td>
+<td><p>Get project-level schema tags for populating generic table metadata schema.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.get_uniprot_schema_tags" title="cda_bq_etl.bq_helpers.schema.get_uniprot_schema_tags"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_uniprot_schema_tags</span></code></a>(params)</p></td>
+<td><p>Get UniProt schema tags.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.reorder_data_types_dict" title="cda_bq_etl.bq_helpers.schema.reorder_data_types_dict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reorder_data_types_dict</span></code></a>(params, data_types_dict)</p></td>
+<td><p>Manually repair mis-ordered data type dict.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.retrieve_bq_schema_object" title="cda_bq_etl.bq_helpers.schema.retrieve_bq_schema_object"><code class="xref py py-obj docutils literal notranslate"><span class="pre">retrieve_bq_schema_object</span></code></a>(params[, ...])</p></td>
+<td><p>Retrieve schema file from GDC bucket and convert into list of SchemaField objects.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.schema.convert_object_structure_dict_to_schema_dict">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.schema.</span></span><span class="sig-name descname"><span class="pre">convert_object_structure_dict_to_schema_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_schema_dict:</span> <span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">None</span> <span class="pre">|</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">bool]</span> <span class="pre">|</span> <span class="pre">list[dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">None</span> <span class="pre">|</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">bool]]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">|</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_format_obj:</span> <span class="pre">list</span> <span class="pre">=</span> <span class="pre">&lt;class</span> <span class="pre">'list'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">descriptions:</span> <span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.schema.convert_object_structure_dict_to_schema_dict" title="Link to this definition">¶</a></dt>
+<dd><p>Recursively parse dict of {&lt;field&gt;: {&lt;data_types&gt;}} representing data object’s structure;
+convert into dict representing a TableSchema object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data_schema_dict</strong> (<em>RowDict</em><em> | </em><em>JSONList</em><em> | </em><em>ColumnTypes</em>) – dictionary representing dataset’s structure, fields and data types</p></li>
+<li><p><strong>dataset_format_obj</strong> (<em>list</em>) – holds schema dict as it is recursively created</p></li>
+<li><p><strong>descriptions</strong> (<em>Optional</em><em>[</em><em>dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em><em>]</em>) – (optional) dictionary of field: description string pairs for inclusion in schema definition</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of schema field dicts</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[dict]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.schema.create_and_upload_schema_for_json">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.schema.</span></span><span class="sig-name descname"><span class="pre">create_and_upload_schema_for_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">record_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_release</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">release</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema_fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete_local</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reorder_nesting</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.schema.create_and_upload_schema_for_json" title="Link to this definition">¶</a></dt>
+<dd><p>Create a schema object by recursively detecting the object structure and data types, storing result,
+and converting that to a Schema dict for BQ ingestion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params supplied in yaml config</p></li>
+<li><p><strong>record_list</strong> (<em>JSONList</em>) – list of records to analyze (used to determine schema)</p></li>
+<li><p><strong>table_name</strong> (<em>str</em>) – table for which the schema is being generated</p></li>
+<li><p><strong>include_release</strong> (<em>bool</em>) – if true, includes release in schema file name; defaults to False</p></li>
+<li><p><strong>release</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – custom release value; defaults to None, in which case the value is derived from the yaml config</p></li>
+<li><p><strong>schema_fp</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – path to schema location on local vm, defaults to None, in which case the value is derived from
+the yaml config</p></li>
+<li><p><strong>delete_local</strong> (<em>bool</em>) – delete local file after uploading to cloud bucket</p></li>
+<li><p><strong>reorder_nesting</strong> (<em>bool</em>) – whether the data_types_dict should be reordered, defaults to False</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.schema.create_and_upload_schema_for_tsv">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.schema.</span></span><span class="sig-name descname"><span class="pre">create_and_upload_schema_for_tsv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tsv_fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header_row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema_fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete_local</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_interval</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cda_bq_etl.bq_helpers.schema.create_and_upload_schema_for_tsv" title="Link to this definition">¶</a></dt>
+<dd><p>Create and upload schema for a file in tsv format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params supplied in yaml config</p></li>
+<li><p><strong>tsv_fp</strong> (<em>str</em>) – path to tsv data file, parsed to create schema</p></li>
+<li><p><strong>header_row</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – integer index of header row within the file; defaults to None</p></li>
+<li><p><strong>skip_rows</strong> (<em>int</em>) – integer representing number of non-data rows at the start of the file; defaults to 0</p></li>
+<li><p><strong>schema_fp</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – path to schema location on local vm; defaults to None</p></li>
+<li><p><strong>delete_local</strong> (<em>bool</em>) – delete local file after uploading to cloud bucket; defaults to True</p></li>
+<li><p><strong>sample_interval</strong> (<em>int</em>) – how many rows to skip between column type checks; defaults to 1</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.schema.create_schema_object">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.schema.</span></span><span class="sig-name descname"><span class="pre">create_schema_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column_headers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_types_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.schema.create_schema_object" title="Link to this definition">¶</a></dt>
+<dd><p>Create BigQuery SchemaField object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>column_headers</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – list of column names</p></li>
+<li><p><strong>data_types_dict</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em>) – dictionary of column names and their types (should have been run through
+resolve_type_conflicts() prior to use here)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>BQ schema field object list</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>SchemaFieldFormat</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.schema.generate_bq_schema_fields">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.schema.</span></span><span class="sig-name descname"><span class="pre">generate_bq_schema_fields</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schema_obj_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">SchemaField</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.schema.generate_bq_schema_fields" title="Link to this definition">¶</a></dt>
+<dd><p>Convert list of schema fields into TableSchema object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>schema_obj_list</strong> (<em>JSONList</em>) – list of dicts representing BigQuery SchemaField objects</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of BigQuery SchemaField objects (represents TableSchema object)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[SchemaField]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.schema.get_gene_info_schema_tags">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.schema.</span></span><span class="sig-name descname"><span class="pre">get_gene_info_schema_tags</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.schema.get_gene_info_schema_tags" title="Link to this definition">¶</a></dt>
+<dd><p>Get PDC gene info table schema tags.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>params</strong> (<em>Params</em>) – params from YAML config</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Schema tag dict</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.schema.get_program_schema_tags_gdc">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.schema.</span></span><span class="sig-name descname"><span class="pre">get_program_schema_tags_gdc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">program_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.schema.get_program_schema_tags_gdc" title="Link to this definition">¶</a></dt>
+<dd><p>Get GDC program schema tags from BQEcosystem.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params from YAML config</p></li>
+<li><p><strong>program_name</strong> (<em>str</em>) – Program for which to retrieve schema tags</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Schema tag dict</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.schema.get_program_schema_tags_icdc">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.schema.</span></span><span class="sig-name descname"><span class="pre">get_program_schema_tags_icdc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">program_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.schema.get_program_schema_tags_icdc" title="Link to this definition">¶</a></dt>
+<dd><p>Get ICDC program schema tags.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>program_name</strong> (<em>str</em>) – ICDC program name</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Schema tag dict</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.schema.get_project_level_schema_tags">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.schema.</span></span><span class="sig-name descname"><span class="pre">get_project_level_schema_tags</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project_submitter_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.schema.get_project_level_schema_tags" title="Link to this definition">¶</a></dt>
+<dd><p>Get project-level schema tags for populating generic table metadata schema.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params from YAML config</p></li>
+<li><p><strong>project_submitter_id</strong> (<em>str</em>) – project submitter id for which to retrieve schema tags</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict of schema tags</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.schema.get_uniprot_schema_tags">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.schema.</span></span><span class="sig-name descname"><span class="pre">get_uniprot_schema_tags</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.schema.get_uniprot_schema_tags" title="Link to this definition">¶</a></dt>
+<dd><p>Get UniProt schema tags.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>params</strong> (<em>Params</em>) – params from YAML config</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Schema tag dict</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.schema.reorder_data_types_dict">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.schema.</span></span><span class="sig-name descname"><span class="pre">reorder_data_types_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_types_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.schema.reorder_data_types_dict" title="Link to this definition">¶</a></dt>
+<dd><p>Manually repair mis-ordered data type dict. (If a field in the first entity is null, nested values in
+data_types_dict get reordered.)
+There’s probably a better way to go about this, like reordering the data_types_dict before it’s returned,
+but currently only one table in ICDC uses nesting and making changes to recursively_detect_object_structure
+would impact every pipeline.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params supplied in yaml config</p></li>
+<li><p><strong>data_types_dict</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em> | </em><em>dict</em><em>]</em>) – a dictionary representing the data structure and field types.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>reordered data_types_dict</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cda_bq_etl.bq_helpers.schema.retrieve_bq_schema_object">
+<span class="sig-prename descclassname"><span class="pre">cda_bq_etl.bq_helpers.schema.</span></span><span class="sig-name descname"><span class="pre">retrieve_bq_schema_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">release</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_release</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema_filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">SchemaField</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cda_bq_etl.bq_helpers.schema.retrieve_bq_schema_object" title="Link to this definition">¶</a></dt>
+<dd><p>Retrieve schema file from GDC bucket and convert into list of SchemaField objects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>Params</em>) – params supplied in yaml config</p></li>
+<li><p><strong>table_name</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – name of table for which schema was created; defaults to None</p></li>
+<li><p><strong>release</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – data release number; defaults to None, in which case it’s derived from yaml config</p></li>
+<li><p><strong>include_release</strong> (<em>bool</em>) – Whether to include release in filename</p></li>
+<li><p><strong>schema_filename</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – schema file name</p></li>
+<li><p><strong>schema_dir</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – schema file directory location</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of SchemaField objects for BigQuery ingestion</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[SchemaField]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="../index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">cda_bq_etl.bq_helpers.schema</a><ul>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.convert_object_structure_dict_to_schema_dict"><code class="docutils literal notranslate"><span class="pre">convert_object_structure_dict_to_schema_dict()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.create_and_upload_schema_for_json"><code class="docutils literal notranslate"><span class="pre">create_and_upload_schema_for_json()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.create_and_upload_schema_for_tsv"><code class="docutils literal notranslate"><span class="pre">create_and_upload_schema_for_tsv()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.create_schema_object"><code class="docutils literal notranslate"><span class="pre">create_schema_object()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.generate_bq_schema_fields"><code class="docutils literal notranslate"><span class="pre">generate_bq_schema_fields()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.get_gene_info_schema_tags"><code class="docutils literal notranslate"><span class="pre">get_gene_info_schema_tags()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.get_program_schema_tags_gdc"><code class="docutils literal notranslate"><span class="pre">get_program_schema_tags_gdc()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.get_program_schema_tags_icdc"><code class="docutils literal notranslate"><span class="pre">get_program_schema_tags_icdc()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.get_project_level_schema_tags"><code class="docutils literal notranslate"><span class="pre">get_project_level_schema_tags()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.get_uniprot_schema_tags"><code class="docutils literal notranslate"><span class="pre">get_uniprot_schema_tags()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.reorder_data_types_dict"><code class="docutils literal notranslate"><span class="pre">reorder_data_types_dict()</span></code></a></li>
+<li><a class="reference internal" href="#cda_bq_etl.bq_helpers.schema.retrieve_bq_schema_object"><code class="docutils literal notranslate"><span class="pre">retrieve_bq_schema_object()</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, ISB-CGC.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="../_sources/generated/cda_bq_etl.bq_helpers.schema.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

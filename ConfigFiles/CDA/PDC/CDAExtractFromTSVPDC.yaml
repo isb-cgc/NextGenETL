@@ -1,0 +1,54 @@
+version: 1
+
+######################################################################################
+#
+#   steps: toggle script functions on and off (off = commented out).
+#          note: the order of steps here doesn't alter the order of execution,
+#          which is fixed.
+#
+######################################################################################
+
+steps:
+  # Download the CDA compressed archive from GCS
+  - download_cda_archive_file
+  # Extract and normalize the CDA archive tsv files
+  - extract_normalize_upload_tsvs
+  # Create BigQuery schemas for .tsv files
+  - create_schemas
+  # Create BigQuery tables using the normalized tsv files and schemas created above
+  - create_tables
+
+######################################################################################
+#
+#   params: configuration settings
+#
+######################################################################################
+
+params:
+  # path where you'd like log files to be created on your VM
+  # customize this!
+  LOGFILE_PATH: 'path/to/your/file.log'
+
+  # local VM directory in which to download and extract the CDA .tsv compressed archive
+  # customize this!
+  LOCAL_TAR_DIR: <your>/<local>/<dir>
+
+  # name of folder created once archive is extracted
+  # customize this!
+  LOCAL_EXTRACT_DIR: cda_pdc
+
+  # directories to keep from CDA archive (the files contained there will be turned into raw tables
+  # generally doesn't change
+  DIRS_TO_KEEP:
+    - Biospecimen
+    - Case
+    - CasesSamplesAliquots
+    - ClinicalMetadata
+    - Demographic
+    - Diagnosis
+    - File
+    - FileMetadata
+    - FilePerStudy
+    - Program
+    - Project
+    - Study

@@ -1,0 +1,628 @@
+#
+# YAML Configuration file used for script create_tables_clinical_gdc.py
+# Builds BQ program-level tables for CDA_old-GDC clinical data.
+#
+
+version: 1
+
+######################################################################################
+#
+#   steps: toggle script functions on and off (off = commented out).
+#          note: the order of steps here doesn't alter the order of execution,
+#          which is fixed.
+#
+######################################################################################
+
+steps:
+  # confirms that all clinical fields are defined in this yaml file and in the column definition file in BQEcosystem
+  - find_missing_fields
+  # create tables using query provided in the python script
+  - create_tables
+
+######################################################################################
+#
+#   params: configuration settings
+#
+######################################################################################
+
+params:
+  # path where you'd like log files to be created on your VM
+  # customize this!
+  LOGFILE_PATH: 'path/to/your/file.log'
+
+  # Directory for VM scratch files
+  # customize this!
+  SCRATCH_DIR: scratch
+
+  # bucket where scratch files are uploaded in GCS
+  # customize this!
+  WORKING_BUCKET: next-gen-etl-scratch
+
+  # What is the file path to the text file in the bucket:
+  # customize this!
+  WORKING_BUCKET_DIR: <path>/<to>/<working>/<bucket>
+
+  # name of generic table metadata files in BQEcosystem repo
+  # generally doesn't change
+  METADATA_FILE_SINGLE_PROGRAM: cda_gdc_clinical.json
+  METADATA_FILE_MULTI_PROGRAM: cda_gdc_clinical_multi_program.json
+
+  # TABLE_PARAMS has the following structure:
+  # <clinical_type>: the clinical data type, e.g. 'diagnosis'
+  #   child_of: which type is this type a child of, e.g. 'case'
+  #   parent_of: which type(s) is this type a parent of, e.g. 'treatment'
+  #   mapping_table: CDA file name that maps this type to records in its parent type, e.g. 'diagnosis_of_case'
+  #   prefix: prefix to prepend to column names, e.g. 'diag'
+  #   table_name: name for table containing this data type (if not combined with parent type), e.g. 'diagnosis'
+  #   column_order: order in which the columns display in the table
+  #     first: columns that appear at the start of the table
+  #     middle: columns in the middle of the table
+  #     last: columns at the end of the table
+  #   excluded_columns: columns to exclude from the table
+  # may need to be altered as new columns are added or columns are deprecated by the DC
+  TABLE_PARAMS:
+    case:
+      child_of:
+      parent_of:
+        - project
+        - demographic
+        - exposure
+        - family_history
+        - diagnosis
+        - follow_up
+      mapping_table: case
+      prefix:
+      table_name: clinical
+      column_order:
+        first:
+          - submitter_id
+          - case_id
+        middle:
+          - primary_site
+          - disease_type
+          - index_date
+          # - days_to_index  # not in CDA_old
+          - consent_type
+          - days_to_consent
+          - lost_to_followup
+          - days_to_lost_to_followup
+        last:
+          - state
+          - created_datetime
+          - updated_datetime
+      excluded_columns:
+        - case_autocomplete
+    project:
+        child_of: case
+        parent_of:
+        mapping_table: case_in_project
+        prefix: proj
+        table_name: project  # not used so far
+        column_order:
+          first:
+            - name
+            - project_id
+          middle:
+          last:
+        excluded_columns:
+          - released
+          - state
+          - dbgap_accession_number
+          - project_autocomplete
+          - releasable
+          - intended_release_date
+    demographic:
+      child_of: case
+      parent_of:
+      mapping_table: demographic_of_case
+      prefix: demo
+      table_name: clinical_demographic  # not used so far
+      column_order:
+        first:
+          - demographic_id
+        middle:
+          - gender
+          - race
+          - ethnicity
+          - country_of_residence_at_enrollment
+          - vital_status
+          - premature_at_birth
+          - weeks_gestation_at_birth
+          - days_to_birth
+          - year_of_birth
+          - age_is_obfuscated
+          - age_at_index
+          - year_of_death
+          - days_to_death
+          - cause_of_death
+          - cause_of_death_source
+          - occupation_duration_years
+          - state
+          - created_datetime
+          - updated_datetime
+        last:
+      excluded_columns:
+        - submitter_id
+    diagnosis:
+      child_of: case
+      parent_of:
+          - annotation
+          - pathology_detail
+          - treatment
+      mapping_table: diagnosis_of_case
+      prefix: diag
+      table_name: clinical_diagnosis
+      column_order:
+        first:
+          - diagnosis_id
+        middle:
+          - ajcc_clinical_n
+          - masaoka_stage
+          - greatest_tumor_dimension
+          - max_tumor_bulk_site
+          - percent_tumor_invasion
+          - mitosis_karyorrhexis_index
+          - ajcc_clinical_m
+          - anaplasia_present
+          - primary_diagnosis
+          - diagnosis_is_primary_disease
+          - primary_gleason_grade
+          - days_to_last_known_disease_status  # deprecated
+          - gross_tumor_weight
+          - year_of_diagnosis
+          - best_overall_response
+          - international_prognostic_index
+          - perineural_invasion_present
+          - margins_involved_site
+          - peripancreatic_lymph_nodes_tested
+          - weiss_assessment_score
+          - inpc_histologic_group
+          - transglottic_extension
+          - figo_stage
+          - days_to_diagnosis
+          - progression_or_recurrence  # deprecated
+          - ajcc_pathologic_m
+          - inrg_stage
+          - days_to_recurrence
+          - inss_stage
+          - metastasis_at_diagnosis
+          - ovarian_specimen_status
+          - cog_rhabdomyosarcoma_risk_group
+          - gastric_esophageal_junction_involvement
+          - site_of_resection_or_biopsy
+          - ajcc_staging_system_edition
+          - icd_10_code
+          - laterality
+          - gleason_grade_group
+          - age_at_diagnosis
+          - peritoneal_fluid_cytological_status
+          - ajcc_clinical_t
+          - days_to_last_follow_up  # deprecated
+          - anaplasia_present_type
+          - enneking_msts_tumor_site
+          - breslow_thickness
+          - lymph_nodes_tested
+          - goblet_cells_columnar_mucosa_present
+          - metastasis_at_diagnosis_site
+          - supratentorial_localization
+          - ajcc_pathologic_stage
+          - esophageal_columnar_metaplasia_present
+          - tumor_grade  # deprecated
+          - lymph_nodes_positive
+          - double_expressor_lymphoma
+          - double_hit_lymphoma
+          - tumor_largest_dimension_diameter
+          - last_known_disease_status  # deprecated
+          - pregnant_at_diagnosis
+          - irs_group
+          - ann_arbor_extranodal_involvement
+          - days_to_best_overall_response
+          - burkitt_lymphoma_clinical_variant
+          - residual_disease
+          - medulloblastoma_molecular_classification
+          - tumor_regression_grade
+          - enneking_msts_grade
+          - vascular_invasion_present
+          - child_pugh_classification
+          - first_symptom_prior_to_diagnosis
+          - enneking_msts_stage
+          - irs_stage
+          - esophageal_columnar_dysplasia_degree
+          - ajcc_clinical_stage
+          - ishak_fibrosis_score
+          - secondary_gleason_grade
+          - synchronous_malignancy
+          - gleason_patterns_percent
+          - lymph_node_involved_site
+          - tumor_depth
+          - morphology
+          - gleason_grade_tertiary
+          - ajcc_pathologic_t
+          - igcccg_stage
+          - inpc_grade
+          - largest_extrapelvic_peritoneal_focus
+          - figo_staging_edition_year
+          - lymphatic_invasion_present
+          - vascular_invasion_type
+          - wilms_tumor_histologic_subtype
+          - tumor_confined_to_organ_of_origin
+          - ovarian_surface_involvement
+          - cog_liver_stage
+          - classification_of_tumor
+          - margin_distance
+          - cog_renal_stage
+          - pediatric_kidney_staging
+          - enneking_msts_metastasis
+          - ann_arbor_clinical_stage
+          - ann_arbor_pathologic_stage
+          - ann_arbor_b_symptoms
+          - ann_arbor_b_symptoms_described
+          - uicc_clinical_stage
+          - uicc_pathologic_m
+          - uicc_pathologic_n
+          - uicc_pathologic_stage
+          - uicc_pathologic_t
+          - uicc_staging_system_edition
+          - circumferential_resection_margin
+          - tumor_stage
+          - iss_stage
+          - tumor_focality
+          - prior_treatment
+          - peripancreatic_lymph_nodes_positive
+          - ajcc_pathologic_n
+          - method_of_diagnosis
+          - cog_neuroblastoma_risk_group
+          - tissue_or_organ_of_origin
+          - prior_malignancy
+          - eln_risk_classification
+          - satellite_nodule_present
+          - who_cns_grade
+          - who_nte_grade
+          - sites_of_involvement
+          - state
+          - created_datetime
+          - updated_datetime
+        last:
+      excluded_columns:
+        - submitter_id
+    annotation:
+      child_of: diagnosis
+      parent_of:
+      mapping_table: annotation_diagnosis_case_id_map
+      prefix: diag__anno
+      table_name: clinical_diagnosis_annotation
+      column_order:
+        first:
+          - annotation_id
+        middle:
+          - entity_id
+          - entity_type
+          - category
+          - classification
+          - notes
+          - status
+          - state
+          - created_datetime
+          - updated_datetime
+          - legacy_created_datetime
+          - legacy_updated_datetime
+        last:
+      excluded_columns:
+        - submitter_id
+        - annotation_autocomplete
+        - case_submitter_id
+        - case_id
+        - entity_submitter_id
+    pathology_detail:
+      child_of: diagnosis
+      parent_of:
+      mapping_table: pathology_detail_diagnosis_case_id_map
+      prefix: diag__path
+      table_name: clinical_diagnosis_pathology_detail
+      column_order:
+        first:
+          - pathology_detail_id
+        middle:
+          - additional_pathology_findings
+          - anaplasia_present
+          - anaplasia_present_type
+          - bone_marrow_malignant_cells
+          - breslow_thickness
+          - circumferential_resection_margin
+          - columnar_mucosa_present
+          - consistent_pathology_review
+          - dysplasia_degree
+          - dysplasia_type
+          - greatest_tumor_dimension
+          - gross_tumor_weight
+          - largest_extrapelvic_peritoneal_focus
+          - lymph_node_involved_site
+          - lymph_node_involvement
+          - lymph_nodes_positive
+          - lymph_nodes_tested
+          - lymphatic_invasion_present
+          - margin_status
+          - metaplasia_present
+          - morphologic_architectural_pattern
+          - necrosis_percent
+          - necrosis_present
+          - non_nodal_regional_disease
+          - number_proliferating_cells
+          - percent_tumor_invasion
+          - percent_tumor_nuclei
+          - perineural_invasion_present
+          - peripancreatic_lymph_nodes_positive
+          - peripancreatic_lymph_nodes_tested
+          - prostatic_chips_positive_count
+          - prostatic_chips_total_count
+          - prostatic_involvement_percent
+          - transglottic_extension
+          - tumor_largest_dimension_diameter
+          - vascular_invasion_present
+          - vascular_invasion_type
+          - state
+          - created_datetime
+          - updated_datetime
+        last:
+      excluded_columns:
+        - submitter_id
+    treatment:
+      child_of: diagnosis
+      parent_of:
+      mapping_table: treatment_diagnosis_case_id_map
+      prefix: diag__treat
+      table_name: clinical_diagnosis_treatment
+      column_order:
+        first:
+          - treatment_id
+        middle:
+          - days_to_treatment_start
+          - number_of_cycles
+          - course_number
+          - treatment_outcome
+          - reason_treatment_ended
+          - chemo_concurrent_to_radiation
+          - treatment_arm
+          - treatment_type
+          - treatment_effect
+          - treatment_anatomic_site
+          - treatment_or_therapy
+          - treatment_effect_indicator
+          - treatment_dose_units
+          - treatment_dose
+          - therapeutic_agents
+          - initial_disease_status
+          - days_to_treatment_end
+          - treatment_frequency
+          - protocol_identifier
+          - regimen_or_line_of_therapy
+          - treatment_intent_type
+          - timepoint_category
+          - state
+          - created_datetime
+          - updated_datetime
+        last:
+      excluded_columns:
+        - submitter_id
+    exposure:
+      child_of: case
+      parent_of:
+      mapping_table: exposure_of_case
+      prefix: exp
+      table_name: clinical_exposure
+      column_order:
+        first:
+          - exposure_id
+        middle:
+          - height
+          - weight
+          - bmi
+          - age_at_onset
+          - tobacco_use_per_day
+          - type_of_tobacco_used
+          - smoking_frequency
+          - marijuana_use_per_week
+          - tobacco_smoking_status
+          - tobacco_smoking_onset_year
+          - tobacco_smoking_quit_year
+          - years_smoked
+          - pack_years_smoked
+          - cigarettes_per_day
+          - time_between_waking_and_first_smoke
+          - secondhand_smoke_as_child
+          - smokeless_tobacco_quit_age
+          - exposure_type
+          - exposure_duration
+          - exposure_duration_years
+          - asbestos_exposure
+          - coal_dust_exposure  # deprecated
+          - environmental_tobacco_smoke_exposure
+          - radon_exposure
+          - parent_with_radiation_exposure
+          - respirable_crystalline_silica_exposure
+          - type_of_smoke_exposure
+          - alcohol_history
+          - alcohol_intensity
+          - alcohol_drinks_per_day
+          - alcohol_days_per_week
+          - alcohol_type
+          - state
+          - created_datetime
+          - updated_datetime
+        last:
+      excluded_columns:
+        - submitter_id
+    family_history:
+      child_of: case
+      parent_of:
+      mapping_table: family_history_of_case
+      prefix: fam_hist
+      table_name: clinical_family_history
+      column_order:
+        first:
+          - family_history_id
+        middle:
+          - relatives_with_cancer_history_count
+          - relative_with_cancer_history
+          - relationship_primary_diagnosis
+          - relationship_type
+          - relationship_age_at_diagnosis
+          - relationship_gender
+          - state
+          - created_datetime
+          - updated_datetime
+        last:
+      excluded_columns:
+        - submitter_id
+    follow_up:
+      child_of: case
+      parent_of:
+        - molecular_test
+      mapping_table: follow_up_of_case
+      prefix: follow
+      table_name: clinical_follow_up
+      column_order:
+        first:
+          - follow_up_id
+        middle:
+          - days_to_follow_up
+          - days_to_progression_free
+          - height
+          - weight
+          - bmi
+          - progression_or_recurrence_type
+          - evidence_of_recurrence_type
+          - days_to_progression
+          - comorbidity
+          - days_to_comorbidity
+          - first_event
+          - days_to_first_event
+          - hysterectomy_type
+          - menopause_status
+          - hormonal_contraceptive_use
+          - dlco_ref_predictive_percent
+          - fev1_fvc_pre_bronch_percent
+          - fev1_ref_pre_bronch_percent
+          - diabetes_treatment_type
+          - hiv_viral_load
+          - aids_risk_factors
+          - barretts_esophagus_goblet_cells_present
+          - recist_targeted_regions_sum
+          - karnofsky_performance_status
+          - disease_response
+          - body_surface_area
+          - fev1_ref_post_bronch_percent
+          - viral_hepatitis_serologies
+          - adverse_event_grade
+          - comorbidity_method_of_diagnosis
+          - risk_factor_treatment
+          - scan_tracer_used
+          - hysterectomy_margins_involved
+          - pregnancy_outcome
+          - cdc_hiv_risk_factors
+          - reflux_treatment_type
+          - fev1_fvc_post_bronch_percent
+          - hpv_positive_type
+          - ecog_performance_status
+          - cd4_count
+          - progression_or_recurrence
+          - progression_or_recurrence_anatomic_site
+          - recist_targeted_regions_number
+          - pancreatitis_onset_year
+          - risk_factor
+          - haart_treatment_indicator
+          - adverse_event
+          - imaging_type
+          - imaging_result
+          - days_to_imaging
+          - hepatitis_sustained_virological_response
+          - immunosuppressive_treatment_type
+          - days_to_recurrence
+          - cause_of_response
+          - nadir_cd4_count
+          - days_to_adverse_event
+          - procedures_performed
+          - hormonal_contraceptive_type
+          - hormone_replacement_therapy_type
+          - year_of_follow_up
+          - timepoint_category
+          - state
+          - created_datetime
+          - updated_datetime
+        last:
+      excluded_columns:
+        - submitter_id
+    molecular_test:
+      child_of: follow_up
+      parent_of:
+      mapping_table: molecular_test_follow_up_case_id_map
+      prefix: follow__mol_test
+      table_name: clinical_follow_up_molecular_test
+      column_order:
+        first:
+          - molecular_test_id
+        middle:
+          - biospecimen_type
+          - biospecimen_volume
+          - variant_type
+          - variant_origin
+          - laboratory_test
+          - specialized_molecular_test
+          - test_analyte_type
+          - test_result
+          - transcript
+          - test_units
+          - pathogenicity
+          - hpv_strain
+          - aa_change
+          - blood_test_normal_range_upper
+          - loci_count
+          - antigen
+          - exon
+          - second_exon
+          - loci_abnormal_count
+          - zygosity
+          - test_value
+          - days_to_test
+          - clonality
+          - molecular_consequence
+          - molecular_analysis_method
+          - gene_symbol
+          - second_gene_symbol
+          - chromosome
+          - locus
+          - copy_number
+          - mismatch_repair_mutation
+          - blood_test_normal_range_lower
+          - ploidy
+          - aneuploidy
+          - cell_count
+          - histone_family
+          - histone_variant
+          - intron
+          - chromosomal_translocation
+          - chromosome_arm
+          - cytoband
+          - mitotic_count
+          - mitotic_total_area
+          - timepoint_category
+          - state
+          - created_datetime
+          - updated_datetime
+        last:
+      excluded_columns:
+        - submitter_id
+
+  # order of table types in merged clinical tables
+  # generally doesn't change
+  TABLE_INSERT_ORDER:
+    - case
+    - project
+    - demographic
+    - diagnosis
+    - treatment
+    - annotation
+    - exposure
+    - family_history
+    - follow_up
+    - molecular_test

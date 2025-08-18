@@ -24,8 +24,9 @@ from typing import Union
 
 from google.cloud import bigquery
 
-from cda_bq_etl.bq_helpers import query_and_return_row_count, update_friendly_name, copy_bq_table, \
-    change_status_to_archived, delete_bq_table, await_job
+from cda_bq_etl.bq_helpers.lookup import query_and_return_row_count
+from cda_bq_etl.bq_helpers.create_modify import await_job, delete_bq_table, copy_bq_table, update_friendly_name, \
+    change_status_to_archived
 
 Params = dict[str, Union[str, dict, int, bool]]
 

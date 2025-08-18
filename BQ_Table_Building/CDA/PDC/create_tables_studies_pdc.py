@@ -27,9 +27,9 @@ from typing import Optional, Any
 
 from cda_bq_etl.data_helpers import normalize_flat_json_values, write_list_to_jsonl_and_upload, initialize_logging
 from cda_bq_etl.utils import load_config, create_dev_table_id, format_seconds, get_filepath, create_metadata_table_id
-from cda_bq_etl.bq_helpers import (query_and_retrieve_result, update_table_schema_from_generic,
-                                   create_and_upload_schema_for_json, retrieve_bq_schema_object,
-                                   create_and_load_table_from_jsonl)
+from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result
+from cda_bq_etl.bq_helpers.schema import create_and_upload_schema_for_json, retrieve_bq_schema_object
+from cda_bq_etl.bq_helpers.create_modify import create_and_load_table_from_jsonl, update_table_schema_from_generic
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')

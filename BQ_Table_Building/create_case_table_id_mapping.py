@@ -24,8 +24,9 @@ import time
 
 from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload
 from cda_bq_etl.utils import load_config, format_seconds
-from cda_bq_etl.bq_helpers import (query_and_retrieve_result, create_and_upload_schema_for_json,
-                                   retrieve_bq_schema_object, create_and_load_table_from_jsonl)
+from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result
+from cda_bq_etl.bq_helpers.schema import create_and_upload_schema_for_json, retrieve_bq_schema_object
+from cda_bq_etl.bq_helpers.create_modify import create_and_load_table_from_jsonl
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')

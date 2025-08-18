@@ -1,0 +1,162 @@
+version: 1
+
+######################################################################################
+#
+#   steps: toggle script functions on and off (off = commented out).
+#          note: the order of steps here doesn't alter the order of execution,
+#          which is fixed.
+#
+######################################################################################
+
+steps:
+  # compare new tables to last published version
+  - compare_tables
+  # publish tables to production
+  # - publish_tables
+
+######################################################################################
+#
+#   params: configuration settings
+#
+######################################################################################
+
+params:
+  # path where you'd like log files to be created on your VM
+  # customize this!
+  LOGFILE_PATH: 'path/to/your/file.log'
+  # path where you'd like query log files to be created on your VM
+  # customize this!
+  QUERY_LOGFILE_PATH: 'path/to/your/file.log'
+
+  # if false, will not overwrite an existing published table
+  # change as desired
+  OVERWRITE_PROD_TABLE: TRUE
+
+  # number of changed rows to display; set to 0 to display all changed rows
+  # generally doesn't change
+  MAX_DISPLAY_ROWS: 5
+
+  # whether to output SQL queries to console; If TRUE, script is very verbose, useful for query debugging
+  # change as desired
+  EMIT_QUERY_LOG_TO_CONSOLE: TRUE
+
+# What the TABLE_TYPES params do:
+#  <table-type-here>:
+#    table_type: value will either be metadata or per_project_or_program.
+#                Determines published table_id format--metadata goes into node-level dataset;
+#                otherwise, tables go into program datasets.
+#    dev_dataset: development dataset name
+#    table_base_name: used to create production table name
+#    compare_using_primary_only: in clinical we only use primary keys to compare the two tables. why? more
+#    primary_key: the primary key, used for identifying records
+#    secondary_key: sometimes, a secondary key is needed to distinguish between records
+#    output_keys: list of keys used for comparison output
+#    keys_for_duplicate_detection: these columns are used to determine whether a record is a duplicate.
+#    concat_columns: list of concatenated columns to compare
+#    columns_excluded_from_compare: list of columns excluded from comparison
+# generally doesn't change
+  TABLE_TYPES:
+    aliquot:
+      data_type: metadata
+      dev_dataset: cda_gdc_metadata
+      table_base_name: aliquot2caseIDmap
+      compare_using_primary_only: false
+      primary_key: portion_gdc_id
+      secondary_key: aliquot_gdc_id
+      output_keys:
+        - project_id
+        - sample_type_name
+      keys_for_duplicate_detection:
+        - portion_gdc_id
+        - analyte_gdc_id
+        - aliquot_gdc_id
+        - sample_gdc_id
+      concat_columns: []
+      columns_excluded_from_compare: []
+    slide:
+      data_type: metadata
+      dev_dataset: cda_gdc_metadata
+      table_base_name: slide2caseIDmap
+      compare_using_primary_only: false
+      primary_key: slide_gdc_id
+      secondary_key: portion_gdc_id
+      output_keys:
+        - project_id
+        - sample_type_name
+      keys_for_duplicate_detection:
+        - slide_gdc_id
+        - slide_barcode
+        - sample_gdc_id
+        - portion_gdc_id
+      concat_columns: []
+      columns_excluded_from_compare: []
+    case:
+      data_type: metadata
+      dev_dataset: cda_gdc_metadata
+      table_base_name: caseData
+      compare_using_primary_only: false
+      primary_key: case_gdc_id
+      secondary_key: null
+      output_keys:
+        - project_id
+      keys_for_duplicate_detection:
+        - case_gdc_id
+      concat_columns:
+        - project_disease_type
+      columns_excluded_from_compare: []
+    file:
+      data_type: metadata
+      dev_dataset: cda_gdc_metadata
+      table_base_name: fileData_active
+      compare_using_primary_only: false
+      primary_key: file_gdc_id
+      secondary_key: null
+      output_keys:
+        - project_short_name
+        - data_format
+      keys_for_duplicate_detection:
+        - file_gdc_id
+      concat_columns:
+        - acl
+        - analysis_input_file_gdc_ids
+        - downstream_analyses__output_file_gdc_ids
+        - downstream_analyses__workflow_link
+        - downstream_analyses__workflow_type
+        - associated_entities__case_gdc_id
+        - associated_entities__entity_gdc_id
+        - associated_entities__entity_submitter_id
+        - case_gdc_id
+      columns_excluded_from_compare: []
+    clinical:
+      data_type: per_project_or_program
+      dev_dataset: cda_gdc_clinical
+      table_base_name: null
+      compare_using_primary_only: true
+      primary_key_dict:
+        clinical_follow_up_molecular_test: follow__mol_test__molecular_test_id
+        clinical_diagnosis_annotation: diag__anno__annotation_id
+        clinical_diagnosis_pathology_detail: diag__path__pathology_detail_id
+        clinical_diagnosis_treatment: diag__treat__treatment_id
+        clinical_demographic: demo__demographic_id
+        clinical_family_history: fam_hist__family_history_id
+        clinical_diagnosis: diag__diagnosis_id
+        clinical_follow_up: follow__follow_up_id
+        clinical: case_id
+      output_keys: []
+      concat_columns: []
+      columns_excluded_from_compare: []
+    per_sample_file:
+      data_type: per_project_or_program
+      dev_dataset: cda_gdc_per_sample_file
+      table_base_name: per_sample_file_metadata_hg38
+      compare_using_primary_only: false
+      primary_key: file_gdc_id
+      secondary_key: sample_gdc_id
+      output_keys: []
+      keys_for_duplicate_detection:
+        - sample_gdc_id
+        - case_gdc_id
+        - file_gdc_id
+      concat_columns:
+        - acl
+      columns_excluded_from_compare: []
