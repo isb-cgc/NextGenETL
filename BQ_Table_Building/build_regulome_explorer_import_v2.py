@@ -1,6 +1,6 @@
 """
 
-Copyright 2024, Institute for Systems Biology
+Copyright 2024-2025, Institute for Systems Biology
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,7 +25,8 @@ import time
 from git import Repo
 from json import loads as json_loads
 
-from common_etl.support import generic_bq_harness, delete_table_bq_job, install_labels_and_desc
+from common_etl.support import generic_bq_harness, delete_table_bq_job, \
+                               clear_table_labels, install_table_metadata
 
 '''
 Make sure the VM has BigQuery and Storage Read/Write permissions!
@@ -469,9 +470,7 @@ Table name for dataset
 
 
 def build_table_name(dataset):
-    return '__'.join(dataset[0:3]).replace('(', '').replace(')', '').replace('-', '_').replace(', ', ' ').replace(',',
-                                                                                                                  ' ').replace(
-        '+', 'and').replace(' ', '_')
+    return '__'.join(dataset[0:3]).replace('(', '').replace(')', '').replace('-', '_').replace(', ', ' ').replace(',',' ').replace('+', 'and').replace(' ', '_')
 
 
 '''
@@ -480,9 +479,9 @@ Combine cores.
 '''
 
 
-def glue_cores_together(core_tables, target_dataset, dest_table, do_batch):
+def glue_cores_together(core_tables, target_dataset, dest_table, do_batch, project):
     sql = glue_cores_sql(core_tables)
-    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True, project)
 
 
 '''
@@ -509,9 +508,9 @@ Reduced Core Generation
 
 
 def build_reduced_core(core_table, project_table, reduced_columns, reduced_map,
-                       target_dataset, dest_table, do_batch):
+                       target_dataset, dest_table, do_batch, project):
     sql = reduced_core_sql(core_table, project_table, reduced_columns, reduced_map)
-    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True, project)
 
 
 '''
@@ -541,9 +540,9 @@ Fix distance values
 '''
 
 
-def fix_distance_values(orig_bq_table, reorg_typed_schema, target_dataset, dest_table, do_batch):
+def fix_distance_values(orig_bq_table, reorg_typed_schema, target_dataset, dest_table, do_batch, project):
     sql = repair_distance_sql(orig_bq_table, reorg_typed_schema)
-    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, True)
+    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, False, project)
 
 
 '''
@@ -777,7 +776,7 @@ def main(args):
                                                   params['MAPPINGS_TABLE'])
             success = build_reduced_core(core_bq_table, mappings_bq_table, REDUCED_COLUMN_ORDER[0:-1], REDUCED_MAP,
                                          params['SCRATCH_DATASET'], params['REDUCED_CORE_TABLE'].format(core),
-                                         params['BQ_AS_BATCH'])
+                                         params['BQ_AS_BATCH'], params['WORKING_PROJECT'])
             if not success:
                 print("prune_to_public failed")
 
@@ -809,7 +808,7 @@ def main(args):
                                                     params['REDUCED_CORE_TABLE'].format(core)))
         success = glue_cores_together(core_bq_tables,
                                       params['SCRATCH_DATASET'], params['RAW_ASSOCIATIONS_TABLE'],
-                                      params['BQ_AS_BATCH'])
+                                      params['BQ_AS_BATCH'], params['WORKING_PROJECT'])
         if not success:
             print("glue_cores_together failed")
 
@@ -843,7 +842,7 @@ def main(args):
         reorg_typed_schema = reorg_schema(typed_schema, REDUCED_COLUMN_ORDER, REDUCED_MAP)
         success = fix_distance_values(raw_bq_table, reorg_typed_schema,
                                       params['TARGET_DATASET'], params['FINAL_ASSOCIATIONS_TABLE'],
-                                      params['BQ_AS_BATCH'])
+                                      params['BQ_AS_BATCH'], params['WORKING_PROJECT'])
         if not success:
             print("repair_raw failed")
 
@@ -851,14 +850,9 @@ def main(args):
     # Add description and labels to the target table:
     #
 
-    if 'update_table_description' in steps:
-        print('update_table_description')
-        # full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-        # success = install_labels_and_desc(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], full_file_prefix)
-        # if not success:
-        #    print("update_table_description failed")
-        #    return
-
+    if 'update_table_descriptions' in steps:
+        print('update_table_descriptions')
+        # Not used
     #
     # Clear out working temp tables:
     #

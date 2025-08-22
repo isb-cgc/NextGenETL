@@ -1,6 +1,6 @@
 """
 
-Copyright 2024, Institute for Systems Biology
+Copyright 2024-2025, Institute for Systems Biology
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,13 +16,6 @@ limitations under the License.
 
 """
 
-from common_etl.support import create_clean_target, build_file_list, generic_bq_harness, confirm_google_vm, \
-                               upload_to_bucket, csv_to_bq, concat_all_files, delete_table_bq_job, \
-                               build_pull_list_with_bq, update_schema, bq_harness_with_result, \
-                               update_description, build_combined_schema, get_the_bq_manifest, BucketPuller, \
-                               generate_table_detail_files, update_schema_with_dict, install_labels_and_desc, \
-                               publish_table, compare_two_tables, update_status_tag
-
 import sys
 import csv
 from google.cloud import bigquery, storage
@@ -31,12 +24,11 @@ import yaml
 import io
 import time
 from git import Repo
-from json import loads as json_loads
+from json import loads as json_loads, dumps as json_dumps
 
-from common_etl.support import confirm_google_vm, create_clean_target, \
-                               generic_bq_harness, \
-                               delete_table_bq_job, install_labels_and_desc, update_schema_with_dict, \
-                               generate_table_detail_files, publish_table
+from common_etl.support import generic_bq_harness, bq_harness_with_result, \
+                               delete_table_bq_job, clear_table_labels, install_table_metadata, \
+                               publish_table
 
 '''
 Make sure the VM has BigQuery and Storage Read/Write permissions!
@@ -55,112 +47,185 @@ SQL_SCHEMA_MIN = '''[
     }
 ]'''
 
-SQL_SCHEMA = '''[
-    {{
+LOADED_SQL_SCHEMA = '''[
+    {
         "description": "Dataset ID",
         "name": "dataset",
         "type": "STRING",
         "mode": "REQUIRED"
-    }},
-    {{
+    },
+    {
         "description": "Feature ID",
         "name": "id",
         "type": "INT64",
         "mode": "REQUIRED"
-    }},
-    {{
+    },
+    {
         "description": "Feature alias",
         "name": "alias",
         "type": "STRING",
         "mode": "REQUIRED"
-    }},
-    {{
+    },
+    {
         "description": "Feature type: one of (B)inary, (N)umeric, or (C)ategorical",
-        "name": "type",
+        "name": "datatype",
         "type": "STRING",
         "mode": "REQUIRED"
-    }},
-    {{
+    },
+    {
         "description": "Feature type; one of: RPPA, GEXP, CLIN, GNAB, MIRN, CNVR, METH, SAMP",
         "name": "source",
         "type": "STRING",
         "mode": "REQUIRED"
-    }},
-    {{
+    },
+    {
         "description": "Feature label",
         "name": "label",
         "type": "STRING",
         "mode": "NULLABLE"
-    }},
-    {{
+    },
+    {
         "description": "Feature chromosome",
         "name": "chr",
         "type": "STRING",
         "mode": "NULLABLE"
-    }},
-    {{
+    },
+    {
         "description": "Start location of feature",
         "name": "start",
         "type": "INT64",
         "mode": "NULLABLE"
-    }},
-    {{
+    },
+    {
         "description": "End location of feature",
         "name": "end",
         "type": "INT64",
         "mode": "NULLABLE"
-    }},
-    {{
+    },
+    {
         "description": "Feature chromosome strand",
         "name": "strand",
         "type": "STRING",
         "mode": "NULLABLE"
-    }},
-    {{
+    },
+    {
         "description": "Label description",
         "name": "label_desc",
         "type": "STRING",
         "mode": "NULLABLE"
-    }},
-    {{
+    },
+    {
         "description": "Colon-separated patient-ordered list of values, or NA",
         "name": "patient_values",
         "type": "STRING",
         "mode": "REQUIRED"
-    }},
-    {{
+    },
+    {
         "description": "Mean value",
         "name": "patient_values_mean",
         "type": "FLOAT64",
         "mode": "NULLABLE"
-    }},
-    {{
+    },
+    {
         "description": "Interesting score",
         "name": "interesting_score",
-        "type": "{0}",
+        "type": "STRING",
         "mode": "NULLABLE"
-    }},
-    {{
+    },
+    {
         "description": "Quantile value",
         "name": "quantile_val",
-        "type": "{1}",
+        "type": "STRING",
         "mode": "NULLABLE"
-    }},
-    {{
+    },
+    {
         "description": "Quantile",
         "name": "quantile",
         "type": "STRING",
         "mode": "NULLABLE"
-    }}
+    }
 ]'''
 
-
-# many files needed String for quantile_val due to /N
-
-# gbm_23mayEdist_pw_features.txt needs rerun with String for interesting score due to /N
-
-
-#DANGER! It appears that strand == 0 in all tables checked!
+FINAL_SQL_SCHEMA = '''[
+    {
+        "description": "Dataset ID",
+        "name": "dataset",
+        "type": "STRING",
+        "mode": "REQUIRED"
+    },
+    {
+        "description": "Feature ID",
+        "name": "id",
+        "type": "INT64",
+        "mode": "REQUIRED"
+    },
+    {
+        "description": "Feature alias",
+        "name": "alias",
+        "type": "STRING",
+        "mode": "REQUIRED"
+    },
+    {
+        "description": "Feature type: one of (B)inary, (N)umeric, or (C)ategorical",
+        "name": "datatype",
+        "type": "STRING",
+        "mode": "REQUIRED"
+    },
+    {
+        "description": "Feature type; one of: RPPA, GEXP, CLIN, GNAB, MIRN, CNVR, METH, SAMP",
+        "name": "source",
+        "type": "STRING",
+        "mode": "REQUIRED"
+    },
+    {
+        "description": "Feature label",
+        "name": "label",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "description": "Feature chromosome",
+        "name": "chr",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "description": "Start location of feature",
+        "name": "start_loc",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "description": "End location of feature",
+        "name": "end_loc",
+        "type": "INT64",
+        "mode": "NULLABLE"
+    },
+    {
+        "description": "Feature chromosome strand",
+        "name": "strand",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "description": "Label description",
+        "name": "label_desc",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+        "description": "Colon-separated patient-ordered list of values, or NA",
+        "name": "patient_values",
+        "type": "STRING",
+        "mode": "REQUIRED"
+    },
+    {
+        "description": "Mean value",
+        "name": "patient_values_mean",
+        "type": "FLOAT64",
+        "mode": "NULLABLE"
+    }
+]'''
 
 PATIENT_SCHEMA = '''[
     {
@@ -172,7 +237,117 @@ PATIENT_SCHEMA = '''[
 ]
 '''
 
+BARCODE_SCHEMA = '''[
+    {
+        "description": "Dataset key",
+        "name": "dataset",
+        "type": "STRING",
+        "mode": "REQUIRED"
+    },
+    {
+        "description": "Patient IDs ordered to match patient_values lists in re_features",
+        "name": "barcodes",
+        "type": "STRING",
+        "mode": "REQUIRED"
+    }
+]
+'''
 
+NUMERIC_TUPLE_SCHEMA = '''[
+    {
+        "description": "Dataset key",
+        "name": "dataset",
+        "type": "STRING",
+        "mode": "REQUIRED"
+    },
+    {
+        "description": "Feature ID",
+        "name": "id",
+        "type": "INTEGER",
+        "mode": "REQUIRED"
+    },
+    {
+        "description": "Feature alias",
+        "name": "alias",
+        "type": "STRING",
+        "mode": "REQUIRED"
+    },    
+    {
+        "description": "Feature type: always (N)umerical in this table",
+        "name": "datatype",
+        "type": "STRING",
+        "mode": "REQUIRED"
+    },  
+    {
+        "description": "List of (patient barcode, numeric value) tuples for the feature",
+        "name": "tuples",
+        "type": "RECORD",
+        "mode": "REPEATED",
+        "fields": [
+            {
+                "description": "Patient barcode",
+                "name": "patient",
+                "type": "STRING",
+                "mode": "REQUIRED"
+            },
+            {
+                "description": "Numeric value",
+                "name": "value",
+                "type": "NUMERIC",
+                "mode": "NULLABLE"
+            }
+        ]
+    }
+]
+'''
+
+STRING_TUPLE_SCHEMA = '''[
+    {
+        "description": "Dataset key",
+        "name": "dataset",
+        "type": "STRING",
+        "mode": "REQUIRED"
+    },
+    {
+        "description": "Feature ID",
+        "name": "id",
+        "type": "INTEGER",
+        "mode": "REQUIRED"
+    },
+    {
+        "description": "Feature alias",
+        "name": "alias",
+        "type": "STRING",
+        "mode": "REQUIRED"
+    },    
+    {
+        "description": "Feature type: either (B)inary or (C)ategorical",
+        "name": "datatype",
+        "type": "STRING",
+        "mode": "REQUIRED"
+    },  
+    {
+        "description": "List of (patient barcode, string value) tuples for the feature",
+        "name": "tuples",
+        "type": "RECORD",
+        "mode": "REPEATED",
+        "fields": [
+            {
+                "description": "Patient barcode",
+                "name": "patient",
+                "type": "STRING",
+                "mode": "REQUIRED"
+            },
+            {
+                "description": "String value",
+                "name": "value",
+                "type": "STRING",
+                "mode": "NULLABLE"
+            }
+        ]
+    }
+]
+'''
 
 
 '''
@@ -188,9 +363,9 @@ def load_config(yaml_config):
         print(ex)
 
     if yaml_dict is None:
-        return None, None
+        return None, None, None
 
-    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps']
+    return yaml_dict['files_and_buckets_and_tables'], yaml_dict['steps'], yaml_dict['tagging']
 
 
 '''
@@ -209,8 +384,16 @@ def create_empty_target_with_schema(schema, project_id, dataset_id, targ_table, 
 
     schema_list = []
     for mydict in schema:
-        schema_list.append(bigquery.SchemaField(mydict['name'], mydict['type'].upper(),
-                                                mode=mydict['mode'], description=mydict['description']))
+        if mydict['type'].upper() == 'RECORD':
+            field_list = []
+            for field_dict in mydict['fields']:
+                field_list.append(bigquery.SchemaField(field_dict['name'], field_dict['type'].upper(),
+                                                        mode=field_dict['mode'], description=field_dict['description']))
+            schema_list.append(bigquery.SchemaField(mydict['name'], mydict['type'].upper(),
+                                                    mode=mydict['mode'], description=mydict['description'], fields=field_list))
+        else:
+            schema_list.append(bigquery.SchemaField(mydict['name'], mydict['type'].upper(),
+                                                    mode=mydict['mode'], description=mydict['description']))
 
     table = bigquery.Table(table_id, schema=schema_list)
 
@@ -229,9 +412,9 @@ Combine cores
 '''
 
 def glue_features_together(table_names, params, column_lists, common_schema_columns,
-                           target_dataset, dest_table, do_batch):
+                           target_dataset, dest_table, do_batch, project):
     sql = glue_features_sql(table_names, params, column_lists, common_schema_columns)
-    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, False)
+    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, False, project=project)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -264,6 +447,89 @@ def glue_features_sql(table_names, params, column_lists, common_schema_columns):
     full_sql = " UNION DISTINCT \n".join(core_sql)
 
     return full_sql
+
+'''
+----------------------------------------------------------------------------------------------
+Combine cores
+'''
+
+def glue_patients_together(study_dict, params, target_dataset, dest_table, do_batch, project):
+    sql = glue_patients_sql(study_dict, params)
+    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, False, project=project)
+
+'''
+----------------------------------------------------------------------------------------------
+Combine cores SQL
+'''
+
+def glue_patients_sql(study_dict, params):
+
+    #
+    # Patient table is very simple:
+    #
+
+    core_sql = []
+    for study in study_dict:
+        study_name = study_dict[study]
+        print(study, study_name)
+        table = "{}.{}.{}_patients".format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'], study_name)
+        print("table >>>" + table)
+        core_sql.append('SELECT "{}" as dataset, barcodes FROM `{}` \n'.format(study_name, table))
+    full_sql = " UNION DISTINCT \n".join(core_sql)
+    print (full_sql)
+    return full_sql
+
+
+'''
+----------------------------------------------------------------------------------------------
+Convert : separated patient values to an array of tuples
+'''
+
+def value_string_list_to_tuple_array(params, category, target_dataset, dest_table, do_batch, project):
+    sql = value_string_list_to_tuple_array_sql(params, category)
+    typed_dest_table = dest_table.format(category)
+    return generic_bq_harness(sql, target_dataset, typed_dest_table, do_batch, False, project=project)
+
+'''
+----------------------------------------------------------------------------------------------
+Convert : separated patient values to an array of tuples SQL
+'''
+
+def value_string_list_to_tuple_array_sql(params, category):
+
+    #
+    # hat tip to https://stackoverflow.com/questions/58241689/how-to-return-an-array-of-structs-from-a-struct-of-arrays-in-standard-sql
+    #
+    # We want to take a values entry like "12.776:2.641:2.661:NA:12.732:1.081:2.633:11.425:..." and combine it with
+    # a patient barcode entry like "TCGA-A1-A0SB-01:TCGA-A1-A0SD-01:TCGA-A1-A0SE-01:TCGA-A1-A0SF-01:TCGA-A1-A0SG-01:...
+    # to create an array of tuples for easier data extraction. Note the original format is useful for plotting programs, but
+    # not for analysis!
+    #
+
+    full_barcode_table = "{}.{}.{}".format(params['WORKING_PROJECT'], params['TARGET_DATASET'], params['BARCODE_TABLE'])
+    full_feature_table = "{}.{}.{}".format(params['WORKING_PROJECT'], params['TARGET_DATASET'], params['FINAL_FULL_FEATURE_TABLE'])
+
+    if category == "numeric":
+        selector = '"N"'
+    elif category == "string":
+        selector = '"C", "B"'
+    else:
+        raise Exception()
+
+    return '''
+    WITH a1 AS (SELECT b.dataset, f.id, f.alias, f.datatype, SPLIT(b.barcodes, ":") as patient, SPLIT(f.patient_values, ":") as value FROM
+    `{}` AS f JOIN `{}` AS b
+    ON b.dataset = f.dataset WHERE f.datatype IN ({})),
+    c1 AS (SELECT
+      dataset, id, alias, datatype,
+      ARRAY(
+        SELECT AS STRUCT patient, CAST(IF (value = "NA", NULL, value) AS {}) AS value,
+        FROM UNNEST(patient) as patient WITH OFFSET
+        LEFT JOIN UNNEST(value) as value WITH OFFSET USING(OFFSET)
+      ) AS tuples
+      FROM a1)    
+    SELECT * from c1
+    '''.format(full_feature_table, full_barcode_table, selector, category.upper())
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -378,9 +644,10 @@ def tsv_to_bq_write_depo(schema, csv_uri, project_id, dataset_id, targ_table, do
 Do feature repair
 '''
 
-def repair_raw_features(raw_table, target_dataset, dest_table, do_batch):
+def repair_raw_features(raw_table, target_dataset, dest_table, do_batch, project):
     sql = repair_raw_sql(raw_table)
-    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, False)
+    print(sql)
+    return generic_bq_harness(sql, target_dataset, dest_table, do_batch, False, project=project)
 
 '''
 ----------------------------------------------------------------------------------------------
@@ -399,14 +666,18 @@ def repair_raw_sql(source):
     # 5) When chr is null, start and end are "0". Suggest null.
     # 6) When type is categorical, patient_values_mean is 0. Suggest null.
     # 7) For dataset lgg_04oct13 We have chr = "x" (lower case). Suggest normalizing to upper case X
-
-    return '''
+    # 8) Agreement that quantile val, interesting score, quantile (including Q5!) columns will be ditched
+    # 9) Change reserved SQL keywords (end, type) for column names
+    # 10) Seeing end with "0" when start is a big number. A point mutation! Will set end to NULL (not zero)
+    #     even if we have a chromosome as long as start is non-zero
+    # Note the "r" string to keep BQ from complaining about invalid escape!
+    return r'''
       WITH a1 as (
       SELECT
         dataset,
         id,
         alias,
-        type,
+        `type` as datatype,
         source,
         label,
         CASE
@@ -416,11 +687,12 @@ def repair_raw_sql(source):
         CASE
            WHEN chr IS NULL THEN NULL
            ELSE start
-        END as start,
+        END as start_loc,
         CASE
            WHEN chr IS NULL THEN NULL
-           ELSE end
-        END as end,
+           WHEN ((chr IS NOT NULL) AND (start != 0) AND (`end` = 0)) THEN NULL
+           ELSE `end`
+        END as end_loc,
         CASE
            WHEN chr IS NOT NULL THEN SPLIT(alias, ':')[offset(6)]
            ELSE NULL
@@ -428,31 +700,19 @@ def repair_raw_sql(source):
         label_desc,
         patient_values,
         CASE
-           WHEN type IS 'C' THEN NULL
+           WHEN `type` = "C" THEN NULL
            ELSE patient_values_mean
-        END as patient_values_mean,
-        CASE
-           WHEN (interesting_score = "\\N") OR (interesting_score IS NULL) THEN NULL
-           ELSE CAST(interesting_score as FLOAT64)
-        END as interesting_score,
-        CASE
-           WHEN (quantile_val = "\\N") OR (quantile_val IS NULL) THEN NULL
-           ELSE CAST(quantile_val as FLOAT64)
-        END as quantile_val,
-        CASE
-           WHEN (quantile = "\\N") OR (quantile IS NULL) THEN NULL
-           ELSE quantile
-        END as quantile
+        END as patient_values_mean
     FROM {})
     SELECT  dataset,
         id,
         alias,
-        type,
+        datatype,
         source,
         label,
         chr,
-        start,
-        end,
+        start_loc,
+        end_loc,
         CASE
            WHEN strand_or_blank IS NULL THEN NULL
            WHEN strand_or_blank = "" THEN NULL
@@ -460,10 +720,7 @@ def repair_raw_sql(source):
         END as strand,
         label_desc,
         patient_values,
-        patient_values_mean,
-        interesting_score,
-        quantile_val,
-        quantile FROM a1 order by dataset, id
+        patient_values_mean FROM a1
     '''.format(source)
 
 
@@ -487,10 +744,10 @@ def main(args):
     #
 
     with open(args[1], mode='r') as yaml_file:
-        params, steps = load_config(yaml_file.read())
+        params, steps, tagging = load_config(yaml_file.read())
 
     patient_schema = json_loads(PATIENT_SCHEMA)
-    typed_schema = json_loads(SQL_SCHEMA.format("STRING", "STRING"))
+    typed_schema = json_loads(LOADED_SQL_SCHEMA)
     schema_dict = {}
     for entry in typed_schema:
         schema_dict[entry["name"]] = entry
@@ -524,6 +781,7 @@ def main(args):
             tsv_to_bq_write_depo(custom_schema, bucket_src_url, params['WORKING_PROJECT'],
                                  params['SCRATCH_DATASET'], "raw_{}".format(study_dict[study]),
                                  params['BQ_AS_BATCH'], "WRITE_TRUNCATE")
+
         if 'create_patient_bq_from_tsv' in steps:
             bucket_src_url = 'gs://{}/{}'.format(params['WORKING_BUCKET'], params['PATIENT_TSV'].format(study))
             table_name = "{}_patients".format(study_dict[study])
@@ -539,7 +797,7 @@ def main(args):
 
     if 'build_raw_table' in steps:
         print('build_raw_table')
-        typed_schema = json_loads(SQL_SCHEMA.format("STRING", "STRING"))
+        typed_schema = json_loads(LOADED_SQL_SCHEMA)
         success = create_empty_target_with_schema(typed_schema, params['WORKING_PROJECT'],
                                                   params['SCRATCH_DATASET'], params['RAW_FULL_FEATURE_TABLE'],
                                                   True, None)
@@ -553,14 +811,14 @@ def main(args):
 
         column_dict = read_columns_dict(params, params['SUMMARY_FILE'])
 
-        typed_schema = json_loads(SQL_SCHEMA.format("STRING", "STRING"))
+        typed_schema = json_loads(LOADED_SQL_SCHEMA)
         common_schema_columns = []
         for entry in typed_schema:
             common_schema_columns.append(entry["name"])
 
         success = glue_features_together(study_list, params, column_dict, common_schema_columns,
                                          params['SCRATCH_DATASET'], params['RAW_FULL_FEATURE_TABLE'],
-                                         params['BQ_AS_BATCH'])
+                                         params['BQ_AS_BATCH'], params['WORKING_PROJECT'])
 
         if not success:
             print("glue_features_together failed")
@@ -568,7 +826,7 @@ def main(args):
 
     if 'build_final_cluster_table' in steps:
         print('build_final_cluster_table')
-        typed_schema = json_loads(SQL_SCHEMA.format("FLOAT64", "FLOAT64"))
+        typed_schema = json_loads(FINAL_SQL_SCHEMA)
         success = create_empty_target_with_schema(typed_schema, params['WORKING_PROJECT'],
                                                   params['TARGET_DATASET'], params['FINAL_FULL_FEATURE_TABLE'],
                                                   True, CLUSTER_COLS)
@@ -581,19 +839,97 @@ def main(args):
         print('massage_raw_table')
         raw_table = "{}.{}.{}".format(params['WORKING_PROJECT'], params['SCRATCH_DATASET'],
                                       params['RAW_FULL_FEATURE_TABLE'])
-        success = repair_raw_features(raw_table, params['TARGET_DATASET'], params['FINAL_FULL_FEATURE_TABLE'], params['BQ_AS_BATCH'])
+        success = repair_raw_features(raw_table, params['TARGET_DATASET'],
+                                      params['FINAL_FULL_FEATURE_TABLE'],
+                                      params['BQ_AS_BATCH'], params['WORKING_PROJECT'])
 
         if not success:
             print("massage_raw_table failed")
             return
 
-    if 'update_table_description' in steps:
-        print('update_table_description')
-        #full_file_prefix = "{}/{}".format(params['PROX_DESC_PREFIX'], params['FINAL_TARGET_TABLE'])
-        #success = install_labels_and_desc(params['TARGET_DATASET'], params['FINAL_TARGET_TABLE'], full_file_prefix)
-        #if not success:
-        #    print("update_table_description failed")
-        #    return
+    #
+    # Create the table that holds patient barcode lists that match the value lists that are in the feature tables:
+    #
+    if 'glue_barcodes_together' in steps:
+        print('glue_barcodes_together')
+
+        typed_schema = json_loads(BARCODE_SCHEMA)
+        success = create_empty_target_with_schema(typed_schema, params['WORKING_PROJECT'],
+                                                  params['TARGET_DATASET'], params['BARCODE_TABLE'],
+                                                  True, None)
+        if not success:
+            print("glue_barcodes_together create table failed")
+            return
+
+        success = glue_patients_together(study_dict, params, params['TARGET_DATASET'], params['BARCODE_TABLE'],
+                                         params['BQ_AS_BATCH'], params['WORKING_PROJECT'])
+        if not success:
+            print("glue_barcodes_together failed")
+            return
+    #
+    # Process the feature table to make a data table that has an array of (patient, value) tuples for each feature
+    #
+
+    if 'build_feature_tuple_array_tables' in steps:
+        print('build_feature_tuple_array_tables')
+        for category in ["numeric", "string"]:
+            schema_key = NUMERIC_TUPLE_SCHEMA if category == "numeric" else STRING_TUPLE_SCHEMA
+            typed_schema = json_loads(schema_key)
+            typed_dest_table = params['FEATURE_TUPLE_ARRAY_TABLE'].format(category)
+            success = create_empty_target_with_schema(typed_schema, params['WORKING_PROJECT'],
+                                                      params['TARGET_DATASET'], typed_dest_table,
+                                                      True, CLUSTER_COLS)
+            if not success:
+                print("build_feature_tuple_array_tables create table failed")
+                return
+
+            success = value_string_list_to_tuple_array(params, category, params['TARGET_DATASET'], params['FEATURE_TUPLE_ARRAY_TABLE'],
+                                                       params['BQ_AS_BATCH'], params['WORKING_PROJECT'])
+            if not success:
+                print("build_feature_tuple_array_tables failed category {}".format(category))
+                return
+
+    #
+    # Add description and labels to the target table:
+    #
+
+    if 'update_table_descriptions' in steps:
+        print('update_table_descriptions')
+
+        metadata_dict = {}
+        for tag in tagging:
+            table_name = tag["table"]
+            print("destination table:", tag["target"])
+
+            metadata_dict["description"] = tag["description"].replace("\n", " ")
+            metadata_dict["friendlyName"] = tag["friendly"]
+            metadata_dict["labels"] = {}
+            metadata_dict["labels"]["access"] = tag["access"]
+            metadata_dict["labels"]["category"] = tag["data_category"]
+            metadata_dict["labels"]["status"] = tag["status"]
+            metadata_dict["labels"]["program"] = tag["program"]
+            metadata_dict["labels"]["reference_genome_0"] = tag["reference_genome_0"]
+            for item in tag["sources"]:
+                for key, val in item.items():
+                    metadata_dict["labels"][key] = val
+            if len(tag["data_types"]) > 1:
+                dcount = 0
+                for item in tag["data_types"]:
+                    metadata_dict["labels"]["data_type_{}".format(dcount)] = item
+                    dcount += 1
+            else:
+                metadata_dict["labels"]["data_type"] = tag["data_types"][0]
+            print(json_dumps(metadata_dict))
+            print(metadata_dict)
+
+            print("Processing {}".format(table_name))
+            success = clear_table_labels(params['TARGET_DATASET'], table_name, project=params['WORKING_PROJECT'])
+            if not success:
+                print("update_table_descriptions failed to clear labels")
+                return
+
+            table_id = "{}.{}.{}".format(params['WORKING_PROJECT'], params['TARGET_DATASET'], table_name)
+            install_table_metadata(table_id, metadata_dict, project=params['WORKING_PROJECT'] )
 
     #
     # Clear out working temp tables:
