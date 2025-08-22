@@ -30,15 +30,15 @@ if [ "${INSTALL_LIBS}" = "TRUE" ]; then
   source bin/activate
   popd > /dev/null
   echo "Installing Python Libraries..."
-  python3 -m pip install pip
-  python3 -m pip install wheel
-  python3 -m pip install PyYaml
-  python3 -m pip install gitpython
-  python3 -m pip install google-api-python-client
+  ${PY_PATH}/python3 -m pip install pip
+  ${PY_PATH}/python3 -m pip install wheel
+  ${PY_PATH}/python3 -m pip install PyYaml
+  ${PY_PATH}/python3 -m pip install gitpython
+  ${PY_PATH}/python3 -m pip install google-api-python-client
   # If you specify the target lib (-t ${MY_VENV}/lib) then these two conflict:
-  python3 -m pip install google-cloud-bigquery
-  python3 -m pip install google-cloud-storage
-  python3 -m pip install --upgrade oauth2client
+  ${PY_PATH}/python3 -m pip install google-cloud-bigquery
+  ${PY_PATH}/python3 -m pip install google-cloud-storage
+  ${PY_PATH}/python3 -m pip install --upgrade oauth2client
   echo ${PYTHONPATH}
   echo "Libraries Installed"
   deactivate
@@ -48,5 +48,5 @@ pushd ${MY_VENV} > /dev/null
 source bin/activate
 popd > /dev/null
 cd ..
-python3 ./BQ_Table_Building/build_regulome_explorer_sql_import_v2.py ${CONFIG_DIR}/BuildRegulomeExplorerSQL.yaml
+${PY_PATH}/python3 ./BQ_Table_Building/build_regulome_explorer_sql_import_v2.py ${CONFIG_DIR}/BuildRegulomeExplorerSQL.yaml
 deactivate
