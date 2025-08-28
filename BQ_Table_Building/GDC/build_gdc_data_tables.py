@@ -340,9 +340,9 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         created_tables = transform_bq_data(data_type, raw_data, draft_table, params.ALIQUOT_TABLE, params.CASE_TABLE,
                                            params.FILE_TABLE, params.GENE_NAMES_TABLE, params.DEV_PROJECT,
                                            params.DEV_DATASET, params.RELEASE)
-        with open(tables_created_file, 'w') as outfile:
-            for table in created_tables:
-                outfile.write(table)
+#        with open(tables_created_file, 'w') as outfile:
+#            for table in created_tables:
+#                outfile.write(table)
 
     if 'update_table_schema' in steps:
         logging.info("Running update_table_schema Step")
