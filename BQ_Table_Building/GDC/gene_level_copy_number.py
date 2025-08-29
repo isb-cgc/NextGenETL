@@ -273,7 +273,7 @@ def create_gene_level_cnvr_table(raw_gene_level_cnvr, draft_gene_level_cnvr, fil
     sql_for_aliquot_and_file_table_results = collect_aliquot_and_file_info(f"{project_id}.{dataset}.{raw_gene_level_cnvr}",
                                                     f"{file_table}_{release}",
                                                     f"{aliquot_table}_{release}",
-                                                    f"{raw_gdc_table}_{release}_sample",
+                                                    f".{raw_gdc_table}_{release}_sample",
                                                     f"{project_id}.{dataset}.{step_1_table}")
     if sql_for_aliquot_and_file_table_results == 'DONE':
         created_tables.append(step_1_table)
