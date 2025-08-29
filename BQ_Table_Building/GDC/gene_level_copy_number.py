@@ -62,7 +62,7 @@ def collect_aliquot_and_file_info(raw_table, file_table, aliquot_table, raw_samp
           ON
             a.file_gdc_id = LEFT(d.file_name, 36)
           JOIN
-            `isb-project-zero.cda_gdc_raw.r42_sample` AS e
+            `{raw_sample_table}` AS e
           ON
             b.sample_gdc_id = e.sample_id
           WHERE
@@ -250,7 +250,7 @@ def create_gene_level_cnvr_table(raw_gene_level_cnvr, draft_gene_level_cnvr, fil
                                  raw_gdc_table, gene_table, project_id, dataset, release):
     """
     Run through the SQL queries to create the final draft table.
-    :param raw_gene_level_cnvr_seq: Initial copy number gene level table name
+    :param raw_gene_level_cnvr: Initial copy number gene level table name
     :param draft_gene_level_cnvr: Draft copy number gene level table name
     :param file_table: Metadata table with file data
     :param aliquot_table: Metadata table with aliquot data
@@ -262,7 +262,7 @@ def create_gene_level_cnvr_table(raw_gene_level_cnvr, draft_gene_level_cnvr, fil
     :param release: GDC release
     :return: list of tables created
     """
-    gene_level_cnvr_logger.info("Creating {draft_gene_level_cnvr}")
+    gene_level_cnvr_logger.info(f"Creating {draft_gene_level_cnvr}")
 
     created_tables = []
     step_1_table = f"{raw_gene_level_cnvr}_step_1"
