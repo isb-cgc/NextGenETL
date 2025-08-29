@@ -55,8 +55,8 @@ def collect_aliquot_and_file_info(raw_table, file_table, aliquot_table, raw_samp
           JOIN
             `{aliquot_table}` AS b
           ON
-            REGEXP_EXTRACT(a.associated_entities__entity_gdc_id, r"^\w{8}\-\w{4}\-\w{4}\-\w{4}\-\w{12}") = b.aliquot_gdc_id
-            OR REGEXP_EXTRACT(a.associated_entities__entity_gdc_id, r"\w{8}\-\w{4}\-\w{4}\-\w{4}\-\w{12}$") = b.aliquot_gdc_id
+            REGEXP_EXTRACT(a.associated_entities__entity_gdc_id, r"{regex_string1}") = b.aliquot_gdc_id
+            OR REGEXP_EXTRACT(a.associated_entities__entity_gdc_id, r"{regex_string2}") = b.aliquot_gdc_id
           JOIN
             `{raw_table}` AS d
           ON
@@ -94,8 +94,8 @@ def collect_aliquot_and_file_info(raw_table, file_table, aliquot_table, raw_samp
           JOIN
             `{aliquot_table}` AS b
           ON
-            REGEXP_EXTRACT(a.associated_entities__entity_gdc_id, r"^\w{8}\-\w{4}\-\w{4}\-\w{4}\-\w{12}") = b.aliquot_gdc_id
-            OR REGEXP_EXTRACT(a.associated_entities__entity_gdc_id, r"\w{8}\-\w{4}\-\w{4}\-\w{4}\-\w{12}$") = b.aliquot_gdc_id
+            REGEXP_EXTRACT(a.associated_entities__entity_gdc_id, r"{regex_string1}") = b.aliquot_gdc_id
+            OR REGEXP_EXTRACT(a.associated_entities__entity_gdc_id, r"{regex_string2}") = b.aliquot_gdc_id
           JOIN
             `{raw_table}` AS d
           ON
