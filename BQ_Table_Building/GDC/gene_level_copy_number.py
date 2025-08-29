@@ -47,7 +47,7 @@ def collect_aliquot_and_file_info(raw_table, file_table, aliquot_table, raw_samp
             b.case_gdc_id,
             STRING_AGG(DISTINCT b.sample_gdc_id, ";") AS tumor_sample_gdc_id,
             e.tissue_type AS tumor_tissue_type,
-            e.tumor_descriptor AS tumor_tumor_descriptor,
+            e.tumor_descriptor AS tumor_tissue_descriptor,
             STRING_AGG(DISTINCT b.aliquot_gdc_id, ";") AS tumor_aliquot_gdc_id,
             a.file_gdc_id
           FROM
@@ -76,7 +76,7 @@ def collect_aliquot_and_file_info(raw_table, file_table, aliquot_table, raw_samp
             case_barcode,
             case_gdc_id,
             tumor_tissue_type,
-            tumor_tumor_descriptor,
+            tumor_tissue_descriptor,
             file_gdc_id),
           normal_table AS (
           SELECT
@@ -86,7 +86,7 @@ def collect_aliquot_and_file_info(raw_table, file_table, aliquot_table, raw_samp
             b.case_gdc_id,
             STRING_AGG(DISTINCT b.sample_gdc_id, ";") AS normal_sample_gdc_id,
             e.tissue_type AS normal_tissue_type,
-            e.tumor_descriptor AS normal_tumor_descriptor,
+            e.tumor_descriptor AS normal_tissue_descriptor,
             STRING_AGG(DISTINCT b.aliquot_gdc_id, ";") AS normal_aliquot_gdc_id,
             a.file_gdc_id
           FROM
@@ -115,7 +115,7 @@ def collect_aliquot_and_file_info(raw_table, file_table, aliquot_table, raw_samp
             case_barcode,
             case_gdc_id,
             normal_tissue_type,
-            normal_tumor_descriptor,
+            normal_tissue_descriptor,
             file_gdc_id)
         SELECT
           f.project_short_name,
@@ -129,8 +129,8 @@ def collect_aliquot_and_file_info(raw_table, file_table, aliquot_table, raw_samp
           g.normal_sample_gdc_id,
           f.tumor_tissue_type,
           g.normal_tissue_type,
-          f.tumor_tumor_descriptor,
-          g.normal_tumor_descriptor,
+          f.tumor_tissue_descriptor,
+          g.normal_tissue_descriptor,
           f.tumor_aliquot_gdc_id,
           g.normal_aliquot_gdc_id,
           f.file_gdc_id
