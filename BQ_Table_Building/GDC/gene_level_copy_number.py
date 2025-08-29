@@ -258,7 +258,7 @@ def add_case_aliquot_data(raw_data_table, file_aliquot_table, output_table, case
         SELECT
           a.project_short_name,
           a.case_barcode,
-          primary_site,
+          b.primary_site,
           a.tumor_sample_barcode,
           a.normal_sample_barcode,
           a.tumor_aliquot_barcode,
@@ -387,7 +387,7 @@ def create_gene_level_cnvr_table(raw_gene_level_cnvr, draft_gene_level_cnvr, fil
         sys.exit()
 
     sql_for_adding_case_aliquot_table_results = add_case_aliquot_data(f"{project_id}.{dataset}.{raw_gene_level_cnvr}",
-                                                    f"{file_table}_{release}",
+                                                    f"{project_id}.{dataset}.{step_1_table}",
                                                     f"{project_id}.{dataset}.{step_2_table}",
                                                     f"{case_table}_{release}"
                                                     )
