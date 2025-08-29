@@ -407,7 +407,7 @@ def create_gene_level_cnvr_table(raw_gene_level_cnvr, draft_gene_level_cnvr, fil
         gene_level_cnvr_logger.error("Creating Copy Number Gene Level intermediate table 3 failed")
         sys.exit()
 
-    cluster_fields = ["project_short_name", "case_barcode", "sample_barcode", "aliquot_barcode"]
+    cluster_fields = ["project_short_name", "case_barcode", "tumor_sample_barcode", "aliquot_barcode"]
     if bq_table_exists(f"{project_id}.{dataset}.{draft_gene_level_cnvr}"):
         delete_bq_table(f"{dataset}.{draft_gene_level_cnvr}", project=project_id)
     cluster_table_result = cluster_table(f"{project_id}.{dataset}.{step_3_table}",
