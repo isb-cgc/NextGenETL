@@ -1,4 +1,4 @@
-version: 0
+version: 1
 
 # Parameters for the workflow
 
@@ -6,17 +6,20 @@ version: 0
 
 data_to_gather:
   masked_somatic_mutation:
-    #- PROGRAM1
-    #- PROGRAM2
+    - PROGRAM1
+    - PROGRAM2
 
   RNAseq:
-    #- PROGRAM3
+    - PROGRAM3
 
   miRNA_expr:
-    #- PROGRAM1
+    - PROGRAM1
 
   miRNA_isoform_expr:
-    #- PROGRAM1
+    - PROGRAM1
+
+  copy_number_gene_level:
+    - PROGRAM1
 
 ## Workflow Steps
 
@@ -54,6 +57,7 @@ parameters:
   CASE_TABLE: project_name.dataset_name.caseData
   ALIQUOT_TABLE: project_name.dataset_name.aliquot2caseIDmap
   GENE_NAMES_TABLE: project_name.dataset_name.annotation_gtf_hg38_v36
+  RAW_GDC_DATASET: project_name.dataset_name # table name added in script
 
   ## local files paths
   LOCAL_DIR: directory_root_for_files    # where to put the files with the data
