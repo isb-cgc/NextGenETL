@@ -244,7 +244,7 @@ def add_gene_info(input_table, gene_info_table, output_table):
         FROM
         `{input_table}` as a
         JOIN
-        `{gene_info_table}` as b
+        gene_id_table as b
         ON
         a.Ensembl_gene_id_v = b.gene_id_v
     """
