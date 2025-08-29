@@ -41,6 +41,8 @@ files_and_buckets_and_tables:
   # Final full feature table:
   FINAL_FULL_FEATURE_TABLE: re_features
 
+  # Features with (barcode, value) tuple arrays for features:
+  FEATURE_TUPLE_ARRAY_TABLE: re_feature_{}_value_tuples
 
 steps:
 
@@ -55,3 +57,10 @@ steps:
   - build_final_cluster_table
 
   - massage_raw_table
+
+  - glue_barcodes_together
+
+  - build_feature_tuple_array_tables
+
+  - update_table_descriptions
+

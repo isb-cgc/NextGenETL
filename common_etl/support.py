@@ -1781,14 +1781,55 @@ def install_labels_and_desc(dataset, table_name, file_tag, project=None):
     return True
 
 
-def install_table_metadata(table_id, metadata):
+'''
+----------------------------------------------------------------------------------------------
+Clear out table labels
+'''
+
+
+def clear_table_labels(dataset, table_name, project=None):
+    """
+    Clear out table labels
+    :param dataset: Dataset Name
+    :type dataset: basestring
+    :param table_name: Table Name
+    :type table_name: basestring
+    :param project: Project ID
+    :type project: basestring
+    """
+    try:
+        client = bigquery.Client() if project is None else bigquery.Client(project=project)
+        table_ref = client.dataset(dataset).table(table_name)
+        table = client.get_table(table_ref)
+
+        #
+        # Noted 3/16/2020 that updating labels appears to be additive. Need to clear out
+        # previous labels to handle label removals. Note that the setting of each existing label
+        # to None is the only way this seems to work to empty them out (i.e. an empty dictionary
+        # does not cut it).
+        #
+
+        replace_dict = {}
+        for label in table.labels:
+            replace_dict[label] = None
+        table.labels = replace_dict
+        client.update_table(table, ['labels'])
+
+    except Exception as ex:
+        print(ex)
+        return False
+
+    return True
+
+
+def install_table_metadata(table_id, metadata, project=None):
     """
     Modify an existing BigQuery table's metadata (labels, friendly name, description) using metadata dict argument
     Function was adapted from update_table_metadata function in utils.py
     :param table_id: table id in standard SQL format
     :param metadata: metadata containing new field and table attributes
     """
-    client = bigquery.Client()
+    client = bigquery.Client() if project is None else bigquery.Client(project=project)
     table = client.get_table(table_id)
 
     table.labels = metadata['labels']
