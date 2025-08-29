@@ -142,106 +142,6 @@ def collect_aliquot_and_file_info(raw_table, file_table, aliquot_table, raw_samp
           f.file_gdc_id = g.file_gdc_id
     """
 
-    #     WITH
-    #       tumor_table AS (
-    #       SELECT
-    #         b.project_id AS project_short_name,
-    #         b.case_barcode,
-    #         b.sample_barcode AS tumor_sample_barcode,
-    #         b.aliquot_barcode AS tumor_aliquot_barcode,
-    #         b.case_gdc_id,
-    #         b.sample_gdc_id AS tumor_sample_gdc_id,
-    #         e.tissue_type AS tumor_tissue_type,
-    #         e.tumor_descriptor AS tumor_tissue_descriptor,
-    #         b.aliquot_gdc_id AS tumor_aliquot_gdc_id,
-    #         a.file_gdc_id
-    #       FROM
-    #         `{file_table}` AS a
-    #       JOIN
-    #         `{aliquot_table}` AS b
-    #       ON
-    #           REGEXP_EXTRACT(a.associated_entities__entity_gdc_id, r'{regex_string1}') = b.aliquot_gdc_id
-    #           OR REGEXP_EXTRACT(a.associated_entities__entity_gdc_id, r'{regex_string2}') = b.aliquot_gdc_id
-    #       JOIN
-    #         `{raw_table}` AS d
-    #       ON
-    #         a.file_gdc_id = LEFT(d.file_name, 36)
-    #       JOIN
-    #         `{raw_sample_table}` AS e
-    #       ON
-    #         b.sample_gdc_id = e.sample_id
-    #       WHERE
-    #         b.sample_type_name <> "Granulocytes"
-    #         AND `access` = "open"
-    #         AND a.data_type = "Gene Level Copy Number"
-    #         AND a.data_category = "Copy Number Variation"
-    #         AND e.tissue_type != "Normal"),
-    #       normal_table AS (
-    #       SELECT
-    #         b.case_barcode,
-    #         b.sample_barcode AS normal_sample_barcode,
-    #         b.aliquot_barcode AS normal_aliquot_barcode,
-    #         b.case_gdc_id,
-    #         b.sample_gdc_id AS normal_sample_gdc_id,
-    #         e.tissue_type AS normal_tissue_type,
-    #         e.tumor_descriptor AS normal_tissue_descriptor,
-    #         b.aliquot_gdc_id AS normal_aliquot_gdc_id,
-    #         a.file_gdc_id
-    #       FROM
-    #         `{file_table}` AS a
-    #       JOIN
-    #         `{aliquot_table}` AS b
-    #       ON
-    #           REGEXP_EXTRACT(a.associated_entities__entity_gdc_id, r'{regex_string1}') = b.aliquot_gdc_id
-    #           OR REGEXP_EXTRACT(a.associated_entities__entity_gdc_id, r'{regex_string2}') = b.aliquot_gdc_id
-    #       JOIN
-    #         `{raw_table}` AS d
-    #       ON
-    #         a.file_gdc_id = LEFT(d.file_name, 36)
-    #       JOIN
-    #         `{raw_sample_table}` AS e
-    #       ON
-    #         b.sample_gdc_id = e.sample_id
-    #       WHERE
-    #         b.sample_type_name <> "Granulocytes"
-    #         AND `access` = "open"
-    #         AND a.data_type = "Gene Level Copy Number"
-    #         AND a.data_category = "Copy Number Variation"
-    #         AND e.tissue_type = "Normal")
-    #     SELECT
-    #       f.project_short_name,
-    #       f.case_barcode,
-    #       STRING_AGG(DISTINCT f.tumor_sample_barcode, ';') AS tumor_sample_barcode,
-    #       STRING_AGG(DISTINCT g.normal_sample_barcode, ';') AS normal_sample_barcode,
-    #       STRING_AGG(DISTINCT f.tumor_aliquot_barcode, ';') AS tumor_aliquot_barcode,
-    #       STRING_AGG(DISTINCT g.normal_aliquot_barcode, ';') AS normal_aliquot_barcode,
-    #       f.case_gdc_id,
-    #       STRING_AGG(DISTINCT f.tumor_sample_gdc_id, ';') AS tumor_sample_gdc_id,
-    #       STRING_AGG(DISTINCT g.normal_sample_gdc_id, ';') AS normal_sample_gdc_id,
-    #       f.tumor_tissue_type,
-    #       g.normal_tissue_type,
-    #       f.tumor_tissue_descriptor,
-    #       g.normal_tissue_descriptor,
-    #       STRING_AGG(DISTINCT f.tumor_aliquot_gdc_id, ';') AS tumor_aliquot_gdc_id,
-    #       STRING_AGG(DISTINCT g.normal_aliquot_gdc_id, ';') AS normal_aliquot_gdc_id,
-    #       f.file_gdc_id
-    #     FROM
-    #       tumor_table AS f
-    #     LEFT JOIN
-    #       normal_table AS g
-    #     ON
-    #       f.file_gdc_id = g.file_gdc_id
-    #     GROUP BY
-    #       project_short_name,
-    #       case_barcode,
-    #       case_gdc_id,
-    #       tumor_tissue_type,
-    #       normal_tissue_type,
-    #       tumor_tissue_descriptor,
-    #       normal_tissue_descriptor,
-    #       file_gdc_id
-    # """
-
     return query_bq(sql, output_table)
 
 def add_case_aliquot_data(raw_data_table, file_aliquot_table, output_table, case_table):
@@ -407,7 +307,7 @@ def create_gene_level_cnvr_table(raw_gene_level_cnvr, draft_gene_level_cnvr, fil
         gene_level_cnvr_logger.error("Creating Copy Number Gene Level intermediate table 3 failed")
         sys.exit()
 
-    cluster_fields = ["project_short_name", "case_barcode", "tumor_sample_barcode", "aliquot_barcode"]
+    cluster_fields = ["project_short_name", "case_barcode", "tumor_sample_barcode", "tumor_aliquot_barcode"]
     if bq_table_exists(f"{project_id}.{dataset}.{draft_gene_level_cnvr}"):
         delete_bq_table(f"{dataset}.{draft_gene_level_cnvr}", project=project_id)
     cluster_table_result = cluster_table(f"{project_id}.{dataset}.{step_3_table}",
