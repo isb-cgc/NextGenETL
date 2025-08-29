@@ -196,7 +196,7 @@ def concat_all_files(all_files, one_big_tsv, all_files_local_location, headers_t
     return
 
 
-def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table, case_table, file_table, gene_table,
+def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table, case_table, raw_gdc_table, file_table, gene_table,
                       dev_project, dev_dataset, release):
     """
     Transform the raw BigQuery with queries and subtables for each data type.
@@ -205,6 +205,7 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
     :param draft_data_table: name for the final table
     :param aliquot_table: metadata aliquot table
     :param case_table: metadata case table
+    :param raw_gdc_table: raw metadata case table
     :param file_table: metadata file table
     :param gene_table: metadata gene table
     :param dev_project: working project id
@@ -220,12 +221,12 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
 
         logger.info("Creating Copy Number Gene Level draft tables")
         gene_level_cnvr_tables = create_gene_level_cnvr_table(raw_data_table, draft_data_table, file_table,
-                                                              aliquot_table, case_table, gene_table, dev_project,
-                                                              dev_dataset, release)
+                                                              aliquot_table, case_table, raw_gdc_table, gene_table,
+                                                              dev_project, dev_dataset, release)
         intermediate_tables.extend(gene_level_cnvr_tables)
 
     if datatype == "copy_number":  # todo
-        print("copy number")
+        logger.info("copy number workflow not created")
 
     if datatype == "masked_somatic_mutation":
         logger.info("Creating Somatic Mut draft tables")
@@ -240,14 +241,14 @@ def transform_bq_data(datatype, raw_data_table, draft_data_table, aliquot_table,
                                              dev_project, dev_dataset, release)
         intermediate_tables.extend(rna_seq_table)
 
-    if datatype == "miRNAseq":  # todo
+    if datatype == "miRNAseq":
         logger.info("Creating miRNA expr draft tables")
 
         mirna_expr_table = create_mirna_expr_table(raw_data_table, draft_data_table, file_table, aliquot_table, case_table,
                                              dev_project, dev_dataset, release)
         intermediate_tables.extend(mirna_expr_table)
 
-    if datatype == "miRNAseq_isoform":  # todo
+    if datatype == "miRNAseq_isoform":
         logger.info("Creating miRNA isoform expr draft tables")
 
         mirna_isoform_expr_table = create_mirna_isoform_expr_table(raw_data_table, draft_data_table, file_table, aliquot_table, case_table,
@@ -280,7 +281,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
     prefix = f"{program_mappings[program]['bq_dataset']}_{data_type}_{params.RELEASE}{workflow_run_ver}"
     local_location = f"{local_dir}/{program_mappings[program]['bq_dataset']}"
     raw_files_local_location = f"{local_location}/files{data_type}"
-    tables_created_file = f"{home}/{params.LOCAL_DIR}/tables_created_{params.RELEASE}{workflow_run_ver}.txt"
+    #tables_created_file = f"{home}/{params.LOCAL_DIR}/tables_created_{params.RELEASE}{workflow_run_ver}.txt"
     file_list = f"{prefix}_file_list.tsv"
     file_traversal_list = f"{prefix}_traversal.tsv"
     raw_data = f"{prefix}_raw"
@@ -338,8 +339,8 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
     if 'transform_bq_data' in steps:
         logging.info("Running transform_bq_data Step")
         created_tables = transform_bq_data(data_type, raw_data, draft_table, params.ALIQUOT_TABLE, params.CASE_TABLE,
-                                           params.FILE_TABLE, params.GENE_NAMES_TABLE, params.DEV_PROJECT,
-                                           params.DEV_DATASET, params.RELEASE)
+                                           params.RAW_GDC_DATASET, params.FILE_TABLE, params.GENE_NAMES_TABLE,
+                                           params.DEV_PROJECT, params.DEV_DATASET, params.RELEASE)
 #        with open(tables_created_file, 'w') as outfile:
 #            for table in created_tables:
 #                outfile.write(table)
