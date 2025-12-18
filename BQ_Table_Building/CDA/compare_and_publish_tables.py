@@ -29,7 +29,7 @@ from typing import Union
 
 from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result, find_most_recent_published_table_id, \
     find_most_recent_published_refseq_table_id, get_most_recent_published_table_id_pdc, get_pdc_per_project_dataset, \
-    get_pdc_per_study_dataset, table_has_new_data
+    get_pdc_per_study_dataset, table_has_new_data, table_has_new_data_supports_nans
 from cda_bq_etl.bq_helpers.create_modify import publish_table
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import (load_config, format_seconds, get_filepath, create_metadata_table_id)
@@ -51,6 +51,10 @@ def list_added_or_removed_rows_aliquot_gdc(select_table_id: str, join_table_id: 
         """
     query_logger = logging.getLogger("query_logger")
     logger = logging.getLogger("base_script")
+
+    if table_params["table_base_name"] == "quant":
+        logger.critical("Method cannot be called for quant")
+        sys.exit(-1)
 
     added_removed_record_query = make_added_or_removed_record_query()
     query_logger.info(added_removed_record_query)
@@ -130,6 +134,10 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_p
         """
     query_logger = logging.getLogger("query_logger")
     logger = logging.getLogger("base_script")
+
+    if table_params["table_base_name"] == "quant":
+        logger.critical("Method cannot be called for quant")
+        sys.exit(-1)
 
     added_removed_record_query = make_added_or_removed_record_query()
     query_logger.info(added_removed_record_query)
@@ -671,6 +679,11 @@ def find_record_difference_counts(table_type: str,
     if 'secondary_key' in table_metadata and table_metadata['secondary_key'] is not None:
         secondary_key = table_metadata['secondary_key'] + ', '
 
+    # include tertiary key where applicable--all PDC non-proteome quant files
+    if 'tertiary_key' in table_metadata and table_metadata['tertiary_key'] is not None:
+        secondary_key = secondary_key + table_metadata['tertiary_key'] + ', '
+
+
     previous_version_count = get_count_result(previous_or_new="previous")
     new_version_count = get_count_result(previous_or_new="new")
     count_difference = int(new_version_count) - int(previous_version_count)
@@ -734,7 +747,7 @@ def get_new_table_names(dataset: str) -> list[str]:
         return f"""
             SELECT table_name 
             FROM `{PARAMS['DEV_PROJECT']}.{dataset}`.INFORMATION_SCHEMA.TABLES
-            WHERE table_name LIKE '%{PARAMS['RELEASE']}%'
+            WHERE table_name LIKE '%{PARAMS['RELEASE']}'
         """
 
     table_names = query_and_retrieve_result(make_new_table_names_query())
@@ -1070,7 +1083,11 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
             return False
 
         # table has changed since last version
-        if table_has_new_data(table_ids['previous_versioned'], table_ids['source']):
+        #
+        # WJRL 12/18/25 NaN != NaN, so we need special handling of tables if a column holds NaNs (quant tables!)
+        #
+        nan_column = table_params['nan_column'] if 'nan_column' in table_params else None
+        if table_has_new_data_supports_nans(table_ids['previous_versioned'], table_ids['source'], nan_column):
             logger.info(f"New data found--table will be published.")
             logger.info("")
             return True
@@ -1104,6 +1121,25 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                     # primary key is defined in a dict in the yaml config for clinical table type;
                     # this will look up and return the primary key by parsing the 'current' table id.
                     modified_table_params['primary_key'] = get_primary_key(table_type, table_ids, modified_table_params)
+            elif table_type == "quant":
+                #
+                # WJRL 12/18/25
+                # Quant tables require three fields as a key. The tertiary key is used in "find_record_difference_counts()"
+                #
+                for key, value in table_params.items():
+                    modified_table_params[key] = value
+                quant_subtype = table_ids["source"].split(".")[2].split("_")[2]
+                key_set = table_params["combo_key_map"][quant_subtype]
+                modified_table_params["primary_key"] = key_set[0]
+                modified_table_params["secondary_key"] = key_set[1]
+                if len(key_set) == 3:
+                    modified_table_params["tertiary_key"] = key_set[2]
+                #
+                # WJRL 12/18/25
+                # Duplicate detection fields change for each type of quant data, so we need use a map and get the
+                # keys for the specific type
+                #
+                modified_table_params["keys_for_duplicate_detection"] = table_params["duplicate_detection_map"][quant_subtype]
             else:
                 modified_table_params = table_params
 
@@ -1119,6 +1155,14 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                 # display compare_to_last.sh style output
                 added_count, removed_count = find_record_difference_counts(table_type, table_ids, modified_table_params)
 
+            #
+            # 12/18/25 WJRL
+            # When I got here, the following code to show examples of adds, removals, and changes was not being used
+            # for quant tables. However, I have made changes where quants have tertiary keys, but none of the
+            # functions called here have been updated to handle tertiary keys correctly. So all the functions here
+            # now check explicitly that they are not used for quants. If that is going to change, you will need to\
+            # change the code to correctly handle tertiary keys in addition to secondary keys.
+            #
             if table_type != 'quant':
                 if added_count > 0:
                     # list added rows
@@ -1257,6 +1301,10 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
 
     logger = logging.getLogger('base_script')
     query_logger = logging.getLogger('query_logger')
+
+    if table_params["table_base_name"] == "quant":
+        logger.critical("Method cannot be called for quant")
+        sys.exit(-1)
 
     primary_key = table_params['primary_key']
     secondary_key = table_params['secondary_key'] if 'secondary_key' in table_params else None
@@ -1403,6 +1451,10 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
 
     logger = logging.getLogger('base_script')
     query_logger = logging.getLogger('query_logger')
+
+    if table_params["table_base_name"] == "quant":
+        logger.critical("Method cannot be called for quant")
+        sys.exit(-1)
 
     new_concat_column_query = make_concat_column_query(table_ids['source'])
     query_logger.info(f"SQL to retrieve concat values in current version table: {table_ids['source']} \n"
