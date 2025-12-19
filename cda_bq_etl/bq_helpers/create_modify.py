@@ -220,7 +220,7 @@ def publish_table(params: Params, table_ids: dict[str, str]):
     """
     return publish_table_with_nan_support(params, table_ids, None)
 
-def publish_table_with_nan_support(params: Params, table_ids: dict[str, str], nan_column: str):
+def publish_table_with_nan_support(params: Params, table_ids: dict[str, str], nan_column: Optional[str] = None):
     """
     Publish production BigQuery tables using source_table_id. Update versioned table friendly name.
     Change the last versioned table's 'status' label to 'archived.' This version supports tables that

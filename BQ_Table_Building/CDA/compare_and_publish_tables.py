@@ -889,7 +889,7 @@ def find_missing_tables(dataset: str, table_type: str):
     new_table_names_no_rel = list()
 
     published_table_names = get_published_table_names()
-    # WJRL dropped the following % here in FIND:
+    # WJRL need to make this immune to 5_1 including 5_1_1 problem:
     new_table_names = get_new_table_names(dataset)
 
     if PARAMS['NODE'] == 'gdc' and table_type == 'per_sample_file':
@@ -1014,7 +1014,7 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
 
     logger = logging.getLogger('base_script')
     logger.info("Generating table id list")
-    # WJRL dropped the following % here in FIND:
+    # WJRL need to make this immune to 5_1 including 5_1_1 problem:
     new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
 
     table_ids_list = list()
