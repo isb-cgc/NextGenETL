@@ -744,12 +744,12 @@ def find_record_difference_counts(table_type: str,
 
 def get_new_table_names(dataset: str) -> list[str]:
     def make_new_table_names_query():
-        # WJRL 12/18/25: This messes up when we are trying to work with V5_1 when we have already imported V5_1_1 from
-        # PDC! FIX ME!
         return f"""
             SELECT table_name 
             FROM `{PARAMS['DEV_PROJECT']}.{dataset}`.INFORMATION_SCHEMA.TABLES
-            WHERE table_name LIKE '%{PARAMS['RELEASE']}%'
+            WHERE table_name LIKE '%{PARAMS['RELEASE']}' # ends in version
+            OR table_name LIKE '%{PARAMS['RELEASE']}_raw' # ends in version_raw 
+            OR REGEXP_CONTAINS(table_name, r'^{PARAMS['RELEASE']}_[a-zA-Z]+') # starts with version_[letter]      
         """
 
     table_names = query_and_retrieve_result(make_new_table_names_query())
