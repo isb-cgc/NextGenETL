@@ -26,7 +26,7 @@ from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
 from google.cloud.bigquery import SchemaField, Client, LoadJobConfig, QueryJob
 
-from cda_bq_etl.bq_helpers.lookup import exists_bq_dataset, exists_bq_table, table_has_new_data
+from cda_bq_etl.bq_helpers.lookup import exists_bq_dataset, exists_bq_table, table_has_new_data, table_has_new_data_supports_nans
 from cda_bq_etl.custom_typing import Params
 from cda_bq_etl.utils import (get_filepath, input_with_timeout)
 
@@ -207,7 +207,6 @@ def create_and_load_table_from_jsonl(params: Params,
 
     load_create_table_job(params, jsonl_file, client, table_id, job_config)
 
-
 def publish_table(params: Params, table_ids: dict[str, str]):
     """
     Publish production BigQuery tables using source_table_id. Update versioned table friendly name.
@@ -219,10 +218,27 @@ def publish_table(params: Params, table_ids: dict[str, str]):
                       and 'previous_versioned' (most recent published table)
     :type table_ids: dict[str, str]
     """
+    return publish_table_with_nan_support(params, table_ids, None)
+
+def publish_table_with_nan_support(params: Params, table_ids: dict[str, str], nan_column: str):
+    """
+    Publish production BigQuery tables using source_table_id. Update versioned table friendly name.
+    Change the last versioned table's 'status' label to 'archived.' This version supports tables that
+    may hold NaNs, which need special handling to detect true changes
+
+    :param params: params supplied in yaml config
+    :type params: Params
+    :param table_ids: dict of table ids: 'source' (dev table), 'versioned', 'current' (future published ids),
+                      and 'previous_versioned' (most recent published table)
+    :type table_ids: dict[str, str]
+    :param nan_column: name of column that might have NaNs. Can be None
+    :type nan_column: str
+
+    """
     logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers.create_modify')
 
     if exists_bq_table(table_ids['source']):
-        if table_has_new_data(table_ids['previous_versioned'], table_ids['source']):
+        if table_has_new_data_supports_nans(table_ids['previous_versioned'], table_ids['source'], nan_column):
             logger.info(f"Publishing {table_ids['source']}")
             delay = 5
 
