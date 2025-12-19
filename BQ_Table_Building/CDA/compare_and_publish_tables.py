@@ -744,10 +744,12 @@ def find_record_difference_counts(table_type: str,
 
 def get_new_table_names(dataset: str) -> list[str]:
     def make_new_table_names_query():
+        # WJRL 12/18/25: This messes up when we are trying to work with V5_1 when we have already imported V5_1_1 from
+        # PDC! FIX ME!
         return f"""
             SELECT table_name 
             FROM `{PARAMS['DEV_PROJECT']}.{dataset}`.INFORMATION_SCHEMA.TABLES
-            WHERE table_name LIKE '%{PARAMS['RELEASE']}'
+            WHERE table_name LIKE '%{PARAMS['RELEASE']}%'
         """
 
     table_names = query_and_retrieve_result(make_new_table_names_query())
@@ -887,6 +889,7 @@ def find_missing_tables(dataset: str, table_type: str):
     new_table_names_no_rel = list()
 
     published_table_names = get_published_table_names()
+    # WJRL dropped the following % here in FIND:
     new_table_names = get_new_table_names(dataset)
 
     if PARAMS['NODE'] == 'gdc' and table_type == 'per_sample_file':
@@ -1011,6 +1014,7 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
 
     logger = logging.getLogger('base_script')
     logger.info("Generating table id list")
+    # WJRL dropped the following % here in FIND:
     new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
 
     table_ids_list = list()
