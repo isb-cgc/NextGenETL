@@ -660,7 +660,7 @@ def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
     """
     return table_has_new_data_supports_nans(previous_table_id, current_table_id, None)
 
-def table_has_new_data_supports_nans(previous_table_id: str, current_table_id: str, nan_column: Optional[str] = None) -> bool:
+def table_has_new_data_supports_nans(previous_table_id: str, current_table_id: str, nan_column: Optional[str]) -> bool:
     """
     Compare newly created table and existing published table. Only publish new table if there's a difference.
 
