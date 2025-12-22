@@ -799,9 +799,7 @@ def find_missing_tables(dataset: str, table_type: str):
                     else:
                         program_name = program_name_original
                     
-                    print(program_name)
                     if exists_bq_dataset(program_name):
-                        print(program_name + ' exists')
                         table_name_result = query_and_retrieve_result(make_program_tables_query())
                     else:
                         continue
