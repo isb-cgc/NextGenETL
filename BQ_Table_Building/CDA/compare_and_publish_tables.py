@@ -29,9 +29,9 @@ from typing import Union
 
 from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result, find_most_recent_published_table_id, \
     find_most_recent_published_refseq_table_id, get_most_recent_published_table_id_pdc, get_pdc_per_project_dataset, \
-    get_pdc_per_study_dataset, table_has_new_data, table_has_new_data_supports_nans
+    get_pdc_per_study_dataset, table_has_new_data, table_has_new_data_supports_nans, exists_bq_dataset
 from cda_bq_etl.bq_helpers.create_modify import publish_table_with_nan_support
-    get_pdc_per_study_dataset, table_has_new_data, exists_bq_dataset
+
 from cda_bq_etl.bq_helpers.create_modify import publish_table
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import (load_config, format_seconds, get_filepath, create_metadata_table_id)
