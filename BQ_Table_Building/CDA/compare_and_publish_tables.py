@@ -29,7 +29,7 @@ from typing import Union
 
 from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result, find_most_recent_published_table_id, \
     find_most_recent_published_refseq_table_id, get_most_recent_published_table_id_pdc, get_pdc_per_project_dataset, \
-    get_pdc_per_study_dataset, table_has_new_data
+    get_pdc_per_study_dataset, table_has_new_data, exists_bq_dataset
 from cda_bq_etl.bq_helpers.create_modify import publish_table
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import (load_config, format_seconds, get_filepath, create_metadata_table_id)
@@ -798,8 +798,13 @@ def find_missing_tables(dataset: str, table_type: str):
                         program_name = "EXC_RESPONDERS"
                     else:
                         program_name = program_name_original
-
-                    table_name_result = query_and_retrieve_result(make_program_tables_query())
+                    
+                    print(program_name)
+                    if exists_bq_dataset(program_name):
+                        print(program_name + ' exists')
+                        table_name_result = query_and_retrieve_result(make_program_tables_query())
+                    else:
+                        continue
 
                     for row in table_name_result:
                         table_name = row['table_name']
