@@ -40,7 +40,7 @@ TableParams = dict[str, Union[str, list[str], dict[str, str]]]
 TableIDList = list[dict[str, str]]
 
 
-def list_added_or_removed_rows_aliquot_gdc(select_table_id: str, join_table_id: str, table_params: TableParams):
+def list_added_or_removed_rows_aliquot_gdc_obsolete(select_table_id: str, join_table_id: str, table_params: TableParams):
     def make_added_or_removed_record_query():
         return f"""            
             SELECT * 
@@ -98,6 +98,66 @@ def list_added_or_removed_rows_aliquot_gdc(select_table_id: str, join_table_id: 
             break
 
     logger.info(f"{output_str}\n")
+
+def list_added_or_removed_rows_aliquot_gdc_with_nulls(select_table_id: str, join_table_id: str, table_params: TableParams):
+    def make_added_or_removed_record_query():
+        return f"""            
+            SELECT * 
+            FROM `{select_table_id}`
+            EXCEPT DISTINCT
+            SELECT * 
+            FROM `{join_table_id}`
+        """
+    query_logger = logging.getLogger("query_logger")
+    logger = logging.getLogger("base_script")
+
+    added_removed_record_query = make_added_or_removed_record_query()
+    query_logger.info(added_removed_record_query)
+    row_result = query_and_retrieve_result(added_removed_record_query)
+
+    if row_result.total_rows == 0:
+        logger.info("None found")
+        logger.info("")
+        return
+
+    output_str = f"\n{table_params['primary_key']:45}"
+
+    if 'secondary_key' in table_params and table_params['secondary_key'] is not None:
+        output_str += f"{table_params['secondary_key']:45}"
+
+    if table_params['output_keys']:
+        for output_key in table_params['output_keys']:
+            output_str += f"{output_key:45}"
+
+    output_str += "\n\n"
+
+    i = 0
+
+    for row in row_result:
+        row_str = f"{row[table_params['primary_key']]:45}"
+
+        if 'secondary_key' in table_params and table_params['secondary_key']:
+            if row[table_params['secondary_key']]:
+                row_str += f"{row[table_params['secondary_key']]:45}"
+            else:
+                row_str += f"{'':45}"
+
+        if table_params['output_keys']:
+            for output_key in table_params['output_keys']:
+                if row[output_key]:
+                    row_str += f"{row[output_key]:45}"
+                else:
+                    row_str += f"{'':45}"
+
+        output_str += f"{row_str}\n"
+
+        i += 1
+
+        if i == PARAMS['MAX_DISPLAY_ROWS']:
+            break
+
+    logger.info(f"{output_str}\n")
+
 
 
 def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_params: TableParams):
@@ -272,7 +332,7 @@ def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params
     logger.warning(output_str)
 
 
-def find_record_difference_counts_aliquot_gdc(table_type: str, table_ids: dict[str, str], table_metadata: TableParams):
+def find_record_difference_counts_aliquot_gdc_obsolete(table_type: str, table_ids: dict[str, str], table_metadata: TableParams):
 
     def make_record_count_query(table_id):
         return f"""
@@ -483,6 +543,259 @@ def find_record_difference_counts_aliquot_gdc(table_type: str, table_ids: dict[s
 
     return added_count, removed_count
 
+def find_record_difference_counts_aliquot_gdc_with_nulls(table_type: str, table_ids: dict[str, str], table_metadata: TableParams):
+
+    def make_record_count_query(table_id):
+        return f"""
+            SELECT COUNT(*) AS record_count
+            FROM `{table_id}`
+        """
+
+    def make_compared_count_query(select_table_id, join_table_id):
+        return f"""
+            WITH records AS (
+                SELECT * FROM `{select_table_id}`
+                EXCEPT DISTINCT 
+                SELECT * FROM `{join_table_id}`
+            )
+            SELECT COUNT(1) AS changed_count, project_id, sample_type_name
+            FROM records
+            GROUP BY project_id, sample_type_name
+            ORDER BY project_id, sample_type_name        
+    """
+
+    def make_compared_count_query_null_aliquots(select_table_id, join_table_id):
+        return f"""
+            WITH n AS (SELECT project_id, sample_type_name, aliquot_gdc_id
+                FROM `isb-project-zero.cda_gdc_metadata.r44_aliquot2caseIDmap`
+                WHERE aliquot_gdc_id IS NOT NULL),
+                 o AS (SELECT project_id, sample_type_name, aliquot_gdc_id
+                FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.aliquot2caseIDmap_r43`
+                WHERE aliquot_gdc_id IS NOT NULL)
+            SELECT project_id, sample_type_name, COUNT(*) AS count FROM n WHERE NOT EXISTS 
+               (SELECT 1 
+                FROM o 
+                WHERE o.aliquot_gdc_id = n.aliquot_gdc_id) 
+                GROUP BY project_id, sample_type_name 
+                ORDER BY project_id
+           
+        
+            WITH records AS (
+                SELECT * FROM `{select_table_id}`
+                EXCEPT DISTINCT 
+                SELECT * FROM `{join_table_id}`
+            )
+            SELECT COUNT(1) AS changed_count, project_id, sample_type_name
+            FROM records
+            GROUP BY project_id, sample_type_name
+            ORDER BY project_id, sample_type_name        
+    """
+
+    def make_compared_count_query_null_analytes(select_table_id, join_table_id):
+        return f"""
+            WITH records AS (
+                SELECT * FROM `{select_table_id}`
+                EXCEPT DISTINCT 
+                SELECT * FROM `{join_table_id}`
+            )
+            SELECT COUNT(1) AS changed_count, project_id, sample_type_name
+            FROM records
+            GROUP BY project_id, sample_type_name
+            ORDER BY project_id, sample_type_name        
+    """
+
+
+
+
+    def make_changed_record_count_query(old_table_id, new_table_id):
+        return f"""
+            WITH new_rows AS (
+                SELECT *
+                FROM `{new_table_id}`
+                EXCEPT DISTINCT
+                SELECT *
+                FROM `{old_table_id}`
+            ), old_rows AS (
+                SELECT *
+                FROM `{old_table_id}`
+                EXCEPT DISTINCT
+                SELECT *
+                FROM `{new_table_id}`
+            ), intersects AS (
+                SELECT portion_gdc_id, aliquot_gdc_id,  project_id, sample_type_name
+                FROM old_rows
+                INTERSECT DISTINCT
+                SELECT portion_gdc_id, aliquot_gdc_id,  project_id, sample_type_name
+                FROM new_rows
+            )
+
+            SELECT COUNT(portion_gdc_id) AS changed_count, project_id, sample_type_name
+            FROM intersects
+            GROUP BY project_id, sample_type_name ORDER BY project_id, sample_type_name
+        """
+
+    def get_count_result(previous_or_new: str):
+        # version should be previous or current
+        if previous_or_new == "previous":
+            count_table_id = table_ids['previous_versioned']
+        elif previous_or_new == "new":
+            count_table_id = table_ids['source']
+        else:
+            logger.critical(f"invalid argument: {previous_or_new}. Should be 'previous' or 'new'.")
+            sys.exit(-1)
+
+        record_count_query = make_record_count_query(count_table_id)
+        # get record count from previous versioned table
+        query_logger.info(f"{previous_or_new.capitalize()} version record count query: \n{record_count_query}")
+        version_count_result = query_and_retrieve_result(record_count_query)
+
+        try:
+            version_count_result_str = None
+
+            for count_row in version_count_result:
+                version_count_result_str = count_row[0]
+                break
+
+            if version_count_result_str is None:
+                raise TypeError
+            else:
+                return version_count_result_str
+        except TypeError:
+            logger.critical(f"No value returned for {previous_or_new} version row count in {count_table_id}.")
+            logger.critical("Probably an error in the table id or SQL query.")
+            sys.exit(-1)
+
+    def compare_records(query: str) -> tuple[int, str]:
+        # find added/removed/changed records by project
+        query_logger.info(query)
+        result = query_and_retrieve_result(query)
+
+        width = 30
+
+        if result is None or result.total_rows == 0:
+            return 0, ""
+        else:
+            output_string = f"\n{'count':10}"
+
+            for header in table_metadata['output_keys']:
+                output_string += f"{header:{width}} "
+
+            output_string += "\n"
+
+            total_results = 0
+            num_columns = len(table_metadata['output_keys']) + 1
+
+            for _row in result:
+                total_results += _row[0]
+
+                if result.total_rows > 0:
+                    # append the count, right justify
+                    row_str = f"{str(_row[0]):>8}  "
+
+                    # append the other values (e.g. project id, type) as specified in output keys
+                    for i in range(1, num_columns):
+                        row_str += f"{str(_row[i]):{width}} "
+
+                    output_string += '\n' + row_str
+
+            output_string += "\n"
+
+            return total_results, output_string
+
+    """
+    def get_count_result(previous_or_new: str):
+        # version should be previous or current
+        if previous_or_new == "previous":
+            select_table_id = table_ids['previous_versioned']
+            join_table_id = table_ids['source']
+        elif previous_or_new == "new":
+            join_table_id = table_ids['previous_versioned']
+            select_table_id = table_ids['source']
+        else:
+            logger.critical(f"invalid argument: {previous_or_new}. Should be 'previous' or 'new'.")
+            sys.exit(-1)
+
+        record_count_query = make_record_count_query(select_table_id, join_table_id)
+        # get record count from previous versioned table
+        query_logger.info(f"{previous_or_new.capitalize()} version record count query: \n{record_count_query}")
+        version_count_result = query_and_retrieve_result(record_count_query)
+
+        try:
+            version_count_result_str = None
+
+            for count_row in version_count_result:
+                version_count_result_str = count_row[0]
+                break
+
+            if version_count_result_str is None:
+                raise TypeError
+            else:
+                return version_count_result_str
+        except TypeError:
+            logger.critical(f"No value returned for {previous_or_new} version row count in aliquot table.")
+            logger.critical("Probably an error in the table id or SQL query.")
+            sys.exit(-1)
+    """
+    logger = logging.getLogger('base_script')
+    query_logger = logging.getLogger("query_logger")
+
+    previous_version_count = get_count_result(previous_or_new="previous")
+    new_version_count = get_count_result(previous_or_new="new")
+    count_difference = int(new_version_count) - int(previous_version_count)
+
+    logger.info(f"***** {table_type.upper()} *****")
+
+    logger.info(f"Previous {table_type} count: {previous_version_count}")
+    logger.info(f"Current {table_type} count: {new_version_count}")
+    logger.info(f"Row count change since previous version: {count_difference}")
+    logger.info("")
+
+    added_count, removed_count = 0, 0
+
+    # find added records by project
+    query_logger.info("Added record query")
+    added_count, added_str = compare_records(query=make_compared_count_query(table_ids['source'],
+                                                                             table_ids['previous_versioned']))
+    # find removed records by project
+    query_logger.info("Removed record query")
+    removed_count, removed_str = compare_records(query=make_compared_count_query(table_ids['previous_versioned'],
+                                                                                 table_ids['source']))
+
+    logger.info(f"Added {table_type} count: {added_count}")
+
+    if table_metadata['data_type'] == 'per_project_or_program':
+        logger.info(f"Removed {table_type} count: {removed_count}")
+    else:
+        # output counts by project or other type, where applicable
+        # print added row examples
+        if added_str and added_str.strip() != added_count and table_metadata['output_keys']:
+            logger.info(added_str)
+        else:
+            logger.info("")
+
+        logger.info(f"Removed {table_type} count: {removed_count}")
+        # output counts by project or other type, where applicable
+        # print removed row examples
+        if removed_str and removed_str.strip() != removed_count and table_metadata['output_keys']:
+            logger.info(removed_str)
+        else:
+            logger.info("")
+
+        # find changed records by project
+        query_logger.info("Changed record query")
+        changed_count, changed_str = compare_records(query=make_changed_record_count_query(table_ids['previous_versioned'],
+                                                                                           table_ids['source']))
+
+        logger.info(f"Changed {table_type} count: {changed_count}")
+        # outputs counts by project or other type, where applicable
+        if changed_str and changed_str.strip() != changed_count and table_metadata['output_keys']:
+            logger.info(changed_str)
+        else:
+            logger.info("")
+
+    logger.info("")
+
+    return added_count, removed_count
 
 def find_record_difference_counts(table_type: str,
                                   table_ids: dict[str, str],
@@ -1112,7 +1425,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                                 table_params=modified_table_params)
 
             if table_type == 'aliquot' and PARAMS['NODE'] == 'gdc':
-                added_count, removed_count = find_record_difference_counts_aliquot_gdc(table_type,
+                added_count, removed_count = find_record_difference_counts_aliquot_gdc_with_nulls(table_type,
                                                                                        table_ids,
                                                                                        modified_table_params)
             else:
@@ -1124,7 +1437,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                     # list added rows
                     logger.info("Added record examples:")
                     if table_type == 'aliquot' and PARAMS['NODE'] == 'gdc':
-                        list_added_or_removed_rows_aliquot_gdc(table_ids['source'],
+                        list_added_or_removed_rows_aliquot_gdc_with_nulls(table_ids['source'],
                                                                table_ids['previous_versioned'],
                                                                modified_table_params)
                     else:
@@ -1135,7 +1448,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                     # list removed rows
                     logger.info("Removed record examples:")
                     if table_type == 'aliquot' and PARAMS['NODE'] == 'gdc':
-                        list_added_or_removed_rows_aliquot_gdc(table_ids['previous_versioned'],
+                        list_added_or_removed_rows_aliquot_gdc_with_nulls(table_ids['previous_versioned'],
                                                                table_ids['source'],
                                                                modified_table_params)
                     else:
