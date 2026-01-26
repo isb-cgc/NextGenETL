@@ -1,5 +1,5 @@
 """
-Copyright 2024, Institute for Systems Biology
+Copyright 2024-2026, Institute for Systems Biology
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -41,12 +41,18 @@ YAML_HEADERS = ('params', 'steps')
 
 def make_manifest_url_query(table_id) -> str:
     return f"""
-    SELECT id, acl, gs_url
+    SELECT id, acl, indexd_url
     FROM `{table_id}`
     """
 
 
-def parse_manifest_url_records(manifest_table_name) -> list[dict[str, str]]:
+"""
+WJRL 1/22/26: Starting with Rel44, we include the AWS url in the manifest. This means we need to pull in the 
+indexd_url field and parse that. Then, we need to only include the fields we want.
+"""
+
+
+def parse_manifest_url_records(manifest_table_name, include_list) -> list[dict[str, str]]:
     logger = logging.getLogger('base_script')
     file_record_list = list()
 
@@ -56,7 +62,7 @@ def parse_manifest_url_records(manifest_table_name) -> list[dict[str, str]]:
     for row in result:
         file_uuid = row.get('id')
         acl = row.get('acl')
-        gs_url = row.get('gs_url')
+        indexd_url = row.get('indexd_url')
 
         file_record_dict = {
             'file_gdc_id': file_uuid,
@@ -65,21 +71,22 @@ def parse_manifest_url_records(manifest_table_name) -> list[dict[str, str]]:
             'file_gdc_url_aws': None
         }
 
-        if gs_url and '[' in gs_url:
-            url_list = list(map(str.strip, ast.literal_eval(gs_url)))
+        if indexd_url and '[' in indexd_url:
+            url_list = list(map(str.strip, ast.literal_eval(indexd_url)))
         else:
             url_list = [gs_url]
 
         for url in url_list:
             if not url:
                 continue
-            if 'https://' in url:
-                file_record_dict['file_gdc_url_web'] = url
+            if ('https://' in url):
+                if ("gdc_direct" in include_list):
+                    file_record_dict['file_gdc_url_web'] = url
             else:
                 if 'open' in acl and 'phs' not in acl:
-                    if 'gs://' in url:
+                    if ('gs://' in url ) and ("gcs" in include_list):
                         file_record_dict['file_gdc_url'] = url
-                    elif 's3://' in url:
+                    elif ('s3://' in url ) and ("aws" in include_list):
                         file_record_dict['file_gdc_url_aws'] = url
                     else:
                         logger.critical(f"Invalid URL scheme: {url}")
@@ -185,7 +192,6 @@ def main(args):
 
     manifest_dict = {
         # table name: tsv file name
-        f"gdc_{PARAMS['RELEASE']}_hg19": PARAMS['LEGACY_MANIFEST_TSV'],
         f"gdc_{PARAMS['RELEASE']}_hg38": PARAMS['ACTIVE_MANIFEST_TSV']
     }
 
@@ -223,11 +229,12 @@ def main(args):
         # - parse gs_url into list--either by converting string list representation or putting single value into a list
         # create list of dicts containing id, file_gdc_url_web, file_gdc_url_aws, file_gdc_url
         # - if acl isn't open, don't include gs or aws uris
+        include_list = PARAMS['PUBLISH_URLS']
         for manifest_table_name in manifest_dict.keys():
             parsed_table_name = f"{manifest_table_name}_{PARAMS['SPLIT_URL_TABLE_SUFFIX']}"
             parsed_table_id = f"{PARAMS['DEV_PROJECT']}.{PARAMS['DEV_DATASET']}.{parsed_table_name}"
 
-            manifest_url_record_list = parse_manifest_url_records(manifest_table_name)
+            manifest_url_record_list = parse_manifest_url_records(manifest_table_name, include_list)
 
             write_list_to_jsonl_and_upload(params=PARAMS,
                                            prefix=parsed_table_name,
