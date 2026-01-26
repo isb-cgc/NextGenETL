@@ -1,0 +1,76 @@
+#
+# YAML Configuration file used for script build_dcf_manifest_bq_tables.py
+#
+
+version: 1
+
+######################################################################################
+#
+#   steps: toggle script functions on and off (off = commented out).
+#          note: the order of steps here doesn't alter the order of execution,
+#          which is fixed.
+#
+######################################################################################
+steps:
+  - pull_manifest_from_data_node
+  #- create_bq_manifest_table
+  #- create_file_mapping_table
+  #- create_combined_table
+  #- reorder_combined_table
+  #- create_paths_views
+  #- publish_combined_table
+
+######################################################################################
+#
+#   params: configuration settings
+#
+######################################################################################
+params:
+  RELEASE: drXX # e.g. dr43
+
+  EXTRACTED_MONTH_YEAR: Month 202x # e.g. July 2025
+  RELEASE_NOTES_URL: a_url # e.g. https://docs.gdc.cancer.gov/Data/Release_Notes/Data_Release_Notes/#data-release-430
+
+  ACTIVE_MANIFEST_TSV: manifest_file_tsv
+
+  NODE: dcf
+
+  LOGFILE_PATH: '../logs/gdc/dcf_manifest.log'
+
+  MANIFEST_SCHEMA_LIST: SchemaFiles/dcf_manifest_schema.json
+  FILE_MAP_SCHEMA_LIST: SchemaFiles/dcf_file_map_schema.json
+
+  DEV_PROJECT: your_gcp_etl_project
+  DEV_DATASET: your_working_bq_dataset
+
+  SPLIT_URL_TABLE_SUFFIX: split_urls
+  COMBINED_TABLE: GDCfileID_to_GCSurl
+
+  OVERWRITE_PROD_TABLE: true
+
+  PROD_PROJECT: final_published_table_project
+  PROD_METADATA_DATASET: final_published_metadata_table_dataset
+
+  PROD_DATASET: final_published_table_dataset
+
+  BQ_REPO: your_bqschema_repo
+  GENERIC_SCHEMA_DIR: schema_dir # e.g. GenericSchemas
+  COLUMN_DESCRIPTION_FILEPATH: column_descriptions # e.g. TableFieldUpdates/dcf_column_descriptions.json
+  GENERIC_TABLE_METADATA_FILE: dcf_GDCfileID_to_GCSurl.json
+
+
+  # What bucket holds the tsv files that we need to import from the data node?
+  SOURCE_BUCKET: source_bucket_name
+
+  # What bucket holds the tsv files we will use to build the BQ tables?
+  WORKING_BUCKET: working_bucket_name
+  WORKING_BUCKET_DIR: working_bucket_dir_path_no_leading_/
+
+  SCRATCH_DIR: scratch
+
+  LOCATION: US
+
+  PUBLISH_URLS:
+    # - gdc_direct
+    - gcs
+    - aws

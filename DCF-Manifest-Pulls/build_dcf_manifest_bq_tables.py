@@ -16,6 +16,10 @@ limitations under the License.
 
 """
 
+"""
+1/2026: This script is OBSOLETE. Use the one in BQ_Table_Building/DCF
+"""
+
 import sys
 import yaml
 import io
