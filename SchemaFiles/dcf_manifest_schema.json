@@ -12,5 +12,6 @@
 	{"description": "active or legacy", "name": "type", "type": "string"},
 	{"description": "Reason for deletion", "name": "deletereason", "type": "string"},
 	{"description": "gs URL", "name": "gs_url", "type": "string"},
-	{"description": "List of URLs from IndexD)", "name": "indexd_url", "type": "string"}
+	{"description": "List of URLs from IndexD", "name": "indexd_url", "type": "string"},
+	{"description": "List of Submitter IDs", "name": "case_submitter_ids", "type": "string"}
 ]
