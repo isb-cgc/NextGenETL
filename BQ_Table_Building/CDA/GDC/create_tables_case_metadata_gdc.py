@@ -68,8 +68,8 @@ def make_case_file_counts_types_sql() -> str:
 
         SELECT c.case_gdc_id,
             IFNULL(ac.active_file_count, 0) AS active_file_count,
-            IFNULL(atc.primary_site, ltc.primary_site) AS primary_site,
-            IFNULL(atc.project_disease_type, ltc.project_disease_type) AS project_disease_type
+            atc.primary_site,
+            atc.project_disease_type
         FROM case_gdc_ids c
         LEFT JOIN active_counts ac
             ON c.case_gdc_id = ac.case_gdc_id
