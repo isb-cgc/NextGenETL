@@ -35,6 +35,7 @@ def make_slide_case_table_sql() -> str:
     Make BigQuery sql statement that is used to create the slide to case map table
     :return: slide to case map sql query
     """
+    """ WJRL Feb 2026: legacy removal: Ditch the UNION DISTINCT"""
     return f"""
     (
         SELECT 

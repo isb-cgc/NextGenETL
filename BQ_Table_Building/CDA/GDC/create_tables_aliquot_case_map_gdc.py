@@ -37,6 +37,11 @@ def make_aliquot_case_table_base_sql() -> str:
     which are excluded due to overlapping portion_gdc_id and aliquot_gdc_id keys in active dataset.
     :return: sql query string
     """
+    """ WJRL Feb 2026: legacy removal: Ditch the legacy_records bit
+    After combining legacy and active, we *exclude records* where the portion
+    comes from slides but not if it comes analytes? This implies we are dropping
+    rows just associated with slides (excluded_portions?) Why?    
+    """
     return f"""
         WITH active_records AS (
             SELECT cpp.program_name, 
@@ -138,7 +143,7 @@ def make_aliquot_case_table_sql() -> str:
 
     return sql_str
 
-
+""" WJRL Feb 2026: legacy removal: Ditch the legacy_records bit"""
 def make_excluded_legacy_records_sql() -> str:
     """
     SQL query used to create a table containing legacy records which were excluded from the aliquot2caseIDmap table due
@@ -189,12 +194,17 @@ def main(args):
     if 'create_table_from_query' in steps:
         logger.info("Entering create_table_from_query")
 
+        """ WJRL Feb 2026: "TABLE_NAME" the same, but datasets are different"""
+        """ The two functions that make the queries use the same base SQL (make_aliquot_case_table_base_sql()),
+            but aliquot includes files, and excluded finds differences 
+            Note ConfigFiles/CDA/GDC/CDASharedConfigGDC.yaml provides dataset"""
         create_table_from_query(params=PARAMS,
                                 table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']),
                                 query=make_aliquot_case_table_sql())
 
         update_table_schema_from_generic(params=PARAMS, table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']))
 
+        """ WJRL Feb 2026: legacy removal: Ditch the legacy_records bit"""
         create_table_from_query(params=PARAMS,
                                 table_id=create_excluded_records_table_id(PARAMS, PARAMS['TABLE_NAME']),
                                 query=make_excluded_legacy_records_sql())

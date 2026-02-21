@@ -44,6 +44,7 @@ def make_case_file_counts_types_sql() -> str:
         ),
 
     """
+    """ WJRL Feb 2026: legacy removal here """
     return f"""
         WITH active_counts AS (
             SELECT case_id AS case_gdc_id, COUNT(DISTINCT file_id) AS active_file_count 
@@ -97,6 +98,7 @@ def make_case_metadata_table_sql() -> str:
     Make BigQuery sql statement, used to generate case metadata table.
     :return: sql string
     """
+    """ WJRL Feb 2026: legacy removal here """
     return f"""
         WITH cases AS (
             (
