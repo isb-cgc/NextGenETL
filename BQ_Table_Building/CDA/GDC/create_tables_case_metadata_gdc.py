@@ -44,7 +44,6 @@ def make_case_file_counts_types_sql() -> str:
         ),
 
     """
-    """ WJRL Feb 2026: legacy removal here """
     return f"""
         WITH active_counts AS (
             SELECT case_id AS case_gdc_id, COUNT(DISTINCT file_id) AS active_file_count 
@@ -55,41 +54,27 @@ def make_case_file_counts_types_sql() -> str:
             )
             GROUP BY case_id
         ),
-        legacy_counts AS (
-            SELECT case_gdc_id, legacy_file_count 
-            FROM `{PARAMS['LEGACY_TABLE_ID']}`
-        ), active_types AS (
+        active_types AS (
             SELECT c.case_id AS case_gdc_id, c.primary_site, pdt.disease_type as project_disease_type
             FROM `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
             JOIN `{create_dev_table_id(PARAMS, 'case')}` c
                 ON c.case_id = cpp.case_gdc_id
             JOIN `{create_dev_table_id(PARAMS, 'project_disease_types_merged')}` pdt
                 ON pdt.project_id = cpp.project_id
-        ), legacy_types AS (
-            SELECT case_gdc_id, primary_site, project_disease_type
-            FROM `{PARAMS['LEGACY_TABLE_ID']}` 
         ), case_gdc_ids AS (
             SELECT case_gdc_id 
             FROM active_counts
-            UNION DISTINCT 
-            SELECT case_gdc_id
-            FROM legacy_counts
         )
 
         SELECT c.case_gdc_id,
             IFNULL(ac.active_file_count, 0) AS active_file_count,
-            IFNULL(lc.legacy_file_count, 0) AS legacy_file_count,
             IFNULL(atc.primary_site, ltc.primary_site) AS primary_site,
             IFNULL(atc.project_disease_type, ltc.project_disease_type) AS project_disease_type
         FROM case_gdc_ids c
         LEFT JOIN active_counts ac
             ON c.case_gdc_id = ac.case_gdc_id
-        LEFT JOIN legacy_counts lc
-            ON c.case_gdc_id = lc.case_gdc_id
         LEFT JOIN active_types atc
             ON c.case_gdc_id = atc.case_gdc_id
-        LEFT JOIN legacy_types ltc
-            ON c.case_gdc_id = ltc.case_gdc_id
     """
 
 
