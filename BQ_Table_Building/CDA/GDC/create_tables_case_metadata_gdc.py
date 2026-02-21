@@ -98,7 +98,6 @@ def make_case_metadata_table_sql() -> str:
     Make BigQuery sql statement, used to generate case metadata table.
     :return: sql string
     """
-    """ WJRL Feb 2026: legacy removal here """
     return f"""
         WITH cases AS (
             (
@@ -114,15 +113,6 @@ def make_case_metadata_table_sql() -> str:
                     ON c.case_id = cpp.case_gdc_id
                 JOIN `{create_dev_table_id(PARAMS, 'project_disease_types_merged')}` pdt
                     ON pdt.project_id = cpp.project_id
-            ) UNION DISTINCT (
-                SELECT case_gdc_id, 
-                    project_dbgap_accession_number, 
-                    project_name, 
-                    program_dbgap_accession_number,
-                    program_name, 
-                    project_id, 
-                    case_barcode 
-                FROM `{PARAMS['LEGACY_TABLE_ID']}` 
             )
         )
         
@@ -135,7 +125,6 @@ def make_case_metadata_table_sql() -> str:
             c.program_name, 
             c.project_id, 
             c.case_barcode,
-            IFNULL(counts.legacy_file_count, 0) AS legacy_file_count,
             IFNULL(counts.active_file_count, 0) AS active_file_count
         FROM cases c
         LEFT JOIN `{create_dev_table_id(PARAMS, PARAMS['COUNT_TABLE_NAME'])}` counts
