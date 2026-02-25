@@ -62,6 +62,7 @@ params:
 
   # What bucket holds the tsv files that we need to import from the data node?
   SOURCE_BUCKET: source_bucket_name
+  LEGACY_SOURCE_BUCKET: legacy_source_bucket_name
 
   # What bucket holds the tsv files we will use to build the BQ tables?
   WORKING_BUCKET: working_bucket_name
