@@ -195,11 +195,17 @@ def main(args):
         f"gdc_{PARAMS['RELEASE']}_hg19": PARAMS['LEGACY_MANIFEST_TSV'],
         f"gdc_{PARAMS['RELEASE']}_hg38": PARAMS['ACTIVE_MANIFEST_TSV']
     }
+    manifest_buckets = {
+        # table name: tsv file name
+        f"gdc_{PARAMS['RELEASE']}_hg19": PARAMS['LEGACY_SOURCE_BUCKET'],
+        f"gdc_{PARAMS['RELEASE']}_hg38": PARAMS['SOURCE_BUCKET']
+    }
 
     if "pull_manifest_from_data_node" in steps:
         logger.info("Entering pull_manifest_from_data_node")
         for manifest_file_name in manifest_dict.values():
-            transfer_between_buckets(PARAMS, PARAMS['SOURCE_BUCKET'], manifest_file_name, PARAMS['WORKING_BUCKET'])
+            source_buck = manifest_buckets[manifest_file_name]
+            transfer_between_buckets(PARAMS, source_buck, manifest_file_name, PARAMS['WORKING_BUCKET'])
 
     if "create_bq_manifest_table" in steps:
         logger.info("Entering create_bq_manifest_table")
