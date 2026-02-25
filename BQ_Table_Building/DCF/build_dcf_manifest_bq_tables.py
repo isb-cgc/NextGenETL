@@ -192,6 +192,7 @@ def main(args):
 
     manifest_dict = {
         # table name: tsv file name
+        f"gdc_{PARAMS['RELEASE']}_hg19": PARAMS['LEGACY_MANIFEST_TSV'],
         f"gdc_{PARAMS['RELEASE']}_hg38": PARAMS['ACTIVE_MANIFEST_TSV']
     }
 

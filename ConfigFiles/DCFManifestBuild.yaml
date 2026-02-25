@@ -31,7 +31,8 @@ params:
   EXTRACTED_MONTH_YEAR: Month 202x # e.g. July 2025
   RELEASE_NOTES_URL: a_url # e.g. https://docs.gdc.cancer.gov/Data/Release_Notes/Data_Release_Notes/#data-release-430
 
-  ACTIVE_MANIFEST_TSV: manifest_file_tsv
+  ACTIVE_MANIFEST_TSV: active_manifest_file.tsv
+  LEGACY_MANIFEST_TSV: legacy_manifest_file.tsv
 
   NODE: dcf
 
