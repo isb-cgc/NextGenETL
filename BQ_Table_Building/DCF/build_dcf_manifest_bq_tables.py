@@ -85,9 +85,17 @@ def parse_manifest_url_records(manifest_table_name, include_list) -> list[dict[s
             else:
                 if 'open' in acl and 'phs' not in acl:
                     if ('gs://' in url ) and ("gcs" in include_list):
-                        file_record_dict['file_gdc_url'] = url
+                        bucket = url.split('/')[2]
+                        if "controlled" in bucket:
+                            logger.info(f"Controlled bucket skipped for open file {url}")
+                        else:
+                            file_record_dict['file_gdc_url'] = url
                     elif ('s3://' in url ) and ("aws" in include_list):
-                        file_record_dict['file_gdc_url_aws'] = url
+                        bucket = url.split('/')[2]
+                        if "controlled" in bucket:
+                            logger.info(f"Controlled bucket skipped for open file {url}")
+                        else:
+                            file_record_dict['file_gdc_url_aws'] = url
                     else:
                         logger.critical(f"Invalid URL scheme: {url}")
                         sys.exit(-1)
