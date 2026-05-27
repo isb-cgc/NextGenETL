@@ -34,7 +34,7 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
-def collapse_plurals(params: Params):
+def collapse_plurals(params):
     for table_name in params['PLURAL_PARAMS'].keys():
         print(table_name)
         for column in params['PLURAL_PARAMS'][table_name]:
