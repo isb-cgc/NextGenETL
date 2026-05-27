@@ -43,24 +43,39 @@ def collapse_plurals(params):
     # 408709d0-b60a-481a-a4b7-7407ab19c549 has Arsenic and Cadmium
     map_table_name = "exposure_has_chemical_exposure_type"
 
-    full_name = create_dev_table_id(PARAMS, map_table_name)
-
+    full_name = create_dev_table_id(params, "exposure")
+    print(full_name)
     explore_table_sql = f"""
         SELECT * FROM {full_name} LIMIT 1
         """
 
+    columns = ""
     table_explore = query_and_retrieve_result(sql=explore_table_sql)
-
     if not table_explore:
         logger.info("no table explore result")
         logger.info("")
     elif table_explore.total_rows > 0:
+        colnames = []
         for row in table_explore:
             for key in row.keys():
-                print(key)
-                value = str(row[key])
-                print(value)
+                colnames.append(key)
+            columns = ", ".join(colnames)
             break
+
+    sql_str = f'''
+      WITH a1 AS (SELECT exposure_id,
+                      STRING_AGG(chemical_exposure_type_id, ';' ORDER BY exposure_id) AS pl_chemical_exposure_type
+                FROM `isb-project-zero.cda_gdc_raw.r45_exposure_has_chemical_exposure_type`
+                GROUP BY exposure_id)
+      SELECT {columns}, pl_chemical_exposure_type FROM `isb-project-zero.cda_gdc_raw.r45_exposure` as ex
+        JOIN a1 ON a1.exposure_id = ex.exposure_id 
+    '''
+
+    #clinical_table_id = create_clinical_table_id(PARAMS, f"{program_name}_{table_name}")
+
+    table_name = "isb-project-zero.cda_gdc_raw_plural.r45_exposure_plural"
+    create_table_from_query(PARAMS, table_id=table_name, query=sql_str)
+
     return
 
 def find_program_tables() -> dict[str, set[str]]:
