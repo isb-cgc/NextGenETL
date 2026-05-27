@@ -61,13 +61,13 @@ def collapse_plurals(params):
                 colnames.append(key)
             columns = ", ".join(colnames)
             break
-
+        print(columns)
     sql_str = f'''
       WITH a1 AS (SELECT exposure_id,
                       STRING_AGG(chemical_exposure_type_id, ';' ORDER BY exposure_id) AS pl_chemical_exposure_type
                 FROM `isb-project-zero.cda_gdc_raw.r45_exposure_has_chemical_exposure_type`
                 GROUP BY exposure_id)
-      SELECT {columns}, pl_chemical_exposure_type FROM `isb-project-zero.cda_gdc_raw.r45_exposure` as ex
+      SELECT ex.*, pl_chemical_exposure_type FROM `isb-project-zero.cda_gdc_raw.r45_exposure` as ex
         JOIN a1 ON a1.exposure_id = ex.exposure_id 
     '''
 
