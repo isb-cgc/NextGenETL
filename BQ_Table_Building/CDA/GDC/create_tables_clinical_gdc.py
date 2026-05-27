@@ -39,6 +39,28 @@ def collapse_plurals(params):
         print(table_name)
         for column in params['PLURAL_PARAMS'][table_name]:
             print(column)
+
+    # 408709d0-b60a-481a-a4b7-7407ab19c549 has Arsenic and Cadmium
+    map_table_name = "exposure_has_chemical_exposure_type"
+
+    full_name = create_dev_table_id(PARAMS, map_table_name)
+
+    explore_table_sql = f"""
+        SELECT * FROM {full_name} LIMIT 1
+        """
+
+    table_explore = query_and_retrieve_result(sql=explore_table_sql)
+
+    if not table_explore:
+        logger.info("no table explore result")
+        logger.info("")
+    elif table_explore.total_rows > 0:
+        for row in table_explore:
+            for key in row.keys:
+                print(key)
+                value = str(row[key])
+                print(value)
+            break
     return
 
 def find_program_tables() -> dict[str, set[str]]:
