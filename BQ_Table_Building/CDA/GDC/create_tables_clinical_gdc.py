@@ -56,7 +56,7 @@ def collapse_plurals(params):
         logger.info("")
     elif table_explore.total_rows > 0:
         for row in table_explore:
-            for key in row.keys:
+            for key in row.keys():
                 print(key)
                 value = str(row[key])
                 print(value)
