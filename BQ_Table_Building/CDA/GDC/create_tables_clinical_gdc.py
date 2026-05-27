@@ -34,6 +34,13 @@ PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
 
+def collapse_plurals(params: Params):
+    for table_name in params['PLURAL_PARAMS'].keys():
+        print(table_name)
+        for column in params['PLURAL_PARAMS'][table_name]:
+            print(column)
+    return
+
 def find_program_tables() -> dict[str, set[str]]:
     """
     Creates per-program dict of tables to be created.
@@ -561,16 +568,21 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
-    if 'find_missing_fields' in steps:
+    if 'collapse_plurals' in steps:
         # Find discrepancies in field lists in yaml config and CDA data
-        find_missing_columns(PARAMS)
+        collapse_plurals(PARAMS)
 
-    if 'create_tables' in steps:
-        # create dict of programs : base/supplemental tables to be created
-        tables_per_program_dict = find_program_tables()
+    if False:
+        if 'find_missing_fields' in steps:
+            # Find discrepancies in field lists in yaml config and CDA data
+            find_missing_columns(PARAMS)
 
-        for program, stand_alone_tables in tables_per_program_dict.items():
-            create_clinical_tables(program, stand_alone_tables)
+        if 'create_tables' in steps:
+            # create dict of programs : base/supplemental tables to be created
+            tables_per_program_dict = find_program_tables()
+
+            for program, stand_alone_tables in tables_per_program_dict.items():
+                create_clinical_tables(program, stand_alone_tables)
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
