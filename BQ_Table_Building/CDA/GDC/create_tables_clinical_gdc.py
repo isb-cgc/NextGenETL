@@ -87,7 +87,7 @@ def collapse_plurals(params):
            c1 AS (SELECT {c1_columns} FROM `isb-project-zero.cda_gdc_raw.r45_exposure` as ex
                 LEFT JOIN a1 ON a1.exposure_id = ex.exposure_id)
            SELECT {fi_columns} FROM c1
-                LEFT JOIN b1 ON b1.exposure_id = c1.exposure_id)
+                LEFT JOIN b1 ON b1.exposure_id = c1.exposure_id
             
     '''
     print(sql_str)
