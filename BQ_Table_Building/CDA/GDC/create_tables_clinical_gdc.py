@@ -49,27 +49,36 @@ def collapse_plurals(params):
         SELECT * FROM {full_name} LIMIT 1
         """
 
-    columns = ""
+    colnames = []
     table_explore = query_and_retrieve_result(sql=explore_table_sql)
     if not table_explore:
         logger.info("no table explore result")
         logger.info("")
     elif table_explore.total_rows > 0:
-        colnames = []
         for row in table_explore:
             for key in row.keys():
                 colnames.append(key)
-            columns = ", ".join(colnames)
             break
-        print(columns)
+
+    use_colnames = []
+    for col in colnames:
+        if col == "chemical_exposure_type":
+            use_colnames.add(f"a1.{col}")
+        else:
+            use_colnames.add(f"ex.{col}")
+
+    columns = ", ".join(use_colnames)
+
+
     sql_str = f'''
       WITH a1 AS (SELECT exposure_id,
                       STRING_AGG(chemical_exposure_type_id, ';' ORDER BY exposure_id) AS pl_chemical_exposure_type
                 FROM `isb-project-zero.cda_gdc_raw.r45_exposure_has_chemical_exposure_type`
                 GROUP BY exposure_id)
-      SELECT ex.*, pl_chemical_exposure_type FROM `isb-project-zero.cda_gdc_raw.r45_exposure` as ex
-        JOIN a1 ON a1.exposure_id = ex.exposure_id 
+      SELECT {columns} FROM `isb-project-zero.cda_gdc_raw.r45_exposure` as ex
+        LEFT JOIN a1 ON a1.exposure_id = ex.exposure_id 
     '''
+    print(sql_string)
 
     #clinical_table_id = create_clinical_table_id(PARAMS, f"{program_name}_{table_name}")
 
