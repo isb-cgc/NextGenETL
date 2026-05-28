@@ -64,19 +64,23 @@ def collapse_plurals(params):
     for col in colnames:
         if col == "chemical_exposure_type":
             use_colnames.append(f"a1.{col}")
+        elif col == "occupation_type":
+            use_colnames.append(f"b1.{col}")
         else:
             use_colnames.append(f"ex.{col}")
-
     columns = ", ".join(use_colnames)
-
 
     sql_str = f'''
       WITH a1 AS (SELECT exposure_id,
                       STRING_AGG(chemical_exposure_type_id, ';' ORDER BY exposure_id) AS chemical_exposure_type
                 FROM `isb-project-zero.cda_gdc_raw.r45_exposure_has_chemical_exposure_type`
+                GROUP BY exposure_id),
+           b1 AS (SELECT exposure_id,
+                       STRING_AGG(occupation_type_id, ';' ORDER BY exposure_id) AS occupation_type
+                FROM `isb-project-zero.cda_gdc_raw.r45_exposure_has_occupation_type`
                 GROUP BY exposure_id)
-      SELECT {columns} FROM `isb-project-zero.cda_gdc_raw.r45_exposure` as ex
-        LEFT JOIN a1 ON a1.exposure_id = ex.exposure_id 
+           c1 AS SELECT {columns} FROM `isb-project-zero.cda_gdc_raw.r45_exposure` as ex
+                LEFT JOIN a1 ON a1.exposure_id = ex.exposure_id 
     '''
     print(sql_str)
 
