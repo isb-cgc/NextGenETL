@@ -78,7 +78,7 @@ def collapse_plurals(params):
       SELECT {columns} FROM `isb-project-zero.cda_gdc_raw.r45_exposure` as ex
         LEFT JOIN a1 ON a1.exposure_id = ex.exposure_id 
     '''
-    print(sql_string)
+    print(sql_str)
 
     #clinical_table_id = create_clinical_table_id(PARAMS, f"{program_name}_{table_name}")
 
