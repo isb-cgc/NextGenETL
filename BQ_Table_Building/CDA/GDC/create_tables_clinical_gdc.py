@@ -60,15 +60,20 @@ def collapse_plurals(params):
                 colnames.append(key)
             break
 
-    use_colnames = []
+    use_colnames_c1 = []
+    use_colnames_final = []
     for col in colnames:
         if col == "chemical_exposure_type":
-            use_colnames.append(f"a1.{col}")
+            use_colnames_c1.append(f"a1.{col}")
+            use_colnames_final.append(f"c1.{col}")
         elif col == "occupation_type":
-            use_colnames.append(f"b1.{col}")
+            use_colnames_c1.append(f"ex.{col}")
+            use_colnames_final.append(f"b1.{col}")
         else:
-            use_colnames.append(f"ex.{col}")
-    columns = ", ".join(use_colnames)
+            use_colnames_c1.append(f"ex.{col}")
+            use_colnames_final.append(f"c1.{col}")
+    c1_columns = ", ".join(use_colnames_c1)
+    fi_columns = ", ".join(use_colnames_final)
 
     sql_str = f'''
       WITH a1 AS (SELECT exposure_id,
@@ -78,9 +83,12 @@ def collapse_plurals(params):
            b1 AS (SELECT exposure_id,
                        STRING_AGG(occupation_type_id, ';' ORDER BY exposure_id) AS occupation_type
                 FROM `isb-project-zero.cda_gdc_raw.r45_exposure_has_occupation_type`
-                GROUP BY exposure_id)
-           c1 AS SELECT {columns} FROM `isb-project-zero.cda_gdc_raw.r45_exposure` as ex
-                LEFT JOIN a1 ON a1.exposure_id = ex.exposure_id 
+                GROUP BY exposure_id),
+           c1 AS (SELECT {c1_columns} FROM `isb-project-zero.cda_gdc_raw.r45_exposure` as ex
+                LEFT JOIN a1 ON a1.exposure_id = ex.exposure_id)
+           SELECT {fi_columns} FROM c1
+                LEFT JOIN b1 ON b1.exposure_id = c1.exposure_id)
+            
     '''
     print(sql_str)
 
