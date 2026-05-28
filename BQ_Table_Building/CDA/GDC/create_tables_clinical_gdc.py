@@ -63,9 +63,9 @@ def collapse_plurals(params):
     use_colnames = []
     for col in colnames:
         if col == "chemical_exposure_type":
-            use_colnames.add(f"a1.{col}")
+            use_colnames.append(f"a1.{col}")
         else:
-            use_colnames.add(f"ex.{col}")
+            use_colnames.append(f"ex.{col}")
 
     columns = ", ".join(use_colnames)
 
