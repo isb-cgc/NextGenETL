@@ -43,59 +43,88 @@ def collapse_plurals(params):
     # 408709d0-b60a-481a-a4b7-7407ab19c549 has Arsenic and Cadmium
     map_table_name = "exposure_has_chemical_exposure_type"
 
-    full_name = create_dev_table_id(params, "exposure")
-    print(full_name)
-    explore_table_sql = f"""
-        SELECT * FROM {full_name} LIMIT 1
-        """
+    # Extract a single line to retrieve column names
+    for table_name in params['PLURAL_PARAMS'].keys():
+        full_name = create_dev_table_id(params, table_name)
+        column_table_sql = f"""
+            SELECT * FROM {full_name} LIMIT 1
+            """
 
-    colnames = []
-    table_explore = query_and_retrieve_result(sql=explore_table_sql)
-    if not table_explore:
-        logger.info("no table explore result")
-        logger.info("")
-    elif table_explore.total_rows > 0:
-        for row in table_explore:
-            for key in row.keys():
-                colnames.append(key)
-            break
+        colnames = []
+        plural_table_info = query_and_retrieve_result(sql=column_table_sql)
+        if not plural_table_info:
+            logger.info(f"No plural table query result for {table_name}")
+            logger.info("")
+        elif plural_table_info.total_rows > 0:
+            for row in plural_table_info:
+                for key in row.keys():
+                    colnames.append(key)
+                break
 
-    use_colnames_c1 = []
-    use_colnames_final = []
-    for col in colnames:
-        if col == "chemical_exposure_type":
-            use_colnames_c1.append(f"a1.{col}")
-            use_colnames_final.append(f"c1.{col}")
-        elif col == "occupation_type":
-            use_colnames_c1.append(f"ex.{col}")
-            use_colnames_final.append(f"b1.{col}")
-        else:
-            use_colnames_c1.append(f"ex.{col}")
-            use_colnames_final.append(f"c1.{col}")
-    c1_columns = ", ".join(use_colnames_c1)
-    fi_columns = ", ".join(use_colnames_final)
+        plural_cols = params['PLURAL_PARAMS'][table_name]
+        if (len(plural_cols) == 0) or (len(plural_cols) > 2):
+            raise Exception("Can only process plural column count where:  1 <= count <= 2")
 
-    sql_str = f'''
-      WITH a1 AS (SELECT exposure_id,
-                      STRING_AGG(chemical_exposure_type_id, ';' ORDER BY exposure_id) AS chemical_exposure_type
-                FROM `isb-project-zero.cda_gdc_raw.r45_exposure_has_chemical_exposure_type`
-                GROUP BY exposure_id),
-           b1 AS (SELECT exposure_id,
-                       STRING_AGG(occupation_type_id, ';' ORDER BY exposure_id) AS occupation_type
-                FROM `isb-project-zero.cda_gdc_raw.r45_exposure_has_occupation_type`
-                GROUP BY exposure_id),
-           c1 AS (SELECT {c1_columns} FROM `isb-project-zero.cda_gdc_raw.r45_exposure` as ex
-                LEFT JOIN a1 ON a1.exposure_id = ex.exposure_id)
-           SELECT {fi_columns} FROM c1
-                LEFT JOIN b1 ON b1.exposure_id = c1.exposure_id
-            
-    '''
-    print(sql_str)
+        num_pc = len(plural_cols)
+        pc_range = range(num_pc)
+        key_name = f"{table_name}_id"
+        full_sql = "WITH"
+        last_source = None
+
+        for i in pc_range:
+            pl_col = plural_cols[i]
+            ptab = f"ptab{i}"
+            rtab = f"rtab{i}"
+            source_tab = f"`{full_name}`" if i == 0 else f"rtab{i - 1}"
+            source_abbrev = "fn" if i == 0 else ""
+            source_abbrev_fragment = "AS fn" if i == 0 else ""
+            pass_colname = []
+            for col in colnames:
+                if col == pl_col:
+                    pass_colname.append(f"{ptab}.{col}")
+                else:
+                    pass_colname.append(f"{rtab}.{col}")
+            join_cols = ", ".join(pass_colname)
+
+            map_table = create_dev_table_id(params, f"{table_name}_has_{pl_col}")
+            kid_key = f"{pl_col}_id"
+
+            single_sql_str = f'''
+                {ptab} AS (SELECT {key_name}, STRING_AGG({kid_key}, ';' ORDER BY {key_name}) AS {pl_col}
+                           FROM `{map_table}`
+                           GROUP BY {key_name}),
+                {rtab} AS (SELECT {join_cols} FROM {source_tab} {source_abbrev_fragment}
+                           LEFT JOIN {ptab} ON {ptab}.{key_name} = {source_abbrev}.{key_name})
+                '''
+            sep = " " if (i == 0) or (i == num_pc - 1) else ", "
+            full_sql = full_sql + sep + single_sql_str
+            last_source = source_abbrev
+
+        full_sql = full_sql + f"SELECT * FROM {last_source}"
+        print(full_sql)
+
+
+        double_sql_str = f'''
+          WITH plu1 AS (SELECT exposure_id,
+                          STRING_AGG(chemical_exposure_type_id, ';' ORDER BY exposure_id) AS chemical_exposure_type
+                    FROM `isb-project-zero.cda_gdc_raw.r45_exposure_has_chemical_exposure_type`
+                    GROUP BY exposure_id),
+               b1 AS (SELECT {first_join_cols} FROM {source_tab} as {source_abbrev}
+                    LEFT JOIN plu1 ON plu1.exposure_id = fn.exposure_id),
+               c1 AS (SELECT exposure_id,
+                           STRING_AGG(occupation_type_id, ';' ORDER BY exposure_id) AS occupation_type
+                    FROM `isb-project-zero.cda_gdc_raw.r45_exposure_has_occupation_type`
+                    GROUP BY exposure_id),
+               d1 AS (SELECT {second_join_cols} FROM b1
+                    LEFT JOIN c1 ON c1.exposure_id = b1.exposure_id)
+               SELECT * FROM d1
+                
+        '''
 
     #clinical_table_id = create_clinical_table_id(PARAMS, f"{program_name}_{table_name}")
 
     table_name = "isb-project-zero.cda_gdc_raw_plural.r45_exposure_plural"
-    create_table_from_query(PARAMS, table_id=table_name, query=sql_str)
+    #create_table_from_query(PARAMS, table_id=table_name, query=double_sql_str)
 
     return
 
@@ -627,7 +656,6 @@ def main(args):
     logger = initialize_logging(log_filepath)
 
     if 'collapse_plurals' in steps:
-        # Find discrepancies in field lists in yaml config and CDA data
         collapse_plurals(PARAMS)
 
     if False:
