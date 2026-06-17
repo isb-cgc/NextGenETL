@@ -59,9 +59,9 @@ def collapse_plurals(params):
                     colnames.append(key)
                 break
 
-        plural_cols = params['PLURAL_PARAMS'][table_name]
+        plural_col_dicts = params['PLURAL_PARAMS'][table_name]
 
-        num_pc = len(plural_cols)
+        num_pc = len(plural_col_dicts)
         pc_range = range(num_pc)
         key_name = f"{table_name}_id"
         full_sql = "WITH"
@@ -72,7 +72,7 @@ def collapse_plurals(params):
         # the plural values as a ";" delimited list
         #
         for i in pc_range:
-            pl_col = plural_cols[i]
+            pl_col_dict = plural_col_dicts[i]
             ptab = f"ptab{i}"
             rtab = f"rtab{i}"
             source_tab = f"`{full_name}`" if i == 0 else f"rtab{i - 1}"
@@ -84,8 +84,8 @@ def collapse_plurals(params):
             # create the lists of columns that intercalates the plural column by way of a join
             #
             for col in colnames:
-                if col == pl_col:
-                    pass_colname.append(f"{ptab}.{col}")
+                if col == pl_col_dict['column']:
+                    pass_colname.append(f"{ptab}.{pl_col_dict['column']}")
                 else:
                     pass_colname.append(f"{source_abbrev}.{col}")
             join_cols = ", ".join(pass_colname)
@@ -95,11 +95,11 @@ def collapse_plurals(params):
             # handle all plural columns in the table, all in a "WITH" statement. The final output
             # has the completed table
             #
-            map_table = create_dev_table_id(params, f"{table_name}_has_{pl_col}")
-            kid_key = f"{pl_col}_id"
+            map_table = create_dev_table_id(params, f"{table_name}_has_{pl_col_dict['table']}")
+            kid_key = f"{pl_col_dict['table']}_id"
 
             single_sql_str = f'''
-                {ptab} AS (SELECT {key_name}, STRING_AGG({kid_key}, ';' ORDER BY {key_name}) AS {pl_col}
+                {ptab} AS (SELECT {key_name}, STRING_AGG({kid_key}, ';' ORDER BY {key_name}) AS {pl_col_dict['column']}
                            FROM `{map_table}`
                            GROUP BY {key_name}),
                 {rtab} AS (SELECT {join_cols} FROM {source_tab} {source_abbrev_fragment}
@@ -110,7 +110,7 @@ def collapse_plurals(params):
             last_tab = rtab
         # Pull out the last WITH table to create the final result:
         full_sql = full_sql + f"SELECT * FROM {last_tab}"
-        #print(full_sql)
+        print(full_sql)
 
         final_full_table_name_start = create_dev_table_id(params, table_name)
         #
@@ -121,7 +121,7 @@ def collapse_plurals(params):
         chunks[2] = f"{chunks[2]}_plural"
         final_full_table_name = ".".join(chunks)
         logger.info(f"Creating {final_full_table_name} for plurals...")
-        create_table_from_query(PARAMS, table_id=final_full_table_name, query=full_sql)
+        # create_table_from_query(PARAMS, table_id=final_full_table_name, query=full_sql)
 
     return
 
