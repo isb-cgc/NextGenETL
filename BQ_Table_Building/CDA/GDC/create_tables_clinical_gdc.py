@@ -95,7 +95,7 @@ def collapse_plurals(params):
             # handle all plural columns in the table, all in a "WITH" statement. The final output
             # has the completed table
             #
-            map_table = create_dev_table_id(params, f"{table_name}_has_{pl_col_dict['table']}")
+            map_table = create_dev_table_id(params, f"{table_name}_{pl_col_dict['infix']}_{pl_col_dict['table']}")
             kid_key = f"{pl_col_dict['table']}_id"
 
             single_sql_str = f'''
