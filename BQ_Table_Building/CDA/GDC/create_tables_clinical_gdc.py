@@ -62,8 +62,6 @@ def collapse_plurals(params):
                 break
 
         plural_cols = params['PLURAL_PARAMS'][table_name]
-        if (len(plural_cols) == 0) or (len(plural_cols) > 2):
-            raise Exception("Can only process plural column count where:  1 <= count <= 2")
 
         num_pc = len(plural_cols)
         pc_range = range(num_pc)
