@@ -83,7 +83,7 @@ def collapse_plurals(params):
                 if col == pl_col:
                     pass_colname.append(f"{ptab}.{col}")
                 else:
-                    pass_colname.append(f"{rtab}.{col}")
+                    pass_colname.append(f"{source_abbrev}.{col}")
             join_cols = ", ".join(pass_colname)
 
             map_table = create_dev_table_id(params, f"{table_name}_has_{pl_col}")
