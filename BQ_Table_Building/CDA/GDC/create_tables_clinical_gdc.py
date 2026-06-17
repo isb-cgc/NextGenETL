@@ -76,7 +76,7 @@ def collapse_plurals(params):
             ptab = f"ptab{i}"
             rtab = f"rtab{i}"
             source_tab = f"`{full_name}`" if i == 0 else f"rtab{i - 1}"
-            source_abbrev = "fn" if i == 0 else ""
+            source_abbrev = "fn" if i == 0 else f"rtab{i - 1}"
             source_abbrev_fragment = "AS fn" if i == 0 else ""
             pass_colname = []
             for col in colnames:
@@ -96,30 +96,30 @@ def collapse_plurals(params):
                 {rtab} AS (SELECT {join_cols} FROM {source_tab} {source_abbrev_fragment}
                            LEFT JOIN {ptab} ON {ptab}.{key_name} = {source_abbrev}.{key_name})
                 '''
-            sep = " " if (i == 0) or (i == num_pc - 1) else ", "
+            sep = " " if (i == 0) else ", "
             full_sql = full_sql + sep + single_sql_str
             last_source = source_abbrev
 
         full_sql = full_sql + f"SELECT * FROM {last_source}"
         print(full_sql)
 
-
-        double_sql_str = f'''
-          WITH plu1 AS (SELECT exposure_id,
-                          STRING_AGG(chemical_exposure_type_id, ';' ORDER BY exposure_id) AS chemical_exposure_type
-                    FROM `isb-project-zero.cda_gdc_raw.r45_exposure_has_chemical_exposure_type`
-                    GROUP BY exposure_id),
-               b1 AS (SELECT {first_join_cols} FROM {source_tab} as {source_abbrev}
-                    LEFT JOIN plu1 ON plu1.exposure_id = fn.exposure_id),
-               c1 AS (SELECT exposure_id,
-                           STRING_AGG(occupation_type_id, ';' ORDER BY exposure_id) AS occupation_type
-                    FROM `isb-project-zero.cda_gdc_raw.r45_exposure_has_occupation_type`
-                    GROUP BY exposure_id),
-               d1 AS (SELECT {second_join_cols} FROM b1
-                    LEFT JOIN c1 ON c1.exposure_id = b1.exposure_id)
-               SELECT * FROM d1
-                
-        '''
+        if False:
+            double_sql_str = f'''
+              WITH plu1 AS (SELECT exposure_id,
+                              STRING_AGG(chemical_exposure_type_id, ';' ORDER BY exposure_id) AS chemical_exposure_type
+                        FROM `isb-project-zero.cda_gdc_raw.r45_exposure_has_chemical_exposure_type`
+                        GROUP BY exposure_id),
+                   b1 AS (SELECT {first_join_cols} FROM {source_tab} as {source_abbrev}
+                        LEFT JOIN plu1 ON plu1.exposure_id = fn.exposure_id),
+                   c1 AS (SELECT exposure_id,
+                               STRING_AGG(occupation_type_id, ';' ORDER BY exposure_id) AS occupation_type
+                        FROM `isb-project-zero.cda_gdc_raw.r45_exposure_has_occupation_type`
+                        GROUP BY exposure_id),
+                   d1 AS (SELECT {second_join_cols} FROM b1
+                        LEFT JOIN c1 ON c1.exposure_id = b1.exposure_id)
+                   SELECT * FROM d1
+                    
+            '''
 
     #clinical_table_id = create_clinical_table_id(PARAMS, f"{program_name}_{table_name}")
 
