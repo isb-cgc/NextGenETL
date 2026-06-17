@@ -110,7 +110,7 @@ def collapse_plurals(params):
             last_tab = rtab
         # Pull out the last WITH table to create the final result:
         full_sql = full_sql + f"SELECT * FROM {last_tab}"
-        print(full_sql)
+        #print(full_sql)
 
         final_full_table_name_start = create_dev_table_id(params, table_name)
         #
@@ -121,7 +121,7 @@ def collapse_plurals(params):
         chunks[2] = f"{chunks[2]}_plural"
         final_full_table_name = ".".join(chunks)
         logger.info(f"Creating {final_full_table_name} for plurals...")
-        # create_table_from_query(PARAMS, table_id=final_full_table_name, query=full_sql)
+        create_table_from_query(PARAMS, table_id=final_full_table_name, query=full_sql)
 
     return
 
