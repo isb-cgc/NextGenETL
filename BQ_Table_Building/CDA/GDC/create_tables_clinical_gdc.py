@@ -110,7 +110,7 @@ def collapse_plurals(params):
             last_tab = rtab
         # Pull out the last WITH table to create the final result:
         full_sql = full_sql + f"SELECT * FROM {last_tab}"
-        print(full_sql)
+        #print(full_sql)
 
         final_full_table_name_start = create_dev_table_id(params, table_name)
         #
