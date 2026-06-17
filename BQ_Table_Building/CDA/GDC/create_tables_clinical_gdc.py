@@ -69,7 +69,7 @@ def collapse_plurals(params):
         pc_range = range(num_pc)
         key_name = f"{table_name}_id"
         full_sql = "WITH"
-        last_source = None
+        last_tab = None
 
         for i in pc_range:
             pl_col = plural_cols[i]
@@ -77,7 +77,7 @@ def collapse_plurals(params):
             rtab = f"rtab{i}"
             source_tab = f"`{full_name}`" if i == 0 else f"rtab{i - 1}"
             source_abbrev = "fn" if i == 0 else f"rtab{i - 1}"
-            source_abbrev_fragment = "AS fn" if i == 0 else ""
+            source_abbrev_fragment = f"AS {source_abbrev}" if i == 0 else ""
             pass_colname = []
             for col in colnames:
                 if col == pl_col:
@@ -98,9 +98,9 @@ def collapse_plurals(params):
                 '''
             sep = " " if (i == 0) else ", "
             full_sql = full_sql + sep + single_sql_str
-            last_source = source_abbrev
+            last_tab = rtab
 
-        full_sql = full_sql + f"SELECT * FROM {last_source}"
+        full_sql = full_sql + f"SELECT * FROM {last_tab}"
         print(full_sql)
 
         if False:
