@@ -33,23 +33,21 @@ from cda_bq_etl.bq_helpers.create_modify import create_table_from_query, update_
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
-
 def collapse_plurals(params):
-    for table_name in params['PLURAL_PARAMS'].keys():
-        print(table_name)
-        for column in params['PLURAL_PARAMS'][table_name]:
-            print(column)
+    #
+    # Loop over all the tables needing plural processing
+    #
+    logger = logging.getLogger('base_script')
 
-    # 408709d0-b60a-481a-a4b7-7407ab19c549 has Arsenic and Cadmium
-    map_table_name = "exposure_has_chemical_exposure_type"
-
-    # Extract a single line to retrieve column names
     for table_name in params['PLURAL_PARAMS'].keys():
+        #
+        # Extract a single line to retrieve column names
+        #
+        logger.info(f"Processing {table_name} plurals...")
         full_name = create_dev_table_id(params, table_name)
         column_table_sql = f"""
             SELECT * FROM {full_name} LIMIT 1
             """
-
         colnames = []
         plural_table_info = query_and_retrieve_result(sql=column_table_sql)
         if not plural_table_info:
@@ -69,6 +67,10 @@ def collapse_plurals(params):
         full_sql = "WITH"
         last_tab = None
 
+        #
+        # Loop over all columns needing plurals. We two subqueries per column to join in
+        # the plural values as a ";" delimited list
+        #
         for i in pc_range:
             pl_col = plural_cols[i]
             ptab = f"ptab{i}"
@@ -77,6 +79,10 @@ def collapse_plurals(params):
             source_abbrev = "fn" if i == 0 else f"rtab{i - 1}"
             source_abbrev_fragment = f"AS {source_abbrev}" if i == 0 else ""
             pass_colname = []
+
+            #
+            # create the lists of columns that intercalates the plural column by way of a join
+            #
             for col in colnames:
                 if col == pl_col:
                     pass_colname.append(f"{ptab}.{col}")
@@ -84,6 +90,11 @@ def collapse_plurals(params):
                     pass_colname.append(f"{source_abbrev}.{col}")
             join_cols = ", ".join(pass_colname)
 
+            #
+            # build the pair of joined tables for each column. These pairs are glued together to
+            # handle all plural columns in the table, all in a "WITH" statement. The final output
+            # has the completed table
+            #
             map_table = create_dev_table_id(params, f"{table_name}_has_{pl_col}")
             kid_key = f"{pl_col}_id"
 
@@ -97,32 +108,20 @@ def collapse_plurals(params):
             sep = " " if (i == 0) else ", "
             full_sql = full_sql + sep + single_sql_str
             last_tab = rtab
-
+        # Pull out the last WITH table to create the final result:
         full_sql = full_sql + f"SELECT * FROM {last_tab}"
         print(full_sql)
 
-        if False:
-            double_sql_str = f'''
-              WITH plu1 AS (SELECT exposure_id,
-                              STRING_AGG(chemical_exposure_type_id, ';' ORDER BY exposure_id) AS chemical_exposure_type
-                        FROM `isb-project-zero.cda_gdc_raw.r45_exposure_has_chemical_exposure_type`
-                        GROUP BY exposure_id),
-                   b1 AS (SELECT {first_join_cols} FROM {source_tab} as {source_abbrev}
-                        LEFT JOIN plu1 ON plu1.exposure_id = fn.exposure_id),
-                   c1 AS (SELECT exposure_id,
-                               STRING_AGG(occupation_type_id, ';' ORDER BY exposure_id) AS occupation_type
-                        FROM `isb-project-zero.cda_gdc_raw.r45_exposure_has_occupation_type`
-                        GROUP BY exposure_id),
-                   d1 AS (SELECT {second_join_cols} FROM b1
-                        LEFT JOIN c1 ON c1.exposure_id = b1.exposure_id)
-                   SELECT * FROM d1
-                    
-            '''
-
-    #clinical_table_id = create_clinical_table_id(PARAMS, f"{program_name}_{table_name}")
-
-    table_name = "isb-project-zero.cda_gdc_raw_plural.r45_exposure_plural"
-    #create_table_from_query(PARAMS, table_id=table_name, query=double_sql_str)
+        final_full_table_name_start = create_dev_table_id(params, table_name)
+        #
+        # Gotta munge the name a bit:
+        #
+        chunks = final_full_table_name_start.split('.')
+        chunks[1] = f"{chunks[1]}_plural"
+        chunks[2] = f"{chunks[2]}_plural"
+        final_full_table_name = ".".join(chunks)
+        logger.info(f"Creating {final_full_table_name} for plurals...")
+        create_table_from_query(PARAMS, table_id=final_full_table_name, query=full_sql)
 
     return
 
