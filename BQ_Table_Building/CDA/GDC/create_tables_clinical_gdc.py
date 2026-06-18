@@ -67,12 +67,10 @@ def copy_plurals_back_to_raw(params):
         #
         logger.info(f"copy plural {table_name} back to raw dataset...")
         dest_name = create_dev_table_id(params, table_name)
-        logger.info(f"dest is {dest_name}")
         chunks = dest_name.split('.')
         chunks[1] = f"{chunks[1]}_plural"
         chunks[2] = f"{chunks[2]}_plural"
         src_name = ".".join(chunks)
-        logger.info(f"src is {src_name}")
         copy_bq_table(params, src_name, dest_name, False)
         logger.info(f"copied {table_name}")
     return
