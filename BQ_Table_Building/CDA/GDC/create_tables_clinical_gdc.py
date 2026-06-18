@@ -59,6 +59,23 @@ def delete_raw_plurals(params):
         logger.info(f"deleted {table_name}")
     return
 
+def copy_plurals_back_to_raw(params):
+    logger = logging.getLogger('base_script')
+    for table_name in params['PLURAL_PARAMS'].keys():
+        #
+        # Extract a single line to retrieve column names
+        #
+        logger.info(f"copy plural {table_name} back to raw dataset...")
+        dest_name = create_dev_table_id(params, table_name)
+        logger.info(f"dest is {dest_name}")
+        chunks = dest_name.split('.')
+        chunks[1] = f"{chunks[1]}_plural"
+        chunks[2] = f"{chunks[2]}_plural"
+        src_name = ".".join(chunks)
+        logger.info(f"src is {src_name}")
+        copy_bq_table(params, src_name, dest_name, False)
+        logger.info(f"copied {table_name}")
+    return
 
 def collapse_plurals(params):
     #
@@ -692,17 +709,20 @@ def main(args):
         # works off of the saved originals!
         collapse_plurals(PARAMS)
 
-    if False:
-        if 'find_missing_fields' in steps:
-            # Find discrepancies in field lists in yaml config and CDA data
-            find_missing_columns(PARAMS)
+    if 'copy_plurals_back_to_raw' in steps:
+        # Move the pluralized versions of the tables back to the original raw locations
+        copy_plurals_back_to_raw(PARAMS)
 
-        if 'create_tables' in steps:
-            # create dict of programs : base/supplemental tables to be created
-            tables_per_program_dict = find_program_tables()
+    if 'find_missing_fields' in steps:
+        # Find discrepancies in field lists in yaml config and CDA data
+        find_missing_columns(PARAMS)
 
-            for program, stand_alone_tables in tables_per_program_dict.items():
-                create_clinical_tables(program, stand_alone_tables)
+    if 'create_tables' in steps:
+        # create dict of programs : base/supplemental tables to be created
+        tables_per_program_dict = find_program_tables()
+
+        for program, stand_alone_tables in tables_per_program_dict.items():
+            create_clinical_tables(program, stand_alone_tables)
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
