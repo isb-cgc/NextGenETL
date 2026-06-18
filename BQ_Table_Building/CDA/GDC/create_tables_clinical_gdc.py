@@ -1,5 +1,5 @@
 """
-Copyright 2023, Institute for Systems Biology
+Copyright 2023-2026, Institute for Systems Biology
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,11 +28,144 @@ from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import create_dev_table_id, load_config, format_seconds, create_clinical_table_id
 from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result, get_gdc_program_list, find_missing_columns
 from cda_bq_etl.bq_helpers.schema import get_program_schema_tags_gdc
-from cda_bq_etl.bq_helpers.create_modify import create_table_from_query, update_table_schema_from_generic
+from cda_bq_etl.bq_helpers.create_modify import create_table_from_query, update_table_schema_from_generic, copy_bq_table, delete_bq_table
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
 
+def save_plurals_to_originals(params):
+    logger = logging.getLogger('base_script')
+    for table_name in params['PLURAL_PARAMS'].keys():
+        #
+        # Extract a single line to retrieve column names
+        #
+        logger.info(f"copying raw {table_name} to original...")
+        full_name = create_dev_table_id(params, table_name)
+        full_dest_name = f"{full_name}_original"
+        replace_table = not params['PROTECT_ORIGINAL_RAW_PLURALS']
+        copy_bq_table(params, full_name, full_dest_name, replace_table)
+        logger.info(f"copied {table_name}")
+    return
+
+def delete_raw_plurals(params):
+    logger = logging.getLogger('base_script')
+    for table_name in params['PLURAL_PARAMS'].keys():
+        #
+        # Extract a single line to retrieve column names
+        #
+        logger.info(f"deleting raw {table_name}...")
+        full_name = create_dev_table_id(params, table_name)
+        delete_bq_table(full_name)
+        logger.info(f"deleted {table_name}")
+    return
+
+def copy_plurals_back_to_raw(params):
+    logger = logging.getLogger('base_script')
+    for table_name in params['PLURAL_PARAMS'].keys():
+        #
+        # Extract a single line to retrieve column names
+        #
+        logger.info(f"copy plural {table_name} back to raw dataset...")
+        dest_name = create_dev_table_id(params, table_name)
+        chunks = dest_name.split('.')
+        chunks[1] = f"{chunks[1]}_plural"
+        chunks[2] = f"{chunks[2]}_plural"
+        src_name = ".".join(chunks)
+        copy_bq_table(params, src_name, dest_name, False)
+        logger.info(f"copied {table_name}")
+    return
+
+def collapse_plurals(params):
+    #
+    # Loop over all the tables needing plural processing
+    #
+    logger = logging.getLogger('base_script')
+
+    for table_name in params['PLURAL_PARAMS'].keys():
+        #
+        # Extract a single line to retrieve column names
+        #
+        logger.info(f"Processing {table_name} plurals...")
+        full_name = f"{create_dev_table_id(params, table_name)}_original"
+        column_table_sql = f"""
+            SELECT * FROM {full_name} LIMIT 1
+            """
+        colnames = []
+        plural_table_info = query_and_retrieve_result(sql=column_table_sql)
+        if not plural_table_info:
+            logger.info(f"No plural table query result for {table_name}")
+            logger.info("")
+        elif plural_table_info.total_rows > 0:
+            for row in plural_table_info:
+                for key in row.keys():
+                    colnames.append(key)
+                break
+
+        plural_col_dicts = params['PLURAL_PARAMS'][table_name]
+
+        num_pc = len(plural_col_dicts)
+        pc_range = range(num_pc)
+        key_name = f"{table_name}_id"
+        full_sql = "WITH"
+        last_tab = None
+
+        #
+        # Loop over all columns needing plurals. We two subqueries per column to join in
+        # the plural values as a ";" delimited list
+        #
+        for i in pc_range:
+            pl_col_dict = plural_col_dicts[i]
+            ptab = f"ptab{i}"
+            rtab = f"rtab{i}"
+            source_tab = f"`{full_name}`" if i == 0 else f"rtab{i - 1}"
+            source_abbrev = "fn" if i == 0 else f"rtab{i - 1}"
+            source_abbrev_fragment = f"AS {source_abbrev}" if i == 0 else ""
+            pass_colname = []
+
+            #
+            # create the lists of columns that intercalates the plural column by way of a join
+            #
+            for col in colnames:
+                if col == pl_col_dict['column']:
+                    pass_colname.append(f"{ptab}.{pl_col_dict['column']}")
+                else:
+                    pass_colname.append(f"{source_abbrev}.{col}")
+            join_cols = ", ".join(pass_colname)
+
+            #
+            # build the pair of joined tables for each column. These pairs are glued together to
+            # handle all plural columns in the table, all in a "WITH" statement. The final output
+            # has the completed table
+            #
+            map_table = create_dev_table_id(params, f"{table_name}_{pl_col_dict['infix']}_{pl_col_dict['table']}")
+            kid_key = f"{pl_col_dict['table']}_id"
+
+            single_sql_str = f'''
+                {ptab} AS (SELECT {key_name}, STRING_AGG({kid_key}, ';' ORDER BY {key_name}) AS {pl_col_dict['column']}
+                           FROM `{map_table}`
+                           GROUP BY {key_name}),
+                {rtab} AS (SELECT {join_cols} FROM {source_tab} {source_abbrev_fragment}
+                           LEFT JOIN {ptab} ON {ptab}.{key_name} = {source_abbrev}.{key_name})
+                '''
+            sep = " " if (i == 0) else ", "
+            full_sql = full_sql + sep + single_sql_str
+            last_tab = rtab
+        # Pull out the last WITH table to create the final result:
+        full_sql = full_sql + f"SELECT * FROM {last_tab}"
+        #print(full_sql)
+
+        final_full_table_name_start = create_dev_table_id(params, table_name)
+        #
+        # Gotta munge the name a bit:
+        #
+        chunks = final_full_table_name_start.split('.')
+        chunks[1] = f"{chunks[1]}_plural"
+        chunks[2] = f"{chunks[2]}_plural"
+        final_full_table_name = ".".join(chunks)
+        logger.info(f"Creating {final_full_table_name} for plurals...")
+        create_table_from_query(PARAMS, table_id=final_full_table_name, query=full_sql)
+
+    return
 
 def find_program_tables() -> dict[str, set[str]]:
     """
@@ -560,6 +693,23 @@ def main(args):
     log_file_time = time.strftime('%Y.%m.%d-%H.%M.%S', time.localtime())
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
+
+    if 'save_plurals_to_originals' in steps:
+        # We are going to overwrite the original raw tables with pluralized ones. Save the originals
+        save_plurals_to_originals(PARAMS)
+
+    if 'delete_raw_plurals' in steps:
+        # Only do this once you are happy the originals are saved
+        delete_raw_plurals(PARAMS)
+
+    if 'collapse_plurals' in steps:
+        # create pluralized versions of the tables, not yet moving them back to raw. Note this step
+        # works off of the saved originals!
+        collapse_plurals(PARAMS)
+
+    if 'copy_plurals_back_to_raw' in steps:
+        # Move the pluralized versions of the tables back to the original raw locations
+        copy_plurals_back_to_raw(PARAMS)
 
     if 'find_missing_fields' in steps:
         # Find discrepancies in field lists in yaml config and CDA data
