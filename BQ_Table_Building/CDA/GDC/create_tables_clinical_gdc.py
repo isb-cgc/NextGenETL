@@ -1,5 +1,5 @@
 """
-Copyright 2023, Institute for Systems Biology
+Copyright 2023-2026, Institute for Systems Biology
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,10 +28,37 @@ from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import create_dev_table_id, load_config, format_seconds, create_clinical_table_id
 from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result, get_gdc_program_list, find_missing_columns
 from cda_bq_etl.bq_helpers.schema import get_program_schema_tags_gdc
-from cda_bq_etl.bq_helpers.create_modify import create_table_from_query, update_table_schema_from_generic
+from cda_bq_etl.bq_helpers.create_modify import create_table_from_query, update_table_schema_from_generic, copy_bq_table, delete_bq_table
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')
+
+def save_plurals_to_originals(params):
+    logger = logging.getLogger('base_script')
+    for table_name in params['PLURAL_PARAMS'].keys():
+        #
+        # Extract a single line to retrieve column names
+        #
+        logger.info(f"copying raw {table_name} to original...")
+        full_name = create_dev_table_id(params, table_name)
+        full_dest_name = f"{full_name}_original"
+        replace_table = not params['PROTECT_ORIGINAL_RAW_PLURALS']
+        copy_bq_table(params, full_name, full_dest_name, replace_table)
+        logger.info(f"copied {table_name}")
+    return
+
+def delete_raw_plurals(params):
+    logger = logging.getLogger('base_script')
+    for table_name in params['PLURAL_PARAMS'].keys():
+        #
+        # Extract a single line to retrieve column names
+        #
+        logger.info(f"deleting raw {table_name}...")
+        full_name = create_dev_table_id(params, table_name)
+        delete_bq_table(full_name)
+        logger.info(f"deleted {table_name}")
+    return
+
 
 def collapse_plurals(params):
     #
@@ -44,7 +71,7 @@ def collapse_plurals(params):
         # Extract a single line to retrieve column names
         #
         logger.info(f"Processing {table_name} plurals...")
-        full_name = create_dev_table_id(params, table_name)
+        full_name = f"{create_dev_table_id(params, table_name)}_original"
         column_table_sql = f"""
             SELECT * FROM {full_name} LIMIT 1
             """
@@ -652,7 +679,17 @@ def main(args):
     log_filepath = f"{PARAMS['LOGFILE_PATH']}.{log_file_time}"
     logger = initialize_logging(log_filepath)
 
+    if 'save_plurals_to_originals' in steps:
+        # We are going to overwrite the original raw tables with pluralized ones. Save the originals
+        save_plurals_to_originals(PARAMS)
+
+    if 'delete_raw_plurals' in steps:
+        # Only do this once you are happy the originals are saved
+        delete_raw_plurals(PARAMS)
+
     if 'collapse_plurals' in steps:
+        # create pluralized versions of the tables, not yet moving them back to raw. Note this step
+        # works off of the saved originals!
         collapse_plurals(PARAMS)
 
     if False:
