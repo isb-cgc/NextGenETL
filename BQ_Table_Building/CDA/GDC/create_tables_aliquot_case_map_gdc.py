@@ -45,9 +45,11 @@ def make_aliquot_case_table_base_sql() -> str:
                 cpp.case_barcode,
                 s.sample_id AS sample_gdc_id,
                 s.submitter_id AS sample_barcode,
-                s.sample_type_id AS sample_type,
+                s.sample_ordinal,
                 s.sample_type AS sample_type_name,
-                CAST(s.is_ffpe AS bool) AS sample_is_ffpe, 
+                s.tissue_type,
+                s.specimen_type,
+                s.tumor_descriptor,
                 s.preservation_method AS sample_preservation_method,
                 p.portion_id AS portion_gdc_id,
                 p.submitter_id AS portion_barcode,
@@ -79,9 +81,11 @@ def make_aliquot_case_table_base_sql() -> str:
                 case_barcode,
                 sample_gdc_id,
                 sample_barcode,
-                sample_type,
+                CAST(null as INT64) as sample_ordinal,
                 sample_type_name,
-                CAST(sample_is_ffpe AS BOOL) AS sample_is_ffpe, 
+                CAST(null as STRING) as tissue_type,
+                CAST(null as STRING) as specimen_type,
+                CAST(null as STRING) as tumor_descriptor,
                 sample_preservation_method,
                 portion_gdc_id,
                 portion_barcode,
@@ -154,9 +158,11 @@ def make_excluded_legacy_records_sql() -> str:
             case_barcode,
             sample_gdc_id,
             sample_barcode,
-            sample_type,
+            CAST(null as INT64) as sample_ordinal,
             sample_type_name,
-            CAST(sample_is_ffpe AS BOOL) AS sample_is_ffpe, 
+            CAST(null as STRING) as tissue_type,
+            CAST(null as STRING) as specimen_type,
+            CAST(null as STRING) as tumor_descriptor,
             sample_preservation_method,
             portion_gdc_id,
             portion_barcode,
@@ -188,13 +194,13 @@ def main(args):
 
     if 'create_table_from_query' in steps:
         logger.info("Entering create_table_from_query")
-
+        
         create_table_from_query(params=PARAMS,
                                 table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']),
                                 query=make_aliquot_case_table_sql())
 
         update_table_schema_from_generic(params=PARAMS, table_id=create_metadata_table_id(PARAMS, PARAMS['TABLE_NAME']))
-
+        
         create_table_from_query(params=PARAMS,
                                 table_id=create_excluded_records_table_id(PARAMS, PARAMS['TABLE_NAME']),
                                 query=make_excluded_legacy_records_sql())
