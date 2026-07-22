@@ -961,7 +961,9 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
 
         # index to split table name from program
         clinical_idx = split_table_name_list.index('clinical')
-
+        if "other_clinical" in table_name:
+            clinical_idx = split_table_name_list.index("other")
+        
         dataset_name = "_".join(split_table_name_list[0:clinical_idx])
         _base_table_name = "_".join(split_table_name_list[clinical_idx:])
         prod_table_name = f"{_base_table_name}_{PARAMS['NODE']}"
