@@ -961,6 +961,7 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
 
         # index to split table name from program
         clinical_idx = split_table_name_list.index('clinical')
+        # hack to deal with "other_clinical_attribute" tables
         if "other_clinical" in table_name:
             clinical_idx = split_table_name_list.index("other")
         
