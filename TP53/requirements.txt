@@ -12,7 +12,7 @@ google-resumable-media==1.2.0
 googleapis-common-protos==1.53.0
 grpcio==1.37.1
 idna==2.10
-numpy==1.20.3
+numpy==1.22.0
 packaging==20.9
 pandas==1.2.4
 proto-plus==1.18.1
