@@ -30,7 +30,7 @@ import gzip
 from google.cloud import bigquery
 
 from gdc_file_utils import (confirm_google_vm, format_seconds, update_dir_from_git, query_bq, bq_to_bucket_tsv,
-                            bucket_to_local, find_types, pull_from_buckets, build_file_list,
+                            bucket_to_local, find_types, pull_from_buckets_aws, build_file_list,
                             create_schema_hold_list, local_to_bucket, update_schema_tags,
                             write_table_schema_with_generic, clean_local_file_dir,
                             csv_to_bq, initialize_logging, bq_table_exists, publish_tables_and_update_schema)
@@ -113,7 +113,7 @@ def create_file_list_sql(program, filters, file_table, gcs_url_table, max_files)
     file_limit = "" if max_files is None else f"LIMIT {max_files}"
 
     return f"""
-        SELECT b.gdc_file_url
+        SELECT b.file_gdc_url_aws
         FROM  `{file_table}` as a
         JOIN `{gcs_url_table}` as b
         ON a.file_gdc_id = b.file_gdc_id
