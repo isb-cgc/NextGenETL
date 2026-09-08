@@ -88,6 +88,7 @@ def create_file_list(params, program, datatype, local_location, prefix, file_lis
     bq_to_bucket_tsv(f"{prefix}_file_list", params.DEV_PROJECT, params.DEV_DATASET,
                      params.DEV_BUCKET, f"{bucket_location}/{file_list}", params.BQ_AS_BATCH, False)
     if not os.path.exists(f"{local_location}"): os.mkdir(f"{local_location}")
+    
     bucket_to_local(params.DEV_BUCKET, f"{bucket_location}/{file_list}",
                     f"{local_location}/{file_list}")
 
@@ -287,6 +288,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
     raw_data = f"{prefix}_raw"
     draft_table = f"{prefix}_draft_table"
     field_list = f"{local_location}/{prefix}_field_schema.json"
+    bucket_folder=f"{data_type}/{program_mappings[program]['bq_dataset']}_{params.RELEASE}"
 
     if 'create_file_list' in steps:
         logger.info("Running create_file_list Step")
@@ -297,12 +299,23 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         # Bring the files to the local dir from DCF GDC Cloud Buckets
         with open(f"{local_location}/{file_list}", mode='r') as pull_list_file:
             pull_list = pull_list_file.read().splitlines()
-        pull_from_buckets(pull_list, raw_files_local_location)
+        pull_from_buckets_aws(pull_list, raw_files_local_location)
 
         all_files = build_file_list(raw_files_local_location)
         with open(f"{local_location}/{file_traversal_list}", mode='w') as traversal_list:
             for line in all_files:
                 traversal_list.write(f"{line}\n")
+    
+    if 'transfer_to_gcs' in steps:
+        bucket_name = 'gs://next-gen-etl-archives/'
+        with open(f"{local_location}/{file_list}", mode='r') as pull_list_file:
+            pull_list = pull_list_file.read().splitlines()
+        for url in pull_list[:3]:
+            path_pieces = up.urlparse(url)
+            full_file = f"{local_files_dir}{path_pieces.path}"
+            bucket_file = path_pieces.path.lstrip('/')
+            local_file = f"{local_files_dir}{dir_name}.tsv"
+            local_to_bucket(bucket_name, bucket_file, local_file)
 
     if 'create_concat_file' in steps:
         logging.info("Creating concat file")
