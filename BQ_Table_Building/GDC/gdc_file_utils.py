@@ -20,11 +20,13 @@ import logging
 import sys
 import os
 import time
+import boto3
+from botocore.config import Config
 from git import Repo
 import requests
 import urllib.parse as up
 from google.api_core.exceptions import NotFound, BadRequest
-from google.cloud import bigquery, storage
+from google.cloud import bigquery, storage, secretmanager
 import shutil
 import re
 from distutils import util
@@ -325,9 +327,7 @@ def pull_from_buckets(pull_list, local_files_dir):
     Run the "Download Client", which now just hauls stuff out of the cloud buckets
     Function originally from support.py called 'pull_from_buckets'
     """
-
     # Parse the manifest file for uuids, pull out other data too as a sanity check:
-
     num_files = len(pull_list)
     print(f"Begin {num_files} bucket copies...") # todo make logger
     storage_client = storage.Client()
@@ -355,6 +355,34 @@ def pull_from_buckets(pull_list, local_files_dir):
 
 
 # Google VM Utils #
+
+def pull_from_buckets_aws(pull_list, local_files_dir, PROJECT_ID, secret_id):
+    """
+    Adapted from GCS version above.
+    """
+    num_files = len(pull_list)
+    print(f"Begin {num_files} bucket copies...") # todo make logger
+    ACCESS_KEY = access_secret_version("AWS-Access-Key-ID", version_id="latest")
+    SECRET_KEY = access_secret_version("AWS-Secret-Access-Key", version_id="latest")
+    s3 = boto3.client('s3', aws_access_key_id=ACCESS_KEY, aws_secret_access_key=SECRET_KEY)
+    copy_count, output_list = 0, []
+    for url in pull_list[:3]:
+        print(url)
+        path_pieces = up.urlparse(aws_url)
+        print(path_pieces)
+        dir_name = os.path.dirname(path_pieces.path)
+        make_dir = f"{local_files_dir}{dir_name}"
+        print(make_dir)
+        os.makedirs(makedir, exists_ok=True)
+        full_file = f"{local_files_dir}{path_pieces.path}"
+        print(full_file)
+        s3.download_file(path_pieces_netloc, path_pieces.path.lstrip('/'), full_file)
+        output_list.append((url, full_file))
+        copy_count += 1
+        if (copy_count % 10) == 0:
+            print_progress_bar(copy_count, num_files)
+    print_progress_bar(num_files, num_files)
+    
 
 def confirm_google_vm():
     # todo
@@ -1235,4 +1263,3 @@ def install_table_metadata(table_id, metadata):
     assert table.labels == metadata['labels']
     assert table.friendly_name == metadata['friendlyName']
     assert table.description == metadata['description']
-
