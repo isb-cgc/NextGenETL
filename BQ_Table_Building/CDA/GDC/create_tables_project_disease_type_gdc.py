@@ -58,7 +58,7 @@ def create_merged_project_studies_disease_type_jsonl():
         if project not in project_disease_type_dict:
             project_disease_type_dict[project] = {}
 
-        # It is possible that the disease type is None!
+        # WJRL 9/24/26 It is possible that the disease type is None!
         if disease_type:
             project_disease_type_dict[project].add(disease_type)
 
