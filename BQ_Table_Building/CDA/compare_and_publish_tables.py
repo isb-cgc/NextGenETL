@@ -1948,9 +1948,10 @@ def main(args):
             compare_tables(table_type, table_params, table_id_list)
 
         if 'publish_tables' in steps:
-            for table_ids in table_id_list:
+            pass
+            #for table_ids in table_id_list:
                 # logger.debug(table_ids)
-                publish_table(PARAMS, table_ids)
+            #    publish_table(PARAMS, table_ids)
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
