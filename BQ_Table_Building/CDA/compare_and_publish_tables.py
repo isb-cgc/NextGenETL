@@ -101,13 +101,66 @@ def list_added_or_removed_rows_aliquot_gdc_obsolete(select_table_id: str, join_t
 
 def list_added_or_removed_rows_aliquot_gdc_with_nulls(select_table_id: str, join_table_id: str, table_params: TableParams):
     def make_added_or_removed_record_query():
-        return f"""            
-            SELECT * 
-            FROM `{select_table_id}`
-            EXCEPT DISTINCT
-            SELECT * 
-            FROM `{join_table_id}`
-        """
+        primary_key = table_params['primary_key']
+        if 'secondary_key' in table_params and table_params['secondary_key']:
+            secondary_key = table_params['secondary_key']
+        else:
+            secondary_key = None
+
+        select_str = primary_key
+        secondary_where_str = ""
+
+        if secondary_key:
+            select_str += f", {secondary_key}"
+            select_str_null += f', "None" AS {secondary_key}'
+            secondary_where_str += f"AND b1.{secondary_key}=a1.{secondary_key}"
+        if table_params['output_keys']:
+            output_keys = ', '.join(table_params['output_keys'])
+            select_str += f", {output_keys}"
+
+        #
+        # The GDC aliquot table actually has null aliquots, so it cannot always be used as the secondary key. Though when
+        # it is present, you need it there! For rows without this value, we need to just check the primary key:
+        #
+
+        if secondary_key:
+            retval = f"""
+                WITH a1 as (SELECT * FROM `{select_table_id}` WHERE {secondary_key} IS NOT NULL),
+                     b1 as (SELECT * FROM `{join_table_id}` WHERE {secondary_key} IS NOT NULL),
+                     a2 as (SELECT * FROM `{select_table_id}` WHERE {secondary_key} IS NULL),
+                     b2 as (SELECT * FROM `{join_table_id}` WHERE {secondary_key} IS NULL)
+                SELECT {select_str}
+                FROM a1
+                WHERE NOT EXISTS (
+                  SELECT 1 
+                  FROM b1 
+                  WHERE b1.{primary_key} = a1.{primary_key} 
+                    {secondary_where_str}
+                )
+                UNION DISTINCT
+                SELECT {select_str_null}
+                FROM a2
+                WHERE NOT EXISTS (
+                  SELECT 1 
+                  FROM b2 
+                  WHERE b2.{primary_key} = a2.{primary_key} 
+                ) 
+                
+            """
+        else:
+            retval = f"""
+                SELECT {select_str}
+                FROM `{select_table_id}` n
+                WHERE NOT EXISTS (
+                  SELECT 1 
+                  FROM `{join_table_id}` o 
+                  WHERE o.{primary_key} = n.{primary_key} 
+                    {secondary_where_str}
+                ) 
+            """
+
+        return retval
+
     query_logger = logging.getLogger("query_logger")
     logger = logging.getLogger("base_script")
 
@@ -1425,7 +1478,11 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                                 table_params=modified_table_params)
 
             if table_type == 'aliquot' and PARAMS['NODE'] == 'gdc':
-                added_count, removed_count = find_record_difference_counts_aliquot_gdc_with_nulls(table_type,
+                # Try using the original implementation first:
+                #added_count, removed_count = find_record_difference_counts_aliquot_gdc_with_nulls(table_type,
+                #                                                                       table_ids,
+                #                                                                       modified_table_params)
+                added_count, removed_count = find_record_difference_counts(table_type,
                                                                                        table_ids,
                                                                                        modified_table_params)
             else:
