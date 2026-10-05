@@ -1167,11 +1167,12 @@ def find_missing_tables(dataset: str, table_type: str):
 
                     table_name_result = query_and_retrieve_result(make_program_tables_query())
 
-                    for row in table_name_result:
-                        table_name = row['table_name']
-                        table_name = table_name.replace(suffix, "")
-                        program_table_name = f"{program_name}_{table_name}"
-                        _published_table_names.append(program_table_name)
+                    if table_name_result is not None:
+                        for row in table_name_result:
+                            table_name = row['table_name']
+                            table_name = table_name.replace(suffix, "")
+                            program_table_name = f"{program_name}_{table_name}"
+                            _published_table_names.append(program_table_name)
 
                 return sorted(_published_table_names)
         elif PARAMS['NODE'] == 'pdc':
