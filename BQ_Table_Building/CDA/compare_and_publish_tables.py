@@ -636,9 +636,9 @@ def find_record_difference_counts_aliquot_gdc_with_nulls(table_type: str, table_
         if num == 2:
             return f"""
                 WITH records AS (
-                    SELECT * EXCEPT sample_is_ffpe, sample_type FROM `{select_table_id}`
+                    SELECT * EXCEPT (sample_is_ffpe, sample_type) FROM `{select_table_id}`
                     EXCEPT DISTINCT 
-                    SELECT * EXCEPT sample_ordinal, sample_type_name FROM `{join_table_id}`
+                    SELECT * EXCEPT (sample_ordinal, sample_type_name) FROM `{join_table_id}`
                 )
                 SELECT COUNT(1) AS changed_count, project_id, sample_type_name
                 FROM records
@@ -648,9 +648,9 @@ def find_record_difference_counts_aliquot_gdc_with_nulls(table_type: str, table_
         else:
             return f"""
                     WITH records AS (
-                        SELECT * EXCEPT sample_ordinal, sample_type_name FROM `{select_table_id}`
+                        SELECT * EXCEPT (sample_ordinal, sample_type_name) FROM `{select_table_id}`
                         EXCEPT DISTINCT 
-                        SELECT * EXCEPT sample_is_ffpe, sample_type FROM `{join_table_id}`
+                        SELECT * EXCEPT (sample_is_ffpe, sample_type) FROM `{join_table_id}`
                     )
                     SELECT COUNT(1) AS changed_count, project_id, sample_type_name
                     FROM records
