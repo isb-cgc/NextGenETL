@@ -1043,6 +1043,8 @@ def find_record_difference_counts(table_type: str,
 
     if table_type not in ("clinical", "per_sample_file", "quant"):
         logger.info(f"***** {table_type.upper()} *****")
+        if table_type.upper() == "SLIDE":
+            exit()
 
     logger.info(f"Previous {table_type} count: {previous_version_count}")
     logger.info(f"Current {table_type} count: {new_version_count}")
