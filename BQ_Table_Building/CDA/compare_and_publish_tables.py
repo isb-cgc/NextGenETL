@@ -108,6 +108,7 @@ def list_added_or_removed_rows_aliquot_gdc_with_nulls(select_table_id: str, join
             secondary_key = None
 
         select_str = primary_key
+        select_str_null = primary_key
         secondary_where_str = ""
 
         if secondary_key:
