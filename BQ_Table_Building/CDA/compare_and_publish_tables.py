@@ -604,7 +604,7 @@ def find_record_difference_counts_aliquot_gdc_with_nulls(table_type: str, table_
             FROM `{table_id}`
         """
 
-    def make_compared_count_query(select_table_id, join_table_id):
+    def make_compared_count_query_abandon(select_table_id, join_table_id):
         return f"""
             WITH records AS (
                 SELECT * FROM `{select_table_id}`
@@ -617,47 +617,59 @@ def find_record_difference_counts_aliquot_gdc_with_nulls(table_type: str, table_
             ORDER BY project_id, sample_type_name        
     """
 
-    def make_compared_count_query_null_aliquots(select_table_id, join_table_id):
-        return f"""
-            WITH n AS (SELECT project_id, sample_type_name, aliquot_gdc_id
-                FROM `isb-project-zero.cda_gdc_metadata.r44_aliquot2caseIDmap`
-                WHERE aliquot_gdc_id IS NOT NULL),
-                 o AS (SELECT project_id, sample_type_name, aliquot_gdc_id
-                FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.aliquot2caseIDmap_r43`
-                WHERE aliquot_gdc_id IS NOT NULL)
-            SELECT project_id, sample_type_name, COUNT(*) AS count FROM n WHERE NOT EXISTS 
-               (SELECT 1 
-                FROM o 
-                WHERE o.aliquot_gdc_id = n.aliquot_gdc_id) 
-                GROUP BY project_id, sample_type_name 
-                ORDER BY project_id
-           
-        
-            WITH records AS (
-                SELECT * FROM `{select_table_id}`
-                EXCEPT DISTINCT 
-                SELECT * FROM `{join_table_id}`
-            )
-            SELECT COUNT(1) AS changed_count, project_id, sample_type_name
-            FROM records
-            GROUP BY project_id, sample_type_name
-            ORDER BY project_id, sample_type_name        
-    """
+    def make_compared_count_query_with_nulls(select_table_id, join_table_id, num):
+        if num == 2:
+            return f"""
+                WITH n AS (SELECT project_id, sample_type_name, aliquot_gdc_id
+                    FROM `{select_table_id}`
+                    WHERE aliquot_gdc_id IS NOT NULL),
+                     o AS (SELECT project_id, sample_type_name, aliquot_gdc_id
+                    FROM `{join_table_id}`
+                    WHERE aliquot_gdc_id IS NOT NULL)
+                SELECT project_id, sample_type_name, COUNT(*) AS count FROM n WHERE NOT EXISTS 
+                   (SELECT 1 
+                    FROM o 
+                    WHERE o.aliquot_gdc_id = n.aliquot_gdc_id) 
+                    GROUP BY project_id, sample_type_name 
+                    ORDER BY project_id
+               
+            
+                WITH records AS (
+                    SELECT * EXCEPT sample_is_ffpe, sample_type FROM `{select_table_id}`
+                    EXCEPT DISTINCT 
+                    SELECT * EXCEPT sample_ordinal, sample_type_name FROM `{join_table_id}`
+                )
+                SELECT COUNT(1) AS changed_count, project_id, sample_type_name
+                FROM records
+                GROUP BY project_id, sample_type_name
+                ORDER BY project_id, sample_type_name        
+            """
+        else:
+            return f"""
+                    WITH n AS (SELECT project_id, sample_type_name, aliquot_gdc_id
+                        FROM `{select_table_id}`
+                        WHERE aliquot_gdc_id IS NOT NULL),
+                         o AS (SELECT project_id, sample_type_name, aliquot_gdc_id
+                        FROM `{join_table_id}`
+                        WHERE aliquot_gdc_id IS NOT NULL)
+                    SELECT project_id, sample_type_name, COUNT(*) AS count FROM n WHERE NOT EXISTS 
+                       (SELECT 1 
+                        FROM o 
+                        WHERE o.aliquot_gdc_id = n.aliquot_gdc_id) 
+                        GROUP BY project_id, sample_type_name 
+                        ORDER BY project_id
 
-    def make_compared_count_query_null_analytes(select_table_id, join_table_id):
-        return f"""
-            WITH records AS (
-                SELECT * FROM `{select_table_id}`
-                EXCEPT DISTINCT 
-                SELECT * FROM `{join_table_id}`
-            )
-            SELECT COUNT(1) AS changed_count, project_id, sample_type_name
-            FROM records
-            GROUP BY project_id, sample_type_name
-            ORDER BY project_id, sample_type_name        
-    """
 
-
+                    WITH records AS (
+                        SELECT * EXCEPT sample_ordinal, sample_type_name FROM `{select_table_id}`
+                        EXCEPT DISTINCT 
+                        SELECT * EXCEPT sample_is_ffpe, sample_type FROM `{join_table_id}`
+                    )
+                    SELECT COUNT(1) AS changed_count, project_id, sample_type_name
+                    FROM records
+                    GROUP BY project_id, sample_type_name
+                    ORDER BY project_id, sample_type_name        
+            """
 
 
     def make_changed_record_count_query(old_table_id, new_table_id):
@@ -807,12 +819,12 @@ def find_record_difference_counts_aliquot_gdc_with_nulls(table_type: str, table_
 
     # find added records by project
     query_logger.info("Added record query")
-    added_count, added_str = compare_records(query=make_compared_count_query(table_ids['source'],
-                                                                             table_ids['previous_versioned']))
+    added_count, added_str = compare_records(query=make_compared_count_query_with_nulls(table_ids['source'],
+                                                                             table_ids['previous_versioned'], 1))
     # find removed records by project
     query_logger.info("Removed record query")
-    removed_count, removed_str = compare_records(query=make_compared_count_query(table_ids['previous_versioned'],
-                                                                                 table_ids['source']))
+    removed_count, removed_str = compare_records(query=make_compared_count_query_with_nulls(table_ids['previous_versioned'],
+                                                                                 table_ids['source'], 2))
 
     logger.info(f"Added {table_type} count: {added_count}")
 
@@ -1482,13 +1494,12 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                                 table_params=modified_table_params)
 
             if table_type == 'aliquot' and PARAMS['NODE'] == 'gdc':
-                # Try using the original implementation first:
-                #added_count, removed_count = find_record_difference_counts_aliquot_gdc_with_nulls(table_type,
+                added_count, removed_count = find_record_difference_counts_aliquot_gdc_with_nulls(table_type,
+                                                                                       table_ids,
+                                                                                      modified_table_params)
+                #added_count, removed_count = find_record_difference_counts(table_type,
                 #                                                                       table_ids,
                 #                                                                       modified_table_params)
-                added_count, removed_count = find_record_difference_counts(table_type,
-                                                                                       table_ids,
-                                                                                       modified_table_params)
             else:
                 # display compare_to_last.sh style output
                 added_count, removed_count = find_record_difference_counts(table_type, table_ids, modified_table_params)
