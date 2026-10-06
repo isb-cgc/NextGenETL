@@ -617,23 +617,24 @@ def find_record_difference_counts_aliquot_gdc_with_nulls(table_type: str, table_
             ORDER BY project_id, sample_type_name        
     """
 
+    """
+            WITH n AS (SELECT project_id, sample_type_name, aliquot_gdc_id
+                FROM `{select_table_id}`
+                WHERE aliquot_gdc_id IS NOT NULL),
+                 o AS (SELECT project_id, sample_type_name, aliquot_gdc_id
+                FROM `{join_table_id}`
+                WHERE aliquot_gdc_id IS NOT NULL)
+            SELECT project_id, sample_type_name, COUNT(*) AS count FROM n WHERE NOT EXISTS 
+               (SELECT 1 
+                FROM o 
+                WHERE o.aliquot_gdc_id = n.aliquot_gdc_id) 
+                GROUP BY project_id, sample_type_name 
+                ORDER BY project_id
+    """
+
     def make_compared_count_query_with_nulls(select_table_id, join_table_id, num):
         if num == 2:
             return f"""
-                WITH n AS (SELECT project_id, sample_type_name, aliquot_gdc_id
-                    FROM `{select_table_id}`
-                    WHERE aliquot_gdc_id IS NOT NULL),
-                     o AS (SELECT project_id, sample_type_name, aliquot_gdc_id
-                    FROM `{join_table_id}`
-                    WHERE aliquot_gdc_id IS NOT NULL)
-                SELECT project_id, sample_type_name, COUNT(*) AS count FROM n WHERE NOT EXISTS 
-                   (SELECT 1 
-                    FROM o 
-                    WHERE o.aliquot_gdc_id = n.aliquot_gdc_id) 
-                    GROUP BY project_id, sample_type_name 
-                    ORDER BY project_id
-               
-            
                 WITH records AS (
                     SELECT * EXCEPT sample_is_ffpe, sample_type FROM `{select_table_id}`
                     EXCEPT DISTINCT 
@@ -646,20 +647,6 @@ def find_record_difference_counts_aliquot_gdc_with_nulls(table_type: str, table_
             """
         else:
             return f"""
-                    WITH n AS (SELECT project_id, sample_type_name, aliquot_gdc_id
-                        FROM `{select_table_id}`
-                        WHERE aliquot_gdc_id IS NOT NULL),
-                         o AS (SELECT project_id, sample_type_name, aliquot_gdc_id
-                        FROM `{join_table_id}`
-                        WHERE aliquot_gdc_id IS NOT NULL)
-                    SELECT project_id, sample_type_name, COUNT(*) AS count FROM n WHERE NOT EXISTS 
-                       (SELECT 1 
-                        FROM o 
-                        WHERE o.aliquot_gdc_id = n.aliquot_gdc_id) 
-                        GROUP BY project_id, sample_type_name 
-                        ORDER BY project_id
-
-
                     WITH records AS (
                         SELECT * EXCEPT sample_ordinal, sample_type_name FROM `{select_table_id}`
                         EXCEPT DISTINCT 
