@@ -633,31 +633,50 @@ def find_record_difference_counts_aliquot_gdc_with_nulls(table_type: str, table_
     """
 
     def make_compared_count_query_with_nulls(select_table_id, join_table_id, num):
-        if num == 2:
+        if True:
             return f"""
                 WITH records AS (
-                    SELECT * EXCEPT (sample_is_ffpe, sample_type) FROM `{select_table_id}`
+                    SELECT program_name,
+project_id,
+case_gdc_id,
+case_barcode,	
+sample_gdc_id,	
+sample_barcode,
+sample_type_name,
+tissue_type,	
+specimen_type,	
+tumor_descriptor,	
+sample_preservation_method,	
+portion_gdc_id,	
+portion_barcode,	
+analyte_gdc_id,	
+analyte_barcode,	
+aliquot_gdc_id,	
+aliquot_barcode FROM `{select_table_id}`
                     EXCEPT DISTINCT 
-                    SELECT * EXCEPT (sample_ordinal, sample_type_name) FROM `{join_table_id}`
+                    SELECT program_name,
+project_id,
+case_gdc_id,
+case_barcode,	
+sample_gdc_id,	
+sample_barcode,
+sample_type_name,
+tissue_type,	
+specimen_type,	
+tumor_descriptor,	
+sample_preservation_method,	
+portion_gdc_id,	
+portion_barcode,	
+analyte_gdc_id,	
+analyte_barcode,	
+aliquot_gdc_id,	
+aliquot_barcode FROM `{join_table_id}`
                 )
                 SELECT COUNT(1) AS changed_count, project_id, sample_type_name
                 FROM records
                 GROUP BY project_id, sample_type_name
                 ORDER BY project_id, sample_type_name        
             """
-        else:
-            return f"""
-                    WITH records AS (
-                        SELECT * EXCEPT (sample_ordinal, sample_type_name) FROM `{select_table_id}`
-                        EXCEPT DISTINCT 
-                        SELECT * EXCEPT (sample_is_ffpe, sample_type) FROM `{join_table_id}`
-                    )
-                    SELECT COUNT(1) AS changed_count, project_id, sample_type_name
-                    FROM records
-                    GROUP BY project_id, sample_type_name
-                    ORDER BY project_id, sample_type_name        
-            """
-
 
     def make_changed_record_count_query(old_table_id, new_table_id):
         return f"""
