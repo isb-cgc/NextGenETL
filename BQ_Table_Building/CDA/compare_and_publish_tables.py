@@ -681,16 +681,80 @@ aliquot_barcode FROM `{join_table_id}`
     def make_changed_record_count_query(old_table_id, new_table_id):
         return f"""
             WITH new_rows AS (
-                SELECT *
+                SELECT program_name,
+project_id,
+case_gdc_id,
+case_barcode,	
+sample_gdc_id,	
+sample_barcode,
+sample_type_name,
+tissue_type,	
+specimen_type,	
+tumor_descriptor,	
+sample_preservation_method,	
+portion_gdc_id,	
+portion_barcode,	
+analyte_gdc_id,	
+analyte_barcode,	
+aliquot_gdc_id,	
+aliquot_barcode
                 FROM `{new_table_id}`
                 EXCEPT DISTINCT
-                SELECT *
+                SELECT program_name,
+project_id,
+case_gdc_id,
+case_barcode,	
+sample_gdc_id,	
+sample_barcode,
+sample_type_name,
+tissue_type,	
+specimen_type,	
+tumor_descriptor,	
+sample_preservation_method,	
+portion_gdc_id,	
+portion_barcode,	
+analyte_gdc_id,	
+analyte_barcode,	
+aliquot_gdc_id,	
+aliquot_barcode
                 FROM `{old_table_id}`
             ), old_rows AS (
-                SELECT *
+                SELECT program_name,
+project_id,
+case_gdc_id,
+case_barcode,	
+sample_gdc_id,	
+sample_barcode,
+sample_type_name,
+tissue_type,	
+specimen_type,	
+tumor_descriptor,	
+sample_preservation_method,	
+portion_gdc_id,	
+portion_barcode,	
+analyte_gdc_id,	
+analyte_barcode,	
+aliquot_gdc_id,	
+aliquot_barcode
                 FROM `{old_table_id}`
                 EXCEPT DISTINCT
-                SELECT *
+                SELECT program_name,
+project_id,
+case_gdc_id,
+case_barcode,	
+sample_gdc_id,	
+sample_barcode,
+sample_type_name,
+tissue_type,	
+specimen_type,	
+tumor_descriptor,	
+sample_preservation_method,	
+portion_gdc_id,	
+portion_barcode,	
+analyte_gdc_id,	
+analyte_barcode,	
+aliquot_gdc_id,	
+aliquot_barcode
                 FROM `{new_table_id}`
             ), intersects AS (
                 SELECT portion_gdc_id, aliquot_gdc_id,  project_id, sample_type_name
