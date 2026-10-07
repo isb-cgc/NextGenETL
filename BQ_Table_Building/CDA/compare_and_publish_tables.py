@@ -113,7 +113,7 @@ def list_added_or_removed_rows_aliquot_gdc_with_nulls(select_table_id: str, join
 
         if secondary_key:
             select_str += f", {secondary_key}"
-            select_str_null += f', "None" AS {secondary_key}'
+            select_str_null += f', "None" AS {secondary_key}, project_id, sample_type_name'
             secondary_where_str += f"AND b1.{secondary_key}=a1.{secondary_key}"
         if table_params['output_keys']:
             output_keys = ', '.join(table_params['output_keys'])
