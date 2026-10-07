@@ -1746,6 +1746,8 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
         column_list = generate_column_list()
 
     for column in sorted(column_list):
+        if column in ["sample_type", "sample_ordinal", "sample_is_ffpe"]:
+            continue
         compare_table_column_query = make_compare_table_column_sql(column)
 
         if table_params['data_type'] == 'metadata':
