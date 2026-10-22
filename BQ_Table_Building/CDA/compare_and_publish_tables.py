@@ -1810,6 +1810,8 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
                     break
 
             logger.info(f"{output_str}")
+        else:
+            logger.info(f"{column}: No differences found.")
 
 
 def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams, max_display_rows: int = 5):
