@@ -39,6 +39,7 @@ YAML_HEADERS = ('params', 'steps')
 TableParams = dict[str, Union[str, list[str], dict[str, str]]]
 TableIDList = list[dict[str, str]]
 
+#######################################################################################################################
 
 def list_added_or_removed_rows_aliquot_gdc_obsolete(select_table_id: str, join_table_id: str, table_params: TableParams):
     def make_added_or_removed_record_query():
@@ -98,6 +99,8 @@ def list_added_or_removed_rows_aliquot_gdc_obsolete(select_table_id: str, join_t
             break
 
     logger.info(f"{output_str}\n")
+
+#######################################################################################################################
 
 def list_added_or_removed_rows_aliquot_gdc_with_nulls(select_table_id: str, join_table_id: str, table_params: TableParams):
     def make_added_or_removed_record_query():
@@ -213,6 +216,7 @@ def list_added_or_removed_rows_aliquot_gdc_with_nulls(select_table_id: str, join
     logger.info(f"{output_str}\n")
 
 
+#######################################################################################################################
 
 def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_params: TableParams):
     def make_added_or_removed_record_query():
@@ -292,6 +296,7 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_p
 
     logger.info(f"{output_str}\n")
 
+#######################################################################################################################
 
 def get_primary_key(table_type: str, table_ids: dict[str, str], table_params: TableParams):
     logger = logging.getLogger('base_script')
@@ -314,6 +319,8 @@ def get_primary_key(table_type: str, table_ids: dict[str, str], table_params: Ta
         logger.critical("Not defined for this node or type")
         sys.exit(-1)
 
+
+#######################################################################################################################
 
 def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params: TableParams):
     logger = logging.getLogger('base_script')
@@ -385,6 +392,7 @@ def find_duplicate_keys(table_type: str, table_ids: dict[str, str], table_params
 
     logger.warning(output_str)
 
+#######################################################################################################################
 
 def find_record_difference_counts_aliquot_gdc_obsolete(table_type: str, table_ids: dict[str, str], table_metadata: TableParams):
 
@@ -596,6 +604,8 @@ def find_record_difference_counts_aliquot_gdc_obsolete(table_type: str, table_id
     logger.info("")
 
     return added_count, removed_count
+
+#######################################################################################################################
 
 def find_record_difference_counts_aliquot_gdc_with_nulls(table_type: str, table_ids: dict[str, str], table_metadata: TableParams):
 
@@ -933,6 +943,8 @@ aliquot_barcode
 
     return added_count, removed_count
 
+#######################################################################################################################
+
 def find_record_difference_counts(table_type: str,
                                   table_ids: dict[str, str],
                                   table_metadata: TableParams):
@@ -1180,6 +1192,8 @@ def find_record_difference_counts(table_type: str,
     return added_count, removed_count
 
 
+#######################################################################################################################
+
 def get_new_table_names(dataset: str) -> list[str]:
     def make_new_table_names_query():
         return f"""
@@ -1197,6 +1211,8 @@ def get_new_table_names(dataset: str) -> list[str]:
 
     return sorted(table_name_list)
 
+#######################################################################################################################
+# search for missing project tables for the given table type
 
 def find_missing_tables(dataset: str, table_type: str):
     """
@@ -1204,8 +1220,9 @@ def find_missing_tables(dataset: str, table_type: str):
     :param dataset: development dataset to search for new tables
     :param table_type: table data type, e.g. clinical, per_sample_file
     """
-
+    ##########
     def get_published_table_names() -> list[str]:
+        ######
         def make_program_tables_query() -> str:
             if table_type != 'quant':
                 return f"""
@@ -1223,6 +1240,8 @@ def find_missing_tables(dataset: str, table_type: str):
                     WHERE table_name LIKE '%{table_type}%'
                         AND table_name LIKE '%{PARAMS['NODE']}%'
                 """
+
+        ###### ^^^ End make_program_tables_query() ^^^
 
         # get program list from BQEcosystem/MetadataMappings/
         # for each program, look for tables in current list with 'clinical' or 'per_sample_file' prefix
@@ -1320,6 +1339,7 @@ def find_missing_tables(dataset: str, table_type: str):
             logger.critical("No BQEcosystem path specified for this node, exiting.")
             sys.exit(-1)
 
+    ########## ^^^ End get_published_table_names() ^^^
     logger = logging.getLogger('base_script')
     logger.info("Searching for missing tables!")
 
@@ -1329,7 +1349,7 @@ def find_missing_tables(dataset: str, table_type: str):
     new_table_names = get_new_table_names(dataset)
 
     if PARAMS['NODE'] == 'gdc' and table_type == 'per_sample_file':
-        return False
+        return False # WJRL 10/22/26 temp hack
         if 'no_url' in new_table_names[0]:
             logger.info("Final tables not yet created for per sample file metadata. "
                         "Please run compare and publish step for this table type after they're created.")
@@ -1356,6 +1376,10 @@ def find_missing_tables(dataset: str, table_type: str):
 
     return True
 
+#######################################################################################################################
+#
+# Step 0 for metadata table processing. These are the tables to check
+#
 
 def generate_metadata_table_id_list(table_params: TableParams) -> TableIDList:
     prod_table_name = table_params['table_base_name']
@@ -1385,8 +1409,13 @@ def generate_metadata_table_id_list(table_params: TableParams) -> TableIDList:
 
     return [table_ids]
 
+#######################################################################################################################
+#
+# Step 0 for non-metadata table processing (used for clinical and per-project tables) These are the tables to check
+#
 
 def generate_table_id_list(table_type: str, table_params: TableParams) -> TableIDList:
+    ##########
     def parse_gdc_clinical_table_id() -> tuple[str, str]:
         split_table_name_list = table_name.split('_')
         split_table_name_list.remove(PARAMS['RELEASE'])
@@ -1399,7 +1428,9 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
         prod_table_name = f"{_base_table_name}_{PARAMS['NODE']}"
 
         return dataset_name, prod_table_name
+    ######### end parse_gdc_clinical_table_id() ^^^
 
+    #########
     def parse_gdc_per_sample_file_table_id() -> tuple[str, str]:
         _base_table_name = PARAMS['TABLE_TYPES']['per_sample_file']['table_base_name']
 
@@ -1410,7 +1441,9 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
         prod_table_name = f"{_base_table_name}_{PARAMS['NODE']}"
 
         return dataset_name, prod_table_name
+    ######### end parse_gdc_per)sample_file_table_id() ^^^
 
+    #########
     def parse_pdc_clinical_table_id() -> tuple[str, str, str, str]:
         new_table_name = table_name.replace(f"{PARAMS['RELEASE']}_", "")
         split_table_name_list = new_table_name.split('_')
@@ -1426,7 +1459,9 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
         prod_table_name = f"{_base_table_name}_{_project_short_name}_{PARAMS['NODE']}"
 
         return dataset_name, prod_table_name, _project_short_name, _base_table_name
+    ######### end parse_pdc_clinical_table_id() ^^^
 
+    #########
     def parse_pdc_per_sample_file_table_id() -> tuple[str, str, str]:
         _base_table_name = PARAMS['TABLE_TYPES']['per_sample_file']['table_base_name']
 
@@ -1439,7 +1474,9 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
         prod_table_name = f"{_base_table_name}_{_project_short_name}_{PARAMS['NODE']}"
 
         return dataset_name, prod_table_name, _project_short_name
+    ######### end parse_pdc_per_sample_file_table_id ^^^
 
+    #########
     def parse_pdc_quant_table_id() -> tuple[str, str]:
         pdc_study_id = table_name.split("_")[0]
         table_name_no_rel = table_name.replace(f"_{PARAMS['RELEASE']}", "")
@@ -1448,6 +1485,8 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
         dataset_name = get_pdc_per_study_dataset(PARAMS, pdc_study_id)
 
         return dataset_name, table_name_no_rel
+    ######### end parse_gdc_quant_table_id() ^^^
+
 
     logger = logging.getLogger('base_script')
     logger.info("Generating table id list")
@@ -1503,6 +1542,10 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
 
     return table_ids_list
 
+#######################################################################################################################
+#
+# This is the meat of the script.
+
 
 def compare_tables(table_type: str, table_params: TableParams, table_id_list: TableIDList):
     """
@@ -1514,6 +1557,8 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                           (future published ids) and 'previous_versioned' (most recent published table)
     :return:
     """
+    #########
+    # table_ids is in outer scope as an entry in table_id_list:
     def can_compare_tables() -> bool:
         if not table_ids['previous_versioned']:
             logger.warning(
@@ -1523,6 +1568,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
             return False
 
         # table has changed since last version
+        logger.info(f"Checking if table {table_ids['source']} has new data:")
         if table_has_new_data(table_ids['previous_versioned'], table_ids['source']):
             logger.info(f"New data found--table will be published.")
             logger.info("")
@@ -1532,6 +1578,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
             logger.info(f"No changes found--table will not be published.")
             logger.info("")
             return False
+    ######### end can_compare_tables() ^^^
 
     logger = logging.getLogger("base_script")
 
@@ -1613,6 +1660,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                                            table_params=modified_table_params,
                                            max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
 
+#######################################################################################################################
 
 def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, max_display_rows: int = 5):
     """
@@ -1625,6 +1673,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
     :param max_display_rows: maximum number of records to display in log output; defaults to 5
     """
 
+    #########
     # warning suppressed because PyCharm gets confused by the secondary key clause variables
     # noinspection SqlAmbiguousColumn
     def make_compare_table_column_sql(column_name) -> str:
@@ -1676,7 +1725,9 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
                     AND o.{primary_key} IS NOT NULL)
                 {secondary_key_where_str}     
         """
+    ######### end make_compare_table_column_sql() ^^^
 
+    #########
     def generate_column_list() -> list[str]:
         """
         Create a list of column names found in tables, minus any excluded columns.
@@ -1710,6 +1761,8 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
         column_union_set = column_union_set - excluded_columns
 
         return sorted(list(column_union_set))
+    ######### end generate_column_list() ^^^
+
 
     logger = logging.getLogger('base_script')
     query_logger = logging.getLogger('query_logger')
@@ -1813,6 +1866,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
         else:
             logger.info(f"{column}: No differences found.")
 
+#######################################################################################################################
 
 def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams, max_display_rows: int = 5):
     """
@@ -1824,6 +1878,7 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
     :param max_display_rows: Maximum number of records to display in log output; defaults to 5
     """
 
+    #########
     def make_concat_column_query(table_id: str) -> str:
         secondary_key_string = ''
 
@@ -1837,6 +1892,9 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
             FROM `{table_id}`
         """
 
+    ######### end make_concat_column_query() ^^^
+
+    #########
     def make_records_dict(query: str) -> dict[str, dict[str, str]]:
         result = query_and_retrieve_result(sql=query)
 
@@ -1860,6 +1918,8 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
                 print(f"{record_count}/{result.total_rows} records added to dict!")
 
         return records_dict
+
+    ######### end make_records_dict() ^^^
 
     logger = logging.getLogger('base_script')
     query_logger = logging.getLogger('query_logger')
@@ -1997,6 +2057,7 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
             logger.info(f"All concatenated records match for {column}.")
             logger.info("")
 
+#######################################################################################################################
 
 def main(args):
     try:
@@ -2016,7 +2077,10 @@ def main(args):
                                       name='query_logger',
                                       emit_to_console=PARAMS['EMIT_QUERY_LOG_TO_CONSOLE'])
 
+    # This is typically looping over [per_sample_file, aliquot, slide, case, file, clinical] for GDC:
+
     for table_type, table_params in PARAMS['TABLE_TYPES'].items():
+        # metadata is usually for [aliquot, slide, case, file]:
         if table_params['data_type'] == 'metadata':
             # generates a list of one table id obj, but makes code cleaner to do it this way
             table_id_list = generate_metadata_table_id_list(table_params)
