@@ -473,6 +473,7 @@ def find_record_difference_counts_aliquot_gdc_obsolete(table_type: str, table_id
             logger.critical("Probably an error in the table id or SQL query.")
             sys.exit(-1)
 
+    #########
     def compare_records(query: str) -> tuple[int, str]:
         # find added/removed/changed records by project
         query_logger.info(query)
@@ -510,6 +511,8 @@ def find_record_difference_counts_aliquot_gdc_obsolete(table_type: str, table_id
 
             return total_results, output_string
 
+    ######### end compare_records() ^^^
+
     """
     def get_count_result(previous_or_new: str):
         # version should be previous or current
@@ -544,6 +547,8 @@ def find_record_difference_counts_aliquot_gdc_obsolete(table_type: str, table_id
             logger.critical("Probably an error in the table id or SQL query.")
             sys.exit(-1)
     """
+
+
     logger = logging.getLogger('base_script')
     query_logger = logging.getLogger("query_logger")
 
@@ -561,10 +566,12 @@ def find_record_difference_counts_aliquot_gdc_obsolete(table_type: str, table_id
     added_count, removed_count = 0, 0
 
     # find added records by project
+    # Note that compare_records returns the multi-line string of formatted comparisons
     query_logger.info("Added record query")
     added_count, added_str = compare_records(query=make_compared_count_query(table_ids['source'],
                                                                              table_ids['previous_versioned']))
     # find removed records by project
+    # Note that compare_records returns the multi-line string of formatted comparisons
     query_logger.info("Removed record query")
     removed_count, removed_str = compare_records(query=make_compared_count_query(table_ids['previous_versioned'],
                                                                                  table_ids['source']))
@@ -590,6 +597,7 @@ def find_record_difference_counts_aliquot_gdc_obsolete(table_type: str, table_id
             logger.info("")
 
         # find changed records by project
+        # Note that compare_records returns the multi-line string of formatted comparisons
         query_logger.info("Changed record query")
         changed_count, changed_str = compare_records(query=make_changed_record_count_query(table_ids['previous_versioned'],
                                                                                            table_ids['source']))
@@ -608,13 +616,15 @@ def find_record_difference_counts_aliquot_gdc_obsolete(table_type: str, table_id
 #######################################################################################################################
 
 def find_record_difference_counts_aliquot_gdc_with_nulls(table_type: str, table_ids: dict[str, str], table_metadata: TableParams):
-
+    #########
     def make_record_count_query(table_id):
         return f"""
             SELECT COUNT(*) AS record_count
             FROM `{table_id}`
         """
+    ######### end make_record_count_query() ^^^
 
+    #########
     def make_compared_count_query_abandon(select_table_id, join_table_id):
         return f"""
             WITH records AS (
@@ -627,7 +637,9 @@ def find_record_difference_counts_aliquot_gdc_with_nulls(table_type: str, table_
             GROUP BY project_id, sample_type_name
             ORDER BY project_id, sample_type_name        
     """
+    ######### end make_compared_count_query_abandon() ^^^
 
+    ######### IGNORE
     """
             WITH n AS (SELECT project_id, sample_type_name, aliquot_gdc_id
                 FROM `{select_table_id}`
@@ -642,7 +654,9 @@ def find_record_difference_counts_aliquot_gdc_with_nulls(table_type: str, table_
                 GROUP BY project_id, sample_type_name 
                 ORDER BY project_id
     """
+    ######### end IGNORE ^^^
 
+    #########
     def make_compared_count_query_with_nulls(select_table_id, join_table_id, num):
         if True:
             return f"""
@@ -688,7 +702,9 @@ aliquot_barcode FROM `{join_table_id}`
                 GROUP BY project_id, sample_type_name
                 ORDER BY project_id, sample_type_name        
             """
+    ######### end make_compared_count_query_with_nulls() ^^^
 
+    #########
     def make_changed_record_count_query(old_table_id, new_table_id):
         return f"""
             WITH new_rows AS (
@@ -780,6 +796,9 @@ aliquot_barcode
             GROUP BY project_id, sample_type_name ORDER BY project_id, sample_type_name
         """
 
+    ######### end make_changed_record_count_query() ^^^
+
+    #########
     def get_count_result(previous_or_new: str):
         # version should be previous or current
         if previous_or_new == "previous":
@@ -811,6 +830,9 @@ aliquot_barcode
             logger.critical("Probably an error in the table id or SQL query.")
             sys.exit(-1)
 
+    ######### end get_count_result() ^^^
+
+    #########
     def compare_records(query: str) -> tuple[int, str]:
         # find added/removed/changed records by project
         query_logger.info(query)
@@ -848,6 +870,9 @@ aliquot_barcode
 
             return total_results, output_string
 
+    ######### end compare_records() ^^^
+
+    ######### ignore junk
     """
     def get_count_result(previous_or_new: str):
         # version should be previous or current
@@ -882,6 +907,8 @@ aliquot_barcode
             logger.critical("Probably an error in the table id or SQL query.")
             sys.exit(-1)
     """
+    ######### end ignore junk ^^^
+
     logger = logging.getLogger('base_script')
     query_logger = logging.getLogger("query_logger")
 
@@ -899,10 +926,12 @@ aliquot_barcode
     added_count, removed_count = 0, 0
 
     # find added records by project
+    # Note that compare_records returns the multi-line string of formatted comparisons
     query_logger.info("Added record query")
     added_count, added_str = compare_records(query=make_compared_count_query_with_nulls(table_ids['source'],
                                                                              table_ids['previous_versioned'], 1))
     # find removed records by project
+    # Note that compare_records returns the multi-line string of formatted comparisons
     query_logger.info("Removed record query")
     removed_count, removed_str = compare_records(query=make_compared_count_query_with_nulls(table_ids['previous_versioned'],
                                                                                  table_ids['source'], 2))
@@ -1570,7 +1599,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
         # table has changed since last version
         logger.info(f"Checking if table {table_ids['source']} has new data:")
         if table_has_new_data(table_ids['previous_versioned'], table_ids['source']):
-            logger.info(f"New data found--table will be published.")
+            logger.info(f"New data found (or schema mismatch) --table will be published.")
             logger.info("")
             return True
         # table has not changed since last version
@@ -1607,6 +1636,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
             else:
                 modified_table_params = table_params
 
+            logger.info(f"Checking now if table {table_ids['source']} has duplicate keys:")
             find_duplicate_keys(table_type=table_type,
                                 table_ids=table_ids,
                                 table_params=modified_table_params)
@@ -1674,6 +1704,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
     """
 
     #########
+    # Using primary_key and secondary_key from enclosing scope
     # warning suppressed because PyCharm gets confused by the secondary key clause variables
     # noinspection SqlAmbiguousColumn
     def make_compare_table_column_sql(column_name) -> str:
@@ -1728,12 +1759,15 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
     ######### end make_compare_table_column_sql() ^^^
 
     #########
+    # using table_id_list from enclosing scope
+    # using table_ids dict from outermost enclosing scope
     def generate_column_list() -> list[str]:
         """
         Create a list of column names found in tables, minus any excluded columns.
         :return: a list representing the union of columns from every table in table_id_list, less any excluded_columns
         """
 
+        #########
         def make_column_list_query() -> str:
             project_dataset_name = ".".join(table_id.split('.')[0:2])
             table_name = table_id.split('.')[-1]
@@ -1743,6 +1777,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
                 FROM `{project_dataset_name}`.INFORMATION_SCHEMA.COLUMNS
                 WHERE table_name = '{table_name}'
                 """
+        ######### end make_column_list_query() ^^^
 
         column_union_set = set()
 
