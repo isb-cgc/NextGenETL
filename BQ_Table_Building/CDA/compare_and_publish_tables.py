@@ -1298,6 +1298,7 @@ def find_missing_tables(dataset: str, table_type: str):
                     else:
                         program_name = program_name_original
 
+                    logger.info(f"query for published table {program_name}")
                     table_name_result = query_and_retrieve_result(make_program_tables_query())
 
                     if table_name_result is not None:
