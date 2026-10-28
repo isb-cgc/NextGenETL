@@ -1393,16 +1393,18 @@ def find_missing_tables(dataset: str, table_type: str):
             new_table_name = new_table_name.replace(f"{PARAMS['RELEASE']}_", "")
 
         new_table_name = new_table_name.replace(f"_{PARAMS['NODE']}", "")
+        logger.info(f"new table name {new_table_name}")
         new_table_names_no_rel.append(new_table_name)
 
     for current_table_name in published_table_names:
         if 'hg19' in current_table_name:
             continue
-
+        logger.info(f"current table name {current_table_name}")
         if current_table_name not in new_table_names_no_rel:
             logger.warning(f"Cannot find new dev table for published table {current_table_name}. "
                            f"Is this due to change from singular to plural?")
 
+    logger.info("Done searching for missing tables!")
     return True
 
 #######################################################################################################################
