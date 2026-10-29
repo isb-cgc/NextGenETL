@@ -578,13 +578,11 @@ def find_record_difference_counts_aliquot_gdc_obsolete(table_type: str, table_id
     # find added records by project
     query_logger.info("Added record query A")
     # Note that compare_records returns the multi-line string of formatted comparisons
-    query_logger.info("Added record query")
     added_count, added_str = compare_records(query=make_compared_count_query(table_ids['source'],
                                                                              table_ids['previous_versioned']))
     # find removed records by project
     query_logger.info("Removed record query A")
     # Note that compare_records returns the multi-line string of formatted comparisons
-    query_logger.info("Removed record query")
     removed_count, removed_str = compare_records(query=make_compared_count_query(table_ids['previous_versioned'],
                                                                                  table_ids['source']))
 
@@ -940,12 +938,12 @@ aliquot_barcode
 
     # find added records by project
     # Note that compare_records returns the multi-line string of formatted comparisons
-    query_logger.info("Added record query")
+    query_logger.info("Added record query B")
     added_count, added_str = compare_records(query=make_compared_count_query_with_nulls(table_ids['source'],
                                                                              table_ids['previous_versioned'], 1))
     # find removed records by project
     # Note that compare_records returns the multi-line string of formatted comparisons
-    query_logger.info("Removed record query")
+    query_logger.info("Removed record query B")
     removed_count, removed_str = compare_records(query=make_compared_count_query_with_nulls(table_ids['previous_versioned'],
                                                                                  table_ids['source'], 2))
 
@@ -1197,10 +1195,10 @@ def find_record_difference_counts(table_type: str,
 
     if table_type != "quant":
         # find added records by project
-        query_logger.info("Added record query B")
+        query_logger.info("Added record query C")
         added_count, added_str = compare_records(query=make_added_record_count_query())
         # find removed records by project
-        query_logger.info("Removed record query B")
+        query_logger.info("Removed record query C")
         removed_count, removed_str = compare_records(query=make_removed_record_count_query())
 
         logger.info(f"Added {table_type} count: {added_count}")
