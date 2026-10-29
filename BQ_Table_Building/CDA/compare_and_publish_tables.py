@@ -297,10 +297,10 @@ def find_record_difference_counts_aliquot_gdc(table_type: str, table_ids: dict[s
                 EXCEPT DISTINCT 
                 SELECT * FROM `{join_table_id}`
             )
-            SELECT COUNT(1) AS changed_count, project_id, sample_type_name
+            SELECT COUNT(1) AS changed_count, project_id, tissue_type, specimen_type, tumor_descriptor
             FROM records
-            GROUP BY project_id, sample_type_name
-            ORDER BY project_id, sample_type_name        
+            GROUP BY project_id, tissue_type, specimen_type, tumor_descriptor
+            ORDER BY project_id, tissue_type, specimen_type, tumor_descriptor        
     """
 
     def make_changed_record_count_query(old_table_id, new_table_id):
@@ -318,16 +318,16 @@ def find_record_difference_counts_aliquot_gdc(table_type: str, table_ids: dict[s
                 SELECT *
                 FROM `{new_table_id}`
             ), intersects AS (
-                SELECT portion_gdc_id, aliquot_gdc_id,  project_id, sample_type_name
+                SELECT portion_gdc_id, aliquot_gdc_id,  project_id, tissue_type, specimen_type, tumor_descriptor
                 FROM old_rows
                 INTERSECT DISTINCT
-                SELECT portion_gdc_id, aliquot_gdc_id,  project_id, sample_type_name
+                SELECT portion_gdc_id, aliquot_gdc_id,  project_id, tissue_type, specimen_type, tumor_descriptor
                 FROM new_rows
             )
 
-            SELECT COUNT(portion_gdc_id) AS changed_count, project_id, sample_type_name
+            SELECT COUNT(portion_gdc_id) AS changed_count, project_id, tissue_type, specimen_type, tumor_descriptor
             FROM intersects
-            GROUP BY project_id, sample_type_name ORDER BY project_id, sample_type_name
+            GROUP BY project_id, tissue_type, specimen_type, tumor_descriptor ORDER BY project_id, tissue_type, specimen_type, tumor_descriptor
         """
 
     def get_count_result(previous_or_new: str):
