@@ -2211,13 +2211,13 @@ def main(args):
         if 'publish_tables' in steps:
             pass
             #for table_ids in table_id_list:
-                # logger.debug(table_ids)
-                if table_type == "quant":
-                    quant_params = params['TABLE_TYPES']['quant']
-                    nan_column = quant_params["nan_column"] if 'nan_column' in quant_params else None
-                else:
-                    nan_column = None
-                publish_table_with_nan_support(PARAMS, table_ids, nan_column)
+            # logger.debug(table_ids)
+            if table_type == "quant":
+                quant_params = params['TABLE_TYPES']['quant']
+                nan_column = quant_params["nan_column"] if 'nan_column' in quant_params else None
+            else:
+                nan_column = None
+            publish_table_with_nan_support(PARAMS, table_ids, nan_column)
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")
