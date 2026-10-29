@@ -288,9 +288,9 @@ def make_add_uris_and_index_file_sql_query(no_uri_table_id: str, drs_uri_table_i
             psf.file_size,
             psf.data_format,
             psf.platform,
-            f_uri.gcs_path AS file_name_key,
+            f_uri.aws_path AS file_name_key,
             psf.index_file_id,
-            i_uri.gcs_path AS index_file_name_key,
+            i_uri.aws_path AS index_file_name_key,
             psf.index_file_size,
             psf.`access`,
             psf.acl

@@ -49,13 +49,18 @@ def create_merged_project_studies_disease_type_jsonl():
 
     for row in result:
         project = row.get('project_id')
-        disease_type = row.get('disease_type')
+        # WJRL 9/24/26: This changed during r45 from disease_type:
+        disease_type = row.get('disease_type_id')
 
+        # WJRL 9/24/26 We need to have something for the project, even if there is only
+        # a single null entry:
+
+        if project not in project_disease_type_dict:
+            project_disease_type_dict[project] = {}
+
+        # WJRL 9/24/26 It is possible that the disease type is None!
         if disease_type:
-            if project not in project_disease_type_dict:
-                project_disease_type_dict[project] = {disease_type}
-            else:
-                project_disease_type_dict[project].add(disease_type)
+            project_disease_type_dict[project].add(disease_type)
 
     project_disease_type_jsonl_list = list()
 

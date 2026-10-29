@@ -63,20 +63,6 @@ def make_slide_case_table_sql() -> str:
             ON sic.sample_id = s.sample_id
         JOIN `{create_dev_table_id(PARAMS, 'case_project_program')}` cpp
             ON cpp.case_gdc_id = sic.case_id
-    ) UNION DISTINCT (
-        SELECT program_name, 
-            project_id,
-            case_gdc_id, 
-            case_barcode,
-            sample_gdc_id,
-            sample_barcode,
-            sample_type,
-            sample_type_name,
-            portion_gdc_id,
-            portion_barcode,
-            slide_gdc_id,
-            slide_barcode
-        FROM `{PARAMS['LEGACY_TABLE_ID']}` 
     )
     """
 

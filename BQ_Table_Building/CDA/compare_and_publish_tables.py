@@ -29,7 +29,9 @@ from typing import Union
 
 from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result, find_most_recent_published_table_id, \
     find_most_recent_published_refseq_table_id, get_most_recent_published_table_id_pdc, get_pdc_per_project_dataset, \
-    get_pdc_per_study_dataset, table_has_new_data
+    get_pdc_per_study_dataset, table_has_new_data, table_has_new_data_supports_nans, exists_bq_dataset
+from cda_bq_etl.bq_helpers.create_modify import publish_table_with_nan_support
+
 from cda_bq_etl.bq_helpers.create_modify import publish_table
 from cda_bq_etl.data_helpers import initialize_logging
 from cda_bq_etl.utils import (load_config, format_seconds, get_filepath, create_metadata_table_id)
@@ -168,6 +170,10 @@ def list_added_or_removed_rows_aliquot_gdc_with_nulls(select_table_id: str, join
     query_logger = logging.getLogger("query_logger")
     logger = logging.getLogger("base_script")
 
+    if table_params["table_base_name"] == "quant":
+        logger.critical("Method cannot be called for quant")
+        sys.exit(-1)
+
     added_removed_record_query = make_added_or_removed_record_query()
     query_logger.info(added_removed_record_query)
     row_result = query_and_retrieve_result(added_removed_record_query)
@@ -248,6 +254,10 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_p
         """
     query_logger = logging.getLogger("query_logger")
     logger = logging.getLogger("base_script")
+
+    if table_params["table_base_name"] == "quant":
+        logger.critical("Method cannot be called for quant")
+        sys.exit(-1)
 
     added_removed_record_query = make_added_or_removed_record_query()
     query_logger.info(added_removed_record_query)
@@ -566,11 +576,13 @@ def find_record_difference_counts_aliquot_gdc_obsolete(table_type: str, table_id
     added_count, removed_count = 0, 0
 
     # find added records by project
+    query_logger.info("Added record query A")
     # Note that compare_records returns the multi-line string of formatted comparisons
     query_logger.info("Added record query")
     added_count, added_str = compare_records(query=make_compared_count_query(table_ids['source'],
                                                                              table_ids['previous_versioned']))
     # find removed records by project
+    query_logger.info("Removed record query A")
     # Note that compare_records returns the multi-line string of formatted comparisons
     query_logger.info("Removed record query")
     removed_count, removed_str = compare_records(query=make_compared_count_query(table_ids['previous_versioned'],
@@ -597,6 +609,7 @@ def find_record_difference_counts_aliquot_gdc_obsolete(table_type: str, table_id
             logger.info("")
 
         # find changed records by project
+        query_logger.info("Changed record query A")
         # Note that compare_records returns the multi-line string of formatted comparisons
         query_logger.info("Changed record query")
         changed_count, changed_str = compare_records(query=make_changed_record_count_query(table_ids['previous_versioned'],
@@ -1161,6 +1174,11 @@ def find_record_difference_counts(table_type: str,
     if 'secondary_key' in table_metadata and table_metadata['secondary_key'] is not None:
         secondary_key = table_metadata['secondary_key'] + ', '
 
+    # include tertiary key where applicable--all PDC non-proteome quant files
+    if 'tertiary_key' in table_metadata and table_metadata['tertiary_key'] is not None:
+        secondary_key = secondary_key + table_metadata['tertiary_key'] + ', '
+
+
     previous_version_count = get_count_result(previous_or_new="previous")
     new_version_count = get_count_result(previous_or_new="new")
     count_difference = int(new_version_count) - int(previous_version_count)
@@ -1179,10 +1197,10 @@ def find_record_difference_counts(table_type: str,
 
     if table_type != "quant":
         # find added records by project
-        query_logger.info("Added record query")
+        query_logger.info("Added record query B")
         added_count, added_str = compare_records(query=make_added_record_count_query())
         # find removed records by project
-        query_logger.info("Removed record query")
+        query_logger.info("Removed record query B")
         removed_count, removed_str = compare_records(query=make_removed_record_count_query())
 
         logger.info(f"Added {table_type} count: {added_count}")
@@ -1206,7 +1224,7 @@ def find_record_difference_counts(table_type: str,
                 logger.info("")
 
             # find changed records by project
-            query_logger.info("Changed record query")
+            query_logger.info("Changed record query B")
             changed_count, changed_str = compare_records(query=make_changed_record_count_query())
 
             logger.info(f"Changed {table_type} count: {changed_count}")
@@ -1228,7 +1246,9 @@ def get_new_table_names(dataset: str) -> list[str]:
         return f"""
             SELECT table_name 
             FROM `{PARAMS['DEV_PROJECT']}.{dataset}`.INFORMATION_SCHEMA.TABLES
-            WHERE table_name LIKE '%{PARAMS['RELEASE']}%'
+            WHERE table_name LIKE '%{PARAMS['RELEASE']}' # ends in version
+            OR table_name LIKE '%{PARAMS['RELEASE']}_raw' # ends in version_raw 
+            OR REGEXP_CONTAINS(table_name, r'^{PARAMS['RELEASE']}_[a-zA-Z]+') # starts with version_[letter]      
         """
 
     table_names = query_and_retrieve_result(make_new_table_names_query())
@@ -1298,6 +1318,10 @@ def find_missing_tables(dataset: str, table_type: str):
                     else:
                         program_name = program_name_original
 
+                    if exists_bq_dataset(program_name):
+                        table_name_result = query_and_retrieve_result(make_program_tables_query())
+                    else:
+                        continue
                     logger.info(f"query for published table {program_name}")
                     table_name_result = query_and_retrieve_result(make_program_tables_query())
 
@@ -1376,6 +1400,7 @@ def find_missing_tables(dataset: str, table_type: str):
     new_table_names_no_rel = list()
 
     published_table_names = get_published_table_names()
+    # WJRL need to make this immune to 5_1 including 5_1_1 problem:
     new_table_names = get_new_table_names(dataset)
 
     if PARAMS['NODE'] == 'gdc' and table_type == 'per_sample_file':
@@ -1455,6 +1480,9 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
 
         # index to split table name from program
         clinical_idx = split_table_name_list.index('clinical')
+        # hack to deal with "other_clinical_attribute" tables
+        if "other_clinical" in table_name:
+            clinical_idx = split_table_name_list.index("other")
 
         dataset_name = "_".join(split_table_name_list[0:clinical_idx])
         _base_table_name = "_".join(split_table_name_list[clinical_idx:])
@@ -1523,6 +1551,7 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
 
     logger = logging.getLogger('base_script')
     logger.info("Generating table id list")
+    # WJRL need to make this immune to 5_1 including 5_1_1 problem:
     new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
 
     table_ids_list = list()
@@ -1601,8 +1630,12 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
             return False
 
         # table has changed since last version
+        #
+        # WJRL 12/18/25 NaN != NaN, so we need special handling of tables if a column holds NaNs (quant tables!)
+        #
         logger.info(f"Checking if table {table_ids['source']} has new data:")
-        if table_has_new_data(table_ids['previous_versioned'], table_ids['source']):
+        nan_column = table_params['nan_column'] if 'nan_column' in table_params else None
+        if table_has_new_data_supports_nans(table_ids['previous_versioned'], table_ids['source'], nan_column):
             logger.info(f"New data found (or schema mismatch) --table will be published.")
             logger.info("")
             return True
@@ -1637,6 +1670,25 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                     # primary key is defined in a dict in the yaml config for clinical table type;
                     # this will look up and return the primary key by parsing the 'current' table id.
                     modified_table_params['primary_key'] = get_primary_key(table_type, table_ids, modified_table_params)
+            elif table_type == "quant":
+                #
+                # WJRL 12/18/25
+                # Quant tables require three fields as a key. The tertiary key is used in "find_record_difference_counts()"
+                #
+                for key, value in table_params.items():
+                    modified_table_params[key] = value
+                quant_subtype = table_ids["source"].split(".")[2].split("_")[2]
+                key_set = table_params["combo_key_map"][quant_subtype]
+                modified_table_params["primary_key"] = key_set[0]
+                modified_table_params["secondary_key"] = key_set[1]
+                if len(key_set) == 3:
+                    modified_table_params["tertiary_key"] = key_set[2]
+                #
+                # WJRL 12/18/25
+                # Duplicate detection fields change for each type of quant data, so we need use a map and get the
+                # keys for the specific type
+                #
+                modified_table_params["keys_for_duplicate_detection"] = table_params["duplicate_detection_map"][quant_subtype]
             else:
                 modified_table_params = table_params
 
@@ -1656,6 +1708,14 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                 # display compare_to_last.sh style output
                 added_count, removed_count = find_record_difference_counts(table_type, table_ids, modified_table_params)
 
+            #
+            # 12/18/25 WJRL
+            # When I got here, the following code to show examples of adds, removals, and changes was not being used
+            # for quant tables. However, I have made changes where quants have tertiary keys, but none of the
+            # functions called here have been updated to handle tertiary keys correctly. So all the functions here
+            # now check explicitly that they are not used for quants. If that is going to change, you will need to\
+            # change the code to correctly handle tertiary keys in addition to secondary keys.
+            #
             if table_type != 'quant':
                 if added_count > 0:
                     # list added rows
@@ -1805,6 +1865,10 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
 
     logger = logging.getLogger('base_script')
     query_logger = logging.getLogger('query_logger')
+
+    if table_params["table_base_name"] == "quant":
+        logger.critical("Method cannot be called for quant")
+        sys.exit(-1)
 
     primary_key = table_params['primary_key']
     secondary_key = table_params['secondary_key'] if 'secondary_key' in table_params else None
@@ -1962,6 +2026,10 @@ def compare_concat_columns(table_ids: dict[str, str], table_params: TableParams,
 
     logger = logging.getLogger('base_script')
     query_logger = logging.getLogger('query_logger')
+
+    if table_params["table_base_name"] == "quant":
+        logger.critical("Method cannot be called for quant")
+        sys.exit(-1)
 
     new_concat_column_query = make_concat_column_query(table_ids['source'])
     query_logger.info(f"SQL to retrieve concat values in current version table: {table_ids['source']} \n"
@@ -2144,7 +2212,12 @@ def main(args):
             pass
             #for table_ids in table_id_list:
                 # logger.debug(table_ids)
-            #    publish_table(PARAMS, table_ids)
+                if table_type == "quant":
+                    quant_params = params['TABLE_TYPES']['quant']
+                    nan_column = quant_params["nan_column"] if 'nan_column' in quant_params else None
+                else:
+                    nan_column = None
+                publish_table_with_nan_support(PARAMS, table_ids, nan_column)
 
     end_time = time.time()
     logger.info(f"Script completed in: {format_seconds(end_time - start_time)}")

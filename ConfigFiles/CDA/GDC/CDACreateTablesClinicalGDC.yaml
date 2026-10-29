@@ -14,10 +14,21 @@ version: 1
 ######################################################################################
 
 steps:
+  # we need to convert raw tables with plural fields to tables with the fields filled in with semicolon-delimited
+  # lists. We overwrite the original data, to keep the downstream processing the same.
+  # First, save the raw tables out to originals
+  - save_plurals_to_originals
+  # Delete the raw originals. They will be overwritten
+  - delete_raw_plurals
+  # Create the plural tables (using the raw tables that were copied to _original tables)
+  - collapse_plurals
+  # Copy the plurals back into the position of the original table
+  - copy_plurals_back_to_raw
   # confirms that all clinical fields are defined in this yaml file and in the column definition file in BQEcosystem
   - find_missing_fields
   # create tables using query provided in the python script
   - create_tables
+
 
 ######################################################################################
 #
@@ -612,6 +623,54 @@ params:
         last:
       excluded_columns:
         - submitter_id
+
+  # Raw tables that are being pluralized are saved out to original before being overwritten. This ensures
+  # that the original raw tables are not inadvertently overwritten:
+  PROTECT_ORIGINAL_RAW_PLURALS: true
+
+  # Fields that contain multiple values for clinical data come from CDA as separate tables. For this level
+  # of data, we just want to turn these into semicolon delimited lists in the one column. Here are the
+  # tables and columns to do this to:
+  PLURAL_PARAMS:
+    diagnosis:
+      - column: sites_of_involvement
+        table: site_of_involvement
+        infix: has
+      - column: weiss_assessment_findings
+        table: weiss_assessment_finding
+        infix: has
+    exposure:
+      - column: chemical_exposure_type
+        table: chemical_exposure_type
+        infix: has
+      - column: occupation_type
+        table: occupation_type
+        infix: has
+    follow_up:
+      - column: imaging_anatomic_site
+        table: imaging_anatomic_site
+        infix: has
+    other_clinical_attribute:
+      - column: risk_factors
+        table: risk_factor
+        infix: has
+      - column: comorbidities
+        table: comorbidity
+        infix: has
+      - column: viral_hepatitis_serology_tests
+        table: viral_hepatitis_serology_test
+        infix: has
+    pathology_detail:
+      - column: tumor_level_prostate
+        table: tumor_level_prostate
+        infix: has
+    treatment:
+      - column: route_of_administration
+        table: route_of_administration
+        infix: has
+      - column: treatment_anatomic_sites
+        table: treatment_anatomic_site
+        infix: of
 
   # order of table types in merged clinical tables
   # generally doesn't change

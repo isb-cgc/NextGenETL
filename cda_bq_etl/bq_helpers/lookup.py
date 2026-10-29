@@ -644,7 +644,9 @@ def find_missing_columns(params: Params, include_trivial_columns: bool = False):
     else:
         logger.info("No missing fields!")
 
-
+#
+# WJRL 12/18/25 Supports existing usages:
+#
 def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
     """
     Compare newly created table and existing published table. Only publish new table if there's a difference.
@@ -656,6 +658,36 @@ def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
     :return: True if table has new data, False otherwise
     :rtype: bool
     """
+    return table_has_new_data_supports_nans(previous_table_id, current_table_id, None)
+
+def table_has_new_data_supports_nans(previous_table_id: str, current_table_id: str, nan_column: Optional[str]) -> bool:
+    """
+    Compare newly created table and existing published table. Only publish new table if there's a difference.
+
+    :param previous_table_id: table id for existing published table
+    :type previous_table_id: str
+    :param current_table_id: table id for new table
+    :type current_table_id: str
+    :param nan_column: optional column holding NaNs to cast to string for comparison
+    :type nan_column: str
+    :return: True if table has new data, False otherwise
+    :rtype: bool
+    """
+
+    def compare_two_nan_tables_sql(nan_column: str) -> str:
+        return f"""
+            (
+            SELECT * EXCEPT ({nan_column}), CAST({nan_column} AS STRING) AS nan_string FROM `{previous_table_id}`
+            EXCEPT DISTINCT
+             SELECT * EXCEPT ({nan_column}), CAST({nan_column} AS STRING) AS nan_string from `{current_table_id}`
+            )
+            UNION ALL
+            (
+            SELECT * EXCEPT ({nan_column}), CAST({nan_column} AS STRING) AS nan_string FROM `{current_table_id}`
+            EXCEPT DISTINCT
+            SELECT * EXCEPT ({nan_column}), CAST({nan_column} AS STRING) AS nan_string from `{previous_table_id}`
+            ) 
+        """
 
     def compare_two_tables_sql():
         return f"""
@@ -678,7 +710,9 @@ def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
         return True
 
     query_logger.info(f"Query to find any difference in table data")
-    compare_result = query_and_retrieve_result(sql=compare_two_tables_sql())
+    # WJRL 12/18/25 Since NaN != NaN, you cannot use the raw table to compare if it has a column holding NaNs:
+    sql_stmt = compare_two_tables_sql() if nan_column is None else compare_two_nan_tables_sql(nan_column)
+    compare_result = query_and_retrieve_result(sql=sql_stmt)
 
     if isinstance(compare_result, _EmptyRowIterator):
         # no distinct result rows, tables match

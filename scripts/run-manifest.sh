@@ -14,6 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+##
+## Jan 2026: THIS SCRIPT IS OBSOLETE. Use run-dcf-manifest.sh
+##
+
 source ~/setEnvVars.sh
 
 export MY_VENV=~/virtualEnvETL

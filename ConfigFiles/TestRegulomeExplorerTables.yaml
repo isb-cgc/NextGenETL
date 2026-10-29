@@ -1,0 +1,41 @@
+
+version: 1
+files_and_buckets_and_tables:
+
+  # What project are we in:
+  WORKING_PROJECT: your-working-project
+
+  # What is the BQ dataset:
+  RE_DATASET: your_bq_dataset
+
+  # Features with (barcode, value) tuple arrays for features:
+  PROJECT_TABLE: re_public_projects
+
+  # Feature table:
+  FEATURE_TABLE: re_features
+
+  # Patient barcode table:
+  BARCODES_TABLE: re_barcodes
+
+  # Numeric tuple table:
+  NUMERIC_TUPLE_TABLE: re_feature_numeric_value_tuples
+
+  # String tuple table:
+  STRING_TUPLE_TABLE: re_feature_string_value_tuples
+
+  # Number of projects to randomly test
+  PROJECT_COUNT: 10
+
+  # Maximum number of rows to pull for each type (N,C,B) to test:
+  PULL_COUNT: 300
+
+  # Fraction of pulled rows to check:
+  TEST_FRACTION: 0.05
+
+  # Minimum number of samples (if (TEST_FRACTION * pulled_rows) < MIN_SAMPLES):
+  MIN_SAMPLES: 10
+
+steps:
+  - run_tests
+
+
