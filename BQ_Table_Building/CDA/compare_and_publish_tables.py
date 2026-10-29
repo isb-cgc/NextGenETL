@@ -449,11 +449,11 @@ def find_record_difference_counts_aliquot_gdc(table_type: str, table_ids: dict[s
     added_count, removed_count = 0, 0
 
     # find added records by project
-    query_logger.info("Added record query")
+    query_logger.info("Added record query A")
     added_count, added_str = compare_records(query=make_compared_count_query(table_ids['source'],
                                                                              table_ids['previous_versioned']))
     # find removed records by project
-    query_logger.info("Removed record query")
+    query_logger.info("Removed record query A")
     removed_count, removed_str = compare_records(query=make_compared_count_query(table_ids['previous_versioned'],
                                                                                  table_ids['source']))
 
@@ -478,7 +478,7 @@ def find_record_difference_counts_aliquot_gdc(table_type: str, table_ids: dict[s
             logger.info("")
 
         # find changed records by project
-        query_logger.info("Changed record query")
+        query_logger.info("Changed record query A")
         changed_count, changed_str = compare_records(query=make_changed_record_count_query(table_ids['previous_versioned'],
                                                                                            table_ids['source']))
 
@@ -702,10 +702,10 @@ def find_record_difference_counts(table_type: str,
 
     if table_type != "quant":
         # find added records by project
-        query_logger.info("Added record query")
+        query_logger.info("Added record query B")
         added_count, added_str = compare_records(query=make_added_record_count_query())
         # find removed records by project
-        query_logger.info("Removed record query")
+        query_logger.info("Removed record query B")
         removed_count, removed_str = compare_records(query=make_removed_record_count_query())
 
         logger.info(f"Added {table_type} count: {added_count}")
@@ -729,7 +729,7 @@ def find_record_difference_counts(table_type: str,
                 logger.info("")
 
             # find changed records by project
-            query_logger.info("Changed record query")
+            query_logger.info("Changed record query B")
             changed_count, changed_str = compare_records(query=make_changed_record_count_query())
 
             logger.info(f"Changed {table_type} count: {changed_count}")
