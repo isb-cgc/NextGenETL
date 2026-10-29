@@ -179,6 +179,7 @@ def list_added_or_removed_rows_aliquot_gdc_with_nulls(select_table_id: str, join
         sys.exit(-1)
 
     logger.info("make_added_or_removed_record_query() called")
+    query_logger.info("make_added_or_removed_record_query() called AGWN")
     added_removed_record_query = make_added_or_removed_record_query()
     query_logger.info(added_removed_record_query)
     row_result = query_and_retrieve_result(added_removed_record_query)
@@ -269,6 +270,7 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_p
         logger.critical("Method cannot be called for quant")
         sys.exit(-1)
 
+    query_logger.info("make_added_or_removed_record_query() called")
     added_removed_record_query = make_added_or_removed_record_query()
     query_logger.info(added_removed_record_query)
     row_result = query_and_retrieve_result(added_removed_record_query)
