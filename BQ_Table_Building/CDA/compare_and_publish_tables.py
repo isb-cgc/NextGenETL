@@ -105,6 +105,8 @@ def list_added_or_removed_rows_aliquot_gdc_obsolete(select_table_id: str, join_t
 #######################################################################################################################
 
 def list_added_or_removed_rows_aliquot_gdc_with_nulls(select_table_id: str, join_table_id: str, table_params: TableParams):
+
+    #########
     def make_added_or_removed_record_query():
         primary_key = table_params['primary_key']
         if 'secondary_key' in table_params and table_params['secondary_key']:
@@ -130,6 +132,7 @@ def list_added_or_removed_rows_aliquot_gdc_with_nulls(select_table_id: str, join
         #
 
         if secondary_key:
+            logger.info("make_added_or_removed_record_query A")
             retval = f"""
                 WITH a1 as (SELECT * FROM `{select_table_id}` WHERE {secondary_key} IS NOT NULL),
                      b1 as (SELECT * FROM `{join_table_id}` WHERE {secondary_key} IS NOT NULL),
@@ -167,6 +170,7 @@ def list_added_or_removed_rows_aliquot_gdc_with_nulls(select_table_id: str, join
 
         return retval
 
+    ######### end make_added_or_removed_record_query() ^^^
     query_logger = logging.getLogger("query_logger")
     logger = logging.getLogger("base_script")
 
@@ -174,6 +178,7 @@ def list_added_or_removed_rows_aliquot_gdc_with_nulls(select_table_id: str, join
         logger.critical("Method cannot be called for quant")
         sys.exit(-1)
 
+    logger.info("make_added_or_removed_record_query() called")
     added_removed_record_query = make_added_or_removed_record_query()
     query_logger.info(added_removed_record_query)
     row_result = query_and_retrieve_result(added_removed_record_query)
@@ -223,8 +228,11 @@ def list_added_or_removed_rows_aliquot_gdc_with_nulls(select_table_id: str, join
 
 
 #######################################################################################################################
+# Used for non-aliquots
 
 def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_params: TableParams):
+
+    #########
     def make_added_or_removed_record_query():
         primary_key = table_params['primary_key']
         if 'secondary_key' in table_params and table_params['secondary_key']:
@@ -252,6 +260,8 @@ def list_added_or_removed_rows(select_table_id: str, join_table_id: str, table_p
                 {secondary_where_str}
             ) 
         """
+    ######### end make_added_or_removed_record_query() ^^^
+
     query_logger = logging.getLogger("query_logger")
     logger = logging.getLogger("base_script")
 
@@ -609,7 +619,6 @@ def find_record_difference_counts_aliquot_gdc_obsolete(table_type: str, table_id
         # find changed records by project
         query_logger.info("Changed record query A")
         # Note that compare_records returns the multi-line string of formatted comparisons
-        query_logger.info("Changed record query")
         changed_count, changed_str = compare_records(query=make_changed_record_count_query(table_ids['previous_versioned'],
                                                                                            table_ids['source']))
 
@@ -668,7 +677,9 @@ def find_record_difference_counts_aliquot_gdc_with_nulls(table_type: str, table_
     ######### end IGNORE ^^^
 
     #########
-    def make_compared_count_query_with_nulls(select_table_id, join_table_id, num):
+    # This is the query that enumerates the additions or removals by program name, depending on table argument order
+    #
+    def make_compared_count_query_with_nulls(select_table_id, join_table_id):
         if True:
             return f"""
                 WITH records AS (
@@ -939,13 +950,15 @@ aliquot_barcode
     # find added records by project
     # Note that compare_records returns the multi-line string of formatted comparisons
     query_logger.info("Added record query B")
+    # This is the query that enumerates the additions by program name, and send along the full count as well
     added_count, added_str = compare_records(query=make_compared_count_query_with_nulls(table_ids['source'],
-                                                                             table_ids['previous_versioned'], 1))
+                                                                             table_ids['previous_versioned']))
     # find removed records by project
     # Note that compare_records returns the multi-line string of formatted comparisons
     query_logger.info("Removed record query B")
+    # This is the query that enumerates the removals by program name, and send along the full count as well:
     removed_count, removed_str = compare_records(query=make_compared_count_query_with_nulls(table_ids['previous_versioned'],
-                                                                                 table_ids['source'], 2))
+                                                                                 table_ids['source']))
 
     logger.info(f"Added {table_type} count: {added_count}")
 
@@ -968,7 +981,7 @@ aliquot_barcode
             logger.info("")
 
         # find changed records by project
-        query_logger.info("Changed record query")
+        query_logger.info("Changed record query B")
         changed_count, changed_str = compare_records(query=make_changed_record_count_query(table_ids['previous_versioned'],
                                                                                            table_ids['source']))
 
@@ -1222,7 +1235,7 @@ def find_record_difference_counts(table_type: str,
                 logger.info("")
 
             # find changed records by project
-            query_logger.info("Changed record query B")
+            query_logger.info("Changed record query C")
             changed_count, changed_str = compare_records(query=make_changed_record_count_query())
 
             logger.info(f"Changed {table_type} count: {changed_count}")
@@ -1711,13 +1724,14 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
             # When I got here, the following code to show examples of adds, removals, and changes was not being used
             # for quant tables. However, I have made changes where quants have tertiary keys, but none of the
             # functions called here have been updated to handle tertiary keys correctly. So all the functions here
-            # now check explicitly that they are not used for quants. If that is going to change, you will need to\
+            # now check explicitly that they are not used for quants. If that is going to change, you will need to
             # change the code to correctly handle tertiary keys in addition to secondary keys.
             #
             if table_type != 'quant':
                 if added_count > 0:
                     # list added rows
                     logger.info("Added record examples:")
+                    logger.info("list_added_or_removed_rows_aliquot_gdc_with_nulls A")
                     if table_type == 'aliquot' and PARAMS['NODE'] == 'gdc':
                         list_added_or_removed_rows_aliquot_gdc_with_nulls(table_ids['source'],
                                                                table_ids['previous_versioned'],
@@ -1729,6 +1743,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                 if removed_count > 0:
                     # list removed rows
                     logger.info("Removed record examples:")
+                    logger.info("list_added_or_removed_rows_aliquot_gdc_with_nulls B")
                     if table_type == 'aliquot' and PARAMS['NODE'] == 'gdc':
                         list_added_or_removed_rows_aliquot_gdc_with_nulls(table_ids['previous_versioned'],
                                                                table_ids['source'],
@@ -1740,6 +1755,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
 
                 logger.info("Comparing records by column!")
                 logger.info("")
+                logger.info("compare_table_columns()")
                 compare_table_columns(table_ids=table_ids,
                                       table_params=modified_table_params,
                                       max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
