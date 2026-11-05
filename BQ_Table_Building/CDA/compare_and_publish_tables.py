@@ -265,13 +265,17 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
     if non_null_aliquot:
         not_token = "NOT"
         aliquot_key = ", aliquot_gdc_id"
-        nl_aliquot_join = "(newLines.aliquot_gdc_id = added.aliquot_gdc_id) AND"
-        ol_aliquot_join = "(oldLines.aliquot_gdc_id = added.aliquot_gdc_id) AND"
+        nl_aliquot_join_added = "(newLines.aliquot_gdc_id = added.aliquot_gdc_id) AND"
+        ol_aliquot_join_removed = "(oldLines.aliquot_gdc_id = removed.aliquot_gdc_id) AND"
+        nl_aliquot_join_shared = "(newLines.aliquot_gdc_id = shared.aliquot_gdc_id) AND"
+        ol_aliquot_join_shared = "(oldLines.aliquot_gdc_id = shared.aliquot_gdc_id) AND"
     else:
         not_token = ""
         aliquot_key = ""
-        nl_aliquot_join = ""
-        ol_aliquot_join = ""
+        nl_aliquot_join_added = ""
+        ol_aliquot_join_removed = ""
+        nl_aliquot_join_shared = ""
+        ol_aliquot_join_shared = ""
 
     query = f'''
             WITH newLines AS (SELECT *
@@ -288,22 +292,22 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
                  added_details AS (SELECT project_id, sample_type_name #, tissue_type, specimen_type, tumor_descriptor
                                    FROM newLines JOIN added ON 
                                    (newLines.sample_gdc_id = added.sample_gdc_id) AND
-                                   {nl_aliquot_join}
+                                   {nl_aliquot_join_added}
                                    (newLines.portion_gdc_id = added.portion_gdc_id)),
                 removed_details AS (SELECT project_id, sample_type_name #, tissue_type, specimen_type, tumor_descriptor
                                     FROM oldLines JOIN removed ON
                                     (oldLines.sample_gdc_id = removed.sample_gdc_id) AND
-                                    {ol_aliquot_join}
+                                    {ol_aliquot_join_removed}
                                     (oldLines.portion_gdc_id = removed.portion_gdc_id)),
                 full_new_shared AS (SELECT * 
                                     FROM newLines JOIN shared ON
                                     (newLines.sample_gdc_id = shared.sample_gdc_id) AND
-                                    {nl_aliquot_join}
+                                    {nl_aliquot_join_shared}
                                     (newLines.portion_gdc_id = shared.portion_gdc_id)),
                 full_old_shared AS (SELECT *
                                     FROM oldLines JOIN shared ON
                                     (oldLines.sample_gdc_id = shared.sample_gdc_id) AND
-                                    {ol_aliquot_join}
+                                    {ol_aliquot_join_shared}
                                     (oldLines.portion_gdc_id = shared.portion_gdc_id)),
                 changes_new as (SELECT * FROM full_new_shared EXCEPT DISTINCT SELECT * from full_old_shared), 
                 changes_old as (SELECT * FROM full_old_shared EXCEPT DISTINCT SELECT * from full_new_shared)
