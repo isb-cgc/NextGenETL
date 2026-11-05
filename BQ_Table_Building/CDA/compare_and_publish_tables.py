@@ -227,6 +227,81 @@ def list_added_or_removed_rows_aliquot_gdc_with_nulls(select_table_id: str, join
 
     logger.info(f"{output_str}\n")
 
+#######################################################################################################################
+
+def list_aliquot_stats_gdc_wjrl():
+
+    query = '''
+        WITH newLines AS (SELECT * FROM `isb-project-zero.cda_gdc_metadata.r43_aliquot2caseIDmap` WHERE aliquot_gdc_id IS NOT NULL),
+             oldLines AS (SELECT * FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.aliquot2caseIDmap_r42` WHERE aliquot_gdc_id IS NOT NULL),
+             newKeys  AS (SELECT sample_gdc_id, portion_gdc_id, aliquot_gdc_id FROM newLines),
+             oldKeys  AS (SELECT sample_gdc_id, portion_gdc_id, aliquot_gdc_id FROM oldLines),
+             added    AS (SELECT * FROM newKeys EXCEPT DISTINCT SELECT * FROM oldKeys),
+             removed  AS (SELECT * FROM oldKeys EXCEPT DISTINCT SELECT * FROM newKeys),
+             shared AS (SELECT * FROM newKeys INTERSECT DISTINCT SELECT * FROM oldKeys),
+             added_details AS (SELECT project_id, sample_type_name, tissue_type, specimen_type, tumor_descriptor 
+                               FROM newLines JOIN added ON  
+                                    (newLines.sample_gdc_id = added.sample_gdc_id) AND
+                                    (newLines.portion_gdc_id = added.portion_gdc_id) AND
+                                    (newLines.aliquot_gdc_id = added.aliquot_gdc_id)),
+             removed_details AS (SELECT project_id, sample_type_name, tissue_type, specimen_type, tumor_descriptor 
+                               FROM oldLines JOIN removed ON  
+                                    (oldLines.sample_gdc_id = removed.sample_gdc_id) AND
+                                    (oldLines.portion_gdc_id = removed.portion_gdc_id) AND
+                                    (oldLines.aliquot_gdc_id = removed.aliquot_gdc_id)),
+             full_new_shared AS (SELECT * FROM newLines JOIN shared ON 
+                                    (newLines.sample_gdc_id = shared.sample_gdc_id) AND
+                                    (newLines.portion_gdc_id = shared.portion_gdc_id) AND
+                                    (newLines.aliquot_gdc_id = shared.aliquot_gdc_id)),
+             full_old_shared AS (SELECT * FROM oldLines JOIN shared ON 
+                                    (oldLines.sample_gdc_id = shared.sample_gdc_id) AND
+                                    (oldLines.portion_gdc_id = shared.portion_gdc_id) AND
+                                    (oldLines.aliquot_gdc_id = shared.aliquot_gdc_id)),
+             changes_new as (SELECT * FROM full_new_shared EXCEPT DISTINCT SELECT * from full_old_shared),
+             changes_old as (SELECT * FROM full_old_shared EXCEPT DISTINCT SELECT * from full_new_shared)
+            
+        '''
+
+    null_token = "NOT"
+    aliquot_key = ", aliquot_gdc_id"
+
+    query_logger = logging.getLogger("query_logger")
+    logger = logging.getLogger("base_script")
+
+    added_count_query = query + "SELECT COUNT(*) AS count FROM added"
+
+    query_logger.info("added_count_query")
+    query_logger.info(added_count_query)
+    row_result = query_and_retrieve_result(added_count_query)
+    for row in row_result:
+        logger.info(f"Added = {row}")
+
+    added_details_query = query + "SELECT * FROM added_details"
+    query_logger.info("added_details_query")
+    query_logger.info(added_details_query)
+    row_result = query_and_retrieve_result(added_details_query)
+    for row in row_result:
+        logger.info(row)
+
+    removed_count_query = query + "SELECT COUNT(*) AS count FROM removed"
+
+    query_logger.info("removed_count_query")
+    query_logger.info(removed_count_query)
+    row_result = query_and_retrieve_result(removed_count_query)
+    for row in row_result:
+        logger.info(f"Removed = {row}")
+
+    query_logger.info("changed_count_query")
+    query_logger.info(changed_count_query)
+    row_result = query_and_retrieve_result(changed_count_query)
+    for row in row_result:
+        logger.info(f"Changed = {row}")
+
+
+    return added_count, removed_count
+
+
+
 
 #######################################################################################################################
 # Used for non-aliquots
@@ -1730,6 +1805,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
             # change the code to correctly handle tertiary keys in addition to secondary keys.
             #
             if table_type != 'quant':
+                list_aliquot_stats_gdc_wjrl()
                 if added_count > 0:
                     # list added rows
                     logger.info("Added record examples:")
