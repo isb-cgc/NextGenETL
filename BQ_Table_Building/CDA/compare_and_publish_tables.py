@@ -239,12 +239,12 @@ def list_aliquot_stats_gdc_wjrl():
              added    AS (SELECT * FROM newKeys EXCEPT DISTINCT SELECT * FROM oldKeys),
              removed  AS (SELECT * FROM oldKeys EXCEPT DISTINCT SELECT * FROM newKeys),
              shared AS (SELECT * FROM newKeys INTERSECT DISTINCT SELECT * FROM oldKeys),
-             added_details AS (SELECT project_id, sample_type_name, tissue_type, specimen_type, tumor_descriptor 
+             added_details AS (SELECT project_id, sample_type_name #, tissue_type, specimen_type, tumor_descriptor 
                                FROM newLines JOIN added ON  
                                     (newLines.sample_gdc_id = added.sample_gdc_id) AND
                                     (newLines.portion_gdc_id = added.portion_gdc_id) AND
                                     (newLines.aliquot_gdc_id = added.aliquot_gdc_id)),
-             removed_details AS (SELECT project_id, sample_type_name, tissue_type, specimen_type, tumor_descriptor 
+             removed_details AS (SELECT project_id, sample_type_name #, tissue_type, specimen_type, tumor_descriptor 
                                FROM oldLines JOIN removed ON  
                                     (oldLines.sample_gdc_id = removed.sample_gdc_id) AND
                                     (oldLines.portion_gdc_id = removed.portion_gdc_id) AND
