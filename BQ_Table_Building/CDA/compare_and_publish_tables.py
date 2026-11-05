@@ -229,44 +229,96 @@ def list_added_or_removed_rows_aliquot_gdc_with_nulls(select_table_id: str, join
 
 #######################################################################################################################
 
-def list_aliquot_stats_gdc_wjrl():
+def table_compare_intersect_wjrl():
 
-    query = '''
-        WITH newLines AS (SELECT * FROM `isb-project-zero.cda_gdc_metadata.r43_aliquot2caseIDmap` WHERE aliquot_gdc_id IS NOT NULL),
-             oldLines AS (SELECT * FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.aliquot2caseIDmap_r42` WHERE aliquot_gdc_id IS NOT NULL),
-             newKeys  AS (SELECT sample_gdc_id, portion_gdc_id, aliquot_gdc_id FROM newLines),
-             oldKeys  AS (SELECT sample_gdc_id, portion_gdc_id, aliquot_gdc_id FROM oldLines),
-             added    AS (SELECT * FROM newKeys EXCEPT DISTINCT SELECT * FROM oldKeys),
-             removed  AS (SELECT * FROM oldKeys EXCEPT DISTINCT SELECT * FROM newKeys),
-             shared AS (SELECT * FROM newKeys INTERSECT DISTINCT SELECT * FROM oldKeys),
-             added_details AS (SELECT project_id, sample_type_name #, tissue_type, specimen_type, tumor_descriptor 
-                               FROM newLines JOIN added ON  
-                                    (newLines.sample_gdc_id = added.sample_gdc_id) AND
-                                    (newLines.portion_gdc_id = added.portion_gdc_id) AND
-                                    (newLines.aliquot_gdc_id = added.aliquot_gdc_id)),
-             removed_details AS (SELECT project_id, sample_type_name #, tissue_type, specimen_type, tumor_descriptor 
-                               FROM oldLines JOIN removed ON  
+    project_dataset_name = ".".join(table_id.split('.')[0:2])
+    table_name = table_id.split('.')[-1]
+
+    query_new = """
+        SELECT column_name
+        FROM `isb-project-zero.cda_gdc_metadata`.INFORMATION_SCHEMA.COLUMNS 
+        WHERE table_name = 'r43_aliquot2caseIDmap'
+        """
+
+    query_old = """
+        SELECT column_name
+        FROM `isb-cgc-bq.GDC_case_file_metadata_versioned`.INFORMATION_SCHEMA.COLUMNS 
+        WHERE table_name = 'aliquot2caseIDmap_r42'
+        """
+
+    new_columns = set()
+    new_column_result = query_and_retrieve_result(query_new)
+    for arow in new_column_result:
+        new_columns.add(arow[0])
+
+    old_columns = set()
+    old_column_result = query_and_retrieve_result(query_old)
+    for arow in old_column_result:
+        old_columns.add(arow[0])
+
+    common_columns = new_columns.intersection(old_columns)
+    return sorted(list(common_columns))
+
+
+
+#######################################################################################################################
+
+def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
+
+    if non_null_aliquot:
+        not_token = "NOT"
+        aliquot_key = ", aliquot_gdc_id"
+        nl_aliquot_join = "(newLines.aliquot_gdc_id = added.aliquot_gdc_id) AND"
+        ol_aliquot_join = "(oldLines.aliquot_gdc_id = added.aliquot_gdc_id) AND"
+    else:
+        not_token = ""
+        aliquot_key = ""
+        nl_aliquot_join = ""
+        ol_aliquot_join = ""
+
+    query = f'''
+            WITH newLines AS (SELECT *
+                              FROM `isb-project-zero.cda_gdc_metadata.r43_aliquot2caseIDmap` 
+                              WHERE aliquot_gdc_id IS {not_token} NULL), 
+                 oldLines AS (SELECT * 
+                              FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.aliquot2caseIDmap_r42`
+                              WHERE aliquot_gdc_id IS {not_token} NULL), 
+                 newKeys AS (SELECT sample_gdc_id, portion_gdc_id{aliquot_key} FROM newLines), 
+                 oldKeys AS (SELECT sample_gdc_id, portion_gdc_id{aliquot_key} FROM oldLines), 
+                 added AS (SELECT * FROM newKeys EXCEPT DISTINCT SELECT * FROM oldKeys), 
+                 removed AS (SELECT * FROM oldKeys EXCEPT DISTINCT SELECT * FROM newKeys), 
+                 shared AS (SELECT * FROM newKeys INTERSECT DISTINCT SELECT * FROM oldKeys), 
+                 added_details AS (SELECT project_id, sample_type_name #, tissue_type, specimen_type, tumor_descriptor
+                                   FROM newLines JOIN added ON 
+                                   (newLines.sample_gdc_id = added.sample_gdc_id) AND
+                                   {nl_aliquot_join}
+                                   (newLines.portion_gdc_id = added.portion_gdc_id)),
+                removed_details AS (SELECT project_id, sample_type_name #, tissue_type, specimen_type, tumor_descriptor
+                                    FROM oldLines JOIN removed ON
                                     (oldLines.sample_gdc_id = removed.sample_gdc_id) AND
-                                    (oldLines.portion_gdc_id = removed.portion_gdc_id) AND
-                                    (oldLines.aliquot_gdc_id = removed.aliquot_gdc_id)),
-             full_new_shared AS (SELECT * FROM newLines JOIN shared ON 
+                                    {ol_aliquot_join}
+                                    (oldLines.portion_gdc_id = removed.portion_gdc_id)),
+                full_new_shared AS (SELECT * 
+                                    FROM newLines JOIN shared ON
                                     (newLines.sample_gdc_id = shared.sample_gdc_id) AND
-                                    (newLines.portion_gdc_id = shared.portion_gdc_id) AND
-                                    (newLines.aliquot_gdc_id = shared.aliquot_gdc_id)),
-             full_old_shared AS (SELECT * FROM oldLines JOIN shared ON 
+                                    {nl_aliquot_join}
+                                    (newLines.portion_gdc_id = shared.portion_gdc_id)),
+                full_old_shared AS (SELECT *
+                                    FROM oldLines JOIN shared ON
                                     (oldLines.sample_gdc_id = shared.sample_gdc_id) AND
-                                    (oldLines.portion_gdc_id = shared.portion_gdc_id) AND
-                                    (oldLines.aliquot_gdc_id = shared.aliquot_gdc_id)),
-             changes_new as (SELECT * FROM full_new_shared EXCEPT DISTINCT SELECT * from full_old_shared),
-             changes_old as (SELECT * FROM full_old_shared EXCEPT DISTINCT SELECT * from full_new_shared)
-            
-        '''
-
-    null_token = "NOT"
-    aliquot_key = ", aliquot_gdc_id"
+                                    {ol_aliquot_join}
+                                    (oldLines.portion_gdc_id = shared.portion_gdc_id)),
+                changes_new as (SELECT * FROM full_new_shared EXCEPT DISTINCT SELECT * from full_old_shared), 
+                changes_old as (SELECT * FROM full_old_shared EXCEPT DISTINCT SELECT * from full_new_shared)
+                
+            '''
 
     query_logger = logging.getLogger("query_logger")
     logger = logging.getLogger("base_script")
+
+    cols = table_compare_intersect_wjrl()
+    for col in cols:
+        print(col)
 
     added_count_query = query + "SELECT COUNT(*) AS count FROM added"
 
@@ -1804,7 +1856,8 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
             # change the code to correctly handle tertiary keys in addition to secondary keys.
             #
             if table_type != 'quant':
-                list_aliquot_stats_gdc_wjrl()
+                list_aliquot_stats_gdc_wjrl(True)
+                list_aliquot_stats_gdc_wjrl(False)
                 if added_count > 0:
                     # list added rows
                     logger.info("Added record examples:")
