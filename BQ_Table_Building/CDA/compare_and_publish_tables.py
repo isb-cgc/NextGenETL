@@ -231,9 +231,6 @@ def list_added_or_removed_rows_aliquot_gdc_with_nulls(select_table_id: str, join
 
 def table_compare_intersect_wjrl():
 
-    project_dataset_name = ".".join(table_id.split('.')[0:2])
-    table_name = table_id.split('.')[-1]
-
     query_new = """
         SELECT column_name
         FROM `isb-project-zero.cda_gdc_metadata`.INFORMATION_SCHEMA.COLUMNS 
