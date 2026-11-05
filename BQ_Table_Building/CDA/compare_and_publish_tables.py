@@ -1838,9 +1838,10 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                                 table_params=modified_table_params)
 
             if table_type == 'aliquot' and PARAMS['NODE'] == 'gdc':
-                added_count, removed_count = find_record_difference_counts_aliquot_gdc_with_nulls(table_type,
-                                                                                       table_ids,
-                                                                                      modified_table_params)
+                pass
+                #added_count, removed_count = find_record_difference_counts_aliquot_gdc_with_nulls(table_type,
+                #                                                                       table_ids,
+                #                                                                      modified_table_params)
                 #added_count, removed_count = find_record_difference_counts(table_type,
                 #                                                                       table_ids,
                 #                                                                       modified_table_params)
@@ -1859,6 +1860,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
             if table_type != 'quant':
                 list_aliquot_stats_gdc_wjrl(True)
                 list_aliquot_stats_gdc_wjrl(False)
+                break
                 if added_count > 0:
                     # list added rows
                     logger.info("Added record examples:")
