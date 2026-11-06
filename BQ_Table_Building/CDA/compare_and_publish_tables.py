@@ -359,8 +359,8 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
         logger.info(f"Removed = {next(row_result)[0]}")
 
         removed_details_query = query + "SELECT COUNT(*) as count, project_id, {group_and_report} FROM removed_details group by project_id, {group_and_report}r"
-        #query_logger.info("removed_details_query")
-        #query_logger.info(removed_details_query)
+        query_logger.info("removed_details_query")
+        query_logger.info(removed_details_query)
         row_result = query_and_retrieve_result(removed_details_query)
         for row in row_result:
             logger.info(f"{row[0]}  {row[1]}    {row[2]}")
