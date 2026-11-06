@@ -278,9 +278,8 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
         ol_aliquot_join_shared = ""
 
     cols = table_compare_intersect_wjrl()
-    for col in cols:
-        print(col)
-    compare_fields = ', '.join(cols)
+    compare_fields = ', onl.'.join(cols)
+    compare_fields = 'onl.' + compare_fields
 
 
     query = f'''
@@ -306,12 +305,12 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
                                     {ol_aliquot_join_removed}
                                     (oldLines.portion_gdc_id = removed.portion_gdc_id)),
                 full_new_shared AS (SELECT {compare_fields} 
-                                    FROM newLines JOIN shared ON
+                                    FROM newLines as onl JOIN shared ON
                                     (newLines.sample_gdc_id = shared.sample_gdc_id) AND
                                     {nl_aliquot_join_shared}
                                     (newLines.portion_gdc_id = shared.portion_gdc_id)),
                 full_old_shared AS (SELECT {compare_fields}
-                                    FROM oldLines JOIN shared ON
+                                    FROM oldLines as onl JOIN shared ON
                                     (oldLines.sample_gdc_id = shared.sample_gdc_id) AND
                                     {ol_aliquot_join_shared}
                                     (oldLines.portion_gdc_id = shared.portion_gdc_id)),
