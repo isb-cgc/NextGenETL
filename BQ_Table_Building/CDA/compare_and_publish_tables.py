@@ -314,7 +314,7 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
                 
             '''
 
-    query_logger = logging.getLogger("query_logger")
+    #query_logger = logging.getLogger("query_logger")
     logger = logging.getLogger("base_script")
 
     cols = table_compare_intersect_wjrl()
@@ -323,31 +323,31 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
 
     added_count_query = query + "SELECT COUNT(*) AS count FROM added"
 
-    query_logger.info("added_count_query")
-    query_logger.info(added_count_query)
+    #query_logger.info("added_count_query")
+    #query_logger.info(added_count_query)
     row_result = query_and_retrieve_result(added_count_query)
     for row in row_result:
         logger.info(f"Added = {row}")
 
     added_details_query = query + "SELECT COUNT(*) as count, project_id, sample_type_name FROM added_details group by project_id, sample_type_name"
-    query_logger.info("added_details_query")
-    query_logger.info(added_details_query)
+    #query_logger.info("added_details_query")
+    #query_logger.info(added_details_query)
     row_result = query_and_retrieve_result(added_details_query)
     for row in row_result:
         logger.info(row[0])
 
     removed_count_query = query + "SELECT COUNT(*) as count, project_id, sample_type_name FROM removed_details group by project_id, sample_type_name"
 
-    query_logger.info("removed_count_query")
-    query_logger.info(removed_count_query)
+    #query_logger.info("removed_count_query")
+    #query_logger.info(removed_count_query)
     row_result = query_and_retrieve_result(removed_count_query)
     for row in row_result:
         logger.info(f"Removed = {row}")
 
     changed_count_query = query + "SELECT COUNT(*) AS count FROM changes_new"
 
-    query_logger.info("changed_count_query")
-    query_logger.info(changed_count_query)
+    #query_logger.info("changed_count_query")
+    #query_logger.info(changed_count_query)
     row_result = query_and_retrieve_result(changed_count_query)
     for row in row_result:
         logger.info(f"Changed = {row}")
