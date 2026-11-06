@@ -277,6 +277,12 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
         nl_aliquot_join_shared = ""
         ol_aliquot_join_shared = ""
 
+    cols = table_compare_intersect_wjrl()
+    for col in cols:
+        print(col)
+    compare_fields = ', '.join(cols)
+
+
     query = f'''
             WITH newLines AS (SELECT *
                               FROM `isb-project-zero.cda_gdc_metadata.r43_aliquot2caseIDmap` 
@@ -299,12 +305,12 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
                                     (oldLines.sample_gdc_id = removed.sample_gdc_id) AND
                                     {ol_aliquot_join_removed}
                                     (oldLines.portion_gdc_id = removed.portion_gdc_id)),
-                full_new_shared AS (SELECT * 
+                full_new_shared AS (SELECT {compare_fields} 
                                     FROM newLines JOIN shared ON
                                     (newLines.sample_gdc_id = shared.sample_gdc_id) AND
                                     {nl_aliquot_join_shared}
                                     (newLines.portion_gdc_id = shared.portion_gdc_id)),
-                full_old_shared AS (SELECT *
+                full_old_shared AS (SELECT {compare_fields}
                                     FROM oldLines JOIN shared ON
                                     (oldLines.sample_gdc_id = shared.sample_gdc_id) AND
                                     {ol_aliquot_join_shared}
@@ -317,9 +323,7 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
     #query_logger = logging.getLogger("query_logger")
     logger = logging.getLogger("base_script")
 
-    cols = table_compare_intersect_wjrl()
-    for col in cols:
-        print(col)
+
 
     added_count_query = query + "SELECT COUNT(*) AS count FROM added"
 
@@ -334,7 +338,7 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
     #query_logger.info(added_details_query)
     row_result = query_and_retrieve_result(added_details_query)
     for row in row_result:
-        logger.info(row[0])
+        logger.info(row[0], row[1], row[2])
 
     removed_count_query = query + "SELECT COUNT(*) as count, project_id, sample_type_name FROM removed_details group by project_id, sample_type_name"
 
@@ -1858,7 +1862,9 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
             # change the code to correctly handle tertiary keys in addition to secondary keys.
             #
             if table_type != 'quant':
+                logger.info(f"***** Aliquot ID as key *****")
                 list_aliquot_stats_gdc_wjrl(True)
+                logger.info(f"***** Null Aliquot ID *****")
                 list_aliquot_stats_gdc_wjrl(False)
                 break
                 if added_count > 0:
