@@ -327,7 +327,7 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
     added_count_query = query + "SELECT COUNT(*) AS count FROM added"
 
     query_logger.info("added_count_query")
-    #query_logger.info(added_count_query)
+    query_logger.info(added_count_query)
     row_result = query_and_retrieve_result(added_count_query)
     for row in row_result:
         logger.info(f"Added = {row}")
