@@ -339,7 +339,7 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
     #query_logger.info(added_details_query)
     row_result = query_and_retrieve_result(added_details_query)
     for row in row_result:
-        logger.info(row[0], row[1], row[2])
+        logger.info(f"{row[0]}  {row[1]}, {row[2]}")
 
     removed_count_query = query + "SELECT COUNT(*) as count, project_id, sample_type_name FROM removed_details group by project_id, sample_type_name"
 
@@ -347,7 +347,7 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
     #query_logger.info(removed_count_query)
     row_result = query_and_retrieve_result(removed_count_query)
     for row in row_result:
-        logger.info(f"Removed = {row}")
+        logger.info(f"Removed = {row[0]}")
 
     changed_count_query = query + "SELECT COUNT(*) AS count FROM changes_new"
 
@@ -355,7 +355,7 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
     #query_logger.info(changed_count_query)
     row_result = query_and_retrieve_result(changed_count_query)
     for row in row_result:
-        logger.info(f"Changed = {row}")
+        logger.info(f"Changed = {row[0]}")
 
     return # added_count, removed_count
 
