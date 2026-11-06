@@ -336,7 +336,7 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
     else:
         logger.info(f"Added = {next(row_result)[0]}")
 
-        added_details_query = query + "SELECT COUNT(*) as count, project_id, sample_type_name FROM added_details group by project_id, sample_type_name"
+        added_details_query = query + "SELECT COUNT(*) as count, project_id, sample_type_name, tissue_type, specimen_type, tumor_descriptor FROM added_details group by project_id, sample_type_name"
         #query_logger.info("added_details_query")
         #query_logger.info(added_details_query)
         row_result = query_and_retrieve_result(added_details_query)
@@ -353,7 +353,7 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
     else:
         logger.info(f"Removed = {next(row_result)[0]}")
 
-        removed_details_query = query + "SELECT COUNT(*) as count, project_id, sample_type_name FROM removed_details group by project_id, sample_type_name"
+        removed_details_query = query + "SELECT COUNT(*) as count, project_id, sample_type_name, tissue_type, specimen_type, tumor_descriptor FROM removed_details group by project_id, sample_type_name"
         #query_logger.info("removed_details_query")
         #query_logger.info(removed_details_query)
         row_result = query_and_retrieve_result(removed_details_query)
