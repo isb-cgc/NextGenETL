@@ -334,7 +334,7 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
     if row_result is None or row_result.total_rows == 0:
         logger.info(f"Added = 0")
     else:
-        logger.info(f"Added = {row_result[0].row[0]}")
+        logger.info(f"Added = {row_result.next().row[0]}")
 
         added_details_query = query + "SELECT COUNT(*) as count, project_id, sample_type_name FROM added_details group by project_id, sample_type_name"
         #query_logger.info("added_details_query")
@@ -351,7 +351,7 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
     if row_result is None or row_result.total_rows == 0:
         logger.info(f"Removed = 0")
     else:
-        logger.info(f"Removed = {row_result[0].row[0]}")
+        logger.info(f"Removed = {row_result.next().row[0]}")
 
         removed_details_query = query + "SELECT COUNT(*) as count, project_id, sample_type_name FROM removed_details group by project_id, sample_type_name"
         #query_logger.info("removed_details_query")
@@ -368,7 +368,7 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
     if row_result is None or row_result.total_rows == 0:
         logger.info(f"Changed = 0")
     else:
-        logger.info(f"Changed = {row_result[0].row[0]}")
+        logger.info(f"Changed = {row_result.next().row[0]}")
 
     return # added_count, removed_count
 
