@@ -319,14 +319,14 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
                 
             '''
 
-    #query_logger = logging.getLogger("query_logger")
+    query_logger = logging.getLogger("query_logger")
     logger = logging.getLogger("base_script")
 
 
 
     added_count_query = query + "SELECT COUNT(*) AS count FROM added"
 
-    #query_logger.info("added_count_query")
+    query_logger.info("added_count_query")
     #query_logger.info(added_count_query)
     row_result = query_and_retrieve_result(added_count_query)
     for row in row_result:
