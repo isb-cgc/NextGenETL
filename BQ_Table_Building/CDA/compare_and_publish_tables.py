@@ -234,13 +234,13 @@ def table_compare_intersect_wjrl():
     query_new = """
         SELECT column_name
         FROM `isb-project-zero.cda_gdc_metadata`.INFORMATION_SCHEMA.COLUMNS 
-        WHERE table_name = 'r43_aliquot2caseIDmap'
+        WHERE table_name = 'r46_aliquot2caseIDmap'
         """
 
     query_old = """
         SELECT column_name
         FROM `isb-cgc-bq.GDC_case_file_metadata_versioned`.INFORMATION_SCHEMA.COLUMNS 
-        WHERE table_name = 'aliquot2caseIDmap_r42'
+        WHERE table_name = 'aliquot2caseIDmap_r45'
         """
 
     new_columns = set()
@@ -283,16 +283,16 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
     compare_fields = ', oldLines.'.join(cols)
     old_compare_fields = 'oldLines.' + compare_fields
 
-    group_and_report = "sample_type_name"
-    #group_and_report = "sample_type_name, tissue_type, specimen_type, tumor_descriptor"
+    #group_and_report = "sample_type_name"
+    group_and_report = "sample_type_name, tissue_type, specimen_type, tumor_descriptor"
 
 
     query = f'''
             WITH newLines AS (SELECT *
-                              FROM `isb-project-zero.cda_gdc_metadata.r43_aliquot2caseIDmap` 
+                              FROM `isb-project-zero.cda_gdc_metadata.r46_aliquot2caseIDmap` 
                               WHERE aliquot_gdc_id IS {not_token} NULL), 
                  oldLines AS (SELECT * 
-                              FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.aliquot2caseIDmap_r42`
+                              FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.aliquot2caseIDmap_r45`
                               WHERE aliquot_gdc_id IS {not_token} NULL), 
                  newKeys AS (SELECT sample_gdc_id, portion_gdc_id{aliquot_key} FROM newLines), 
                  oldKeys AS (SELECT sample_gdc_id, portion_gdc_id{aliquot_key} FROM oldLines), 
@@ -345,8 +345,8 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
         #query_logger.info(added_details_query)
         row_result = query_and_retrieve_result(added_details_query)
         for row in row_result:
-            logger.info(f"{row[0]}  {row[1]}    {row[2]}")
-            #logger.info(f"{row[0]}  {row[1]}    {row[2]}    {row[3]}    {row[4]}    {row[5]}")
+            #logger.info(f"{row[0]}  {row[1]}    {row[2]}")
+            logger.info(f"{row[0]}  {row[1]}    {row[2]}    {row[3]}    {row[4]}    {row[5]}")
 
 
     removed_count_query = query + "SELECT COUNT(*) AS count FROM removed"
@@ -363,8 +363,8 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
         #query_logger.info(removed_details_query)
         row_result = query_and_retrieve_result(removed_details_query)
         for row in row_result:
-            logger.info(f"{row[0]}  {row[1]}    {row[2]}")
-            #logger.info(f"{row[0]}  {row[1]}    {row[2]}    {row[3]}    {row[4]}    {row[5]}")
+            #logger.info(f"{row[0]}  {row[1]}    {row[2]}")
+            logger.info(f"{row[0]}  {row[1]}    {row[2]}    {row[3]}    {row[4]}    {row[5]}")
 
     changed_count_query = query + "SELECT COUNT(*) AS count FROM changes_new"
 
@@ -377,12 +377,12 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
         logger.info(f"Changed = {next(row_result)[0]}")
 
     changed_details_query = query + f"SELECT COUNT(*) as count, project_id, {group_and_report} FROM changed_details_new group by project_id, {group_and_report}"
-    query_logger.info("changed_details_query")
-    query_logger.info(changed_details_query)
+    #query_logger.info("changed_details_query")
+    #query_logger.info(changed_details_query)
     row_result = query_and_retrieve_result(changed_details_query)
     for row in row_result:
-        logger.info(f"{row[0]}  {row[1]}    {row[2]}")
-        #logger.info(f"{row[0]}  {row[1]}    {row[2]}    {row[3]}    {row[4]}    {row[5]}")
+        #logger.info(f"{row[0]}  {row[1]}    {row[2]}")
+        logger.info(f"{row[0]}  {row[1]}    {row[2]}    {row[3]}    {row[4]}    {row[5]}")
 
     return # added_count, removed_count
 
