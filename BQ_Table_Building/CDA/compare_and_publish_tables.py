@@ -321,41 +321,54 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
                 
             '''
 
-    query_logger = logging.getLogger("query_logger")
+    #query_logger = logging.getLogger("query_logger")
     logger = logging.getLogger("base_script")
 
 
 
     added_count_query = query + "SELECT COUNT(*) AS count FROM added"
 
-    query_logger.info("added_count_query")
-    query_logger.info(added_count_query)
+    #query_logger.info("added_count_query")
+    #query_logger.info(added_count_query)
     row_result = query_and_retrieve_result(added_count_query)
-    for row in row_result:
-        logger.info(f"Added = {row}")
+    if row_result is None or row_result.total_rows == 0:
+        logger.info(f"Added = 0")
+    else:
+        logger.info(f"Added = {row_result[0].row[0]}")
 
-    added_details_query = query + "SELECT COUNT(*) as count, project_id, sample_type_name FROM added_details group by project_id, sample_type_name"
-    #query_logger.info("added_details_query")
-    #query_logger.info(added_details_query)
-    row_result = query_and_retrieve_result(added_details_query)
-    for row in row_result:
-        logger.info(f"{row[0]}  {row[1]}, {row[2]}")
+        added_details_query = query + "SELECT COUNT(*) as count, project_id, sample_type_name FROM added_details group by project_id, sample_type_name"
+        #query_logger.info("added_details_query")
+        #query_logger.info(added_details_query)
+        row_result = query_and_retrieve_result(added_details_query)
+        for row in row_result:
+            logger.info(f"{row[0]}  {row[1]}    {row[2]}")
 
-    removed_count_query = query + "SELECT COUNT(*) as count, project_id, sample_type_name FROM removed_details group by project_id, sample_type_name"
 
+    removed_count_query = query + "SELECT COUNT(*) AS count FROM removed"
     #query_logger.info("removed_count_query")
     #query_logger.info(removed_count_query)
     row_result = query_and_retrieve_result(removed_count_query)
-    for row in row_result:
-        logger.info(f"Removed = {row[0]}")
+    if row_result is None or row_result.total_rows == 0:
+        logger.info(f"Removed = 0")
+    else:
+        logger.info(f"Removed = {row_result[0].row[0]}")
+
+        removed_details_query = query + "SELECT COUNT(*) as count, project_id, sample_type_name FROM removed_details group by project_id, sample_type_name"
+        #query_logger.info("removed_details_query")
+        #query_logger.info(removed_details_query)
+        row_result = query_and_retrieve_result(removed_details_query)
+        for row in row_result:
+            logger.info(f"{row[0]}  {row[1]}    {row[2]}")
 
     changed_count_query = query + "SELECT COUNT(*) AS count FROM changes_new"
 
     #query_logger.info("changed_count_query")
     #query_logger.info(changed_count_query)
     row_result = query_and_retrieve_result(changed_count_query)
-    for row in row_result:
-        logger.info(f"Changed = {row[0]}")
+    if row_result is None or row_result.total_rows == 0:
+        logger.info(f"Changed = 0")
+    else:
+        logger.info(f"Changed = {row_result[0].row[0]}")
 
     return # added_count, removed_count
 
