@@ -234,13 +234,13 @@ def table_compare_intersect_wjrl():
     query_new = """
         SELECT column_name
         FROM `isb-project-zero.cda_gdc_metadata`.INFORMATION_SCHEMA.COLUMNS 
-        WHERE table_name = 'r46_aliquot2caseIDmap'
+        WHERE table_name = 'r44_aliquot2caseIDmap'
         """
 
     query_old = """
         SELECT column_name
         FROM `isb-cgc-bq.GDC_case_file_metadata_versioned`.INFORMATION_SCHEMA.COLUMNS 
-        WHERE table_name = 'aliquot2caseIDmap_r45'
+        WHERE table_name = 'aliquot2caseIDmap_r43'
         """
 
     new_columns = set()
@@ -283,45 +283,49 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
     compare_fields = ', oldLines.'.join(cols)
     old_compare_fields = 'oldLines.' + compare_fields
 
+    group_and_report = "sample_type_name"
+    #group_and_report = "sample_type_name, tissue_type, specimen_type, tumor_descriptor"
+
 
     query = f'''
             WITH newLines AS (SELECT *
-                              FROM `isb-project-zero.cda_gdc_metadata.r46_aliquot2caseIDmap` 
+                              FROM `isb-project-zero.cda_gdc_metadata.r44_aliquot2caseIDmap` 
                               WHERE aliquot_gdc_id IS {not_token} NULL), 
                  oldLines AS (SELECT * 
-                              FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.aliquot2caseIDmap_r45`
+                              FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.aliquot2caseIDmap_r43`
                               WHERE aliquot_gdc_id IS {not_token} NULL), 
                  newKeys AS (SELECT sample_gdc_id, portion_gdc_id{aliquot_key} FROM newLines), 
                  oldKeys AS (SELECT sample_gdc_id, portion_gdc_id{aliquot_key} FROM oldLines), 
                  added AS (SELECT * FROM newKeys EXCEPT DISTINCT SELECT * FROM oldKeys), 
                  removed AS (SELECT * FROM oldKeys EXCEPT DISTINCT SELECT * FROM newKeys), 
                  shared AS (SELECT * FROM newKeys INTERSECT DISTINCT SELECT * FROM oldKeys), 
-                 added_details AS (SELECT project_id, sample_type_name, tissue_type, specimen_type, tumor_descriptor
+                 added_details AS (SELECT project_id, {group_and_report}
                                    FROM newLines JOIN added ON 
                                    (newLines.sample_gdc_id = added.sample_gdc_id) AND
                                    {nl_aliquot_join_added}
                                    (newLines.portion_gdc_id = added.portion_gdc_id)),
-                removed_details AS (SELECT project_id, sample_type_name, tissue_type, specimen_type, tumor_descriptor
+                 removed_details AS (SELECT project_id, {group_and_report}
                                     FROM oldLines JOIN removed ON
                                     (oldLines.sample_gdc_id = removed.sample_gdc_id) AND
                                     {ol_aliquot_join_removed}
                                     (oldLines.portion_gdc_id = removed.portion_gdc_id)),
-                full_new_shared AS (SELECT {new_compare_fields} 
+                 full_new_shared AS (SELECT {new_compare_fields} 
                                     FROM newLines JOIN shared ON
                                     (newLines.sample_gdc_id = shared.sample_gdc_id) AND
                                     {nl_aliquot_join_shared}
                                     (newLines.portion_gdc_id = shared.portion_gdc_id)),
-                full_old_shared AS (SELECT {old_compare_fields}
+                 full_old_shared AS (SELECT {old_compare_fields}
                                     FROM oldLines JOIN shared ON
                                     (oldLines.sample_gdc_id = shared.sample_gdc_id) AND
                                     {ol_aliquot_join_shared}
                                     (oldLines.portion_gdc_id = shared.portion_gdc_id)),
-                changes_new as (SELECT * FROM full_new_shared EXCEPT DISTINCT SELECT * from full_old_shared), 
-                changes_old as (SELECT * FROM full_old_shared EXCEPT DISTINCT SELECT * from full_new_shared)
-                
+                 changes_new as (SELECT * FROM full_new_shared EXCEPT DISTINCT SELECT * from full_old_shared), 
+                 changes_old as (SELECT * FROM full_old_shared EXCEPT DISTINCT SELECT * from full_new_shared),
+                 changed_details_new AS (SELECT project_id, {group_and_report} FROM changes_new)
+
             '''
 
-    #query_logger = logging.getLogger("query_logger")
+    query_logger = logging.getLogger("query_logger")
     logger = logging.getLogger("base_script")
 
 
@@ -336,12 +340,13 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
     else:
         logger.info(f"Added = {next(row_result)[0]}")
 
-        added_details_query = query + "SELECT COUNT(*) as count, project_id, sample_type_name, tissue_type, specimen_type, tumor_descriptor FROM added_details group by project_id, sample_type_name, tissue_type, specimen_type, tumor_descriptor"
+        added_details_query = query + f"SELECT COUNT(*) as count, project_id, {group_and_report} FROM added_details group by project_id, {group_and_report}"
         #query_logger.info("added_details_query")
         #query_logger.info(added_details_query)
         row_result = query_and_retrieve_result(added_details_query)
         for row in row_result:
-            logger.info(f"{row[0]}  {row[1]}    {row[2]}    {row[3]}    {row[4]}")
+            logger.info(f"{row[0]}  {row[1]}    {row[2]}")
+            #logger.info(f"{row[0]}  {row[1]}    {row[2]}    {row[3]}    {row[4]}    {row[5]}")
 
 
     removed_count_query = query + "SELECT COUNT(*) AS count FROM removed"
@@ -353,12 +358,13 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
     else:
         logger.info(f"Removed = {next(row_result)[0]}")
 
-        removed_details_query = query + "SELECT COUNT(*) as count, project_id, sample_type_name, tissue_type, specimen_type, tumor_descriptor FROM removed_details group by project_id, sample_type_name, tissue_type, specimen_type, tumor_descriptor"
+        removed_details_query = query + "SELECT COUNT(*) as count, project_id, {group_and_report} FROM removed_details group by project_id, {group_and_report}r"
         #query_logger.info("removed_details_query")
         #query_logger.info(removed_details_query)
         row_result = query_and_retrieve_result(removed_details_query)
         for row in row_result:
-            logger.info(f"{row[0]}  {row[1]}    {row[2]}    {row[3]}    {row[4]}")
+            logger.info(f"{row[0]}  {row[1]}    {row[2]}")
+            #logger.info(f"{row[0]}  {row[1]}    {row[2]}    {row[3]}    {row[4]}    {row[5]}")
 
     changed_count_query = query + "SELECT COUNT(*) AS count FROM changes_new"
 
@@ -369,6 +375,14 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
         logger.info(f"Changed = 0")
     else:
         logger.info(f"Changed = {next(row_result)[0]}")
+
+    changed_details_query = query + f"SELECT COUNT(*) as count, project_id, {group_and_report} FROM changed_details_new group by project_id, {group_and_report}"
+    query_logger.info("changed_details_query")
+    query_logger.info(changed_details_query)
+    row_result = query_and_retrieve_result(changed_details_query)
+    for row in row_result:
+        logger.info(f"{row[0]}  {row[1]}    {row[2]}")
+        #logger.info(f"{row[0]}  {row[1]}    {row[2]}    {row[3]}    {row[4]}    {row[5]}")
 
     return # added_count, removed_count
 
