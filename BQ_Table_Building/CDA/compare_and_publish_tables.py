@@ -234,13 +234,13 @@ def table_compare_intersect_wjrl():
     query_new = """
         SELECT column_name
         FROM `isb-project-zero.cda_gdc_metadata`.INFORMATION_SCHEMA.COLUMNS 
-        WHERE table_name = 'r43_aliquot2caseIDmap'
+        WHERE table_name = 'r44_aliquot2caseIDmap'
         """
 
     query_old = """
         SELECT column_name
         FROM `isb-cgc-bq.GDC_case_file_metadata_versioned`.INFORMATION_SCHEMA.COLUMNS 
-        WHERE table_name = 'aliquot2caseIDmap_r42'
+        WHERE table_name = 'aliquot2caseIDmap_r43'
         """
 
     new_columns = set()
@@ -286,10 +286,10 @@ def list_aliquot_stats_gdc_wjrl(non_null_aliquot):
 
     query = f'''
             WITH newLines AS (SELECT *
-                              FROM `isb-project-zero.cda_gdc_metadata.r43_aliquot2caseIDmap` 
+                              FROM `isb-project-zero.cda_gdc_metadata.r44_aliquot2caseIDmap` 
                               WHERE aliquot_gdc_id IS {not_token} NULL), 
                  oldLines AS (SELECT * 
-                              FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.aliquot2caseIDmap_r42`
+                              FROM `isb-cgc-bq.GDC_case_file_metadata_versioned.aliquot2caseIDmap_r43`
                               WHERE aliquot_gdc_id IS {not_token} NULL), 
                  newKeys AS (SELECT sample_gdc_id, portion_gdc_id{aliquot_key} FROM newLines), 
                  oldKeys AS (SELECT sample_gdc_id, portion_gdc_id{aliquot_key} FROM oldLines), 
