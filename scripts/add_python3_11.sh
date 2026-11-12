@@ -57,6 +57,7 @@ python3.11 -m pip install xlrd
 python3.11 -m pip install openpyxl
 python3.11 -m pip install wget
 python3.11 -m pip install alive_progress
+python3.11 -m pip boto3
 # used by build_schema:
 python3.11 -m pip install python-dateutil
 deactivate
