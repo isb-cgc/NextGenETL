@@ -217,7 +217,6 @@ def main(args):
         logger.info("Entering pull_manifest_from_data_node")
         for manifest_file_name in manifest_dict.values():
             source_buck_tuple = manifest_buckets[manifest_file_name]
-            ACTIVE_MANIFEST_TSV
             if source_buck_tuple[0] == "aws":
                 pull_list = [manifest_file_name]
                 secret_dict =PARAMS["SECRET_INFO"]
