@@ -27,6 +27,7 @@ from google.cloud import secretmanager
 import google_crc32c
 import boto3
 import urllib.parse as up
+from pathlib import Path
 
 
 def download_from_external_bucket(uri_path: str,
@@ -258,7 +259,8 @@ def pull_from_buckets_aws(pull_list, local_files_dir, project_id=None, secret_id
         path_pieces = up.urlparse(tuple[1])
         print(path_pieces)
         dir_name = os.path.dirname(path_pieces.path)
-        make_dir = f"{local_files_dir}/{dir_name}"
+        home = Path.home()
+        make_dir = f"{home}/{local_files_dir}/{dir_name}"
         print(make_dir)
         os.makedirs(make_dir, exist_ok=True)
         full_file = f"{local_files_dir}/{path_pieces.path}"
