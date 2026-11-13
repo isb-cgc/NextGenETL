@@ -215,8 +215,8 @@ def main(args):
     #
     if "pull_manifest_from_data_node" in steps:
         logger.info("Entering pull_manifest_from_data_node")
-        for manifest_file_name in manifest_dict.values():
-            source_buck_tuple = manifest_buckets[manifest_file_name]
+        for manifest_table_name, manifest_file_name in manifest_dict.items():
+            source_buck_tuple = manifest_buckets[manifest_table_name]
             if source_buck_tuple[0] == "aws":
                 pull_list = [manifest_file_name]
                 secret_dict =PARAMS["SECRET_INFO"]
