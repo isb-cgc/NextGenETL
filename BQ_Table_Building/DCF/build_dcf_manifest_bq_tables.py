@@ -218,7 +218,7 @@ def main(args):
         for manifest_table_name, manifest_file_name in manifest_dict.items():
             source_buck_tuple = manifest_buckets[manifest_table_name]
             if source_buck_tuple[0] == "aws":
-                pull_list = [manifest_file_name]
+                pull_list = [f"{source_buck_tuple[1]}/{manifest_file_name}"]
                 secret_dict =PARAMS["SECRET_INFO"]
                 pull_from_buckets_aws(pull_list, PARAMS['SCRATCH_DIR'], PARAMS['DEV_PROJECT'], secret_dict)
                 #upload_to_bucket(PARAMS, quant_tsv_path, delete_local=False, verbose=False)
