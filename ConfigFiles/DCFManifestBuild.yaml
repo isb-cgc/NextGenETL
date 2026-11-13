@@ -68,6 +68,10 @@ params:
   WORKING_BUCKET: working_bucket_name
   WORKING_BUCKET_DIR: working_bucket_dir_path_no_leading_/
 
+  SECRET_INFO:
+    id: aws-access-key-id-name-in-secret-manager
+    key: aws-access-key-name-in-secret-manager
+
   SCRATCH_DIR: scratch
 
   LOCATION: US

@@ -27,7 +27,7 @@ import ast
 
 from google.cloud import bigquery
 
-from cda_bq_etl.gcs_helpers import transfer_between_buckets
+from cda_bq_etl.gcs_helpers import transfer_between_buckets, upload_to_bucket, pull_from_buckets_aws
 from cda_bq_etl.utils import (load_config, format_seconds, input_with_timeout)
 from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result, find_most_recent_published_table_id
 from cda_bq_etl.bq_helpers.create_modify import create_and_load_table_from_tsv, create_and_load_table_from_jsonl, \
@@ -204,16 +204,27 @@ def main(args):
         f"gdc_{PARAMS['RELEASE']}_hg38": PARAMS['ACTIVE_MANIFEST_TSV']
     }
     manifest_buckets = {
-        # table name: tsv file name
-        f"gdc_{PARAMS['RELEASE']}_hg19": PARAMS['LEGACY_SOURCE_BUCKET'],
-        f"gdc_{PARAMS['RELEASE']}_hg38": PARAMS['SOURCE_BUCKET']
+        # table name: tsv source platform and file name
+        f"gdc_{PARAMS['RELEASE']}_hg19": ("gcs", PARAMS['LEGACY_SOURCE_BUCKET']),
+        f"gdc_{PARAMS['RELEASE']}_hg38": ("aws", PARAMS['SOURCE_BUCKET'])
     }
 
+    #
+    # WJRL 11/12/26: Now that the manifest lives in AWS, but we still work with legacy files (CCLE!)
+    # we need to do different things for each:
+    #
     if "pull_manifest_from_data_node" in steps:
         logger.info("Entering pull_manifest_from_data_node")
-        for manifest_file_name in manifest_dict.values():
-            source_buck = manifest_buckets[manifest_file_name]
-            transfer_between_buckets(PARAMS, source_buck, manifest_file_name, PARAMS['WORKING_BUCKET'])
+        for manifest_table_name, manifest_file_name in manifest_dict.items():
+            source_buck_tuple = manifest_buckets[manifest_table_name]
+            if source_buck_tuple[0] == "aws":
+                pull_list = [(source_buck_tuple[1], manifest_file_name)]
+                secret_dict = PARAMS["SECRET_INFO"]
+                output_list = pull_from_buckets_aws(pull_list, PARAMS['SCRATCH_DIR'], PARAMS['DEV_PROJECT'], secret_dict)
+                for file in output_list:
+                    upload_to_bucket(PARAMS, file, delete_local=False, verbose=False)
+            else:
+                transfer_between_buckets(PARAMS, source_buck_tuple[1], manifest_file_name, PARAMS['WORKING_BUCKET'])
 
     if "create_bq_manifest_table" in steps:
         logger.info("Entering create_bq_manifest_table")

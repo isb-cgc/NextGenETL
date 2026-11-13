@@ -57,7 +57,9 @@ python3.11 -m pip install xlrd
 python3.11 -m pip install openpyxl
 python3.11 -m pip install wget
 python3.11 -m pip install alive_progress
-python3.11 -m pip boto3
+python3.11 -m pip install boto3
+python3.11 -m pip install google-cloud-secret-manager
+python3.11 -m pip install google-crc32c
 # used by build_schema:
 python3.11 -m pip install python-dateutil
 deactivate
