@@ -27,14 +27,13 @@ import ast
 
 from google.cloud import bigquery
 
-from cda_bq_etl.gcs_helpers import transfer_between_buckets, upload_to_bucket
+from cda_bq_etl.gcs_helpers import transfer_between_buckets, upload_to_bucket, pull_from_buckets_aws
 from cda_bq_etl.utils import (load_config, format_seconds, input_with_timeout)
 from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result, find_most_recent_published_table_id
 from cda_bq_etl.bq_helpers.create_modify import create_and_load_table_from_tsv, create_and_load_table_from_jsonl, \
     create_table_from_query, create_view_from_query, delete_bq_table, copy_bq_table, update_friendly_name, \
     update_table_schema_from_generic, change_status_to_archived
 from cda_bq_etl.data_helpers import initialize_logging, write_list_to_jsonl_and_upload
-from gdc_file_utils import pull_from_buckets_aws
 
 PARAMS = dict()
 YAML_HEADERS = ('params', 'steps')

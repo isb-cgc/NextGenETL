@@ -23,6 +23,8 @@ from typing import Optional
 from google.cloud import storage, exceptions
 from cda_bq_etl.utils import get_scratch_fp, get_filepath
 from cda_bq_etl.custom_typing import Params
+from google.cloud import secretmanager
+import google_crc32c
 
 
 def download_from_external_bucket(uri_path: str,
@@ -202,3 +204,69 @@ def transfer_between_buckets(params: Params,
     except exceptions.GoogleCloudError as err:
         logger.critical(f"Failed to upload to bucket.\n{err}")
         sys.exit(err)
+
+#
+# Functions to support use of Secret Manager for holding AWS credentials
+#
+
+def pull_check_and_decode(client, name):
+
+    # Access the secret version.
+    response = client.access_secret_version(request={"name": name})
+
+    # Verify payload checksum.
+    crc32c = google_crc32c.Checksum()
+    crc32c.update(response.payload.data)
+    if response.payload.data_crc32c != int(crc32c.hexdigest(), 16):
+        print("Data corruption detected.")
+        return None
+
+    # Return the secret payload.
+
+    payload = response.payload.data.decode("UTF-8")
+
+    return payload
+
+def pull_secret_version(client, project_id, secret_id, version_id):
+
+    # Build the resource name of the secret version.
+    name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
+
+    retval = pull_check_and_decode(client, name)
+    return retval
+
+# Google VM Utils #
+
+def pull_from_buckets_aws(pull_list, local_files_dir, project_id=None, secret_id=None):
+    """
+    Adapted from GCS version above.
+    """
+    num_files = len(pull_list)
+    print(f"Begin {num_files} bucket copies...")  # todo make logger
+    # Create the Secret Manager client.
+    if secret_id is not None:
+        client = secretmanager.SecretManagerServiceClient()
+        access_key = pull_secret_version(client, project_id, secret_id["id"], "latest")
+        secret_key = pull_secret_version(client, project_id, secret_id["key"], "latest")
+        s3 = boto3.client('s3', aws_access_key_id=access_key, aws_secret_access_key=secret_key)
+    else:
+        s3 = boto3.client('s3')
+    copy_count, output_list = 0, []
+    # for url in pull_list[:3]:
+    for url in pull_list:
+        print(url)
+        path_pieces = up.urlparse(url)
+        print(path_pieces)
+        dir_name = os.path.dirname(path_pieces.path)
+        make_dir = f"{local_files_dir}{dir_name}"
+        print(make_dir)
+        # os.makedirs(makedir, exists_ok=True)
+        full_file = f"{local_files_dir}{path_pieces.path}"
+        print(full_file)
+        # s3.download_file(path_pieces.netloc, path_pieces.path.lstrip('/'), full_file)
+        priunt(path_pieces.netloc, path_pieces.path.lstrip('/'), full_file)
+        output_list.append((url, full_file))
+        copy_count += 1
+        if (copy_count % 10) == 0:
+            print_progress_bar(copy_count, num_files)
+    print_progress_bar(num_files, num_files)
