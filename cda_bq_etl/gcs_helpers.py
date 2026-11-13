@@ -253,15 +253,15 @@ def pull_from_buckets_aws(pull_list, local_files_dir, project_id=None, secret_id
         s3 = boto3.client('s3', aws_access_key_id=access_key, aws_secret_access_key=secret_key)
     else:
         s3 = boto3.client('s3')
-    for url in pull_list:
-        print(url)
-        path_pieces = up.urlparse(url)
+    for tuple in pull_list:
+        print(tuple[0], tuple[1])
+        path_pieces = up.urlparse(tuple[1])
         print(path_pieces)
         dir_name = os.path.dirname(path_pieces.path)
         make_dir = f"{local_files_dir}/{dir_name}"
         print(make_dir)
-        os.makedirs(makedir, exists_ok=True)
-        full_file = f"{local_files_dir}{path_pieces.path}"
+        #os.makedirs(make_dir, exists_ok=True)
+        full_file = f"{local_files_dir}/{path_pieces.path}"
         print(full_file)
-        # s3.download_file(path_pieces.netloc, path_pieces.path.lstrip('/'), full_file)
-        print(path_pieces.netloc, path_pieces.path.lstrip('/'), full_file)
+        # s3.download_file(tuple[0], path_pieces.path.lstrip('/'), full_file)
+        print(tuple[0], path_pieces.path.lstrip('/'), full_file)
