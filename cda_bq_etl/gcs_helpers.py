@@ -26,6 +26,7 @@ from cda_bq_etl.custom_typing import Params
 from google.cloud import secretmanager
 import google_crc32c
 import boto3
+import urllib.parse as up
 
 
 def download_from_external_bucket(uri_path: str,
