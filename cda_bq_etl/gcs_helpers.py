@@ -238,13 +238,9 @@ def pull_secret_version(client, project_id, secret_id, version_id):
     retval = pull_check_and_decode(client, name)
     return retval
 
-# Google VM Utils #
-
 def pull_from_buckets_aws(pull_list, local_files_dir, project_id=None, secret_id=None):
-    """
-    Adapted from GCS version above.
-    """
     num_files = len(pull_list)
+    output_list = []
     print(f"Begin {num_files} bucket copies...")  # todo make logger
     # Create the Secret Manager client.
     if secret_id is not None:
@@ -265,5 +261,7 @@ def pull_from_buckets_aws(pull_list, local_files_dir, project_id=None, secret_id
         os.makedirs(make_dir, exist_ok=True)
         full_file = f"{home}/{local_files_dir}/{path_pieces.path}"
         print(full_file)
+        output_list.append(full_file)
         s3.download_file(tuple[0], path_pieces.path.lstrip('/'), full_file)
         print(tuple[0], path_pieces.path.lstrip('/'), full_file)
+    return output_list

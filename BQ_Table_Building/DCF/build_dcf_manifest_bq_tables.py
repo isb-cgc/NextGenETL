@@ -220,12 +220,11 @@ def main(args):
             if source_buck_tuple[0] == "aws":
                 pull_list = [(source_buck_tuple[1], manifest_file_name)]
                 secret_dict = PARAMS["SECRET_INFO"]
-                pull_from_buckets_aws(pull_list, PARAMS['SCRATCH_DIR'], PARAMS['DEV_PROJECT'], secret_dict)
-                #upload_to_bucket(PARAMS, quant_tsv_path, delete_local=False, verbose=False)
-                #local_to_bucket(bucket, bucket_file, local_file)
+                output_list = pull_from_buckets_aws(pull_list, PARAMS['SCRATCH_DIR'], PARAMS['DEV_PROJECT'], secret_dict)
+                for file in output_list:
+                    upload_to_bucket(PARAMS, file, delete_local=False, verbose=False)
             else:
-                pass
-                #transfer_between_buckets(PARAMS, source_buck, manifest_file_name, PARAMS['WORKING_BUCKET'])
+                transfer_between_buckets(PARAMS, source_buck, manifest_file_name, PARAMS['WORKING_BUCKET'])
 
     if "create_bq_manifest_table" in steps:
         logger.info("Entering create_bq_manifest_table")
