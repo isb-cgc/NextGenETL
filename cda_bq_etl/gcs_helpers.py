@@ -266,7 +266,7 @@ def pull_from_buckets_aws(pull_list, local_files_dir, project_id=None, secret_id
         full_file = f"{local_files_dir}{path_pieces.path}"
         print(full_file)
         # s3.download_file(path_pieces.netloc, path_pieces.path.lstrip('/'), full_file)
-        priunt(path_pieces.netloc, path_pieces.path.lstrip('/'), full_file)
+        print(path_pieces.netloc, path_pieces.path.lstrip('/'), full_file)
         output_list.append((url, full_file))
         copy_count += 1
         if (copy_count % 10) == 0:
