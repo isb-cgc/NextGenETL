@@ -224,7 +224,7 @@ def main(args):
                 for file in output_list:
                     upload_to_bucket(PARAMS, file, delete_local=False, verbose=False)
             else:
-                transfer_between_buckets(PARAMS, source_buck, manifest_file_name, PARAMS['WORKING_BUCKET'])
+                transfer_between_buckets(PARAMS, source_buck_tuple[1], manifest_file_name, PARAMS['WORKING_BUCKET'])
 
     if "create_bq_manifest_table" in steps:
         logger.info("Entering create_bq_manifest_table")
