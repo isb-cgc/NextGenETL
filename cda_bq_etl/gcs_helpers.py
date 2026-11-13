@@ -253,7 +253,6 @@ def pull_from_buckets_aws(pull_list, local_files_dir, project_id=None, secret_id
         s3 = boto3.client('s3', aws_access_key_id=access_key, aws_secret_access_key=secret_key)
     else:
         s3 = boto3.client('s3')
-    copy_count, output_list = 0, []
     # for url in pull_list[:3]:
     for url in pull_list:
         print(url)
@@ -267,8 +266,3 @@ def pull_from_buckets_aws(pull_list, local_files_dir, project_id=None, secret_id
         print(full_file)
         # s3.download_file(path_pieces.netloc, path_pieces.path.lstrip('/'), full_file)
         print(path_pieces.netloc, path_pieces.path.lstrip('/'), full_file)
-        output_list.append((url, full_file))
-        copy_count += 1
-        if (copy_count % 10) == 0:
-            print_progress_bar(copy_count, num_files)
-    print_progress_bar(num_files, num_files)
