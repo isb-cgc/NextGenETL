@@ -25,6 +25,7 @@ from cda_bq_etl.utils import get_scratch_fp, get_filepath
 from cda_bq_etl.custom_typing import Params
 from google.cloud import secretmanager
 import google_crc32c
+import boto3
 
 
 def download_from_external_bucket(uri_path: str,
