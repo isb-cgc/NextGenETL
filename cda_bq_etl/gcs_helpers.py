@@ -263,7 +263,7 @@ def pull_from_buckets_aws(pull_list, local_files_dir, project_id=None, secret_id
         make_dir = f"{home}/{local_files_dir}/{dir_name}"
         print(make_dir)
         os.makedirs(make_dir, exist_ok=True)
-        full_file = f"{local_files_dir}/{path_pieces.path}"
+        full_file = f"{home}/{local_files_dir}/{path_pieces.path}"
         print(full_file)
         s3.download_file(tuple[0], path_pieces.path.lstrip('/'), full_file)
         print(tuple[0], path_pieces.path.lstrip('/'), full_file)
