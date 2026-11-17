@@ -27,7 +27,9 @@ from types import SimpleNamespace
 import shutil
 import zipfile
 import gzip
-from google.cloud import bigquery
+from pathlib import Path
+import urllib.parse as up
+from google.cloud import bigquery, secretmanager
 
 from gdc_file_utils import (confirm_google_vm, format_seconds, update_dir_from_git, query_bq, bq_to_bucket_tsv,
                             bucket_to_local, find_types, pull_from_buckets_aws, build_file_list,
@@ -289,33 +291,35 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
     draft_table = f"{prefix}_draft_table"
     field_list = f"{local_location}/{prefix}_field_schema.json"
     bucket_folder=f"{data_type}/{program_mappings[program]['bq_dataset']}_{params.RELEASE}"
-
+    
     if 'create_file_list' in steps:
         logger.info("Running create_file_list Step")
         create_file_list(params, program, data_type, local_location, prefix, file_list,
                          datatype_mappings)
-
-    if 'transfer_from_gdc' in steps:
+    
+    if 'transfer_from_aws' in steps:
         # Bring the files to the local dir from DCF GDC Cloud Buckets
         with open(f"{local_location}/{file_list}", mode='r') as pull_list_file:
             pull_list = pull_list_file.read().splitlines()
-        pull_from_buckets_aws(pull_list, raw_files_local_location)
+        pull_from_buckets_aws(pull_list, raw_files_local_location, PROJECT_ID, PROJECT_ID_NUMBER) # placeholder variables, adjust yaml
 
         all_files = build_file_list(raw_files_local_location)
         with open(f"{local_location}/{file_traversal_list}", mode='w') as traversal_list:
             for line in all_files:
                 traversal_list.write(f"{line}\n")
     
-    if 'transfer_to_gcs' in steps:
-        bucket_name = 'gs://next-gen-etl-archives/'
+    if 'transfer_to_gcs' in steps: # placeholder functions, use global in bill's commit
+        bucket_name = TEMP_GCS_BUCKET # placeholder param, adjust yaml
         with open(f"{local_location}/{file_list}", mode='r') as pull_list_file:
             pull_list = pull_list_file.read().splitlines()
         for url in pull_list[:3]:
             path_pieces = up.urlparse(url)
-            full_file = f"{local_files_dir}{path_pieces.path}"
+            dir_name = os.path.dirname(path_pieces.path)
+            full_file = f"{raw_files_local_location}{path_pieces.path}"
+            print(f'full_file={full_file}')
             bucket_file = path_pieces.path.lstrip('/')
-            local_file = f"{local_files_dir}{dir_name}.tsv"
-            local_to_bucket(bucket_name, bucket_file, local_file)
+            print(f'bucket_file={bucket_file}')
+            local_to_bucket(bucket_name, bucket_file, full_file)
 
     if 'create_concat_file' in steps:
         logging.info("Creating concat file")
@@ -339,7 +343,7 @@ def build_bq_tables_steps(params, home, local_dir, workflow_run_ver, steps, data
         local_to_bucket(params.DEV_BUCKET, f"{params.DEV_BUCKET_DIR}/{params.RELEASE}/{raw_data}.tsv", local_concat_file)
 
         logging.info("Removing local files")
-        clean_local_file_dir(local_file_dir)
+        #clean_local_file_dir(local_file_dir)
 
     if 'create_bq_from_tsv' in steps:
         logging.info("Running create_bq_from_tsv Step")
