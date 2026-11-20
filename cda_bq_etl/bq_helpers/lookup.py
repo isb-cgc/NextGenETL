@@ -714,8 +714,8 @@ def table_has_new_data_supports_nans(previous_table_id: str, current_table_id: s
         output_str += "\n\n"
 
         for next_row in row_result:
-            row_str = f"{next_row['column']}, {next_row['state']}"
-            output_str += f"{row_str}\n"
+            #row_str = f"{next_row['column']}, {next_row['state']}"
+            output_str += f"{str(next_row)}\n"
 
         the_logger.info(f"{output_str}\n")
         return
