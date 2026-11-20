@@ -674,6 +674,52 @@ def table_has_new_data_supports_nans(previous_table_id: str, current_table_id: s
     :rtype: bool
     """
 
+    def report_column_changes(previous_table_name: str, current_table_name: str, the_logger):
+
+        current_table = current_table_name.split(".")[-1]
+        current_table_proj_dataset = ".".join(current_table_name.split(".")[0:2])
+
+        previous_table = previous_table_name.split(".")[-1]
+        previous_table_proj_dataset = ".".join(previous_table_name.split(".")[0:2])
+
+        sql = f'''
+            WITH gain AS (SELECT column_name
+            FROM `{current_table_proj_dataset}`.INFORMATION_SCHEMA.COLUMNS
+            WHERE table_name = '{current_table}'
+            EXCEPT DISTINCT
+            SELECT column_name
+            FROM `{previous_table_proj_dataset}`.INFORMATION_SCHEMA.COLUMNS
+            WHERE table_name = '{previous_table}'),
+            loss AS (SELECT column_name
+            FROM `{previous_table_proj_dataset}`.INFORMATION_SCHEMA.COLUMNS
+            WHERE table_name = '{previous_table}'
+            EXCEPT DISTINCT
+            SELECT column_name
+            FROM `{current_table_proj_dataset}`.INFORMATION_SCHEMA.COLUMNS
+            WHERE table_name = '{current_table}')
+            SELECT *, "gain" as state from gain
+            UNION DISTINCT
+            SELECT *, "loss" as state from loss
+    '''
+
+        row_result = query_and_retrieve_result(sql)
+
+        if row_result.total_rows == 0:
+            the_logger.warning("Unexpected: no differences found")
+            the_logger.warning("")
+            return
+
+        output_str = "column, state"
+
+        output_str += "\n\n"
+
+        for next_row in row_result:
+            row_str = f"{next_row['column']}, {next_row['state']}"
+            output_str += f"{row_str}\n"
+
+        the_logger.info(f"{output_str}\n")
+        return
+
     def compare_two_nan_tables_sql(nan_column: str) -> str:
         return f"""
             (
@@ -721,6 +767,7 @@ def table_has_new_data_supports_nans(previous_table_id: str, current_table_id: s
     if compare_result is None:
         logger = logging.getLogger('base_script.cda_bq_etl.bq_helpers.lookup')
         logger.info("No result returned for table comparison query. Often means that tables have differing schemas.")
+        report_column_changes(previous_table_id, current_table_id, logger)
         return True
 
     for row in compare_result:
