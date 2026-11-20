@@ -709,15 +709,10 @@ def table_has_new_data_supports_nans(previous_table_id: str, current_table_id: s
             the_logger.warning("")
             return
 
-        output_str = "column_name, state"
-
-        output_str += "\n\n"
-
         for next_row in row_result:
-            row_str = f"{next_row['column_name']}, {next_row['state']}"
-            output_str += f"{row_str}\n"
+            row_str = f"Column mismatch: {next_row['column_name']}, {next_row['state']}"
+            the_logger.info(row_str)
 
-        the_logger.info(f"{output_str}\n")
         return
 
     def compare_two_nan_tables_sql(nan_column: str) -> str:
