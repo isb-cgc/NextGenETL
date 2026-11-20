@@ -1023,7 +1023,11 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
     logger = logging.getLogger('base_script')
     logger.info("Generating table id list")
     # WJRL need to make this immune to 5_1 including 5_1_1 problem:
-    new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
+    new_table_names = ["isb-project-zero.cda_gdc_clinical.r45_APOLLO_clinical"]
+
+    #get_new_table_names(dataset=table_params['dev_dataset'])
+    for table_name in new_table_names:
+        logger.info("{table_name}")
 
     table_ids_list = list()
 
