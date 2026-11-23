@@ -660,6 +660,48 @@ def table_has_new_data(previous_table_id: str, current_table_id: str) -> bool:
     """
     return table_has_new_data_supports_nans(previous_table_id, current_table_id, None)
 
+def report_column_changes(previous_table_name: str, current_table_name: str, the_logger):
+
+        current_table = current_table_name.split(".")[-1]
+        current_table_proj_dataset = ".".join(current_table_name.split(".")[0:2])
+
+        previous_table = previous_table_name.split(".")[-1]
+        previous_table_proj_dataset = ".".join(previous_table_name.split(".")[0:2])
+
+        sql = f'''
+            WITH gain AS (SELECT column_name, data_type
+            FROM `{current_table_proj_dataset}`.INFORMATION_SCHEMA.COLUMNS
+            WHERE table_name = '{current_table}'
+            EXCEPT DISTINCT
+            SELECT column_name, data_type
+            FROM `{previous_table_proj_dataset}`.INFORMATION_SCHEMA.COLUMNS
+            WHERE table_name = '{previous_table}'),
+            loss AS (SELECT column_name, data_type
+            FROM `{previous_table_proj_dataset}`.INFORMATION_SCHEMA.COLUMNS
+            WHERE table_name = '{previous_table}'
+            EXCEPT DISTINCT
+            SELECT column_name, data_type
+            FROM `{current_table_proj_dataset}`.INFORMATION_SCHEMA.COLUMNS
+            WHERE table_name = '{current_table}')
+            SELECT *, "gain" as state from gain
+            UNION DISTINCT
+            SELECT *, "loss" as state from loss
+    '''
+
+        row_result = query_and_retrieve_result(sql)
+
+        if the_logger is not None:
+            if row_result.total_rows == 0:
+                the_logger.warning("Unexpected: no differences found")
+                the_logger.warning("")
+                return
+
+            for next_row in row_result:
+                row_str = f"Column mismatch: {next_row['column_name']}, {next_row['data_type']}, {next_row['state']}"
+                the_logger.info(row_str)
+
+        return row_result
+
 def table_has_new_data_supports_nans(previous_table_id: str, current_table_id: str, nan_column: Optional[str]) -> bool:
     """
     Compare newly created table and existing published table. Only publish new table if there's a difference.
@@ -674,46 +716,7 @@ def table_has_new_data_supports_nans(previous_table_id: str, current_table_id: s
     :rtype: bool
     """
 
-    def report_column_changes(previous_table_name: str, current_table_name: str, the_logger):
 
-        current_table = current_table_name.split(".")[-1]
-        current_table_proj_dataset = ".".join(current_table_name.split(".")[0:2])
-
-        previous_table = previous_table_name.split(".")[-1]
-        previous_table_proj_dataset = ".".join(previous_table_name.split(".")[0:2])
-
-        sql = f'''
-            WITH gain AS (SELECT column_name
-            FROM `{current_table_proj_dataset}`.INFORMATION_SCHEMA.COLUMNS
-            WHERE table_name = '{current_table}'
-            EXCEPT DISTINCT
-            SELECT column_name
-            FROM `{previous_table_proj_dataset}`.INFORMATION_SCHEMA.COLUMNS
-            WHERE table_name = '{previous_table}'),
-            loss AS (SELECT column_name
-            FROM `{previous_table_proj_dataset}`.INFORMATION_SCHEMA.COLUMNS
-            WHERE table_name = '{previous_table}'
-            EXCEPT DISTINCT
-            SELECT column_name
-            FROM `{current_table_proj_dataset}`.INFORMATION_SCHEMA.COLUMNS
-            WHERE table_name = '{current_table}')
-            SELECT *, "gain" as state from gain
-            UNION DISTINCT
-            SELECT *, "loss" as state from loss
-    '''
-
-        row_result = query_and_retrieve_result(sql)
-
-        if row_result.total_rows == 0:
-            the_logger.warning("Unexpected: no differences found")
-            the_logger.warning("")
-            return
-
-        for next_row in row_result:
-            row_str = f"Column mismatch: {next_row['column_name']}, {next_row['state']}"
-            the_logger.info(row_str)
-
-        return
 
     def compare_two_nan_tables_sql(nan_column: str) -> str:
         return f"""
