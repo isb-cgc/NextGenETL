@@ -1369,7 +1369,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
 
     for column in sorted(column_list):
         if column in skip_cols:
-            logger.info(f"Column mismatch: skipping comparison of {column}")
+            logger.info(f"***********************Column mismatch: skipping comparison of {column}")
             continue
         compare_table_column_query = make_compare_table_column_sql(column)
 
