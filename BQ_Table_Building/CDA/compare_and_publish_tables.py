@@ -1206,6 +1206,19 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
 
                 logger.info("Comparing records by column!")
                 logger.info("")
+
+                if ('known_primary_key_reassignment_across_versions' in table_params and
+                    table_params['known_primary_key_reassignment_across_versions']):
+                    if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
+                        current_table_name = table_ids['current'].split('.')[-1]
+                        current_table_name = current_table_name.replace("_current", "")
+                        base_table_name = current_table_name.replace(f"_{PARAMS['NODE']}", "")
+                        if base_table_name in table_params['known_primary_key_reassignment_across_versions']:
+                            logger.info("CAUTION*********CAUTION*********CAUTION*********CAUTION")
+                            message = f'''Tables {base_table_name} has a known history of having reassigned primary keys across data rows between releases, creating spurious change reports'''
+                            logger.info(message)
+                            logger.info("CAUTION*********CAUTION*********CAUTION*********CAUTION")
+
                 compare_table_columns(table_ids=table_ids,
                                       table_params=modified_table_params,
                                       max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
@@ -1369,7 +1382,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
 
     for column in sorted(column_list):
         if column in skip_cols:
-            logger.info(f"***********************Column mismatch: skipping comparison of {column}")
+            logger.info(f"*********************** Column mismatch: skipping comparison of {column}")
             continue
         compare_table_column_query = make_compare_table_column_sql(column)
 
