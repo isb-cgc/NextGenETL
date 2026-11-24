@@ -29,7 +29,8 @@ from typing import Union
 
 from cda_bq_etl.bq_helpers.lookup import query_and_retrieve_result, find_most_recent_published_table_id, \
     find_most_recent_published_refseq_table_id, get_most_recent_published_table_id_pdc, get_pdc_per_project_dataset, \
-    get_pdc_per_study_dataset, table_has_new_data, table_has_new_data_supports_nans, exists_bq_dataset
+    get_pdc_per_study_dataset, table_has_new_data, table_has_new_data_supports_nans, exists_bq_dataset, \
+    report_column_changes
 from cda_bq_etl.bq_helpers.create_modify import publish_table_with_nan_support
 
 from cda_bq_etl.bq_helpers.create_modify import publish_table
@@ -1025,6 +1026,10 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
     # WJRL need to make this immune to 5_1 including 5_1_1 problem:
     new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
 
+    logger.info("New table names:")
+    for table_name in new_table_names:
+        logger.info(table_name)
+
     table_ids_list = list()
 
     for table_name in new_table_names:
@@ -1201,6 +1206,19 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
 
                 logger.info("Comparing records by column!")
                 logger.info("")
+
+                if ('known_primary_key_reassignment_across_versions' in table_params and
+                    table_params['known_primary_key_reassignment_across_versions']):
+                    if table_type == 'clinical' and PARAMS['NODE'] == 'gdc':
+                        current_table_name = table_ids['current'].split('.')[-1]
+                        current_table_name = current_table_name.replace("_current", "")
+                        base_table_name = current_table_name.replace(f"_{PARAMS['NODE']}", "")
+                        if base_table_name in table_params['known_primary_key_reassignment_across_versions']:
+                            logger.info("CAUTION*********CAUTION*********CAUTION*********CAUTION")
+                            message = f'''Table {base_table_name} has a known history of having reassigned primary keys across data rows between releases, creating spurious change reports!'''
+                            logger.info(message)
+                            logger.info("CAUTION*********CAUTION*********CAUTION*********CAUTION")
+
                 compare_table_columns(table_ids=table_ids,
                                       table_params=modified_table_params,
                                       max_display_rows=PARAMS['MAX_DISPLAY_ROWS'])
@@ -1310,6 +1328,7 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
         column_union_set = column_union_set - excluded_columns
 
         return sorted(list(column_union_set))
+    #--- End of generate_column_list()
 
     logger = logging.getLogger('base_script')
     query_logger = logging.getLogger('query_logger')
@@ -1349,7 +1368,22 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
         table_id_list = [table_ids['source'], table_ids['previous_versioned']]
         column_list = generate_column_list()
 
+    #
+    # WJRL 11/23/26: Just skip columns that are just going to fail because of name or type change. Who needs the
+    # cruft in the output log?
+    #
+
+    results = report_column_changes(table_ids['previous_versioned'], table_ids['source'], None)
+
+    skip_cols = set()
+    if results is not None:
+        for next_row in results:
+            skip_cols.add(next_row['column_name'])
+
     for column in sorted(column_list):
+        if column in skip_cols:
+            logger.info(f"*********************** Column mismatch: skipping comparison of {column}")
+            continue
         compare_table_column_query = make_compare_table_column_sql(column)
 
         if table_params['data_type'] == 'metadata':
@@ -1365,7 +1399,10 @@ def compare_table_columns(table_ids: dict[str, str], table_params: TableParams, 
             logger.info(f"{column}: Column doesn't exist in one or both tables, or data types don't match.")
             logger.info(f"Common reasons: non-trivial field data added to program; field deprecated by node.")
             logger.info("")
-        elif column_comparison_result.total_rows > 0:
+        elif column_comparison_result.total_rows == 0:
+            logger.info(f"{column}: Checked with no differences")
+        else:
+        #elif column_comparison_result.total_rows > 0:
             logger.info(f"{column}: {column_comparison_result.total_rows} differences found. Examples:")
 
             output_str = ""
