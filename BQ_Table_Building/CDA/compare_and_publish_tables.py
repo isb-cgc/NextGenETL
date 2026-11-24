@@ -1026,6 +1026,12 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
     # WJRL need to make this immune to 5_1 including 5_1_1 problem:
     new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
 
+    new_new_table_names = []
+    for table_name in new_table_names:
+        if 'clinical_diagnosis_treatment' in table_name:
+            new_new_table_names.append(table_name)
+    new_table_names = new_new_table_names
+
     logger.info("New table names:")
     for table_name in new_table_names:
         logger.info(table_name)
