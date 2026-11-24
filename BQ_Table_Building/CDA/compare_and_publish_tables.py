@@ -1026,12 +1026,6 @@ def generate_table_id_list(table_type: str, table_params: TableParams) -> TableI
     # WJRL need to make this immune to 5_1 including 5_1_1 problem:
     new_table_names = get_new_table_names(dataset=table_params['dev_dataset'])
 
-    new_new_table_names = []
-    for table_name in new_table_names:
-        if 'clinical_diagnosis_treatment' in table_name:
-            new_new_table_names.append(table_name)
-    new_table_names = new_new_table_names
-
     logger.info("New table names:")
     for table_name in new_table_names:
         logger.info(table_name)
@@ -1221,7 +1215,7 @@ def compare_tables(table_type: str, table_params: TableParams, table_id_list: Ta
                         base_table_name = current_table_name.replace(f"_{PARAMS['NODE']}", "")
                         if base_table_name in table_params['known_primary_key_reassignment_across_versions']:
                             logger.info("CAUTION*********CAUTION*********CAUTION*********CAUTION")
-                            message = f'''Tables {base_table_name} has a known history of having reassigned primary keys across data rows between releases, creating spurious change reports'''
+                            message = f'''Table {base_table_name} has a known history of having reassigned primary keys across data rows between releases, creating spurious change reports!'''
                             logger.info(message)
                             logger.info("CAUTION*********CAUTION*********CAUTION*********CAUTION")
 
