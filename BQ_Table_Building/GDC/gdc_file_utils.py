@@ -23,12 +23,14 @@ import time
 import boto3
 from botocore.config import Config
 from git import Repo
+from pathlib import Path
 import requests
 import urllib.parse as up
 from google.api_core.exceptions import NotFound, BadRequest
 from google.cloud import bigquery, storage, secretmanager
 import shutil
 import re
+import hashlib
 from distutils import util
 from json import loads as json_loads, dumps as json_dumps
 
@@ -106,6 +108,11 @@ def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, lengt
         print()
     return
 
+def access_secret_version(secret_id, project_id='isb-project-zero', version_id="latest"):
+    client = secretmanager.SecretManagerServiceClient()
+    name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
+    response = client.access_secret_version(name=name)
+    return response.payload.data.decode('UTF-8')
 
 # File Utilities #
 
@@ -356,30 +363,46 @@ def pull_from_buckets(pull_list, local_files_dir):
 
 # Google VM Utils #
 
-def pull_from_buckets_aws(pull_list, local_files_dir):
+def pull_from_buckets_aws(pull_list, local_files_dir, PROJECT_ID, secret_id, access_key_id, access_key):
     """
     Adapted from GCS version above.
     """
+    pull_list = sorted(pull_list)
     num_files = len(pull_list)
     print(f"Begin {num_files} bucket copies...") # todo make logger
-    s3 = boto3.client('s3')
-    copy_count, output_list = 0, []
-    for url in pull_list[:3]:
-        print(url)
+    ACCESS_KEY = access_secret_version(access_key_id, project_id=PROJECT_ID, version_id="latest")
+    SECRET_KEY = access_secret_version(access_key, project_id=PROJECT_ID, version_id="latest")
+    s3 = boto3.client('s3', aws_access_key_id=ACCESS_KEY, aws_secret_access_key=SECRET_KEY)
+    copy_count = 0
+    for url in pull_list:
         path_pieces = up.urlparse(url)
-        print(path_pieces)
-        dir_name = os.path.dirname(path_pieces.path)
-        make_dir = f"{local_files_dir}{dir_name}"
-        print(make_dir)
-        os.makedirs(makedir, exists_ok=True)
         full_file = f"{local_files_dir}{path_pieces.path}"
-        print(full_file)
-        s3.download_file(path_pieces.netloc, path_pieces.path.lstrip('/'), full_file)
-        output_list.append((url, full_file))
+        if not Path(full_file).exists():
+            dir_name = os.path.dirname(path_pieces.path)
+            make_dir = f"{local_files_dir}{dir_name}"
+            os.makedirs(make_dir, exist_ok=True)
+            try:
+                s3.download_file(path_pieces.netloc, path_pieces.path.lstrip('/'), full_file)
+            except Exception as e:
+                print(url)
+                print(e)
+                continue
+        if Path(full_file).exists():
+            checksum_bucket = s3.head_object(Bucket=path_pieces.netloc, Key=path_pieces.path.lstrip('/')).get('ETag', '').strip('"')
+            #checksum_bucket = s3.get_object_attributes(path_pieces.netloc, path_pieces.path.lstrip('/'), ObjectAttributes=['Checksum'])
+            checksum_local = get_md5_sum(full_file)
+            if checksum_bucket != checksum_local: print(f"download error: {url}")
         copy_count += 1
         if (copy_count % 10) == 0:
             print_progress_bar(copy_count, num_files)
     print_progress_bar(num_files, num_files)
+    
+def get_md5_sum(file_path, chunk_size=8192):
+  md5_hash = hashlib.md5()
+  with open(file_path, "rb") as f:
+    while chunk := f.read(chunk_size):
+      md5_hash.update(chunk)
+  return md5_hash.hexdigest()
 
 def confirm_google_vm():
     # todo
